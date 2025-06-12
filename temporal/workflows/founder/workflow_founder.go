@@ -8,6 +8,8 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
+const WorkflowName = "founder.Workflow"
+
 // Workflow is a Hello World workflow definition.
 func Workflow(ctx workflow.Context, name string) (string, error) {
 	ao := workflow.ActivityOptions{
@@ -29,6 +31,8 @@ func Workflow(ctx workflow.Context, name string) (string, error) {
 
 	return result, nil
 }
+
+const ActivityName = "founder.Activity"
 
 func Activity(ctx context.Context, name string) (string, error) {
 	logger := activity.GetLogger(ctx)
