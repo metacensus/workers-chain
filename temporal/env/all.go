@@ -6,6 +6,9 @@ const (
 	temporalAddressName    = "TEMPORAL_ADDRESS"
 	healthCheckAddressName = "HEALTH_CHECK_ADDRESS"
 	infraTaskQueueName     = "INFRA_TASK_QUEUE"
+
+	githubRepoName      = "GITHUB_REPO"
+	githubDeployKeyName = "GITHUB_DEPLOY_KEY"
 )
 
 func init() {
@@ -23,4 +26,12 @@ func HealthCheckAddress() string {
 
 func InfraTaskQueue() string {
 	return viper.GetString(infraTaskQueueName)
+}
+
+func GithubRepo() string {
+	return viper.GetString(githubRepoName)
+}
+
+func GithubDeployKey() string {
+	return viper.GetString(githubDeployKeyName)
 }

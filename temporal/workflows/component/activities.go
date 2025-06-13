@@ -36,7 +36,6 @@ type Activities struct {
 
 type ManifestStore interface {
 	Get(ctx context.Context, component, version string) ([]*unstructured.Unstructured, error)
-	Put(ctx context.Context, component, version string, rawManifest []byte) error
 }
 
 func RegisterActivities(w worker.Worker) {
@@ -65,7 +64,6 @@ func RegisterActivities(w worker.Worker) {
 	}
 	// Register activities - using struct methods
 	util.RegisterActivity(w, activities.Apply, ApplyActivityName)
-	util.RegisterActivity(w, activities.Build, BuildActivityName)
 }
 
 // createK8sConfig creates a kubernetes config using in-cluster config or kubeconfig

@@ -11,7 +11,6 @@ func NewWorker(c client.Client, taskQueue string, opts worker.Options) worker.Wo
 	w := worker.New(c, taskQueue, opts)
 
 	component.RegisterActivities(w)
-	component.RegisterWorkflows(w)
 
 	founder.RegisterWorkflows(w)
 
