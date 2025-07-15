@@ -1,6 +1,7 @@
 package workflows
 
 import (
+	"github.com/metacensus/infra/temporal/workflows/certificate"
 	"github.com/metacensus/infra/temporal/workflows/component"
 	"github.com/metacensus/infra/temporal/workflows/founder"
 	"go.temporal.io/sdk/client"
@@ -13,6 +14,7 @@ func NewWorker(c client.Client, taskQueue string, opts worker.Options) worker.Wo
 	component.RegisterActivities(w)
 
 	founder.RegisterWorkflows(w)
+	certificate.RegisterWorkflows(w)
 
 	return w
 }
