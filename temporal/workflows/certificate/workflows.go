@@ -12,6 +12,9 @@ func RegisterWorkflows(w worker.Worker) {
 	util.RegisterWorkflow(w, AssembleMSPWorkflow, AssembleMSPWorkflowName)
 	util.RegisterWorkflow(w, StoreSecretWorkflow, StoreSecretWorkflowName)
 
+	// Admin management workflows
+	util.RegisterWorkflow(w, BootstrapAdminWorkflow, BootstrapAdminWorkflowName)
+
 	// Composite workflows
 	util.RegisterWorkflow(w, ProvisionPeerWorkflow, ProvisionPeerWorkflowName)
 	util.RegisterWorkflow(w, ProvisionOrdererWorkflow, ProvisionOrdererWorkflowName)
@@ -28,4 +31,9 @@ func RegisterWorkflows(w worker.Worker) {
 	util.RegisterActivity(w, EnrollIdentityActivity, "certificate.EnrollIdentityActivity")
 	util.RegisterActivity(w, AssembleMSPActivity, "certificate.AssembleMSPActivity")
 	util.RegisterActivity(w, StoreSecretActivity, "certificate.StoreSecretActivity")
+	util.RegisterActivity(w, CreateAdminIdentityActivity, "certificate.CreateAdminIdentityActivity")
+	util.RegisterActivity(w, StoreAdminIdentityActivity, "certificate.StoreAdminIdentityActivity")
+	util.RegisterActivity(w, RevokeDefaultAdminActivity, "certificate.RevokeDefaultAdminActivity")
+	util.RegisterActivity(w, CreateAffiliationsActivity, "certificate.CreateAffiliationsActivity")
+	util.RegisterActivity(w, GenerateSecureSecretActivity, "certificate.GenerateSecureSecretActivity")
 }

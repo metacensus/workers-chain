@@ -1,9 +1,12 @@
 package certificate
 
 import (
+	"context"
 	"fmt"
 	"time"
 
+	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -11,183 +14,152 @@ const (
 	BootstrapMetacensusOrgWorkflowName = "certificate.BootstrapMetacensusOrgWorkflow"
 )
 
-// BootstrapMetacensusOrgWorkflow bootstraps the metacensus organization
-// This workflow creates the initial admin identity and organization structure
-func BootstrapMetacensusOrgWorkflow(ctx workflow.Context) error {
-	logger := workflow.GetLogger(ctx)
-	logger.Info("Metacensus organization bootstrap workflow started")
-
-	// Create admin identity for the organization
-	adminConfig := ClientConfig{
-		ClientID: "admin",
-		CustomAttributes: map[string]string{
-			"hf.Registrar.Roles":      "admin",
-			"hf.Registrar.Attributes": "*",
+// BootstrapMetacensusOrgWorkflow bootstraps the metacensus organization with admin identity
+func BootstrapMetacensusOrgWorkflow(ctx workflow.Context, config BootstrapConfig) error {
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    3,
 		},
-		Namespace: "fabric",
 	}
+	ctx = workflow.WithActivityOptions(ctx, ao)
 
-	err := workflow.ExecuteChildWorkflow(ctx, ProvisionClientWorkflow, adminConfig).Get(ctx, nil)
+	logger := workflow.GetLogger(ctx)
+	logger.Info("Starting metacensus organization bootstrap",
+		"ca_endpoint", config.CAEndpoint)
+
+	// Step 1: Bootstrap admin identity
+	var adminSecret string
+	err := workflow.ExecuteActivity(ctx, GenerateSecureSecretActivity, 32).Get(ctx, &adminSecret)
 	if err != nil {
-		logger.Error("Failed to create admin identity", "error", err)
-		return fmt.Errorf("admin identity creation failed: %w", err)
+		return fmt.Errorf("failed to generate admin secret: %w", err)
 	}
 
-	// Create initial peer identities
+	var bootstrapResult *BootstrapAdminResult
+	err = workflow.ExecuteChildWorkflow(ctx, BootstrapAdminWorkflow, BootstrapAdminParams{
+		CAEndpoint:     config.CAEndpoint,
+		AdminID:        "metacensus-admin",
+		AdminSecret:    adminSecret,
+		DefaultAdminID: "admin",
+		DefaultSecret:  "adminpw", // Default Fabric CA admin password
+		Attributes: map[string]string{
+			"hf.Registrar.Roles":         "admin",
+			"hf.Registrar.Attributes":    "*",
+			"hf.Registrar.DelegateRoles": "admin",
+		},
+		VaultPath: "fabric/metacensus/admin",
+	}).Get(ctx, &bootstrapResult)
+	if err != nil {
+		return fmt.Errorf("failed to bootstrap admin identity: %w", err)
+	}
+
+	if !bootstrapResult.Success {
+		return fmt.Errorf("admin bootstrap failed: %s", bootstrapResult.Message)
+	}
+
+	logger.Info("Admin identity bootstrapped successfully",
+		"admin_id", bootstrapResult.AdminIdentity.ID)
+
+	// Step 2: Create organization structure
+	// Create affiliations for the organization
+	err = workflow.ExecuteActivity(ctx, CreateAffiliationsActivity, CreateAffiliationsParams{
+		CAEndpoint:    config.CAEndpoint,
+		AdminIdentity: bootstrapResult.AdminIdentity,
+		Affiliations: []string{
+			"metacensus",
+			"metacensus.department1",
+			"metacensus.department2",
+		},
+	}).Get(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create affiliations: %w", err)
+	}
+
+	// Step 3: Create initial peers
 	peerConfigs := []PeerConfig{
 		{
 			PeerID:       "peer0",
-			EnrollmentCA: "http://ca0.fabric.svc.cluster.local:7054",
-			TLSCA:        "http://ca0.fabric.svc.cluster.local:7054",
-			OrgNodeOUs: NodeOUConfig{
-				Enable: true,
-				Client: map[string]string{
-					"certificateAuthorities": "true",
-					"clientOU":               "true",
-				},
-				Peer: map[string]string{
-					"certificateAuthorities": "true",
-					"peerOU":                 "true",
-				},
-				Admin: map[string]string{
-					"certificateAuthorities": "true",
-					"adminOU":                "true",
-				},
-				Orderer: map[string]string{
-					"certificateAuthorities": "true",
-					"ordererOU":              "true",
-				},
-			},
-			Namespace: "fabric",
+			Organization: "metacensus",
+			EnrollmentCA: config.CAEndpoint,
+			TLSCA:        config.CAEndpoint,
+			OrgNodeOUs:   config.OrgNodeOUs,
 		},
 		{
 			PeerID:       "peer1",
-			EnrollmentCA: "http://ca0.fabric.svc.cluster.local:7054",
-			TLSCA:        "http://ca0.fabric.svc.cluster.local:7054",
-			OrgNodeOUs: NodeOUConfig{
-				Enable: true,
-				Client: map[string]string{
-					"certificateAuthorities": "true",
-					"clientOU":               "true",
-				},
-				Peer: map[string]string{
-					"certificateAuthorities": "true",
-					"peerOU":                 "true",
-				},
-				Admin: map[string]string{
-					"certificateAuthorities": "true",
-					"adminOU":                "true",
-				},
-				Orderer: map[string]string{
-					"certificateAuthorities": "true",
-					"ordererOU":              "true",
-				},
-			},
-			Namespace: "fabric",
+			Organization: "metacensus",
+			EnrollmentCA: config.CAEndpoint,
+			TLSCA:        config.CAEndpoint,
+			OrgNodeOUs:   config.OrgNodeOUs,
 		},
 	}
 
 	// Provision peers in parallel
 	for _, peerConfig := range peerConfigs {
-		config := peerConfig // Capture the variable
+		pc := peerConfig // Capture the variable
 		workflow.Go(ctx, func(ctx workflow.Context) {
-			workflow.ExecuteChildWorkflow(ctx, ProvisionPeerWorkflow, config).Get(ctx, nil)
+			workflow.ExecuteChildWorkflow(ctx, ProvisionPeerWorkflow, pc).Get(ctx, nil)
 		})
 	}
 
-	// Create initial orderer identities
+	// Step 4: Create initial orderers
 	ordererConfigs := []OrdererConfig{
 		{
 			OrdererID:    "orderer0",
-			EnrollmentCA: "http://ca0.fabric.svc.cluster.local:7054",
-			TLSCA:        "http://ca0.fabric.svc.cluster.local:7054",
-			OrgNodeOUs: NodeOUConfig{
-				Enable: true,
-				Client: map[string]string{
-					"certificateAuthorities": "true",
-					"clientOU":               "true",
-				},
-				Peer: map[string]string{
-					"certificateAuthorities": "true",
-					"peerOU":                 "true",
-				},
-				Admin: map[string]string{
-					"certificateAuthorities": "true",
-					"adminOU":                "true",
-				},
-				Orderer: map[string]string{
-					"certificateAuthorities": "true",
-					"ordererOU":              "true",
-				},
-			},
-			Namespace: "fabric",
+			Organization: "metacensus",
+			EnrollmentCA: config.CAEndpoint,
+			TLSCA:        config.CAEndpoint,
+			OrgNodeOUs:   config.OrgNodeOUs,
 		},
 		{
 			OrdererID:    "orderer1",
-			EnrollmentCA: "http://ca0.fabric.svc.cluster.local:7054",
-			TLSCA:        "http://ca0.fabric.svc.cluster.local:7054",
-			OrgNodeOUs: NodeOUConfig{
-				Enable: true,
-				Client: map[string]string{
-					"certificateAuthorities": "true",
-					"clientOU":               "true",
-				},
-				Peer: map[string]string{
-					"certificateAuthorities": "true",
-					"peerOU":                 "true",
-				},
-				Admin: map[string]string{
-					"certificateAuthorities": "true",
-					"adminOU":                "true",
-				},
-				Orderer: map[string]string{
-					"certificateAuthorities": "true",
-					"ordererOU":              "true",
-				},
-			},
-			Namespace: "fabric",
+			Organization: "metacensus",
+			EnrollmentCA: config.CAEndpoint,
+			TLSCA:        config.CAEndpoint,
+			OrgNodeOUs:   config.OrgNodeOUs,
 		},
 		{
 			OrdererID:    "orderer2",
-			EnrollmentCA: "http://ca0.fabric.svc.cluster.local:7054",
-			TLSCA:        "http://ca0.fabric.svc.cluster.local:7054",
-			OrgNodeOUs: NodeOUConfig{
-				Enable: true,
-				Client: map[string]string{
-					"certificateAuthorities": "true",
-					"clientOU":               "true",
-				},
-				Peer: map[string]string{
-					"certificateAuthorities": "true",
-					"peerOU":                 "true",
-				},
-				Admin: map[string]string{
-					"certificateAuthorities": "true",
-					"adminOU":                "true",
-				},
-				Orderer: map[string]string{
-					"certificateAuthorities": "true",
-					"ordererOU":              "true",
-				},
-			},
-			Namespace: "fabric",
+			Organization: "metacensus",
+			EnrollmentCA: config.CAEndpoint,
+			TLSCA:        config.CAEndpoint,
+			OrgNodeOUs:   config.OrgNodeOUs,
 		},
 	}
 
 	// Provision orderers in parallel
 	for _, ordererConfig := range ordererConfigs {
-		config := ordererConfig // Capture the variable
+		oc := ordererConfig // Capture the variable
 		workflow.Go(ctx, func(ctx workflow.Context) {
-			workflow.ExecuteChildWorkflow(ctx, ProvisionOrdererWorkflow, config).Get(ctx, nil)
+			workflow.ExecuteChildWorkflow(ctx, ProvisionOrdererWorkflow, oc).Get(ctx, nil)
 		})
 	}
 
-	// Wait for all provisioning to complete
-	workflow.Sleep(ctx, 5*time.Second)
+	logger.Info("Metacensus organization bootstrap completed successfully")
+	return nil
+}
 
-	logger.Info("Metacensus organization bootstrap workflow completed successfully",
-		"peers", len(peerConfigs),
-		"orderers", len(ordererConfigs))
+// CreateAffiliationsParams contains parameters for creating affiliations
+type CreateAffiliationsParams struct {
+	CAEndpoint    string         `json:"ca_endpoint"`
+	AdminIdentity *AdminIdentity `json:"admin_identity"`
+	Affiliations  []string       `json:"affiliations"`
+}
+
+// CreateAffiliationsActivity creates affiliations in the Fabric CA
+func CreateAffiliationsActivity(ctx context.Context, params CreateAffiliationsParams) error {
+	logger := activity.GetLogger(ctx)
+	logger.Info("Creating affiliations",
+		"affiliations", params.Affiliations)
+
+	// TODO: Implement affiliation creation using the admin identity
+	// This would require using the stored admin identity from Vault
+	// For now, we'll just log that we would create them
+	logger.Info("Would create affiliations using admin identity",
+		"affiliations", params.Affiliations,
+		"admin_id", params.AdminIdentity.ID)
 
 	return nil
 }

@@ -2,7 +2,6 @@ package certificate
 
 import (
 	"fmt"
-	"time"
 
 	"go.temporal.io/sdk/workflow"
 )
@@ -11,71 +10,46 @@ const (
 	TestFabricCAWorkflowName = "certificate.TestFabricCAWorkflow"
 )
 
-// TestFabricCAWorkflow tests the basic Fabric CA integration
+// TestFabricCAWorkflow tests the Fabric CA integration with admin bootstrap
 func TestFabricCAWorkflow(ctx workflow.Context) error {
 	logger := workflow.GetLogger(ctx)
-	logger.Info("Fabric CA test workflow started")
+	logger.Info("Starting Fabric CA integration test")
 
-	// Test identity registration
-	var reg Registration
-	err := workflow.ExecuteChildWorkflow(ctx, RegisterIdentityWorkflow, IdentityParams{
-		Type:       "client",
-		Name:       "test-client",
-		CAEndpoint: "http://ca0.fabric.svc.cluster.local:7054",
-		Attributes: map[string]string{
-			"hf.Registrar.Roles": "client",
+	// Test the admin bootstrap workflow
+	caEndpoint := "http://localhost:7054" // Use localhost for testing
+	logger.Info("Setting CA endpoint", "url", caEndpoint, "url_length", len(caEndpoint))
+
+	bootstrapConfig := BootstrapConfig{
+		CAEndpoint: caEndpoint,
+		OrgNodeOUs: NodeOUConfig{
+			Enable: true,
+			Client: map[string]string{
+				"certificateAuthorities": "true",
+				"clientOU":               "true",
+			},
+			Peer: map[string]string{
+				"certificateAuthorities": "true",
+				"peerOU":                 "true",
+			},
+			Admin: map[string]string{
+				"certificateAuthorities": "true",
+				"adminOU":                "true",
+			},
+			Orderer: map[string]string{
+				"certificateAuthorities": "true",
+				"ordererOU":              "true",
+			},
 		},
-		Affiliation: "org1.department1",
-		Secret:      "testpw",
-	}).Get(ctx, &reg)
-	if err != nil {
-		logger.Error("Test identity registration failed", "error", err)
-		return fmt.Errorf("test registration failed: %w", err)
+		Namespace: "fabric",
 	}
 
-	logger.Info("Test identity registration successful", "id", reg.ID)
-
-	// Test enrollment
-	var enrollment Enrollment
-	err = workflow.ExecuteChildWorkflow(ctx, EnrollIdentityWorkflow, EnrollmentParams{
-		Registration: reg,
-		Profile:      "sign",
-		CAEndpoint:   "http://ca0.fabric.svc.cluster.local:7054",
-		CSRConfig: CSRConfig{
-			CommonName:   "test-client",
-			Organization: "Metacensus",
-			Country:      "US",
-			Province:     "CA",
-			Locality:     "San Francisco",
-		},
-	}).Get(ctx, &enrollment)
+	// Execute the bootstrap workflow
+	err := workflow.ExecuteChildWorkflow(ctx, BootstrapMetacensusOrgWorkflow, bootstrapConfig).Get(ctx, nil)
 	if err != nil {
-		logger.Error("Test enrollment failed", "error", err)
-		return fmt.Errorf("test enrollment failed: %w", err)
+		logger.Error("Bootstrap workflow failed", "error", err)
+		return fmt.Errorf("bootstrap workflow failed: %w", err)
 	}
 
-	logger.Info("Test enrollment successful", "profile", enrollment.Profile)
-
-	// Test secret storage
-	var secret SecretRef
-	err = workflow.ExecuteChildWorkflow(ctx, StoreSecretWorkflow, SecretParams{
-		Name: "test-client-secret",
-		Data: enrollment.ToSecretData(),
-		Labels: map[string]string{
-			"fabric-component": "client",
-			"organization":     "metacensus",
-			"managed-by":       "temporal",
-			"test":             "true",
-		},
-		Version: time.Now().Unix(),
-	}).Get(ctx, &secret)
-	if err != nil {
-		logger.Error("Test secret storage failed", "error", err)
-		return fmt.Errorf("test secret storage failed: %w", err)
-	}
-
-	logger.Info("Test secret storage successful", "secret", secret.Name)
-
-	logger.Info("Fabric CA test workflow completed successfully")
+	logger.Info("Fabric CA integration test completed successfully")
 	return nil
 }

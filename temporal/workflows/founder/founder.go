@@ -30,7 +30,31 @@ func Workflow(ctx workflow.Context, name string) (string, error) {
 	}
 
 	// Trigger Fabric CA bootstrap using the new workflow
-	err = workflow.ExecuteChildWorkflow(ctx, certificate.BootstrapMetacensusOrgWorkflow).Get(ctx, nil)
+	bootstrapConfig := certificate.BootstrapConfig{
+		CAEndpoint: "http://localhost:7054", // Use localhost for testing
+		OrgNodeOUs: certificate.NodeOUConfig{
+			Enable: true,
+			Client: map[string]string{
+				"certificateAuthorities": "true",
+				"clientOU":               "true",
+			},
+			Peer: map[string]string{
+				"certificateAuthorities": "true",
+				"peerOU":                 "true",
+			},
+			Admin: map[string]string{
+				"certificateAuthorities": "true",
+				"adminOU":                "true",
+			},
+			Orderer: map[string]string{
+				"certificateAuthorities": "true",
+				"ordererOU":              "true",
+			},
+		},
+		Namespace: "fabric",
+	}
+
+	err = workflow.ExecuteChildWorkflow(ctx, certificate.BootstrapMetacensusOrgWorkflow, bootstrapConfig).Get(ctx, nil)
 	if err != nil {
 		logger.Error("Fabric CA bootstrap failed", "error", err)
 		return "", err

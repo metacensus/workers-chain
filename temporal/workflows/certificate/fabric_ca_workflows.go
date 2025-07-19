@@ -66,10 +66,13 @@ func RegisterIdentityActivity(ctx context.Context, params IdentityParams) (*Regi
 		"ca_endpoint", params.CAEndpoint)
 
 	// Create Fabric CA client
+	logger.Info("Creating Fabric CA client for registration", "url", params.CAEndpoint)
+
 	client := &lib.Client{
 		Config: &lib.ClientConfig{
 			URL: params.CAEndpoint,
 		},
+		HomeDir: "/tmp/fabric-ca-client", // Set a temporary home directory
 	}
 
 	err := client.Init()
@@ -171,10 +174,13 @@ func EnrollIdentityActivity(ctx context.Context, params EnrollmentParams) (*Enro
 		"ca_endpoint", params.CAEndpoint)
 
 	// Create Fabric CA client
+	logger.Info("Creating Fabric CA client for enrollment", "url", params.CAEndpoint)
+
 	client := &lib.Client{
 		Config: &lib.ClientConfig{
 			URL: params.CAEndpoint,
 		},
+		HomeDir: "/tmp/fabric-ca-client", // Set a temporary home directory
 	}
 
 	err := client.Init()

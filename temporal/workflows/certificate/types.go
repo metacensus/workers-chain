@@ -113,6 +113,7 @@ type HealthCheckConfig struct {
 // PeerConfig represents peer-specific configuration
 type PeerConfig struct {
 	PeerID       string       `json:"peer_id"`
+	Organization string       `json:"organization"`
 	EnrollmentCA string       `json:"enrollment_ca"`
 	TLSCA        string       `json:"tls_ca"`
 	OrgNodeOUs   NodeOUConfig `json:"org_node_ous"`
@@ -122,6 +123,7 @@ type PeerConfig struct {
 // OrdererConfig represents orderer-specific configuration
 type OrdererConfig struct {
 	OrdererID    string       `json:"orderer_id"`
+	Organization string       `json:"organization"`
 	EnrollmentCA string       `json:"enrollment_ca"`
 	TLSCA        string       `json:"tls_ca"`
 	OrgNodeOUs   NodeOUConfig `json:"org_node_ous"`
@@ -243,4 +245,40 @@ func (c *CSRConfig) ToCSRInfo() *api.CSRInfo {
 			},
 		},
 	}
+}
+
+// AdminIdentity represents an admin identity for Fabric CA
+type AdminIdentity struct {
+	ID          string            `json:"id"`
+	Secret      string            `json:"secret"`
+	Certificate []byte            `json:"certificate"`
+	PrivateKey  []byte            `json:"private_key"`
+	CACert      []byte            `json:"ca_cert"`
+	Attributes  map[string]string `json:"attributes"`
+	CAEndpoint  string            `json:"ca_endpoint"`
+}
+
+// BootstrapAdminParams contains parameters for bootstrap admin workflow
+type BootstrapAdminParams struct {
+	CAEndpoint     string            `json:"ca_endpoint"`
+	AdminID        string            `json:"admin_id"`
+	AdminSecret    string            `json:"admin_secret"`
+	DefaultAdminID string            `json:"default_admin_id"`
+	DefaultSecret  string            `json:"default_secret"`
+	Attributes     map[string]string `json:"attributes"`
+	VaultPath      string            `json:"vault_path"`
+}
+
+// BootstrapAdminResult contains the result of bootstrap admin workflow
+type BootstrapAdminResult struct {
+	AdminIdentity *AdminIdentity `json:"admin_identity"`
+	Success       bool           `json:"success"`
+	Message       string         `json:"message"`
+}
+
+// BootstrapConfig contains configuration for bootstrap workflows
+type BootstrapConfig struct {
+	CAEndpoint string       `json:"ca_endpoint"`
+	OrgNodeOUs NodeOUConfig `json:"org_node_ous"`
+	Namespace  string       `json:"namespace"`
 }
