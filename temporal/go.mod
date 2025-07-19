@@ -7,7 +7,7 @@ toolchain go1.24.4
 require (
 	github.com/cloudflare/cfssl v1.4.1
 	github.com/golang/mock v1.6.0
-	github.com/hyperledger/fabric-ca v0.0.0-00010101000000-000000000000
+	github.com/hyperledger/fabric-ca v1.5.15
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.10.0
 	go.temporal.io/api v1.43.0
@@ -15,8 +15,6 @@ require (
 	k8s.io/api v0.33.1
 	k8s.io/client-go v0.33.1
 )
-
-replace github.com/hyperledger/fabric-ca => ../../fabric-ca
 
 require (
 	github.com/IBM/idemix v0.0.2-0.20231011101252-a4feda90f3f7 // indirect
@@ -135,3 +133,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apimachinery v0.33.1
 )
+
+replace github.com/hyperledger/fabric-ca => github.com/jmbarzee/fabric-ca v0.0.0-20250715182913-847b79d1efcf

@@ -23,14 +23,9 @@ func RegisterWorkflows(w worker.Worker) {
 	// Test workflows
 	util.RegisterWorkflow(w, TestFabricCAWorkflow, TestFabricCAWorkflowName)
 
-	// Legacy workflows (to be replaced)
-	util.RegisterWorkflow(w, GenerateCertificateWorkflow, GenerateCertificateWorkflowName)
-	util.RegisterWorkflow(w, FabricCertificatesWorkflow, FabricCertificatesWorkflowName)
-
 	// Activities
 	util.RegisterActivity(w, RegisterIdentityActivity, "certificate.RegisterIdentityActivity")
 	util.RegisterActivity(w, EnrollIdentityActivity, "certificate.EnrollIdentityActivity")
 	util.RegisterActivity(w, AssembleMSPActivity, "certificate.AssembleMSPActivity")
 	util.RegisterActivity(w, StoreSecretActivity, "certificate.StoreSecretActivity")
-	util.RegisterActivity(w, GenerateCertificateActivity, GenerateCertificateActivityName)
 }

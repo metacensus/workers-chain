@@ -29,27 +29,14 @@ func Workflow(ctx workflow.Context, name string) (string, error) {
 		return "", err
 	}
 
-	// Trigger Fabric certificates generation
-	certReq := certificate.FabricCertificatesRequest{
-		Namespace:    "fabric",
-		Organization: "Metacensus",
-		Country:      "US",
-		Province:     "CA",
-		Locality:     "San Francisco",
-		ValidDays:    365,
-	}
-
-	var certResult certificate.FabricCertificatesResult
-	err = workflow.ExecuteChildWorkflow(ctx, certificate.FabricCertificatesWorkflow, certReq).Get(ctx, &certResult)
+	// Trigger Fabric CA bootstrap using the new workflow
+	err = workflow.ExecuteChildWorkflow(ctx, certificate.BootstrapMetacensusOrgWorkflow).Get(ctx, nil)
 	if err != nil {
-		logger.Error("Fabric certificates generation failed", "error", err)
+		logger.Error("Fabric CA bootstrap failed", "error", err)
 		return "", err
 	}
 
-	logger.Info("Fabric certificates generated successfully",
-		"orderers", len(certResult.OrdererResults),
-		"peers", len(certResult.PeerResults),
-		"cas", len(certResult.CAResults))
+	logger.Info("Fabric CA bootstrap completed successfully")
 
 	logger.Info("founder workflow completed.", "result", result)
 

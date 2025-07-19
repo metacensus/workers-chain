@@ -24,6 +24,7 @@ type Registration struct {
 	Attributes  map[string]string `json:"attributes"`
 	Affiliation string            `json:"affiliation"`
 	CAEndpoint  string            `json:"ca_endpoint"`
+	Secret      string            `json:"secret"` // Registration secret returned from CA
 }
 
 // EnrollmentParams represents parameters for certificate enrollment
