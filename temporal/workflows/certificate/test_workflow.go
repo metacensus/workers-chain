@@ -16,7 +16,7 @@ func TestFabricCAWorkflow(ctx workflow.Context) error {
 	logger.Info("Starting Fabric CA integration test")
 
 	// Test the admin bootstrap workflow
-	caEndpoint := "http://localhost:7054" // Use localhost for testing
+	caEndpoint := "http://ca.fabric.svc.cluster.local:7054" // Use k8s service DNS name
 	logger.Info("Setting CA endpoint", "url", caEndpoint, "url_length", len(caEndpoint))
 
 	bootstrapConfig := BootstrapConfig{

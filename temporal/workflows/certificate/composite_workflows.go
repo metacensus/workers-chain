@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"go.temporal.io/sdk/workflow"
+
+	vault "github.com/metacensus/infra/temporal/workflows/vault"
 )
 
 const (
@@ -96,9 +98,14 @@ func ProvisionPeerWorkflow(ctx workflow.Context, config PeerConfig) error {
 	}
 
 	// Store signing certificates
-	var signingSecret SecretRef
-	err = workflow.ExecuteChildWorkflow(ctx, StoreSecretWorkflow,
-		SecretParams{
+	// Create vault client and workflows for this operation
+	vaultConfig := vault.GetVaultConfig()
+	vaultClient := vault.NewVaultClient(vaultConfig)
+	vaultWorkflows := vault.NewWorkflows(vaultClient)
+
+	var signingSecret vault.SecretRef
+	err = workflow.ExecuteChildWorkflow(ctx, vaultWorkflows.StoreSecretWorkflow,
+		vault.SecretParams{
 			Name: fmt.Sprintf("peer-%s-signing", config.PeerID),
 			Data: map[string][]byte{
 				"cert.pem": msp.SigningCert,
@@ -118,9 +125,9 @@ func ProvisionPeerWorkflow(ctx workflow.Context, config PeerConfig) error {
 	}
 
 	// Store TLS certificates
-	var tlsSecret SecretRef
-	err = workflow.ExecuteChildWorkflow(ctx, StoreSecretWorkflow,
-		SecretParams{
+	var tlsSecret vault.SecretRef
+	err = workflow.ExecuteChildWorkflow(ctx, vaultWorkflows.StoreSecretWorkflow,
+		vault.SecretParams{
 			Name: fmt.Sprintf("peer-%s-tls", config.PeerID),
 			Data: map[string][]byte{
 				"tls.crt": msp.TLSCert,
@@ -230,9 +237,14 @@ func ProvisionOrdererWorkflow(ctx workflow.Context, config OrdererConfig) error 
 	}
 
 	// Store signing certificates
-	var signingSecret SecretRef
-	err = workflow.ExecuteChildWorkflow(ctx, StoreSecretWorkflow,
-		SecretParams{
+	// Create vault client and workflows for this operation
+	vaultConfig := vault.GetVaultConfig()
+	vaultClient := vault.NewVaultClient(vaultConfig)
+	vaultWorkflows := vault.NewWorkflows(vaultClient)
+
+	var signingSecret vault.SecretRef
+	err = workflow.ExecuteChildWorkflow(ctx, vaultWorkflows.StoreSecretWorkflow,
+		vault.SecretParams{
 			Name: fmt.Sprintf("orderer-%s-signing", config.OrdererID),
 			Data: map[string][]byte{
 				"cert.pem": msp.SigningCert,
@@ -252,9 +264,9 @@ func ProvisionOrdererWorkflow(ctx workflow.Context, config OrdererConfig) error 
 	}
 
 	// Store TLS certificates
-	var tlsSecret SecretRef
-	err = workflow.ExecuteChildWorkflow(ctx, StoreSecretWorkflow,
-		SecretParams{
+	var tlsSecret vault.SecretRef
+	err = workflow.ExecuteChildWorkflow(ctx, vaultWorkflows.StoreSecretWorkflow,
+		vault.SecretParams{
 			Name: fmt.Sprintf("orderer-%s-tls", config.OrdererID),
 			Data: map[string][]byte{
 				"tls.crt": msp.TLSCert,
@@ -293,7 +305,7 @@ func ProvisionClientWorkflow(ctx workflow.Context, config ClientConfig) error {
 	err := workflow.ExecuteChildWorkflow(ctx, RegisterIdentityWorkflow, IdentityParams{
 		Type:        "client",
 		Name:        config.ClientID,
-		CAEndpoint:  "http://ca0.fabric.svc.cluster.local:7054", // TODO: Make configurable
+		CAEndpoint:  "http://ca.fabric.svc.cluster.local:7054", // TODO: Make configurable
 		Attributes:  config.CustomAttributes,
 		Affiliation: "org1.department1",
 		Secret:      "clientpw", // TODO: Generate secure password
@@ -309,7 +321,7 @@ func ProvisionClientWorkflow(ctx workflow.Context, config ClientConfig) error {
 		EnrollmentParams{
 			Registration: reg,
 			Profile:      "sign",
-			CAEndpoint:   "http://ca0.fabric.svc.cluster.local:7054", // TODO: Make configurable
+			CAEndpoint:   "http://ca.fabric.svc.cluster.local:7054", // TODO: Make configurable
 			CSRConfig: CSRConfig{
 				CommonName:   config.ClientID,
 				Organization: "Metacensus",
@@ -324,9 +336,14 @@ func ProvisionClientWorkflow(ctx workflow.Context, config ClientConfig) error {
 	}
 
 	// Store client certificates
-	var secret SecretRef
-	err = workflow.ExecuteChildWorkflow(ctx, StoreSecretWorkflow,
-		SecretParams{
+	// Create vault client and workflows for this operation
+	vaultConfig := vault.GetVaultConfig()
+	vaultClient := vault.NewVaultClient(vaultConfig)
+	vaultWorkflows := vault.NewWorkflows(vaultClient)
+
+	var secret vault.SecretRef
+	err = workflow.ExecuteChildWorkflow(ctx, vaultWorkflows.StoreSecretWorkflow,
+		vault.SecretParams{
 			Name: fmt.Sprintf("client-%s", config.ClientID),
 			Data: enrollment.ToSecretData(),
 			Labels: map[string]string{

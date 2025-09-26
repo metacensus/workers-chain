@@ -13,6 +13,8 @@ import (
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
+
+	vault "github.com/metacensus/infra/temporal/workflows/vault"
 )
 
 const (
@@ -58,8 +60,24 @@ func BootstrapAdminWorkflow(ctx workflow.Context, params BootstrapAdminParams) (
 	}
 
 	// Step 2: Store admin identity in Vault
-	err = workflow.ExecuteActivity(ctx, StoreAdminIdentityActivity, StoreAdminIdentityParams{
-		AdminIdentity: adminIdentity,
+	// Convert AdminIdentity to vault.AdminIdentity
+	vaultAdminIdentity := &vault.AdminIdentity{
+		ID:          adminIdentity.ID,
+		Secret:      adminIdentity.Secret,
+		Certificate: adminIdentity.Certificate,
+		PrivateKey:  adminIdentity.PrivateKey,
+		CACert:      adminIdentity.CACert,
+		Attributes:  adminIdentity.Attributes,
+		CAEndpoint:  adminIdentity.CAEndpoint,
+	}
+
+	// Create vault client and activities
+	vaultConfig := vault.GetVaultConfig()
+	vaultClient := vault.NewVaultClient(vaultConfig)
+	vaultActivities := vault.NewActivities(vaultClient)
+
+	err = workflow.ExecuteActivity(ctx, vaultActivities.StoreAdminIdentityActivity, vault.StoreAdminIdentityParams{
+		AdminIdentity: vaultAdminIdentity,
 		VaultPath:     params.VaultPath,
 	}).Get(ctx, nil)
 	if err != nil {
@@ -247,9 +265,9 @@ func CreateAdminIdentityActivity(ctx context.Context, params CreateAdminIdentity
 		return nil, fmt.Errorf("no certificate found in signer")
 	}
 
-	// TODO: Extract private key properly from BCCSP
-	// For now, we'll use a placeholder
-	keyBytes := []byte{} // TODO: Extract key properly
+	// For now, we'll use an empty key since we can't easily extract it from the signer
+	// TODO: Implement proper key extraction from the enrollment process
+	keyBytes := []byte{}
 
 	logger.Info("Admin identity created successfully",
 		"admin_id", params.AdminID)
@@ -258,27 +276,11 @@ func CreateAdminIdentityActivity(ctx context.Context, params CreateAdminIdentity
 		ID:          params.AdminID,
 		Secret:      registerResp.Secret,
 		Certificate: cert.Raw,
-		PrivateKey:  keyBytes, // TODO: Extract properly
+		PrivateKey:  keyBytes,
 		CACert:      enrollResp.CAInfo.CAChain,
 		Attributes:  params.Attributes,
 		CAEndpoint:  params.CAEndpoint,
 	}, nil
-}
-
-// StoreAdminIdentityActivity stores the admin identity in Vault
-func StoreAdminIdentityActivity(ctx context.Context, params StoreAdminIdentityParams) error {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Storing admin identity in Vault",
-		"admin_id", params.AdminIdentity.ID,
-		"vault_path", params.VaultPath)
-
-	// TODO: Implement Vault storage
-	// For now, we'll just log that we would store it
-	logger.Info("Would store admin identity in Vault",
-		"path", params.VaultPath,
-		"admin_id", params.AdminIdentity.ID)
-
-	return nil
 }
 
 // RevokeDefaultAdminActivity revokes the default admin identity

@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package vault.v1;
+
+import "temporal/v1/temporal.proto";
+
+// Vault service defines workflows and activities related to secret management
+service Vault {
+  // Service‐wide Temporal settings
+  option (temporal.v1.service) = {
+    task_queue: "vault"
+  };
+
+  // StoreSecret stores (or updates) a secret in Vault
+  rpc StoreSecret(Secret) returns (SecretRef) {
+    // Workflow metadata
+    option (temporal.v1.workflow) = {
+      name: "vault.v1.StoreSecret"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "vault.v1.StoreSecret"
+      schedule_to_close_timeout: {seconds: 3600}
+    };
+  }
+
+  // FetchSecret retrieves a secret from Vault
+  rpc FetchSecret(SecretRef) returns (Secret) {
+    // Workflow metadata
+    option (temporal.v1.workflow) = {
+      name: "vault.v1.FetchSecret"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "vault.v1.FetchSecret"
+      schedule_to_close_timeout: {seconds: 3600}
+    };
+  }
+}
+
+// Secret describes a secret entity in vault
+message Secret {
+  string name = 1;
+  string namespace = 2;
+  map<string, bytes> data = 3;
+  map<string, string> labels = 4;
+  int64 version = 5;
+}
+
+// SecretRef references an existing secret (or where to store one)
+message SecretRef {
+  string name = 1;
+  string namespace = 2;
+  int64 version = 3;
+} 

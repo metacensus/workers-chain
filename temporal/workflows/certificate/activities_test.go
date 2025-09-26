@@ -1,6 +1,7 @@
 package certificate
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -174,4 +175,110 @@ func TestStoreAdminIdentityActivity(t *testing.T) {
 	// Verify the workflow completed successfully
 	require.True(t, env.IsWorkflowCompleted())
 	require.NoError(t, env.GetWorkflowError())
+}
+
+// TestStoreAdminIdentityActivity_Validation tests input validation
+func TestStoreAdminIdentityActivity_Validation(t *testing.T) {
+	testSuite := &testsuite.WorkflowTestSuite{}
+	env := testSuite.NewTestWorkflowEnvironment()
+
+	// Test with nil admin identity
+	env.OnActivity(StoreAdminIdentityActivity, mock.Anything, StoreAdminIdentityParams{
+		AdminIdentity: nil,
+		VaultPath:     "fabric/test/admin",
+	}).Return(fmt.Errorf("admin identity cannot be nil"))
+
+	env.ExecuteWorkflow(func(ctx workflow.Context) error {
+		ao := workflow.ActivityOptions{
+			StartToCloseTimeout: 10 * time.Second,
+		}
+		ctx = workflow.WithActivityOptions(ctx, ao)
+
+		return workflow.ExecuteActivity(ctx, StoreAdminIdentityActivity, StoreAdminIdentityParams{
+			AdminIdentity: nil,
+			VaultPath:     "fabric/test/admin",
+		}).Get(ctx, nil)
+	})
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.Error(t, env.GetWorkflowError())
+	assert.Contains(t, env.GetWorkflowError().Error(), "admin identity cannot be nil")
+
+	// Test with empty admin ID
+	env = testSuite.NewTestWorkflowEnvironment()
+	env.OnActivity(StoreAdminIdentityActivity, mock.Anything, StoreAdminIdentityParams{
+		AdminIdentity: &AdminIdentity{
+			ID:          "",
+			Secret:      "test-secret",
+			Certificate: []byte("test-cert"),
+			PrivateKey:  []byte("test-key"),
+			CACert:      []byte("test-ca"),
+			Attributes:  map[string]string{},
+			CAEndpoint:  "http://localhost:7054",
+		},
+		VaultPath: "fabric/test/admin",
+	}).Return(fmt.Errorf("admin identity ID cannot be empty"))
+
+	env.ExecuteWorkflow(func(ctx workflow.Context) error {
+		ao := workflow.ActivityOptions{
+			StartToCloseTimeout: 10 * time.Second,
+		}
+		ctx = workflow.WithActivityOptions(ctx, ao)
+
+		return workflow.ExecuteActivity(ctx, StoreAdminIdentityActivity, StoreAdminIdentityParams{
+			AdminIdentity: &AdminIdentity{
+				ID:          "",
+				Secret:      "test-secret",
+				Certificate: []byte("test-cert"),
+				PrivateKey:  []byte("test-key"),
+				CACert:      []byte("test-ca"),
+				Attributes:  map[string]string{},
+				CAEndpoint:  "http://localhost:7054",
+			},
+			VaultPath: "fabric/test/admin",
+		}).Get(ctx, nil)
+	})
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.Error(t, env.GetWorkflowError())
+	assert.Contains(t, env.GetWorkflowError().Error(), "admin identity ID cannot be empty")
+
+	// Test with empty vault path
+	env = testSuite.NewTestWorkflowEnvironment()
+	env.OnActivity(StoreAdminIdentityActivity, mock.Anything, StoreAdminIdentityParams{
+		AdminIdentity: &AdminIdentity{
+			ID:          "test-admin",
+			Secret:      "test-secret",
+			Certificate: []byte("test-cert"),
+			PrivateKey:  []byte("test-key"),
+			CACert:      []byte("test-ca"),
+			Attributes:  map[string]string{},
+			CAEndpoint:  "http://localhost:7054",
+		},
+		VaultPath: "",
+	}).Return(fmt.Errorf("vault path cannot be empty"))
+
+	env.ExecuteWorkflow(func(ctx workflow.Context) error {
+		ao := workflow.ActivityOptions{
+			StartToCloseTimeout: 10 * time.Second,
+		}
+		ctx = workflow.WithActivityOptions(ctx, ao)
+
+		return workflow.ExecuteActivity(ctx, StoreAdminIdentityActivity, StoreAdminIdentityParams{
+			AdminIdentity: &AdminIdentity{
+				ID:          "test-admin",
+				Secret:      "test-secret",
+				Certificate: []byte("test-cert"),
+				PrivateKey:  []byte("test-key"),
+				CACert:      []byte("test-ca"),
+				Attributes:  map[string]string{},
+				CAEndpoint:  "http://localhost:7054",
+			},
+			VaultPath: "",
+		}).Get(ctx, nil)
+	})
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.Error(t, env.GetWorkflowError())
+	assert.Contains(t, env.GetWorkflowError().Error(), "vault path cannot be empty")
 }

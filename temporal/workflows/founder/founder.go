@@ -31,7 +31,7 @@ func Workflow(ctx workflow.Context, name string) (string, error) {
 
 	// Trigger Fabric CA bootstrap using the new workflow
 	bootstrapConfig := certificate.BootstrapConfig{
-		CAEndpoint: "http://localhost:7054", // Use localhost for testing
+		CAEndpoint: "http://ca.fabric.svc.cluster.local:7054", // Use k8s service DNS name
 		OrgNodeOUs: certificate.NodeOUConfig{
 			Enable: true,
 			Client: map[string]string{

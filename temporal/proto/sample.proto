@@ -1,0 +1,18 @@
+service vault {
+    option (temporal.v1.service) = {
+        task_queue: "default"
+    };
+
+    rpc StoreSecret(StoreSecretInput) returns (StoreSecretOutput) {
+        option (temporal.v1.workflow) = {
+            name: "vault.v1.StoreSecret"
+            id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+            parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+        };
+        
+        option (temporal.v1.activity) = {
+            name: "vault.v1.StoreSecret"
+            schedule_to_close_timeout: {seconds: 3600}
+        };
+    }
+}

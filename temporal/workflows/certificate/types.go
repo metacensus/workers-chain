@@ -5,6 +5,8 @@ import (
 
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/hyperledger/fabric-ca/api"
+
+	vault "github.com/metacensus/infra/temporal/workflows/vault"
 )
 
 // IdentityParams represents parameters for identity registration
@@ -80,25 +82,10 @@ type MSPBundle struct {
 	NodeOUConfig NodeOUConfig `json:"node_ou_config"`
 }
 
-// SecretParams represents parameters for secret storage
-type SecretParams struct {
-	Name    string            `json:"name"`
-	Data    map[string][]byte `json:"data"`
-	Labels  map[string]string `json:"labels"`
-	Version int64             `json:"version"`
-}
-
-// SecretRef represents a reference to a stored secret
-type SecretRef struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Version   int64  `json:"version"`
-}
-
 // DeploymentParams represents parameters for deployment updates
 type DeploymentParams struct {
 	ResourceType   string            `json:"resource_type"`
-	SecretRef      SecretRef         `json:"secret_ref"`
+	SecretRef      vault.SecretRef   `json:"secret_ref"`
 	UpdateStrategy string            `json:"update_strategy"`
 	HealthCheck    HealthCheckConfig `json:"health_check"`
 }
@@ -183,20 +170,6 @@ type TLSConfig struct {
 // CSPConfig represents crypto service provider configuration
 type CSPConfig struct {
 	Provider string `json:"provider"`
-}
-
-// VaultConfig represents Vault configuration
-type VaultConfig struct {
-	Address    string `json:"address"`
-	Token      string `json:"token"`
-	MountPath  string `json:"mount_path"`
-	EngineType string `json:"engine_type"` // kv or transit
-}
-
-// K8sSecretConfig represents Kubernetes secret configuration
-type K8sSecretConfig struct {
-	Namespace string            `json:"namespace"`
-	Labels    map[string]string `json:"labels"`
 }
 
 // CertificateMetadata represents metadata for a certificate
