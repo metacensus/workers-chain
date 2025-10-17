@@ -2,6 +2,12 @@ version: v2
 managed:
   enabled: true
 plugins:
+  # Generate standard Go protobuf types
+  - remote: buf.build/protocolbuffers/go
+    out: gen/workflows
+    opt:
+      - paths=source_relative
+  # Generate Temporal workflow/activity stubs
   - local: protoc-gen-go_temporal
     out: gen/workflows
     opt:

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package vault.v1;
 
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/vault/v1;vaultv1";
+
 import "temporal/v1/temporal.proto";
 
 // Vault service defines workflows and activities related to secret management

@@ -1,18 +1,12 @@
 version: v2
-
 modules:
   - path: proto
-    deps:
-      - buf.build/cludden/protoc-gen-go-temporal:v1.16.2
+deps:
+  - buf.build/cludden/protoc-gen-go-temporal
 lint:
-  uses:
-    - BASIC
-    - ENUM_VALUE_SUFFIX
-    - ENUM_ZERO_VALUE_SUFFIX
-    - FILE_LOWER_SNAKE_CASE
-    - PACKAGE_NO_IMPORT_CYCLE
-    - PROTOVALIDATE
-    - UNARY_RPC
+  use:
+    - STANDARD
+  disallow_comment_ignores: true
 breaking:
   use:
     - FILE

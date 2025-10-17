@@ -1,0 +1,47 @@
+# Mockery configuration for generating mocks from protobuf-generated interfaces
+# See: https://vektra.github.io/mockery/
+
+with-expecter: true
+mockname: "Mock{{.InterfaceName}}"
+outpkg: "{{.PackageName}}"
+filename: "{{.InterfaceName | snakecase}}.go"
+dir: "mocks/{{.InterfaceDirRelative}}"
+
+# v3 compatibility settings
+resolve-type-alias: false
+disable-version-string: true
+issue-845-fix: true
+
+packages:
+  # Vault v1 workflows and activities (from generated code)
+  github.com/metacensus/infra/temporal/gen/workflows/vault/v1:
+    config:
+      dir: "mocks/workflows/vault/v1"
+    interfaces:
+      VaultWorkflows:
+      VaultActivities:
+  
+  # Vault v1 client (from implementation code)
+  github.com/metacensus/infra/temporal/workflows/vault/v1:
+    config:
+      dir: "mocks/workflows/vault/v1"
+      outpkg: "vaultv1"
+    interfaces:
+      VaultClient:
+  
+  # Fabric Identity v1 workflows and activities (from generated code)
+  github.com/metacensus/infra/temporal/gen/workflows/fabric/identity/v1:
+    config:
+      dir: "mocks/workflows/fabric/identity/v1"
+    interfaces:
+      FabricIdentityWorkflows:
+      FabricIdentityActivities:
+  
+  # Fabric Identity v1 client (from implementation code)
+  github.com/metacensus/infra/temporal/workflows/fabric/identity/v1:
+    config:
+      dir: "mocks/workflows/fabric/identity/v1"
+      outpkg: "fabricidentityv1"
+    interfaces:
+      FabricCAClient:
+
