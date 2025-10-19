@@ -1,10 +1,9 @@
 package workflows
 
 import (
-	"github.com/metacensus/infra/temporal/env"
-	"github.com/metacensus/infra/temporal/workflows/fabric/identity/v1"
-	"github.com/metacensus/infra/temporal/workflows/founder"
-	"github.com/metacensus/infra/temporal/workflows/vault/v1"
+	"github.com/metacensus/infra/temporal/lib/env"
+	"github.com/metacensus/infra/temporal/lib/workflows/fabric/identity/v1"
+	"github.com/metacensus/infra/temporal/lib/workflows/vault/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/fx"
@@ -36,7 +35,6 @@ var Module = fx.Options(
 	fx.Invoke(vault.RegisterActivities),
 	fx.Invoke(identity.RegisterWorkflows),
 	fx.Invoke(identity.RegisterActivities),
-	fx.Invoke(founder.RegisterWorkflows),
 )
 
 // NewTemporalClient creates a Temporal client from environment configuration

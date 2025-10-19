@@ -8,9 +8,9 @@ import (
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/fx"
 
-	"github.com/metacensus/infra/temporal/env"
-	"github.com/metacensus/infra/temporal/healthcheck"
-	"github.com/metacensus/infra/temporal/workflows"
+	"github.com/metacensus/infra/temporal/lib/env"
+	"github.com/metacensus/infra/temporal/lib/healthcheck"
+	"github.com/metacensus/infra/temporal/lib/workflows"
 )
 
 func main() {
