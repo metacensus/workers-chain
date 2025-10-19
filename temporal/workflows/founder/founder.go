@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/metacensus/infra/temporal/workflows/certificate"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/workflow"
 )
@@ -29,38 +28,8 @@ func Workflow(ctx workflow.Context, name string) (string, error) {
 		return "", err
 	}
 
-	// Trigger Fabric CA bootstrap using the new workflow
-	bootstrapConfig := certificate.BootstrapConfig{
-		CAEndpoint: "http://ca.fabric.svc.cluster.local:7054", // Use k8s service DNS name
-		OrgNodeOUs: certificate.NodeOUConfig{
-			Enable: true,
-			Client: map[string]string{
-				"certificateAuthorities": "true",
-				"clientOU":               "true",
-			},
-			Peer: map[string]string{
-				"certificateAuthorities": "true",
-				"peerOU":                 "true",
-			},
-			Admin: map[string]string{
-				"certificateAuthorities": "true",
-				"adminOU":                "true",
-			},
-			Orderer: map[string]string{
-				"certificateAuthorities": "true",
-				"ordererOU":              "true",
-			},
-		},
-		Namespace: "fabric",
-	}
-
-	err = workflow.ExecuteChildWorkflow(ctx, certificate.BootstrapMetacensusOrgWorkflow, bootstrapConfig).Get(ctx, nil)
-	if err != nil {
-		logger.Error("Fabric CA bootstrap failed", "error", err)
-		return "", err
-	}
-
-	logger.Info("Fabric CA bootstrap completed successfully")
+	// TODO: Trigger Fabric CA bootstrap using fabric/identity/v1 workflows
+	// This will be implemented once the bootstrap workflow is ready
 
 	logger.Info("founder workflow completed.", "result", result)
 

@@ -1,4 +1,4 @@
-package v1
+package vault
 
 import (
 	"fmt"
@@ -112,4 +112,3 @@ func (w *fetchSecretWorkflow) Execute(ctx workflow.Context) (*pb.Secret, error) 
 
 	return result, nil
 }
-

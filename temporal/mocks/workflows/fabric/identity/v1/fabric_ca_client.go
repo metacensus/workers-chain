@@ -6,6 +6,7 @@ import (
 	context "context"
 
 	fabricidentityv1 "github.com/metacensus/infra/temporal/gen/workflows/fabric/identity/v1"
+
 	mock "github.com/stretchr/testify/mock"
 )
 

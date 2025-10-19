@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package v1
+package vault
 
 import (
 	"context"
@@ -28,7 +28,7 @@ func TestVaultClient_RealVault(t *testing.T) {
 		Image:        "hashicorp/vault:1.15",
 		ExposedPorts: []string{"8200/tcp"},
 		Env: map[string]string{
-			"VAULT_DEV_ROOT_TOKEN_ID": "root",
+			"VAULT_DEV_ROOT_TOKEN_ID":  "root",
 			"VAULT_DEV_LISTEN_ADDRESS": "0.0.0.0:8200",
 		},
 		Cmd: []string{"server", "-dev", "-dev-listen-address=0.0.0.0:8200"},
@@ -306,4 +306,3 @@ func TestVaultClient_RealVault_ErrorHandling(t *testing.T) {
 		}
 	})
 }
-

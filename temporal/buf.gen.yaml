@@ -15,4 +15,4 @@ plugins:
       - paths=source_relative
     strategy: all
 inputs:
-  - directory: proto
+  - directory: proto/workflows

@@ -1,7 +1,4 @@
-//go:build tools
-// +build tools
-
-package tools
+package temporal
 
 // This file declares dependencies on tools used for code generation.
 // These dependencies will be tracked in go.mod but won't be included in production builds.

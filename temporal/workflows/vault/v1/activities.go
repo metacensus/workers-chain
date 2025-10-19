@@ -1,4 +1,4 @@
-package v1
+package vault
 
 import (
 	"context"
@@ -60,4 +60,3 @@ func (a *Activities) FetchSecret(ctx context.Context, req *pb.SecretRef) (*pb.Se
 
 	return result, nil
 }
-

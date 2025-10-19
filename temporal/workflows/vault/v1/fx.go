@@ -1,4 +1,4 @@
-package v1
+package vault
 
 import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"

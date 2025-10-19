@@ -1,4 +1,4 @@
-package v1
+package identity
 
 import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/identity/v1"
