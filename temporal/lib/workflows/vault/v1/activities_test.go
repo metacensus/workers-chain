@@ -24,7 +24,7 @@ func TestStoreSecretActivity(t *testing.T) {
 		clientErr error
 	}{
 		{
-			name: "success - parameters passed through",
+			name: "success",
 			input: &pb.Secret{
 				Name:      "my-secret",
 				Namespace: "production",
@@ -55,18 +55,7 @@ func TestStoreSecretActivity(t *testing.T) {
 
 			mockClient := vaultmocks.NewMockVaultClient(t)
 			mockClient.EXPECT().
-				StoreSecret(mock.Anything, mock.MatchedBy(func(req *pb.Secret) bool {
-					// Verify input is passed through correctly
-					if req.Name != tt.input.Name {
-						t.Errorf("Name mismatch: got %q, want %q", req.Name, tt.input.Name)
-						return false
-					}
-					if req.Namespace != tt.input.Namespace {
-						t.Errorf("Namespace mismatch: got %q, want %q", req.Namespace, tt.input.Namespace)
-						return false
-					}
-					return true
-				})).
+				StoreSecret(mock.Anything, tt.input).
 				Return(tt.clientRes, tt.clientErr)
 
 			activities := NewActivities(mockClient)
@@ -106,7 +95,7 @@ func TestFetchSecretActivity(t *testing.T) {
 		clientErr error
 	}{
 		{
-			name: "success - parameters passed through",
+			name: "success - latest version",
 			input: &pb.SecretRef{
 				Name:      "my-secret",
 				Namespace: "production",
@@ -122,7 +111,7 @@ func TestFetchSecretActivity(t *testing.T) {
 			},
 		},
 		{
-			name: "success - specific version requested",
+			name: "success - specific version",
 			input: &pb.SecretRef{
 				Name:      "my-secret",
 				Namespace: "production",
@@ -151,22 +140,7 @@ func TestFetchSecretActivity(t *testing.T) {
 
 			mockClient := vaultmocks.NewMockVaultClient(t)
 			mockClient.EXPECT().
-				FetchSecret(mock.Anything, mock.MatchedBy(func(req *pb.SecretRef) bool {
-					// Verify input is passed through correctly
-					if req.Name != tt.input.Name {
-						t.Errorf("Name mismatch: got %q, want %q", req.Name, tt.input.Name)
-						return false
-					}
-					if req.Namespace != tt.input.Namespace {
-						t.Errorf("Namespace mismatch: got %q, want %q", req.Namespace, tt.input.Namespace)
-						return false
-					}
-					if req.Version != tt.input.Version {
-						t.Errorf("Version mismatch: got %d, want %d", req.Version, tt.input.Version)
-						return false
-					}
-					return true
-				})).
+				FetchSecret(mock.Anything, tt.input).
 				Return(tt.clientRes, tt.clientErr)
 
 			activities := NewActivities(mockClient)

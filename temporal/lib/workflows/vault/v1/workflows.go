@@ -10,37 +10,30 @@ import (
 )
 
 // Workflows implements the VaultWorkflows interface from generated code
-type Workflows struct {
-	client VaultClient
-}
+type Workflows struct{}
 
 // NewWorkflows creates a new Workflows instance
-func NewWorkflows(client VaultClient) *Workflows {
-	return &Workflows{
-		client: client,
-	}
+func NewWorkflows() *Workflows {
+	return &Workflows{}
 }
 
 // StoreSecret implements the StoreSecret workflow
 func (w *Workflows) StoreSecret(ctx workflow.Context, input *pb.StoreSecretWorkflowInput) (pb.StoreSecretWorkflow, error) {
 	return &storeSecretWorkflow{
-		input:  input,
-		client: w.client,
+		input: input,
 	}, nil
 }
 
 // FetchSecret implements the FetchSecret workflow
 func (w *Workflows) FetchSecret(ctx workflow.Context, input *pb.FetchSecretWorkflowInput) (pb.FetchSecretWorkflow, error) {
 	return &fetchSecretWorkflow{
-		input:  input,
-		client: w.client,
+		input: input,
 	}, nil
 }
 
 // storeSecretWorkflow implements pb.StoreSecretWorkflow
 type storeSecretWorkflow struct {
-	input  *pb.StoreSecretWorkflowInput
-	client VaultClient
+	input *pb.StoreSecretWorkflowInput
 }
 
 // Execute stores a secret in Vault
@@ -77,8 +70,7 @@ func (w *storeSecretWorkflow) Execute(ctx workflow.Context) (*pb.SecretRef, erro
 
 // fetchSecretWorkflow implements pb.FetchSecretWorkflow
 type fetchSecretWorkflow struct {
-	input  *pb.FetchSecretWorkflowInput
-	client VaultClient
+	input *pb.FetchSecretWorkflowInput
 }
 
 // Execute fetches a secret from Vault

@@ -20,8 +20,7 @@ var (
 // testStoreSecretWorkflow wraps the workflow execution for testing
 func testStoreSecretWorkflow(ctx workflow.Context, input *pb.StoreSecretWorkflowInput) (*pb.SecretRef, error) {
 	w := &storeSecretWorkflow{
-		input:  input,
-		client: nil, // client not used in workflow logic, only passed to activities
+		input: input,
 	}
 	return w.Execute(ctx)
 }
@@ -29,8 +28,7 @@ func testStoreSecretWorkflow(ctx workflow.Context, input *pb.StoreSecretWorkflow
 // testFetchSecretWorkflow wraps the workflow execution for testing
 func testFetchSecretWorkflow(ctx workflow.Context, input *pb.FetchSecretWorkflowInput) (*pb.Secret, error) {
 	w := &fetchSecretWorkflow{
-		input:  input,
-		client: nil, // client not used in workflow logic, only passed to activities
+		input: input,
 	}
 	return w.Execute(ctx)
 }
@@ -43,7 +41,7 @@ func TestStoreSecretWorkflow(t *testing.T) {
 		activityErr error
 	}{
 		{
-			name: "success - parameters passed through",
+			name: "success",
 			input: &pb.Secret{
 				Name:      "my-secret",
 				Namespace: "production",
@@ -75,26 +73,7 @@ func TestStoreSecretWorkflow(t *testing.T) {
 			// Register mock activities
 			mockActivities := vaultmocks.NewMockVaultActivities(t)
 			mockActivities.EXPECT().
-				StoreSecret(mock.Anything, mock.MatchedBy(func(req *pb.Secret) bool {
-					// Verify input is passed through correctly
-					if req.Name != tt.input.Name {
-						t.Errorf("Name mismatch: got %q, want %q", req.Name, tt.input.Name)
-						return false
-					}
-					if req.Namespace != tt.input.Namespace {
-						t.Errorf("Namespace mismatch: got %q, want %q", req.Namespace, tt.input.Namespace)
-						return false
-					}
-					if len(tt.input.Data) > 0 {
-						for k, v := range tt.input.Data {
-							if string(req.Data[k]) != string(v) {
-								t.Errorf("Data[%q] mismatch: got %q, want %q", k, req.Data[k], v)
-								return false
-							}
-						}
-					}
-					return true
-				})).
+				StoreSecret(mock.Anything, tt.input).
 				Return(tt.activityRes, tt.activityErr)
 
 			pb.RegisterVaultActivities(env, mockActivities)
@@ -138,7 +117,7 @@ func TestFetchSecretWorkflow(t *testing.T) {
 		activityErr error
 	}{
 		{
-			name: "success - parameters passed through",
+			name: "success - latest version",
 			input: &pb.SecretRef{
 				Name:      "my-secret",
 				Namespace: "production",
@@ -154,7 +133,7 @@ func TestFetchSecretWorkflow(t *testing.T) {
 			},
 		},
 		{
-			name: "success - specific version requested",
+			name: "success - specific version",
 			input: &pb.SecretRef{
 				Name:      "my-secret",
 				Namespace: "production",
@@ -184,22 +163,7 @@ func TestFetchSecretWorkflow(t *testing.T) {
 			// Register mock activities
 			mockActivities := vaultmocks.NewMockVaultActivities(t)
 			mockActivities.EXPECT().
-				FetchSecret(mock.Anything, mock.MatchedBy(func(req *pb.SecretRef) bool {
-					// Verify input is passed through correctly
-					if req.Name != tt.input.Name {
-						t.Errorf("Name mismatch: got %q, want %q", req.Name, tt.input.Name)
-						return false
-					}
-					if req.Namespace != tt.input.Namespace {
-						t.Errorf("Namespace mismatch: got %q, want %q", req.Namespace, tt.input.Namespace)
-						return false
-					}
-					if req.Version != tt.input.Version {
-						t.Errorf("Version mismatch: got %d, want %d", req.Version, tt.input.Version)
-						return false
-					}
-					return true
-				})).
+				FetchSecret(mock.Anything, tt.input).
 				Return(tt.activityRes, tt.activityErr)
 
 			pb.RegisterVaultActivities(env, mockActivities)

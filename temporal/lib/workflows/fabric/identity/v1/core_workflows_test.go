@@ -92,13 +92,7 @@ func TestRegisterIdentityWorkflow(t *testing.T) {
 			// Register mock activities
 			mockActivities := fabricmocks.NewMockFabricIdentityActivities(t)
 			mockActivities.EXPECT().
-				RegisterIdentity(mock.Anything, mock.MatchedBy(func(req *pb.RegisterIdentityInput) bool {
-					if req.GetName() != tt.input.Req.GetName() {
-						t.Errorf("name mismatch: got %q, want %q", req.GetName(), tt.input.Req.GetName())
-						return false
-					}
-					return true
-				})).
+				RegisterIdentity(mock.Anything, tt.input.Req).
 				Return(tt.activityRes, tt.activityErr)
 
 			pb.RegisterFabricIdentityActivities(env, mockActivities)
@@ -191,13 +185,7 @@ func TestEnrollIdentityWorkflow(t *testing.T) {
 			// Register mock activities
 			mockActivities := fabricmocks.NewMockFabricIdentityActivities(t)
 			mockActivities.EXPECT().
-				EnrollIdentity(mock.Anything, mock.MatchedBy(func(req *pb.EnrollIdentityInput) bool {
-					if req.GetName() != tt.input.Req.GetName() {
-						t.Errorf("name mismatch: got %q, want %q", req.GetName(), tt.input.Req.GetName())
-						return false
-					}
-					return true
-				})).
+				EnrollIdentity(mock.Anything, tt.input.Req).
 				Return(tt.activityRes, tt.activityErr)
 
 			pb.RegisterFabricIdentityActivities(env, mockActivities)

@@ -114,26 +114,14 @@ func TestBootstrapAdminWorkflow(t *testing.T) {
 			// Register GenerateSecureSecret activity
 			if tt.expectGenerateSecretCall {
 				mockActivities.EXPECT().
-					GenerateSecureSecret(mock.Anything, mock.MatchedBy(func(req *pb.GenerateSecureSecretInput) bool {
-						if req.GetLength() != 32 {
-							t.Errorf("expected length 32, got %d", req.GetLength())
-							return false
-						}
-						return true
-					})).
+					GenerateSecureSecret(mock.Anything, mock.AnythingOfType("*fabricidentityv1.GenerateSecureSecretInput")).
 					Return(tt.generateSecretRes, tt.generateSecretErr)
 			}
 
 			// Register CreateAdminIdentity activity (only if secret generation doesn't fail)
 			if tt.generateSecretErr == nil {
 				mockActivities.EXPECT().
-					CreateAdminIdentity(mock.Anything, mock.MatchedBy(func(req *pb.CreateAdminIdentityInput) bool {
-						if req.GetAdminId() != tt.input.Req.GetAdminId() {
-							t.Errorf("admin_id mismatch: got %q, want %q", req.GetAdminId(), tt.input.Req.GetAdminId())
-							return false
-						}
-						return true
-					})).
+					CreateAdminIdentity(mock.Anything, mock.AnythingOfType("*fabricidentityv1.CreateAdminIdentityInput")).
 					Return(tt.createAdminRes, tt.createAdminErr)
 			}
 

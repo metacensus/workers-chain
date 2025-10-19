@@ -107,22 +107,7 @@ func TestRegisterIdentityActivity(t *testing.T) {
 
 			mockClient := fabricmocks.NewMockFabricCAClient(t)
 			mockClient.EXPECT().
-				Register(mock.Anything, mock.MatchedBy(func(input *pb.RegisterIdentityInput) bool {
-					// Verify input is passed through correctly
-					if input.GetName() != tt.input.GetName() {
-						t.Errorf("Name mismatch: got %q, want %q", input.GetName(), tt.input.GetName())
-						return false
-					}
-					if input.GetType() != tt.input.GetType() {
-						t.Errorf("Type mismatch: got %q, want %q", input.GetType(), tt.input.GetType())
-						return false
-					}
-					if input.GetAffiliation() != tt.input.GetAffiliation() {
-						t.Errorf("Affiliation mismatch: got %q, want %q", input.GetAffiliation(), tt.input.GetAffiliation())
-						return false
-					}
-					return true
-				})).
+				Register(mock.Anything, tt.input).
 				Return(tt.clientRes, tt.clientErr)
 
 			activities := NewActivities(mockClient)
@@ -246,22 +231,7 @@ func TestEnrollIdentityActivity(t *testing.T) {
 
 			mockClient := fabricmocks.NewMockFabricCAClient(t)
 			mockClient.EXPECT().
-				Enroll(mock.Anything, mock.MatchedBy(func(input *pb.EnrollIdentityInput) bool {
-					// Verify input is passed through correctly
-					if input.GetName() != tt.input.GetName() {
-						t.Errorf("Name mismatch: got %q, want %q",
-							input.GetName(),
-							tt.input.GetName())
-						return false
-					}
-					if input.GetProfile() != tt.input.GetProfile() {
-						t.Errorf("Profile mismatch: got %q, want %q",
-							input.GetProfile(),
-							tt.input.GetProfile())
-						return false
-					}
-					return true
-				})).
+				Enroll(mock.Anything, tt.input).
 				Return(tt.clientRes, tt.clientErr)
 
 			activities := NewActivities(mockClient)

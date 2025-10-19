@@ -37,9 +37,9 @@ var Module = fx.Options(
 		return NewActivities(client)
 	}),
 
-	// Provide Workflows implementing pb.VaultWorkflows interface (depends on VaultClient)
-	fx.Provide(func(client VaultClient) pb.VaultWorkflows {
-		return NewWorkflows(client)
+	// Provide Workflows implementing pb.VaultWorkflows interface
+	fx.Provide(func() pb.VaultWorkflows {
+		return NewWorkflows()
 	}),
 )
 
