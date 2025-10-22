@@ -1,0 +1,241 @@
+syntax = "proto3";
+
+package terraform.v1;
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/terraform/v1;terraformv1";
+
+import "temporal/v1/temporal.proto";
+import "google/protobuf/struct.proto";
+
+// Terraform service defines workflows and activities for declarative infrastructure deployment
+service Terraform {
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {
+    task_queue: "terraform"
+  };
+
+  // CreateTerraform initializes fresh Terraform state and applies configuration
+  // Used when deploying a module for the first time (no prior state)
+  rpc CreateTerraform(CreateTerraformInput) returns (CreateTerraformOutput) {
+    // Workflow metadata
+    option (temporal.v1.workflow) = {
+      name: "terraform.v1.CreateTerraform"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "terraform.v1.CreateTerraform"
+      schedule_to_close_timeout: {seconds: 3600}  // 1 hour
+    };
+  }
+
+  // UpdateTerraform updates existing Terraform state with new configuration
+  // Used when modifying an existing module deployment (state already exists in S3)
+  rpc UpdateTerraform(UpdateTerraformInput) returns (UpdateTerraformOutput) {
+    // Workflow metadata
+    option (temporal.v1.workflow) = {
+      name: "terraform.v1.UpdateTerraform"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "terraform.v1.UpdateTerraform"
+      schedule_to_close_timeout: {seconds: 3600}  // 1 hour
+    };
+  }
+
+  // PlanTerraform generates a Terraform plan (dry-run, shows what would change)
+  // Produces a plan artifact that can be reviewed or applied separately
+  rpc PlanTerraform(PlanTerraformInput) returns (PlanTerraformOutput) {
+    // Workflow metadata
+    option (temporal.v1.workflow) = {
+      name: "terraform.v1.PlanTerraform"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "terraform.v1.PlanTerraform"
+      schedule_to_close_timeout: {seconds: 3600}  // 1 hour
+    };
+  }
+
+  // ApplyTerraform applies a pre-generated Terraform plan to the cluster
+  // Used with PlanTerraform for two-step deployments (plan first, review, then apply)
+  rpc ApplyTerraform(ApplyTerraformInput) returns (ApplyTerraformOutput) {
+    // Workflow metadata
+    option (temporal.v1.workflow) = {
+      name: "terraform.v1.ApplyTerraform"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "terraform.v1.ApplyTerraform"
+      schedule_to_close_timeout: {seconds: 3600}  // 1 hour
+    };
+  }
+
+  // DestroyTerraform destroys infrastructure managed by Terraform
+  // Writes tombstone marker to S3 on successful destruction
+  rpc DestroyTerraform(DestroyTerraformInput) returns (DestroyTerraformOutput) {
+    // Workflow metadata
+    option (temporal.v1.workflow) = {
+      name: "terraform.v1.DestroyTerraform"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "terraform.v1.DestroyTerraform"
+      schedule_to_close_timeout: {seconds: 3600}  // 1 hour
+    };
+  }
+}
+
+// CreateTerraformInput defines inputs for CreateTerraform workflow
+message CreateTerraformInput {
+  // module_name is the Terraform module to deploy (e.g., "fabric-peer", "vault")
+  string module_name = 1;
+  
+  // org is the organization ID (optional - many modules have no org)
+  // If omitted, S3 path will be: {bucket}/{module_name}/{timestamp}.{ext}
+  // If specified, S3 path will be: {bucket}/{module_name}/{org}/{timestamp}.{ext}
+  string org = 2;
+  
+  // s3_bucket is the S3 bucket where Terraform state and artifacts are stored
+  string s3_bucket = 3;
+  
+  // tf_vars contains Terraform variables as a structured object
+  // Converted to HCL/JSON for passing to terraform apply
+  google.protobuf.Struct tf_vars = 4;
+}
+
+// CreateTerraformOutput defines outputs from CreateTerraform workflow
+message CreateTerraformOutput {
+  // state_artifact_path is the S3 path to the saved Terraform state file
+  // Format: s3://{bucket}/{module}/{org}/{timestamp}.tfstate
+  string state_artifact_path = 1;
+  
+  // state_artifact_timestamp is the ISO 8601 timestamp used for all artifacts from this execution
+  string state_artifact_timestamp = 2;
+  
+  // terraform_output contains Terraform's output values from the apply
+  google.protobuf.Struct terraform_output = 3;
+}
+
+// UpdateTerraformInput defines inputs for UpdateTerraform workflow
+message UpdateTerraformInput {
+  // module_name is the Terraform module to update
+  string module_name = 1;
+  
+  // org is the organization ID (optional)
+  string org = 2;
+  
+  // s3_bucket is the S3 bucket where current state is stored
+  string s3_bucket = 3;
+  
+  // tf_vars contains updated Terraform variables
+  google.protobuf.Struct tf_vars = 4;
+}
+
+// UpdateTerraformOutput defines outputs from UpdateTerraform workflow
+message UpdateTerraformOutput {
+  // state_artifact_path is the S3 path to the updated state file
+  string state_artifact_path = 1;
+  
+  // state_artifact_timestamp is the ISO 8601 timestamp used for all artifacts from this execution
+  string state_artifact_timestamp = 2;
+  
+  // terraform_output contains Terraform's output values from the apply
+  google.protobuf.Struct terraform_output = 3;
+}
+
+// PlanTerraformInput defines inputs for PlanTerraform workflow
+message PlanTerraformInput {
+  // module_name is the Terraform module to plan
+  string module_name = 1;
+  
+  // org is the organization ID (optional)
+  string org = 2;
+  
+  // s3_bucket is the S3 bucket for state and artifacts
+  string s3_bucket = 3;
+  
+  // tf_vars contains Terraform variables for the plan
+  google.protobuf.Struct tf_vars = 4;
+}
+
+// PlanTerraformOutput defines outputs from PlanTerraform workflow
+message PlanTerraformOutput {
+  // plan_artifact_path is the S3 path to the saved Terraform plan
+  // Format: s3://{bucket}/{module}/{org}/{timestamp}.tfplan
+  string plan_artifact_path = 1;
+  
+  // plan_artifact_timestamp is the ISO 8601 timestamp used for all artifacts from this execution
+  string plan_artifact_timestamp = 2;
+  
+  // plan_summary is a text summary of what the plan will do
+  string plan_summary = 3;
+}
+
+// ApplyTerraformInput defines inputs for ApplyTerraform workflow
+message ApplyTerraformInput {
+  // module_name is the Terraform module being applied
+  string module_name = 1;
+  
+  // org is the organization ID (optional)
+  string org = 2;
+  
+  // s3_bucket is the S3 bucket where plan artifacts are stored
+  string s3_bucket = 3;
+  
+  // plan_artifact_path is the S3 path to the pre-generated plan from PlanTerraform
+  // If empty, will generate plan and apply automatically
+  string plan_artifact_path = 4;
+  
+  // tf_vars contains Terraform variables (used if plan_artifact_path is empty)
+  google.protobuf.Struct tf_vars = 5;
+}
+
+// ApplyTerraformOutput defines outputs from ApplyTerraform workflow
+message ApplyTerraformOutput {
+  // state_artifact_path is the S3 path to the saved Terraform state after apply
+  string state_artifact_path = 1;
+  
+  // state_artifact_timestamp is the ISO 8601 timestamp used for all artifacts from this execution
+  string state_artifact_timestamp = 2;
+  
+  // terraform_output contains Terraform's output values from the apply
+  google.protobuf.Struct terraform_output = 3;
+}
+
+// DestroyTerraformInput defines inputs for DestroyTerraform workflow
+message DestroyTerraformInput {
+  // module_name is the Terraform module to destroy
+  string module_name = 1;
+  
+  // org is the organization ID (optional)
+  string org = 2;
+  
+  // s3_bucket is the S3 bucket where state is stored
+  string s3_bucket = 3;
+}
+
+// DestroyTerraformOutput defines outputs from DestroyTerraform workflow
+message DestroyTerraformOutput {
+  // destroyed_artifact_path is the S3 path to the tombstone marker file
+  // Format: s3://{bucket}/{module}/{org}/{timestamp}.destroyed
+  // This marker file serves as proof of successful destruction
+  string destroyed_artifact_path = 1;
+  
+  // destroyed_artifact_timestamp is the ISO 8601 timestamp used for the tombstone
+  string destroyed_artifact_timestamp = 2;
+}

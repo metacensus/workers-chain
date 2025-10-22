@@ -13,35 +13,63 @@ disable-version-string: true
 issue-845-fix: true
 
 packages:
-  # Vault v1 workflows and activities (from generated code)
+  # ============================================================================
+  # GENERATED INTERFACES - Workflows and Activities from protobuf
+  # Used for testing workflow orchestration and activity coordination
+  # ============================================================================
+
+  # Vault v1
   github.com/metacensus/infra/temporal/gen/workflows/vault/v1:
     config:
       dir: "mocks/workflows/vault/v1"
     interfaces:
       VaultWorkflows:
       VaultActivities:
-  
-  # Vault v1 client (from implementation code)
-  github.com/metacensus/infra/temporal/workflows/vault/v1:
-    config:
-      dir: "mocks/workflows/vault/v1"
-      outpkg: "vaultv1"
-    interfaces:
-      VaultClient:
-  
-  # Fabric Identity v1 workflows and activities (from generated code)
+
+  # Fabric Identity v1
   github.com/metacensus/infra/temporal/gen/workflows/fabric/identity/v1:
     config:
       dir: "mocks/workflows/fabric/identity/v1"
     interfaces:
       FabricIdentityWorkflows:
       FabricIdentityActivities:
-  
-  # Fabric Identity v1 client (from implementation code)
+
+  # Terraform v1
+  github.com/metacensus/infra/temporal/gen/workflows/terraform/v1:
+    config:
+      dir: "mocks/workflows/terraform/v1"
+    interfaces:
+      TerraformWorkflows:
+      TerraformActivities:
+
+  # S3 Provider v1
+  github.com/metacensus/infra/temporal/gen/workflows/provider/aws/s3:
+    config:
+      dir: "mocks/workflows/provider/aws/s3"
+    interfaces:
+      S3ProviderActivities:
+
+  # ============================================================================
+  # IMPLEMENTATION INTERFACES - Clients from implementation code
+  # Used for testing activity implementations with mocked external dependencies
+  # NOTE: Only include clients for implementations that exist
+  # ============================================================================
+
+  # Vault v1 client
+  github.com/metacensus/infra/temporal/workflows/vault/v1:
+    config:
+      dir: "mocks/workflows/vault/v1"
+      outpkg: "vaultv1"
+    interfaces:
+      VaultClient:
+
+  # Fabric Identity v1 client
   github.com/metacensus/infra/temporal/workflows/fabric/identity/v1:
     config:
       dir: "mocks/workflows/fabric/identity/v1"
       outpkg: "fabricidentityv1"
     interfaces:
       FabricCAClient:
+
+  # NOTE: Terraform and S3 client mocks will be added once implementations are created
 
