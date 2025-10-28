@@ -1,0 +1,45 @@
+{{- range $index := until (int .Values.peer.count) }}
+{{- $couchdbName := printf "couchdb-peer%d-%s" $index $.Values.organization.id }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $couchdbName }}
+  namespace: {{ include "fabric.namespace" $ }}
+  labels:
+    {{- include "fabric.couchdb.labels" $ | nindent 4 }}
+    app: fabric-couchdb
+    peer-index: "{{ $index }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fabric-couchdb
+      couchdb-name: {{ $couchdbName }}
+  template:
+    metadata:
+      labels:
+        {{- include "fabric.couchdb.labels" $ | nindent 8 }}
+        app: fabric-couchdb
+        couchdb-name: {{ $couchdbName }}
+    spec:
+      {{- include "fabric.imagePullSecrets" $ | nindent 6 }}
+      containers:
+      - name: couchdb
+        image: "{{ $.Values.couchdb.image.repository }}:{{ $.Values.couchdb.image.tag }}"
+        imagePullPolicy: {{ $.Values.image.pullPolicy }}
+        ports:
+        - name: couchdb
+          containerPort: {{ $.Values.couchdb.service.port }}
+          protocol: TCP
+        env:
+        - name: COUCHDB_USER
+          value: {{ $.Values.couchdb.user | quote }}
+        - name: COUCHDB_PASSWORD
+          value: {{ $.Values.couchdb.password | quote }}
+        resources:
+          {{- toYaml $.Values.couchdb.resources | nindent 10 }}
+        readinessProbe:
+          {{- toYaml $.Values.couchdb.readinessProbe | nindent 10 }}
+{{- end }}
+

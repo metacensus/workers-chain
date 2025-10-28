@@ -3,7 +3,7 @@ managed:
   enabled: true
 plugins:
   # Generate standard Go protobuf types
-  - remote: buf.build/protocolbuffers/go
+  - local: protoc-gen-go
     out: gen/workflows
     opt:
       - paths=source_relative

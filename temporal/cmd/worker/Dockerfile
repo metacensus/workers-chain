@@ -21,5 +21,7 @@ FROM alpine:latest
 WORKDIR /
 
 COPY --from=buildstage /bin/worker /bin/worker
+# Copy Helm charts for deployment activities
+COPY --from=buildstage /src/../helm /helm
 
 ENTRYPOINT ["/bin/worker"]

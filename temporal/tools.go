@@ -9,6 +9,9 @@ package temporal
 //
 // See: https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module
 
+//go:generate buf generate
+//go:generate mockery
+
 import (
 	// Generates Temporal workflow/activity interfaces from protobuf
 	_ "github.com/cludden/protoc-gen-go-temporal/pkg/scheme"
@@ -16,3 +19,6 @@ import (
 	// Generates mocks for testing
 	_ "github.com/vektra/mockery/v2/pkg/config"
 )
+
+// Note: protoc-gen-go is installed via Makefile's install-tools target
+// We cannot import it here as it's a command, not a library package

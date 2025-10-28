@@ -1,0 +1,80 @@
+{{- range $index := until (int .Values.orderer.count) }}
+{{- $ordererName := printf "orderer%d-%s" $index $.Values.organization.id }}
+{{- $certSecret := index $.Values.orderer.certSecrets $index | default (printf "fabric-orderer-%d-certs" $index) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $ordererName }}
+  namespace: {{ include "fabric.namespace" $ }}
+  labels:
+    {{- include "fabric.orderer.labels" $ | nindent 4 }}
+    app: fabric-orderer
+    orderer-index: "{{ $index }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fabric-orderer
+      orderer-name: {{ $ordererName }}
+  template:
+    metadata:
+      labels:
+        {{- include "fabric.orderer.labels" $ | nindent 8 }}
+        app: fabric-orderer
+        orderer-name: {{ $ordererName }}
+    spec:
+      {{- include "fabric.imagePullSecrets" $ | nindent 6 }}
+      containers:
+      - name: fabric-orderer
+        image: "{{ $.Values.orderer.image.repository }}:{{ $.Values.orderer.image.tag }}"
+        imagePullPolicy: {{ $.Values.image.pullPolicy }}
+        ports:
+        - name: orderer
+          containerPort: {{ $.Values.orderer.service.port }}
+          protocol: TCP
+        env:
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ $.Values.orderer.loggingSpec | quote }}
+        - name: ORDERER_GENERAL_LISTENADDRESS
+          value: "0.0.0.0"
+        - name: ORDERER_GENERAL_LISTENPORT
+          value: "{{ $.Values.orderer.service.port }}"
+        - name: ORDERER_GENERAL_LOCALMSPID
+          value: {{ $.Values.orderer.mspId | quote }}
+        - name: ORDERER_GENERAL_LOCALMSPDIR
+          value: {{ $.Values.msp.basePath }}
+        # TLS configuration
+        - name: ORDERER_GENERAL_TLS_ENABLED
+          value: {{ $.Values.orderer.tls.enabled | quote }}
+        {{- if $.Values.orderer.tls.enabled }}
+        - name: ORDERER_GENERAL_TLS_PRIVATEKEY
+          value: {{ $.Values.msp.paths.keystore }}
+        - name: ORDERER_GENERAL_TLS_CERTIFICATE
+          value: {{ $.Values.msp.paths.signcerts }}
+        - name: ORDERER_GENERAL_TLS_ROOTCAS
+          value: "[{{ $.Values.msp.paths.cacerts }}]"
+        - name: ORDERER_GENERAL_TLS_CLIENTAUTHREQUIRED
+          value: {{ $.Values.orderer.tls.clientAuthRequired | quote }}
+        # Cluster TLS configuration (for Raft consensus)
+        - name: ORDERER_GENERAL_CLUSTER_SERVERCERTIFICATE
+          value: {{ $.Values.msp.paths.signcerts }}
+        - name: ORDERER_GENERAL_CLUSTER_SERVERPRIVATEKEY
+          value: {{ $.Values.msp.paths.keystore }}
+        - name: ORDERER_GENERAL_CLUSTER_ROOTCAS
+          value: "[{{ $.Values.msp.paths.cacerts }}]"
+        - name: ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE
+          value: {{ $.Values.msp.paths.signcerts }}
+        - name: ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY
+          value: {{ $.Values.msp.paths.keystore }}
+        {{- end }}
+        volumeMounts:
+        {{- include "fabric.mspVolumeMount" $ | nindent 8 }}
+        resources:
+          {{- toYaml $.Values.orderer.resources | nindent 10 }}
+        readinessProbe:
+          {{- toYaml $.Values.orderer.readinessProbe | nindent 10 }}
+      volumes:
+      {{- include "fabric.mspVolume" $certSecret | nindent 6 }}
+{{- end }}
+

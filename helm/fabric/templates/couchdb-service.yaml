@@ -1,0 +1,24 @@
+{{- range $index := until (int .Values.peer.count) }}
+{{- $couchdbName := printf "couchdb-peer%d-%s" $index $.Values.organization.id }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $couchdbName }}
+  namespace: {{ include "fabric.namespace" $ }}
+  labels:
+    {{- include "fabric.couchdb.labels" $ | nindent 4 }}
+    app: fabric-couchdb
+    peer-index: "{{ $index }}"
+spec:
+  type: {{ $.Values.couchdb.service.type }}
+  selector:
+    app: fabric-couchdb
+    couchdb-name: {{ $couchdbName }}
+  ports:
+  - name: couchdb
+    port: {{ $.Values.couchdb.service.port }}
+    targetPort: {{ $.Values.couchdb.service.port }}
+    protocol: TCP
+{{- end }}
+

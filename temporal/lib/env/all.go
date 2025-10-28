@@ -20,6 +20,9 @@ const (
 	fabricCAURLName     = "FABRIC_CA_URL"
 	fabricCANameName    = "FABRIC_CA_NAME"
 	fabricCAHomeDirName = "FABRIC_CA_HOME_DIR"
+
+	// Kubernetes configuration
+	kubeconfigPathName = "KUBECONFIG"
 )
 
 func init() {
@@ -80,4 +83,9 @@ func FabricCAName() string {
 
 func FabricCAHomeDir() string {
 	return viper.GetString(fabricCAHomeDirName)
+}
+
+// Kubernetes configuration
+func KubeconfigPath() string {
+	return viper.GetString(kubeconfigPathName)
 }

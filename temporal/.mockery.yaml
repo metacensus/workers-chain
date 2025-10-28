@@ -49,6 +49,13 @@ packages:
     interfaces:
       S3ProviderActivities:
 
+  # Kube Provider v1
+  github.com/metacensus/infra/temporal/gen/workflows/kube/v1:
+    config:
+      dir: "mocks/workflows/kube/v1"
+    interfaces:
+      KubernetesActivities:
+
   # ============================================================================
   # IMPLEMENTATION INTERFACES - Clients from implementation code
   # Used for testing activity implementations with mocked external dependencies
@@ -56,7 +63,7 @@ packages:
   # ============================================================================
 
   # Vault v1 client
-  github.com/metacensus/infra/temporal/workflows/vault/v1:
+  github.com/metacensus/infra/temporal/lib/workflows/vault/v1:
     config:
       dir: "mocks/workflows/vault/v1"
       outpkg: "vaultv1"
@@ -64,12 +71,20 @@ packages:
       VaultClient:
 
   # Fabric Identity v1 client
-  github.com/metacensus/infra/temporal/workflows/fabric/identity/v1:
+  github.com/metacensus/infra/temporal/lib/workflows/fabric/identity/v1:
     config:
       dir: "mocks/workflows/fabric/identity/v1"
       outpkg: "fabricidentityv1"
     interfaces:
       FabricCAClient:
+
+  # Kube v1 client
+  github.com/metacensus/infra/temporal/lib/workflows/kube/v1:
+    config:
+      dir: "mocks/workflows/kube/v1"
+      outpkg: "kubev1"
+    interfaces:
+      KubeClient:
 
   # NOTE: Terraform and S3 client mocks will be added once implementations are created
 
