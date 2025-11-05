@@ -38,10 +38,10 @@ var Module = fx.Options(
 	kube.Module,
 
 	// Register all workflows and activities independently
-	fx.Invoke(vault.RegisterWorkflows),
 	fx.Invoke(vault.RegisterActivities),
 	fx.Invoke(identity.RegisterWorkflows),
 	fx.Invoke(identity.RegisterActivities),
+	fx.Invoke(kube.RegisterActivities),
 )
 
 // NewTemporalClient creates a Temporal client from environment configuration
@@ -59,10 +59,8 @@ func NewWorker(c client.Client) worker.Worker {
 // NewVaultConfig creates VaultConfig from environment variables
 func NewVaultConfig() vault.VaultConfig {
 	return vault.VaultConfig{
-		Address:    env.VaultAddress(),
-		Token:      env.VaultToken(),
-		MountPath:  env.VaultMountPath(),
-		EngineType: env.VaultEngineType(),
+		Address: env.VaultAddress(),
+		Token:   env.VaultToken(),
 	}
 }
 

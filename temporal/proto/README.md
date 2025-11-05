@@ -15,9 +15,6 @@
   - Services
     - [fabric.identity.v1.FabricIdentity](#fabric-identity-v1-fabricidentity)
       - [Workflows](#fabric-identity-v1-fabricidentity-workflows)
-        - [fabric.identity.v1.RegisterIdentity](#fabric-identity-v1-registeridentity-workflow)
-        - [fabric.identity.v1.EnrollIdentity](#fabric-identity-v1-enrollidentity-workflow)
-        - [fabric.identity.v1.AssembleMsp](#fabric-identity-v1-assemblemsp-workflow)
         - [fabric.identity.v1.ProvisionPeer](#fabric-identity-v1-provisionpeer-workflow)
         - [fabric.identity.v1.ProvisionOrderer](#fabric-identity-v1-provisionorderer-workflow)
         - [fabric.identity.v1.ProvisionClient](#fabric-identity-v1-provisionclient-workflow)
@@ -74,50 +71,65 @@
         - [kubernetes.Delete](#kubernetes-delete-activity)
         - [kubernetes.GetStatus](#kubernetes-getstatus-activity)
   - Messages
-    - [kube.v1.ApplyRequest](#kube-v1-applyrequest)
-    - [kube.v1.ApplyRequest.ResourcesEntry](#kube-v1-applyrequest-resourcesentry)
-    - [kube.v1.ApplyResponse](#kube-v1-applyresponse)
-    - [kube.v1.ApplyResponse.ResultsEntry](#kube-v1-applyresponse-resultsentry)
+    - [kube.v1.ApplyInput](#kube-v1-applyinput)
+    - [kube.v1.ApplyInput.ResourcesEntry](#kube-v1-applyinput-resourcesentry)
+    - [kube.v1.ApplyOutput](#kube-v1-applyoutput)
+    - [kube.v1.ApplyOutput.ResultsEntry](#kube-v1-applyoutput-resultsentry)
     - [kube.v1.ApplyResult](#kube-v1-applyresult)
     - [kube.v1.ApplySummary](#kube-v1-applysummary)
-    - [kube.v1.CreateRequest](#kube-v1-createrequest)
-    - [kube.v1.CreateRequest.ResourcesEntry](#kube-v1-createrequest-resourcesentry)
-    - [kube.v1.CreateResponse](#kube-v1-createresponse)
-    - [kube.v1.CreateResponse.ResultsEntry](#kube-v1-createresponse-resultsentry)
+    - [kube.v1.CreateInput](#kube-v1-createinput)
+    - [kube.v1.CreateInput.ResourcesEntry](#kube-v1-createinput-resourcesentry)
+    - [kube.v1.CreateOutput](#kube-v1-createoutput)
+    - [kube.v1.CreateOutput.ResultsEntry](#kube-v1-createoutput-resultsentry)
     - [kube.v1.CreateResult](#kube-v1-createresult)
     - [kube.v1.CreateSummary](#kube-v1-createsummary)
-    - [kube.v1.DeleteRequest](#kube-v1-deleterequest)
-    - [kube.v1.DeleteRequest.ResourcesEntry](#kube-v1-deleterequest-resourcesentry)
-    - [kube.v1.DeleteResponse](#kube-v1-deleteresponse)
-    - [kube.v1.DeleteResponse.ResultsEntry](#kube-v1-deleteresponse-resultsentry)
+    - [kube.v1.DeleteInput](#kube-v1-deleteinput)
+    - [kube.v1.DeleteInput.ResourcesEntry](#kube-v1-deleteinput-resourcesentry)
+    - [kube.v1.DeleteOutput](#kube-v1-deleteoutput)
+    - [kube.v1.DeleteOutput.ResultsEntry](#kube-v1-deleteoutput-resultsentry)
     - [kube.v1.DeleteResult](#kube-v1-deleteresult)
     - [kube.v1.DeleteSummary](#kube-v1-deletesummary)
-    - [kube.v1.GetStatusRequest](#kube-v1-getstatusrequest)
-    - [kube.v1.GetStatusRequest.ResourcesEntry](#kube-v1-getstatusrequest-resourcesentry)
-    - [kube.v1.GetStatusResponse](#kube-v1-getstatusresponse)
-    - [kube.v1.GetStatusResponse.ResultsEntry](#kube-v1-getstatusresponse-resultsentry)
+    - [kube.v1.GetStatusInput](#kube-v1-getstatusinput)
+    - [kube.v1.GetStatusInput.ResourcesEntry](#kube-v1-getstatusinput-resourcesentry)
+    - [kube.v1.GetStatusOutput](#kube-v1-getstatusoutput)
+    - [kube.v1.GetStatusOutput.ResultsEntry](#kube-v1-getstatusoutput-resultsentry)
     - [kube.v1.Resource](#kube-v1-resource)
     - [kube.v1.ResourceStatus](#kube-v1-resourcestatus)
-    - [kube.v1.UpdateRequest](#kube-v1-updaterequest)
-    - [kube.v1.UpdateRequest.ResourcesEntry](#kube-v1-updaterequest-resourcesentry)
-    - [kube.v1.UpdateResponse](#kube-v1-updateresponse)
-    - [kube.v1.UpdateResponse.ResultsEntry](#kube-v1-updateresponse-resultsentry)
+    - [kube.v1.UpdateInput](#kube-v1-updateinput)
+    - [kube.v1.UpdateInput.ResourcesEntry](#kube-v1-updateinput-resourcesentry)
+    - [kube.v1.UpdateOutput](#kube-v1-updateoutput)
+    - [kube.v1.UpdateOutput.ResultsEntry](#kube-v1-updateoutput-resultsentry)
     - [kube.v1.UpdateResult](#kube-v1-updateresult)
     - [kube.v1.UpdateSummary](#kube-v1-updatesummary)
 - [vault.v1](#vault-v1)
   - Services
     - [vault.v1.Vault](#vault-v1-vault)
-      - [Workflows](#vault-v1-vault-workflows)
-        - [vault.v1.StoreSecret](#vault-v1-storesecret-workflow)
-        - [vault.v1.FetchSecret](#vault-v1-fetchsecret-workflow)
       - [Activities](#vault-v1-vault-activities)
+        - [vault.v1.CreateAuthRole](#vault-v1-createauthrole-activity)
+        - [vault.v1.DeleteAuthRole](#vault-v1-deleteauthrole-activity)
+        - [vault.v1.CreatePolicy](#vault-v1-createpolicy-activity)
+        - [vault.v1.DeletePolicy](#vault-v1-deletepolicy-activity)
         - [vault.v1.StoreSecret](#vault-v1-storesecret-activity)
         - [vault.v1.FetchSecret](#vault-v1-fetchsecret-activity)
+        - [vault.v1.DeleteSecret](#vault-v1-deletesecret-activity)
   - Messages
-    - [vault.v1.Secret](#vault-v1-secret)
-    - [vault.v1.Secret.DataEntry](#vault-v1-secret-dataentry)
-    - [vault.v1.Secret.LabelsEntry](#vault-v1-secret-labelsentry)
+    - [vault.v1.CreateAuthRoleInput](#vault-v1-createauthroleinput)
+    - [vault.v1.CreateAuthRoleOutput](#vault-v1-createauthroleoutput)
+    - [vault.v1.CreatePolicyInput](#vault-v1-createpolicyinput)
+    - [vault.v1.CreatePolicyOutput](#vault-v1-createpolicyoutput)
+    - [vault.v1.DeleteAuthRoleInput](#vault-v1-deleteauthroleinput)
+    - [vault.v1.DeleteAuthRoleOutput](#vault-v1-deleteauthroleoutput)
+    - [vault.v1.DeletePolicyInput](#vault-v1-deletepolicyinput)
+    - [vault.v1.DeletePolicyOutput](#vault-v1-deletepolicyoutput)
+    - [vault.v1.DeleteSecretInput](#vault-v1-deletesecretinput)
+    - [vault.v1.DeleteSecretOutput](#vault-v1-deletesecretoutput)
+    - [vault.v1.FetchSecretInput](#vault-v1-fetchsecretinput)
+    - [vault.v1.FetchSecretOutput](#vault-v1-fetchsecretoutput)
+    - [vault.v1.FetchSecretOutput.DataEntry](#vault-v1-fetchsecretoutput-dataentry)
     - [vault.v1.SecretRef](#vault-v1-secretref)
+    - [vault.v1.StoreSecretInput](#vault-v1-storesecretinput)
+    - [vault.v1.StoreSecretInput.DataEntry](#vault-v1-storesecretinput-dataentry)
+    - [vault.v1.StoreSecretOutput](#vault-v1-storesecretoutput)
 
 <a name="aws-s3-v1"></a>
 # aws.s3.v1
@@ -570,300 +582,6 @@ FabricIdentity service defines workflows and activities for Hyperledger Fabric i
 
 <a name="fabric-identity-v1-fabricidentity-workflows"></a>
 ### Workflows
-
----
-<a name="fabric-identity-v1-registeridentity-workflow"></a>
-### fabric.identity.v1.RegisterIdentity
-
-<pre>
-RegisterIdentity registers a new identity with Fabric CA
-</pre>
-
-**Input:** [fabric.identity.v1.RegisterIdentityInput](#fabric-identity-v1-registeridentityinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>affiliation</td>
-<td>string</td>
-<td><pre>
-json_name: affiliation
-go_name: Affiliation</pre></td>
-</tr><tr>
-<td>attributes</td>
-<td><a href="#fabric-identity-v1-attribute">fabric.identity.v1.Attribute</a></td>
-<td><pre>
-json_name: attributes
-go_name: Attributes</pre></td>
-</tr><tr>
-<td>max_enrollments</td>
-<td>int32</td>
-<td><pre>
-json_name: maxEnrollments
-go_name: MaxEnrollments</pre></td>
-</tr><tr>
-<td>name</td>
-<td>string</td>
-<td><pre>
-json_name: name
-go_name: Name</pre></td>
-</tr><tr>
-<td>secret</td>
-<td>string</td>
-<td><pre>
-json_name: secret
-go_name: Secret</pre></td>
-</tr><tr>
-<td>type</td>
-<td>string</td>
-<td><pre>
-json_name: type
-go_name: Type</pre></td>
-</tr>
-</table>
-
-**Output:** [fabric.identity.v1.RegisterIdentityOutput](#fabric-identity-v1-registeridentityoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>affiliation</td>
-<td>string</td>
-<td><pre>
-json_name: affiliation
-go_name: Affiliation</pre></td>
-</tr><tr>
-<td>attributes</td>
-<td><a href="#fabric-identity-v1-attribute">fabric.identity.v1.Attribute</a></td>
-<td><pre>
-json_name: attributes
-go_name: Attributes</pre></td>
-</tr><tr>
-<td>name</td>
-<td>string</td>
-<td><pre>
-json_name: name
-go_name: Name</pre></td>
-</tr><tr>
-<td>secret</td>
-<td>string</td>
-<td><pre>
-json_name: secret
-go_name: Secret</pre></td>
-</tr><tr>
-<td>type</td>
-<td>string</td>
-<td><pre>
-json_name: type
-go_name: Type</pre></td>
-</tr>
-</table>
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
-</table>
-
----
-<a name="fabric-identity-v1-enrollidentity-workflow"></a>
-### fabric.identity.v1.EnrollIdentity
-
-<pre>
-EnrollIdentity enrolls an identity to obtain certificates
-</pre>
-
-**Input:** [fabric.identity.v1.EnrollIdentityInput](#fabric-identity-v1-enrollidentityinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>attr_reqs</td>
-<td><a href="#fabric-identity-v1-attributerequest">fabric.identity.v1.AttributeRequest</a></td>
-<td><pre>
-json_name: attrReqs
-go_name: AttrReqs</pre></td>
-</tr><tr>
-<td>csr</td>
-<td><a href="#fabric-identity-v1-csrinfo">fabric.identity.v1.CSRInfo</a></td>
-<td><pre>
-json_name: csr
-go_name: Csr</pre></td>
-</tr><tr>
-<td>name</td>
-<td>string</td>
-<td><pre>
-json_name: name
-go_name: Name</pre></td>
-</tr><tr>
-<td>profile</td>
-<td>string</td>
-<td><pre>
-json_name: profile
-go_name: Profile</pre></td>
-</tr><tr>
-<td>secret</td>
-<td>string</td>
-<td><pre>
-json_name: secret
-go_name: Secret</pre></td>
-</tr>
-</table>
-
-**Output:** [fabric.identity.v1.EnrollIdentityOutput](#fabric-identity-v1-enrollidentityoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_cert</td>
-<td>bytes</td>
-<td><pre>
-json_name: caCert
-go_name: CaCert</pre></td>
-</tr><tr>
-<td>certificate</td>
-<td>bytes</td>
-<td><pre>
-json_name: certificate
-go_name: Certificate</pre></td>
-</tr><tr>
-<td>private_key</td>
-<td>bytes</td>
-<td><pre>
-json_name: privateKey
-go_name: PrivateKey</pre></td>
-</tr><tr>
-<td>profile</td>
-<td>string</td>
-<td><pre>
-json_name: profile
-go_name: Profile</pre></td>
-</tr>
-</table>
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
-</table>
-
----
-<a name="fabric-identity-v1-assemblemsp-workflow"></a>
-### fabric.identity.v1.AssembleMsp
-
-<pre>
-AssembleMsp assembles a complete MSP structure from enrollments
-</pre>
-
-**Input:** [fabric.identity.v1.AssembleMspInput](#fabric-identity-v1-assemblemspinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_certs</td>
-<td>bytes</td>
-<td><pre>
-json_name: caCerts
-go_name: CaCerts</pre></td>
-</tr><tr>
-<td>node_ou_config</td>
-<td><a href="#fabric-identity-v1-nodeouconfig">fabric.identity.v1.NodeOUConfig</a></td>
-<td><pre>
-json_name: nodeOuConfig
-go_name: NodeOuConfig</pre></td>
-</tr><tr>
-<td>signing_enrollment</td>
-<td><a href="#fabric-identity-v1-enrollidentityoutput">fabric.identity.v1.EnrollIdentityOutput</a></td>
-<td><pre>
-json_name: signingEnrollment
-go_name: SigningEnrollment</pre></td>
-</tr><tr>
-<td>tls_enrollment</td>
-<td><a href="#fabric-identity-v1-enrollidentityoutput">fabric.identity.v1.EnrollIdentityOutput</a></td>
-<td><pre>
-json_name: tlsEnrollment
-go_name: TlsEnrollment</pre></td>
-</tr>
-</table>
-
-**Output:** [fabric.identity.v1.AssembleMspOutput](#fabric-identity-v1-assemblemspoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_certs</td>
-<td>bytes</td>
-<td><pre>
-json_name: caCerts
-go_name: CaCerts</pre></td>
-</tr><tr>
-<td>node_ou_config</td>
-<td><a href="#fabric-identity-v1-nodeouconfig">fabric.identity.v1.NodeOUConfig</a></td>
-<td><pre>
-json_name: nodeOuConfig
-go_name: NodeOuConfig</pre></td>
-</tr><tr>
-<td>signing_cert</td>
-<td>bytes</td>
-<td><pre>
-json_name: signingCert
-go_name: SigningCert</pre></td>
-</tr><tr>
-<td>signing_key</td>
-<td>bytes</td>
-<td><pre>
-json_name: signingKey
-go_name: SigningKey</pre></td>
-</tr><tr>
-<td>tls_cert</td>
-<td>bytes</td>
-<td><pre>
-json_name: tlsCert
-go_name: TlsCert</pre></td>
-</tr><tr>
-<td>tls_key</td>
-<td>bytes</td>
-<td><pre>
-json_name: tlsKey
-go_name: TlsKey</pre></td>
-</tr>
-</table>
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
-</table>
 
 ---
 <a name="fabric-identity-v1-provisionpeer-workflow"></a>
@@ -3236,7 +2954,7 @@ Caller is responsible for templating/rendering before calling these activities
 Create creates new resources in the cluster (fails if already exists)
 </pre>
 
-**Input:** [kube.v1.CreateRequest](#kube-v1-createrequest)
+**Input:** [kube.v1.CreateInput](#kube-v1-createinput)
 
 <table>
 <tr>
@@ -3246,7 +2964,7 @@ Create creates new resources in the cluster (fails if already exists)
 </tr>
 <tr>
 <td>resources</td>
-<td><a href="#kube-v1-createrequest-resourcesentry">kube.v1.CreateRequest.ResourcesEntry</a></td>
+<td><a href="#kube-v1-createinput-resourcesentry">kube.v1.CreateInput.ResourcesEntry</a></td>
 <td><pre>
 resources is a map of resource_id → resource
 resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
@@ -3257,7 +2975,7 @@ go_name: Resources</pre></td>
 </tr>
 </table>
 
-**Output:** [kube.v1.CreateResponse](#kube-v1-createresponse)
+**Output:** [kube.v1.CreateOutput](#kube-v1-createoutput)
 
 <table>
 <tr>
@@ -3267,10 +2985,10 @@ go_name: Resources</pre></td>
 </tr>
 <tr>
 <td>results</td>
-<td><a href="#kube-v1-createresponse-resultsentry">kube.v1.CreateResponse.ResultsEntry</a></td>
+<td><a href="#kube-v1-createoutput-resultsentry">kube.v1.CreateOutput.ResultsEntry</a></td>
 <td><pre>
 results contains the outcome for each resource
-Keys match the resource_id from CreateRequest<br>
+Keys match the resource_id from CreateInput<br>
 
 json_name: results
 go_name: Results</pre></td>
@@ -3293,7 +3011,7 @@ go_name: Summary</pre></td>
 Update updates existing resources in the cluster (fails if not found)
 </pre>
 
-**Input:** [kube.v1.UpdateRequest](#kube-v1-updaterequest)
+**Input:** [kube.v1.UpdateInput](#kube-v1-updateinput)
 
 <table>
 <tr>
@@ -3303,7 +3021,7 @@ Update updates existing resources in the cluster (fails if not found)
 </tr>
 <tr>
 <td>resources</td>
-<td><a href="#kube-v1-updaterequest-resourcesentry">kube.v1.UpdateRequest.ResourcesEntry</a></td>
+<td><a href="#kube-v1-updateinput-resourcesentry">kube.v1.UpdateInput.ResourcesEntry</a></td>
 <td><pre>
 resources is a map of resource_id → resource
 resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
@@ -3314,7 +3032,7 @@ go_name: Resources</pre></td>
 </tr>
 </table>
 
-**Output:** [kube.v1.UpdateResponse](#kube-v1-updateresponse)
+**Output:** [kube.v1.UpdateOutput](#kube-v1-updateoutput)
 
 <table>
 <tr>
@@ -3324,10 +3042,10 @@ go_name: Resources</pre></td>
 </tr>
 <tr>
 <td>results</td>
-<td><a href="#kube-v1-updateresponse-resultsentry">kube.v1.UpdateResponse.ResultsEntry</a></td>
+<td><a href="#kube-v1-updateoutput-resultsentry">kube.v1.UpdateOutput.ResultsEntry</a></td>
 <td><pre>
 results contains the outcome for each resource
-Keys match the resource_id from UpdateRequest<br>
+Keys match the resource_id from UpdateInput<br>
 
 json_name: results
 go_name: Results</pre></td>
@@ -3350,7 +3068,7 @@ go_name: Summary</pre></td>
 Apply deploys resources to the cluster (create or update)
 </pre>
 
-**Input:** [kube.v1.ApplyRequest](#kube-v1-applyrequest)
+**Input:** [kube.v1.ApplyInput](#kube-v1-applyinput)
 
 <table>
 <tr>
@@ -3360,7 +3078,7 @@ Apply deploys resources to the cluster (create or update)
 </tr>
 <tr>
 <td>resources</td>
-<td><a href="#kube-v1-applyrequest-resourcesentry">kube.v1.ApplyRequest.ResourcesEntry</a></td>
+<td><a href="#kube-v1-applyinput-resourcesentry">kube.v1.ApplyInput.ResourcesEntry</a></td>
 <td><pre>
 resources is a map of resource_id → resource
 resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
@@ -3371,7 +3089,7 @@ go_name: Resources</pre></td>
 </tr>
 </table>
 
-**Output:** [kube.v1.ApplyResponse](#kube-v1-applyresponse)
+**Output:** [kube.v1.ApplyOutput](#kube-v1-applyoutput)
 
 <table>
 <tr>
@@ -3381,10 +3099,10 @@ go_name: Resources</pre></td>
 </tr>
 <tr>
 <td>results</td>
-<td><a href="#kube-v1-applyresponse-resultsentry">kube.v1.ApplyResponse.ResultsEntry</a></td>
+<td><a href="#kube-v1-applyoutput-resultsentry">kube.v1.ApplyOutput.ResultsEntry</a></td>
 <td><pre>
 results contains the outcome for each resource
-Keys match the resource_id from ApplyRequest<br>
+Keys match the resource_id from ApplyInput<br>
 
 json_name: results
 go_name: Results</pre></td>
@@ -3407,7 +3125,7 @@ go_name: Summary</pre></td>
 Delete removes resources from the cluster
 </pre>
 
-**Input:** [kube.v1.DeleteRequest](#kube-v1-deleterequest)
+**Input:** [kube.v1.DeleteInput](#kube-v1-deleteinput)
 
 <table>
 <tr>
@@ -3417,10 +3135,10 @@ Delete removes resources from the cluster
 </tr>
 <tr>
 <td>resources</td>
-<td><a href="#kube-v1-deleterequest-resourcesentry">kube.v1.DeleteRequest.ResourcesEntry</a></td>
+<td><a href="#kube-v1-deleteinput-resourcesentry">kube.v1.DeleteInput.ResourcesEntry</a></td>
 <td><pre>
 resources to delete
-Keys are resource_id (same as ApplyRequest)
+Keys are resource_id (same as ApplyInput)
 Each resource's YAML must include namespace (or be cluster-scoped)<br>
 
 json_name: resources
@@ -3428,7 +3146,7 @@ go_name: Resources</pre></td>
 </tr>
 </table>
 
-**Output:** [kube.v1.DeleteResponse](#kube-v1-deleteresponse)
+**Output:** [kube.v1.DeleteOutput](#kube-v1-deleteoutput)
 
 <table>
 <tr>
@@ -3438,7 +3156,7 @@ go_name: Resources</pre></td>
 </tr>
 <tr>
 <td>results</td>
-<td><a href="#kube-v1-deleteresponse-resultsentry">kube.v1.DeleteResponse.ResultsEntry</a></td>
+<td><a href="#kube-v1-deleteoutput-resultsentry">kube.v1.DeleteOutput.ResultsEntry</a></td>
 <td><pre>
 results contains the outcome for each resource<br>
 
@@ -3463,7 +3181,7 @@ go_name: Summary</pre></td>
 GetStatus retrieves the current status of deployed resources
 </pre>
 
-**Input:** [kube.v1.GetStatusRequest](#kube-v1-getstatusrequest)
+**Input:** [kube.v1.GetStatusInput](#kube-v1-getstatusinput)
 
 <table>
 <tr>
@@ -3473,7 +3191,7 @@ GetStatus retrieves the current status of deployed resources
 </tr>
 <tr>
 <td>resources</td>
-<td><a href="#kube-v1-getstatusrequest-resourcesentry">kube.v1.GetStatusRequest.ResourcesEntry</a></td>
+<td><a href="#kube-v1-getstatusinput-resourcesentry">kube.v1.GetStatusInput.ResourcesEntry</a></td>
 <td><pre>
 resources to check status for
 Each resource's YAML must include namespace (or be cluster-scoped)<br>
@@ -3483,7 +3201,7 @@ go_name: Resources</pre></td>
 </tr>
 </table>
 
-**Output:** [kube.v1.GetStatusResponse](#kube-v1-getstatusresponse)
+**Output:** [kube.v1.GetStatusOutput](#kube-v1-getstatusoutput)
 
 <table>
 <tr>
@@ -3501,10 +3219,10 @@ json_name: overallStatus
 go_name: OverallStatus</pre></td>
 </tr><tr>
 <td>results</td>
-<td><a href="#kube-v1-getstatusresponse-resultsentry">kube.v1.GetStatusResponse.ResultsEntry</a></td>
+<td><a href="#kube-v1-getstatusoutput-resultsentry">kube.v1.GetStatusOutput.ResultsEntry</a></td>
 <td><pre>
 results contains status for each resource
-Keys match resource_id from GetStatusRequest<br>
+Keys match resource_id from GetStatusInput<br>
 
 json_name: results
 go_name: Results</pre></td>
@@ -3514,11 +3232,11 @@ go_name: Results</pre></td>
 <a name="kube-v1-messages"></a>
 ## Messages
 
-<a name="kube-v1-applyrequest"></a>
-### kube.v1.ApplyRequest
+<a name="kube-v1-applyinput"></a>
+### kube.v1.ApplyInput
 
 <pre>
-ApplyRequest defines inputs for the Apply activity
+ApplyInput defines inputs for the Apply activity
 </pre>
 
 <table>
@@ -3529,7 +3247,7 @@ ApplyRequest defines inputs for the Apply activity
 </tr>
 <tr>
 <td>resources</td>
-<td><a href="#kube-v1-applyrequest-resourcesentry">kube.v1.ApplyRequest.ResourcesEntry</a></td>
+<td><a href="#kube-v1-applyinput-resourcesentry">kube.v1.ApplyInput.ResourcesEntry</a></td>
 <td><pre>
 resources is a map of resource_id → resource
 resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
@@ -3542,8 +3260,8 @@ go_name: Resources</pre></td>
 
 
 
-<a name="kube-v1-applyrequest-resourcesentry"></a>
-### kube.v1.ApplyRequest.ResourcesEntry
+<a name="kube-v1-applyinput-resourcesentry"></a>
+### kube.v1.ApplyInput.ResourcesEntry
 
 <table>
 <tr>
@@ -3568,11 +3286,11 @@ go_name: Value</pre></td>
 
 
 
-<a name="kube-v1-applyresponse"></a>
-### kube.v1.ApplyResponse
+<a name="kube-v1-applyoutput"></a>
+### kube.v1.ApplyOutput
 
 <pre>
-ApplyResponse represents the result of applying resources
+ApplyOutput represents the result of applying resources
 </pre>
 
 <table>
@@ -3583,10 +3301,10 @@ ApplyResponse represents the result of applying resources
 </tr>
 <tr>
 <td>results</td>
-<td><a href="#kube-v1-applyresponse-resultsentry">kube.v1.ApplyResponse.ResultsEntry</a></td>
+<td><a href="#kube-v1-applyoutput-resultsentry">kube.v1.ApplyOutput.ResultsEntry</a></td>
 <td><pre>
 results contains the outcome for each resource
-Keys match the resource_id from ApplyRequest<br>
+Keys match the resource_id from ApplyInput<br>
 
 json_name: results
 go_name: Results</pre></td>
@@ -3603,8 +3321,8 @@ go_name: Summary</pre></td>
 
 
 
-<a name="kube-v1-applyresponse-resultsentry"></a>
-### kube.v1.ApplyResponse.ResultsEntry
+<a name="kube-v1-applyoutput-resultsentry"></a>
+### kube.v1.ApplyOutput.ResultsEntry
 
 <table>
 <tr>
@@ -3707,11 +3425,11 @@ go_name: Total</pre></td>
 
 
 
-<a name="kube-v1-createrequest"></a>
-### kube.v1.CreateRequest
+<a name="kube-v1-createinput"></a>
+### kube.v1.CreateInput
 
 <pre>
-CreateRequest defines inputs for the Create activity
+CreateInput defines inputs for the Create activity
 </pre>
 
 <table>
@@ -3722,7 +3440,7 @@ CreateRequest defines inputs for the Create activity
 </tr>
 <tr>
 <td>resources</td>
-<td><a href="#kube-v1-createrequest-resourcesentry">kube.v1.CreateRequest.ResourcesEntry</a></td>
+<td><a href="#kube-v1-createinput-resourcesentry">kube.v1.CreateInput.ResourcesEntry</a></td>
 <td><pre>
 resources is a map of resource_id → resource
 resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
@@ -3735,8 +3453,8 @@ go_name: Resources</pre></td>
 
 
 
-<a name="kube-v1-createrequest-resourcesentry"></a>
-### kube.v1.CreateRequest.ResourcesEntry
+<a name="kube-v1-createinput-resourcesentry"></a>
+### kube.v1.CreateInput.ResourcesEntry
 
 <table>
 <tr>
@@ -3761,11 +3479,11 @@ go_name: Value</pre></td>
 
 
 
-<a name="kube-v1-createresponse"></a>
-### kube.v1.CreateResponse
+<a name="kube-v1-createoutput"></a>
+### kube.v1.CreateOutput
 
 <pre>
-CreateResponse represents the result of creating resources
+CreateOutput represents the result of creating resources
 </pre>
 
 <table>
@@ -3776,10 +3494,10 @@ CreateResponse represents the result of creating resources
 </tr>
 <tr>
 <td>results</td>
-<td><a href="#kube-v1-createresponse-resultsentry">kube.v1.CreateResponse.ResultsEntry</a></td>
+<td><a href="#kube-v1-createoutput-resultsentry">kube.v1.CreateOutput.ResultsEntry</a></td>
 <td><pre>
 results contains the outcome for each resource
-Keys match the resource_id from CreateRequest<br>
+Keys match the resource_id from CreateInput<br>
 
 json_name: results
 go_name: Results</pre></td>
@@ -3796,8 +3514,8 @@ go_name: Summary</pre></td>
 
 
 
-<a name="kube-v1-createresponse-resultsentry"></a>
-### kube.v1.CreateResponse.ResultsEntry
+<a name="kube-v1-createoutput-resultsentry"></a>
+### kube.v1.CreateOutput.ResultsEntry
 
 <table>
 <tr>
@@ -3900,11 +3618,11 @@ go_name: Total</pre></td>
 
 
 
-<a name="kube-v1-deleterequest"></a>
-### kube.v1.DeleteRequest
+<a name="kube-v1-deleteinput"></a>
+### kube.v1.DeleteInput
 
 <pre>
-DeleteRequest defines inputs for the Delete activity
+DeleteInput defines inputs for the Delete activity
 </pre>
 
 <table>
@@ -3915,10 +3633,10 @@ DeleteRequest defines inputs for the Delete activity
 </tr>
 <tr>
 <td>resources</td>
-<td><a href="#kube-v1-deleterequest-resourcesentry">kube.v1.DeleteRequest.ResourcesEntry</a></td>
+<td><a href="#kube-v1-deleteinput-resourcesentry">kube.v1.DeleteInput.ResourcesEntry</a></td>
 <td><pre>
 resources to delete
-Keys are resource_id (same as ApplyRequest)
+Keys are resource_id (same as ApplyInput)
 Each resource's YAML must include namespace (or be cluster-scoped)<br>
 
 json_name: resources
@@ -3928,8 +3646,8 @@ go_name: Resources</pre></td>
 
 
 
-<a name="kube-v1-deleterequest-resourcesentry"></a>
-### kube.v1.DeleteRequest.ResourcesEntry
+<a name="kube-v1-deleteinput-resourcesentry"></a>
+### kube.v1.DeleteInput.ResourcesEntry
 
 <table>
 <tr>
@@ -3954,11 +3672,11 @@ go_name: Value</pre></td>
 
 
 
-<a name="kube-v1-deleteresponse"></a>
-### kube.v1.DeleteResponse
+<a name="kube-v1-deleteoutput"></a>
+### kube.v1.DeleteOutput
 
 <pre>
-DeleteResponse represents the result of deleting resources
+DeleteOutput represents the result of deleting resources
 </pre>
 
 <table>
@@ -3969,7 +3687,7 @@ DeleteResponse represents the result of deleting resources
 </tr>
 <tr>
 <td>results</td>
-<td><a href="#kube-v1-deleteresponse-resultsentry">kube.v1.DeleteResponse.ResultsEntry</a></td>
+<td><a href="#kube-v1-deleteoutput-resultsentry">kube.v1.DeleteOutput.ResultsEntry</a></td>
 <td><pre>
 results contains the outcome for each resource<br>
 
@@ -3988,8 +3706,8 @@ go_name: Summary</pre></td>
 
 
 
-<a name="kube-v1-deleteresponse-resultsentry"></a>
-### kube.v1.DeleteResponse.ResultsEntry
+<a name="kube-v1-deleteoutput-resultsentry"></a>
+### kube.v1.DeleteOutput.ResultsEntry
 
 <table>
 <tr>
@@ -4084,11 +3802,11 @@ go_name: Total</pre></td>
 
 
 
-<a name="kube-v1-getstatusrequest"></a>
-### kube.v1.GetStatusRequest
+<a name="kube-v1-getstatusinput"></a>
+### kube.v1.GetStatusInput
 
 <pre>
-GetStatusRequest queries the status of deployed resources
+GetStatusInput queries the status of deployed resources
 </pre>
 
 <table>
@@ -4099,7 +3817,7 @@ GetStatusRequest queries the status of deployed resources
 </tr>
 <tr>
 <td>resources</td>
-<td><a href="#kube-v1-getstatusrequest-resourcesentry">kube.v1.GetStatusRequest.ResourcesEntry</a></td>
+<td><a href="#kube-v1-getstatusinput-resourcesentry">kube.v1.GetStatusInput.ResourcesEntry</a></td>
 <td><pre>
 resources to check status for
 Each resource's YAML must include namespace (or be cluster-scoped)<br>
@@ -4111,8 +3829,8 @@ go_name: Resources</pre></td>
 
 
 
-<a name="kube-v1-getstatusrequest-resourcesentry"></a>
-### kube.v1.GetStatusRequest.ResourcesEntry
+<a name="kube-v1-getstatusinput-resourcesentry"></a>
+### kube.v1.GetStatusInput.ResourcesEntry
 
 <table>
 <tr>
@@ -4137,11 +3855,11 @@ go_name: Value</pre></td>
 
 
 
-<a name="kube-v1-getstatusresponse"></a>
-### kube.v1.GetStatusResponse
+<a name="kube-v1-getstatusoutput"></a>
+### kube.v1.GetStatusOutput
 
 <pre>
-GetStatusResponse represents the current status of resources
+GetStatusOutput represents the current status of resources
 </pre>
 
 <table>
@@ -4160,10 +3878,10 @@ json_name: overallStatus
 go_name: OverallStatus</pre></td>
 </tr><tr>
 <td>results</td>
-<td><a href="#kube-v1-getstatusresponse-resultsentry">kube.v1.GetStatusResponse.ResultsEntry</a></td>
+<td><a href="#kube-v1-getstatusoutput-resultsentry">kube.v1.GetStatusOutput.ResultsEntry</a></td>
 <td><pre>
 results contains status for each resource
-Keys match resource_id from GetStatusRequest<br>
+Keys match resource_id from GetStatusInput<br>
 
 json_name: results
 go_name: Results</pre></td>
@@ -4172,8 +3890,8 @@ go_name: Results</pre></td>
 
 
 
-<a name="kube-v1-getstatusresponse-resultsentry"></a>
-### kube.v1.GetStatusResponse.ResultsEntry
+<a name="kube-v1-getstatusoutput-resultsentry"></a>
+### kube.v1.GetStatusOutput.ResultsEntry
 
 <table>
 <tr>
@@ -4302,11 +4020,11 @@ go_name: Status</pre></td>
 
 
 
-<a name="kube-v1-updaterequest"></a>
-### kube.v1.UpdateRequest
+<a name="kube-v1-updateinput"></a>
+### kube.v1.UpdateInput
 
 <pre>
-UpdateRequest defines inputs for the Update activity
+UpdateInput defines inputs for the Update activity
 </pre>
 
 <table>
@@ -4317,7 +4035,7 @@ UpdateRequest defines inputs for the Update activity
 </tr>
 <tr>
 <td>resources</td>
-<td><a href="#kube-v1-updaterequest-resourcesentry">kube.v1.UpdateRequest.ResourcesEntry</a></td>
+<td><a href="#kube-v1-updateinput-resourcesentry">kube.v1.UpdateInput.ResourcesEntry</a></td>
 <td><pre>
 resources is a map of resource_id → resource
 resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
@@ -4330,8 +4048,8 @@ go_name: Resources</pre></td>
 
 
 
-<a name="kube-v1-updaterequest-resourcesentry"></a>
-### kube.v1.UpdateRequest.ResourcesEntry
+<a name="kube-v1-updateinput-resourcesentry"></a>
+### kube.v1.UpdateInput.ResourcesEntry
 
 <table>
 <tr>
@@ -4356,11 +4074,11 @@ go_name: Value</pre></td>
 
 
 
-<a name="kube-v1-updateresponse"></a>
-### kube.v1.UpdateResponse
+<a name="kube-v1-updateoutput"></a>
+### kube.v1.UpdateOutput
 
 <pre>
-UpdateResponse represents the result of updating resources
+UpdateOutput represents the result of updating resources
 </pre>
 
 <table>
@@ -4371,10 +4089,10 @@ UpdateResponse represents the result of updating resources
 </tr>
 <tr>
 <td>results</td>
-<td><a href="#kube-v1-updateresponse-resultsentry">kube.v1.UpdateResponse.ResultsEntry</a></td>
+<td><a href="#kube-v1-updateoutput-resultsentry">kube.v1.UpdateOutput.ResultsEntry</a></td>
 <td><pre>
 results contains the outcome for each resource
-Keys match the resource_id from UpdateRequest<br>
+Keys match the resource_id from UpdateInput<br>
 
 json_name: results
 go_name: Results</pre></td>
@@ -4391,8 +4109,8 @@ go_name: Summary</pre></td>
 
 
 
-<a name="kube-v1-updateresponse-resultsentry"></a>
-### kube.v1.UpdateResponse.ResultsEntry
+<a name="kube-v1-updateoutput-resultsentry"></a>
+### kube.v1.UpdateOutput.ResultsEntry
 
 <table>
 <tr>
@@ -4505,196 +4223,197 @@ go_name: Updated</pre></td>
 ## vault.v1.Vault
 
 <pre>
-Vault service defines workflows and activities related to secret management
-</pre>
-
-<a name="vault-v1-vault-workflows"></a>
-### Workflows
-
----
-<a name="vault-v1-storesecret-workflow"></a>
-### vault.v1.StoreSecret
-
-<pre>
-StoreSecret stores (or updates) a secret in Vault
-</pre>
-
-**Input:** [vault.v1.Secret](#vault-v1-secret)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>data</td>
-<td><a href="#vault-v1-secret-dataentry">vault.v1.Secret.DataEntry</a></td>
-<td><pre>
-json_name: data
-go_name: Data</pre></td>
-</tr><tr>
-<td>labels</td>
-<td><a href="#vault-v1-secret-labelsentry">vault.v1.Secret.LabelsEntry</a></td>
-<td><pre>
-json_name: labels
-go_name: Labels</pre></td>
-</tr><tr>
-<td>name</td>
-<td>string</td>
-<td><pre>
-json_name: name
-go_name: Name</pre></td>
-</tr><tr>
-<td>namespace</td>
-<td>string</td>
-<td><pre>
-json_name: namespace
-go_name: Namespace</pre></td>
-</tr><tr>
-<td>version</td>
-<td>int64</td>
-<td><pre>
-json_name: version
-go_name: Version</pre></td>
-</tr>
-</table>
-
-**Output:** [vault.v1.SecretRef](#vault-v1-secretref)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>name</td>
-<td>string</td>
-<td><pre>
-json_name: name
-go_name: Name</pre></td>
-</tr><tr>
-<td>namespace</td>
-<td>string</td>
-<td><pre>
-json_name: namespace
-go_name: Namespace</pre></td>
-</tr><tr>
-<td>version</td>
-<td>int64</td>
-<td><pre>
-json_name: version
-go_name: Version</pre></td>
-</tr>
-</table>
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
-</table>
-
----
-<a name="vault-v1-fetchsecret-workflow"></a>
-### vault.v1.FetchSecret
-
-<pre>
-FetchSecret retrieves a secret from Vault
-</pre>
-
-**Input:** [vault.v1.SecretRef](#vault-v1-secretref)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>name</td>
-<td>string</td>
-<td><pre>
-json_name: name
-go_name: Name</pre></td>
-</tr><tr>
-<td>namespace</td>
-<td>string</td>
-<td><pre>
-json_name: namespace
-go_name: Namespace</pre></td>
-</tr><tr>
-<td>version</td>
-<td>int64</td>
-<td><pre>
-json_name: version
-go_name: Version</pre></td>
-</tr>
-</table>
-
-**Output:** [vault.v1.Secret](#vault-v1-secret)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>data</td>
-<td><a href="#vault-v1-secret-dataentry">vault.v1.Secret.DataEntry</a></td>
-<td><pre>
-json_name: data
-go_name: Data</pre></td>
-</tr><tr>
-<td>labels</td>
-<td><a href="#vault-v1-secret-labelsentry">vault.v1.Secret.LabelsEntry</a></td>
-<td><pre>
-json_name: labels
-go_name: Labels</pre></td>
-</tr><tr>
-<td>name</td>
-<td>string</td>
-<td><pre>
-json_name: name
-go_name: Name</pre></td>
-</tr><tr>
-<td>namespace</td>
-<td>string</td>
-<td><pre>
-json_name: namespace
-go_name: Namespace</pre></td>
-</tr><tr>
-<td>version</td>
-<td>int64</td>
-<td><pre>
-json_name: version
-go_name: Version</pre></td>
-</tr>
-</table>
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
-</table>    
+Vault service defines activities related to secret and auth management
+</pre>   
 
 <a name="vault-v1-vault-activities"></a>
 ### Activities
+
+---
+<a name="vault-v1-createauthrole-activity"></a>
+### vault.v1.CreateAuthRole
+
+<pre>
+Auth Role Management
+</pre>
+
+**Input:** [vault.v1.CreateAuthRoleInput](#vault-v1-createauthroleinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>kubernetes_namespace</td>
+<td>string</td>
+<td><pre>
+kubernetes_namespace is the Kubernetes namespace where the service account exists<br>
+
+json_name: kubernetesNamespace
+go_name: KubernetesNamespace</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+organization is the organization name (e.g., "metacensus", "acme-corp")<br>
+
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>policy_names</td>
+<td>string</td>
+<td><pre>
+policy_names is a list of Vault policy names to bind to this role
+(e.g., ["fabric-foundational", "fabric-org-specific"])<br>
+
+json_name: policyNames
+go_name: PolicyNames</pre></td>
+</tr><tr>
+<td>service_account_name</td>
+<td>string</td>
+<td><pre>
+service_account_name is the Kubernetes service account that can authenticate
+(e.g., "fabric-org-sa")<br>
+
+json_name: serviceAccountName
+go_name: ServiceAccountName</pre></td>
+</tr>
+</table>
+
+**Output:** [vault.v1.CreateAuthRoleOutput](#vault-v1-createauthroleoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>role_name</td>
+<td>string</td>
+<td><pre>
+json_name: roleName
+go_name: RoleName</pre></td>
+</tr>
+</table> 
+
+---
+<a name="vault-v1-deleteauthrole-activity"></a>
+### vault.v1.DeleteAuthRole
+
+
+
+**Input:** [vault.v1.DeleteAuthRoleInput](#vault-v1-deleteauthroleinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>role_name</td>
+<td>string</td>
+<td><pre>
+json_name: roleName
+go_name: RoleName</pre></td>
+</tr>
+</table>
+
+**Output:** [vault.v1.DeleteAuthRoleOutput](#vault-v1-deleteauthroleoutput)
+
+ 
+
+---
+<a name="vault-v1-createpolicy-activity"></a>
+### vault.v1.CreatePolicy
+
+<pre>
+Policy Management
+</pre>
+
+**Input:** [vault.v1.CreatePolicyInput](#vault-v1-createpolicyinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>policy_document</td>
+<td>string</td>
+<td><pre>
+policy_document is the HCL policy content<br>
+
+json_name: policyDocument
+go_name: PolicyDocument</pre></td>
+</tr><tr>
+<td>policy_name</td>
+<td>string</td>
+<td><pre>
+policy_name is the name of the policy (e.g., "fabric-foundational")<br>
+
+json_name: policyName
+go_name: PolicyName</pre></td>
+</tr>
+</table>
+
+**Output:** [vault.v1.CreatePolicyOutput](#vault-v1-createpolicyoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>policy_name</td>
+<td>string</td>
+<td><pre>
+json_name: policyName
+go_name: PolicyName</pre></td>
+</tr>
+</table> 
+
+---
+<a name="vault-v1-deletepolicy-activity"></a>
+### vault.v1.DeletePolicy
+
+
+
+**Input:** [vault.v1.DeletePolicyInput](#vault-v1-deletepolicyinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>policy_name</td>
+<td>string</td>
+<td><pre>
+json_name: policyName
+go_name: PolicyName</pre></td>
+</tr>
+</table>
+
+**Output:** [vault.v1.DeletePolicyOutput](#vault-v1-deletepolicyoutput)
+
+ 
 
 ---
 <a name="vault-v1-storesecret-activity"></a>
 ### vault.v1.StoreSecret
 
 <pre>
-StoreSecret stores (or updates) a secret in Vault
+Secret Management
 </pre>
 
-**Input:** [vault.v1.Secret](#vault-v1-secret)
+**Input:** [vault.v1.StoreSecretInput](#vault-v1-storesecretinput)
 
 <table>
 <tr>
@@ -4704,38 +4423,20 @@ StoreSecret stores (or updates) a secret in Vault
 </tr>
 <tr>
 <td>data</td>
-<td><a href="#vault-v1-secret-dataentry">vault.v1.Secret.DataEntry</a></td>
+<td><a href="#vault-v1-storesecretinput-dataentry">vault.v1.StoreSecretInput.DataEntry</a></td>
 <td><pre>
 json_name: data
 go_name: Data</pre></td>
 </tr><tr>
-<td>labels</td>
-<td><a href="#vault-v1-secret-labelsentry">vault.v1.Secret.LabelsEntry</a></td>
-<td><pre>
-json_name: labels
-go_name: Labels</pre></td>
-</tr><tr>
-<td>name</td>
+<td>path</td>
 <td>string</td>
 <td><pre>
-json_name: name
-go_name: Name</pre></td>
-</tr><tr>
-<td>namespace</td>
-<td>string</td>
-<td><pre>
-json_name: namespace
-go_name: Namespace</pre></td>
-</tr><tr>
-<td>version</td>
-<td>int64</td>
-<td><pre>
-json_name: version
-go_name: Version</pre></td>
+json_name: path
+go_name: Path</pre></td>
 </tr>
 </table>
 
-**Output:** [vault.v1.SecretRef](#vault-v1-secretref)
+**Output:** [vault.v1.StoreSecretOutput](#vault-v1-storesecretoutput)
 
 <table>
 <tr>
@@ -4744,23 +4445,11 @@ go_name: Version</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>name</td>
-<td>string</td>
+<td>secret_ref</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
 <td><pre>
-json_name: name
-go_name: Name</pre></td>
-</tr><tr>
-<td>namespace</td>
-<td>string</td>
-<td><pre>
-json_name: namespace
-go_name: Namespace</pre></td>
-</tr><tr>
-<td>version</td>
-<td>int64</td>
-<td><pre>
-json_name: version
-go_name: Version</pre></td>
+json_name: secretRef
+go_name: SecretRef</pre></td>
 </tr>
 </table> 
 
@@ -4768,11 +4457,9 @@ go_name: Version</pre></td>
 <a name="vault-v1-fetchsecret-activity"></a>
 ### vault.v1.FetchSecret
 
-<pre>
-FetchSecret retrieves a secret from Vault
-</pre>
 
-**Input:** [vault.v1.SecretRef](#vault-v1-secretref)
+
+**Input:** [vault.v1.FetchSecretInput](#vault-v1-fetchsecretinput)
 
 <table>
 <tr>
@@ -4781,17 +4468,11 @@ FetchSecret retrieves a secret from Vault
 <th>Description</th>
 </tr>
 <tr>
-<td>name</td>
+<td>path</td>
 <td>string</td>
 <td><pre>
-json_name: name
-go_name: Name</pre></td>
-</tr><tr>
-<td>namespace</td>
-<td>string</td>
-<td><pre>
-json_name: namespace
-go_name: Namespace</pre></td>
+json_name: path
+go_name: Path</pre></td>
 </tr><tr>
 <td>version</td>
 <td>int64</td>
@@ -4801,7 +4482,7 @@ go_name: Version</pre></td>
 </tr>
 </table>
 
-**Output:** [vault.v1.Secret](#vault-v1-secret)
+**Output:** [vault.v1.FetchSecretOutput](#vault-v1-fetchsecretoutput)
 
 <table>
 <tr>
@@ -4811,45 +4492,54 @@ go_name: Version</pre></td>
 </tr>
 <tr>
 <td>data</td>
-<td><a href="#vault-v1-secret-dataentry">vault.v1.Secret.DataEntry</a></td>
+<td><a href="#vault-v1-fetchsecretoutput-dataentry">vault.v1.FetchSecretOutput.DataEntry</a></td>
 <td><pre>
 json_name: data
 go_name: Data</pre></td>
 </tr><tr>
-<td>labels</td>
-<td><a href="#vault-v1-secret-labelsentry">vault.v1.Secret.LabelsEntry</a></td>
+<td>secret_ref</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
 <td><pre>
-json_name: labels
-go_name: Labels</pre></td>
-</tr><tr>
-<td>name</td>
-<td>string</td>
-<td><pre>
-json_name: name
-go_name: Name</pre></td>
-</tr><tr>
-<td>namespace</td>
-<td>string</td>
-<td><pre>
-json_name: namespace
-go_name: Namespace</pre></td>
-</tr><tr>
-<td>version</td>
-<td>int64</td>
-<td><pre>
-json_name: version
-go_name: Version</pre></td>
+json_name: secretRef
+go_name: SecretRef</pre></td>
 </tr>
-</table>   
+</table> 
+
+---
+<a name="vault-v1-deletesecret-activity"></a>
+### vault.v1.DeleteSecret
+
+
+
+**Input:** [vault.v1.DeleteSecretInput](#vault-v1-deletesecretinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>path</td>
+<td>string</td>
+<td><pre>
+json_name: path
+go_name: Path</pre></td>
+</tr>
+</table>
+
+**Output:** [vault.v1.DeleteSecretOutput](#vault-v1-deletesecretoutput)
+
+   
 
 <a name="vault-v1-messages"></a>
 ## Messages
 
-<a name="vault-v1-secret"></a>
-### vault.v1.Secret
+<a name="vault-v1-createauthroleinput"></a>
+### vault.v1.CreateAuthRoleInput
 
 <pre>
-Secret describes a secret entity in vault
+CreateAuthRoleInput specifies parameters for creating an auth role in Vault
 </pre>
 
 <table>
@@ -4859,29 +4549,244 @@ Secret describes a secret entity in vault
 <th>Description</th>
 </tr>
 <tr>
-<td>data</td>
-<td><a href="#vault-v1-secret-dataentry">vault.v1.Secret.DataEntry</a></td>
-<td><pre>
-json_name: data
-go_name: Data</pre></td>
-</tr><tr>
-<td>labels</td>
-<td><a href="#vault-v1-secret-labelsentry">vault.v1.Secret.LabelsEntry</a></td>
-<td><pre>
-json_name: labels
-go_name: Labels</pre></td>
-</tr><tr>
-<td>name</td>
+<td>kubernetes_namespace</td>
 <td>string</td>
 <td><pre>
-json_name: name
-go_name: Name</pre></td>
+kubernetes_namespace is the Kubernetes namespace where the service account exists<br>
+
+json_name: kubernetesNamespace
+go_name: KubernetesNamespace</pre></td>
 </tr><tr>
-<td>namespace</td>
+<td>organization</td>
 <td>string</td>
 <td><pre>
-json_name: namespace
-go_name: Namespace</pre></td>
+organization is the organization name (e.g., "metacensus", "acme-corp")<br>
+
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>policy_names</td>
+<td>string</td>
+<td><pre>
+policy_names is a list of Vault policy names to bind to this role
+(e.g., ["fabric-foundational", "fabric-org-specific"])<br>
+
+json_name: policyNames
+go_name: PolicyNames</pre></td>
+</tr><tr>
+<td>service_account_name</td>
+<td>string</td>
+<td><pre>
+service_account_name is the Kubernetes service account that can authenticate
+(e.g., "fabric-org-sa")<br>
+
+json_name: serviceAccountName
+go_name: ServiceAccountName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="vault-v1-createauthroleoutput"></a>
+### vault.v1.CreateAuthRoleOutput
+
+<pre>
+CreateAuthRoleOutput returns the created role name
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>role_name</td>
+<td>string</td>
+<td><pre>
+json_name: roleName
+go_name: RoleName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="vault-v1-createpolicyinput"></a>
+### vault.v1.CreatePolicyInput
+
+<pre>
+CreatePolicyInput specifies parameters for creating a Vault policy
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>policy_document</td>
+<td>string</td>
+<td><pre>
+policy_document is the HCL policy content<br>
+
+json_name: policyDocument
+go_name: PolicyDocument</pre></td>
+</tr><tr>
+<td>policy_name</td>
+<td>string</td>
+<td><pre>
+policy_name is the name of the policy (e.g., "fabric-foundational")<br>
+
+json_name: policyName
+go_name: PolicyName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="vault-v1-createpolicyoutput"></a>
+### vault.v1.CreatePolicyOutput
+
+<pre>
+CreatePolicyOutput returns the created policy name
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>policy_name</td>
+<td>string</td>
+<td><pre>
+json_name: policyName
+go_name: PolicyName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="vault-v1-deleteauthroleinput"></a>
+### vault.v1.DeleteAuthRoleInput
+
+<pre>
+DeleteAuthRoleInput specifies which auth role to delete
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>role_name</td>
+<td>string</td>
+<td><pre>
+json_name: roleName
+go_name: RoleName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="vault-v1-deleteauthroleoutput"></a>
+### vault.v1.DeleteAuthRoleOutput
+
+<pre>
+DeleteAuthRoleOutput confirms successful auth role deletion
+</pre>
+
+
+
+<a name="vault-v1-deletepolicyinput"></a>
+### vault.v1.DeletePolicyInput
+
+<pre>
+DeletePolicyInput specifies which policy to delete
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>policy_name</td>
+<td>string</td>
+<td><pre>
+json_name: policyName
+go_name: PolicyName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="vault-v1-deletepolicyoutput"></a>
+### vault.v1.DeletePolicyOutput
+
+<pre>
+DeletePolicyOutput confirms successful policy deletion
+</pre>
+
+
+
+<a name="vault-v1-deletesecretinput"></a>
+### vault.v1.DeleteSecretInput
+
+<pre>
+DeleteSecretInput specifies which secret to delete
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>path</td>
+<td>string</td>
+<td><pre>
+json_name: path
+go_name: Path</pre></td>
+</tr>
+</table>
+
+
+
+<a name="vault-v1-deletesecretoutput"></a>
+### vault.v1.DeleteSecretOutput
+
+<pre>
+DeleteSecretOutput confirms successful secret deletion
+</pre>
+
+
+
+<a name="vault-v1-fetchsecretinput"></a>
+### vault.v1.FetchSecretInput
+
+<pre>
+FetchSecretInput specifies which secret to retrieve
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>path</td>
+<td>string</td>
+<td><pre>
+json_name: path
+go_name: Path</pre></td>
 </tr><tr>
 <td>version</td>
 <td>int64</td>
@@ -4893,8 +4798,38 @@ go_name: Version</pre></td>
 
 
 
-<a name="vault-v1-secret-dataentry"></a>
-### vault.v1.Secret.DataEntry
+<a name="vault-v1-fetchsecretoutput"></a>
+### vault.v1.FetchSecretOutput
+
+<pre>
+FetchSecretOutput returns the fetched secret with all its data
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>data</td>
+<td><a href="#vault-v1-fetchsecretoutput-dataentry">vault.v1.FetchSecretOutput.DataEntry</a></td>
+<td><pre>
+json_name: data
+go_name: Data</pre></td>
+</tr><tr>
+<td>secret_ref</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: secretRef
+go_name: SecretRef</pre></td>
+</tr>
+</table>
+
+
+
+<a name="vault-v1-fetchsecretoutput-dataentry"></a>
+### vault.v1.FetchSecretOutput.DataEntry
 
 <table>
 <tr>
@@ -4919,8 +4854,70 @@ go_name: Value</pre></td>
 
 
 
-<a name="vault-v1-secret-labelsentry"></a>
-### vault.v1.Secret.LabelsEntry
+<a name="vault-v1-secretref"></a>
+### vault.v1.SecretRef
+
+<pre>
+SecretRef is a reference to a secret in Vault
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>path</td>
+<td>string</td>
+<td><pre>
+json_name: path
+go_name: Path</pre></td>
+</tr><tr>
+<td>version</td>
+<td>int64</td>
+<td><pre>
+version is the specific version referenced. Set to 0 or omit for latest version<br>
+
+json_name: version
+go_name: Version</pre></td>
+</tr>
+</table>
+
+
+
+<a name="vault-v1-storesecretinput"></a>
+### vault.v1.StoreSecretInput
+
+<pre>
+StoreSecretInput specifies parameters for storing a secret in Vault
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>data</td>
+<td><a href="#vault-v1-storesecretinput-dataentry">vault.v1.StoreSecretInput.DataEntry</a></td>
+<td><pre>
+json_name: data
+go_name: Data</pre></td>
+</tr><tr>
+<td>path</td>
+<td>string</td>
+<td><pre>
+json_name: path
+go_name: Path</pre></td>
+</tr>
+</table>
+
+
+
+<a name="vault-v1-storesecretinput-dataentry"></a>
+### vault.v1.StoreSecretInput.DataEntry
 
 <table>
 <tr>
@@ -4936,7 +4933,7 @@ json_name: key
 go_name: Key</pre></td>
 </tr><tr>
 <td>value</td>
-<td>string</td>
+<td>bytes</td>
 <td><pre>
 json_name: value
 go_name: Value</pre></td>
@@ -4945,11 +4942,11 @@ go_name: Value</pre></td>
 
 
 
-<a name="vault-v1-secretref"></a>
-### vault.v1.SecretRef
+<a name="vault-v1-storesecretoutput"></a>
+### vault.v1.StoreSecretOutput
 
 <pre>
-SecretRef references an existing secret (or where to store one)
+StoreSecretOutput returns the secret reference with version information
 </pre>
 
 <table>
@@ -4959,23 +4956,11 @@ SecretRef references an existing secret (or where to store one)
 <th>Description</th>
 </tr>
 <tr>
-<td>name</td>
-<td>string</td>
+<td>secret_ref</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
 <td><pre>
-json_name: name
-go_name: Name</pre></td>
-</tr><tr>
-<td>namespace</td>
-<td>string</td>
-<td><pre>
-json_name: namespace
-go_name: Namespace</pre></td>
-</tr><tr>
-<td>version</td>
-<td>int64</td>
-<td><pre>
-json_name: version
-go_name: Version</pre></td>
+json_name: secretRef
+go_name: SecretRef</pre></td>
 </tr>
 </table>
 

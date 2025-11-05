@@ -22,65 +22,6 @@ func (_m *MockFabricIdentityWorkflows) EXPECT() *MockFabricIdentityWorkflows_Exp
 	return &MockFabricIdentityWorkflows_Expecter{mock: &_m.Mock}
 }
 
-// AssembleMsp provides a mock function with given fields: ctx, input
-func (_m *MockFabricIdentityWorkflows) AssembleMsp(ctx workflow.Context, input *fabricidentityv1.AssembleMspWorkflowInput) (fabricidentityv1.AssembleMspWorkflow, error) {
-	ret := _m.Called(ctx, input)
-
-	if len(ret) == 0 {
-		panic("no return value specified for AssembleMsp")
-	}
-
-	var r0 fabricidentityv1.AssembleMspWorkflow
-	var r1 error
-	if rf, ok := ret.Get(0).(func(workflow.Context, *fabricidentityv1.AssembleMspWorkflowInput) (fabricidentityv1.AssembleMspWorkflow, error)); ok {
-		return rf(ctx, input)
-	}
-	if rf, ok := ret.Get(0).(func(workflow.Context, *fabricidentityv1.AssembleMspWorkflowInput) fabricidentityv1.AssembleMspWorkflow); ok {
-		r0 = rf(ctx, input)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(fabricidentityv1.AssembleMspWorkflow)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(workflow.Context, *fabricidentityv1.AssembleMspWorkflowInput) error); ok {
-		r1 = rf(ctx, input)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockFabricIdentityWorkflows_AssembleMsp_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AssembleMsp'
-type MockFabricIdentityWorkflows_AssembleMsp_Call struct {
-	*mock.Call
-}
-
-// AssembleMsp is a helper method to define mock.On call
-//   - ctx workflow.Context
-//   - input *fabricidentityv1.AssembleMspWorkflowInput
-func (_e *MockFabricIdentityWorkflows_Expecter) AssembleMsp(ctx interface{}, input interface{}) *MockFabricIdentityWorkflows_AssembleMsp_Call {
-	return &MockFabricIdentityWorkflows_AssembleMsp_Call{Call: _e.mock.On("AssembleMsp", ctx, input)}
-}
-
-func (_c *MockFabricIdentityWorkflows_AssembleMsp_Call) Run(run func(ctx workflow.Context, input *fabricidentityv1.AssembleMspWorkflowInput)) *MockFabricIdentityWorkflows_AssembleMsp_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(workflow.Context), args[1].(*fabricidentityv1.AssembleMspWorkflowInput))
-	})
-	return _c
-}
-
-func (_c *MockFabricIdentityWorkflows_AssembleMsp_Call) Return(_a0 fabricidentityv1.AssembleMspWorkflow, _a1 error) *MockFabricIdentityWorkflows_AssembleMsp_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockFabricIdentityWorkflows_AssembleMsp_Call) RunAndReturn(run func(workflow.Context, *fabricidentityv1.AssembleMspWorkflowInput) (fabricidentityv1.AssembleMspWorkflow, error)) *MockFabricIdentityWorkflows_AssembleMsp_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // BootstrapAdmin provides a mock function with given fields: ctx, input
 func (_m *MockFabricIdentityWorkflows) BootstrapAdmin(ctx workflow.Context, input *fabricidentityv1.BootstrapAdminWorkflowInput) (fabricidentityv1.BootstrapAdminWorkflow, error) {
 	ret := _m.Called(ctx, input)
@@ -136,65 +77,6 @@ func (_c *MockFabricIdentityWorkflows_BootstrapAdmin_Call) Return(_a0 fabriciden
 }
 
 func (_c *MockFabricIdentityWorkflows_BootstrapAdmin_Call) RunAndReturn(run func(workflow.Context, *fabricidentityv1.BootstrapAdminWorkflowInput) (fabricidentityv1.BootstrapAdminWorkflow, error)) *MockFabricIdentityWorkflows_BootstrapAdmin_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// EnrollIdentity provides a mock function with given fields: ctx, input
-func (_m *MockFabricIdentityWorkflows) EnrollIdentity(ctx workflow.Context, input *fabricidentityv1.EnrollIdentityWorkflowInput) (fabricidentityv1.EnrollIdentityWorkflow, error) {
-	ret := _m.Called(ctx, input)
-
-	if len(ret) == 0 {
-		panic("no return value specified for EnrollIdentity")
-	}
-
-	var r0 fabricidentityv1.EnrollIdentityWorkflow
-	var r1 error
-	if rf, ok := ret.Get(0).(func(workflow.Context, *fabricidentityv1.EnrollIdentityWorkflowInput) (fabricidentityv1.EnrollIdentityWorkflow, error)); ok {
-		return rf(ctx, input)
-	}
-	if rf, ok := ret.Get(0).(func(workflow.Context, *fabricidentityv1.EnrollIdentityWorkflowInput) fabricidentityv1.EnrollIdentityWorkflow); ok {
-		r0 = rf(ctx, input)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(fabricidentityv1.EnrollIdentityWorkflow)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(workflow.Context, *fabricidentityv1.EnrollIdentityWorkflowInput) error); ok {
-		r1 = rf(ctx, input)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockFabricIdentityWorkflows_EnrollIdentity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EnrollIdentity'
-type MockFabricIdentityWorkflows_EnrollIdentity_Call struct {
-	*mock.Call
-}
-
-// EnrollIdentity is a helper method to define mock.On call
-//   - ctx workflow.Context
-//   - input *fabricidentityv1.EnrollIdentityWorkflowInput
-func (_e *MockFabricIdentityWorkflows_Expecter) EnrollIdentity(ctx interface{}, input interface{}) *MockFabricIdentityWorkflows_EnrollIdentity_Call {
-	return &MockFabricIdentityWorkflows_EnrollIdentity_Call{Call: _e.mock.On("EnrollIdentity", ctx, input)}
-}
-
-func (_c *MockFabricIdentityWorkflows_EnrollIdentity_Call) Run(run func(ctx workflow.Context, input *fabricidentityv1.EnrollIdentityWorkflowInput)) *MockFabricIdentityWorkflows_EnrollIdentity_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(workflow.Context), args[1].(*fabricidentityv1.EnrollIdentityWorkflowInput))
-	})
-	return _c
-}
-
-func (_c *MockFabricIdentityWorkflows_EnrollIdentity_Call) Return(_a0 fabricidentityv1.EnrollIdentityWorkflow, _a1 error) *MockFabricIdentityWorkflows_EnrollIdentity_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockFabricIdentityWorkflows_EnrollIdentity_Call) RunAndReturn(run func(workflow.Context, *fabricidentityv1.EnrollIdentityWorkflowInput) (fabricidentityv1.EnrollIdentityWorkflow, error)) *MockFabricIdentityWorkflows_EnrollIdentity_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -431,65 +313,6 @@ func (_c *MockFabricIdentityWorkflows_ProvisionPeer_Call) Return(_a0 fabricident
 }
 
 func (_c *MockFabricIdentityWorkflows_ProvisionPeer_Call) RunAndReturn(run func(workflow.Context, *fabricidentityv1.ProvisionPeerWorkflowInput) (fabricidentityv1.ProvisionPeerWorkflow, error)) *MockFabricIdentityWorkflows_ProvisionPeer_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// RegisterIdentity provides a mock function with given fields: ctx, input
-func (_m *MockFabricIdentityWorkflows) RegisterIdentity(ctx workflow.Context, input *fabricidentityv1.RegisterIdentityWorkflowInput) (fabricidentityv1.RegisterIdentityWorkflow, error) {
-	ret := _m.Called(ctx, input)
-
-	if len(ret) == 0 {
-		panic("no return value specified for RegisterIdentity")
-	}
-
-	var r0 fabricidentityv1.RegisterIdentityWorkflow
-	var r1 error
-	if rf, ok := ret.Get(0).(func(workflow.Context, *fabricidentityv1.RegisterIdentityWorkflowInput) (fabricidentityv1.RegisterIdentityWorkflow, error)); ok {
-		return rf(ctx, input)
-	}
-	if rf, ok := ret.Get(0).(func(workflow.Context, *fabricidentityv1.RegisterIdentityWorkflowInput) fabricidentityv1.RegisterIdentityWorkflow); ok {
-		r0 = rf(ctx, input)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(fabricidentityv1.RegisterIdentityWorkflow)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(workflow.Context, *fabricidentityv1.RegisterIdentityWorkflowInput) error); ok {
-		r1 = rf(ctx, input)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockFabricIdentityWorkflows_RegisterIdentity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RegisterIdentity'
-type MockFabricIdentityWorkflows_RegisterIdentity_Call struct {
-	*mock.Call
-}
-
-// RegisterIdentity is a helper method to define mock.On call
-//   - ctx workflow.Context
-//   - input *fabricidentityv1.RegisterIdentityWorkflowInput
-func (_e *MockFabricIdentityWorkflows_Expecter) RegisterIdentity(ctx interface{}, input interface{}) *MockFabricIdentityWorkflows_RegisterIdentity_Call {
-	return &MockFabricIdentityWorkflows_RegisterIdentity_Call{Call: _e.mock.On("RegisterIdentity", ctx, input)}
-}
-
-func (_c *MockFabricIdentityWorkflows_RegisterIdentity_Call) Run(run func(ctx workflow.Context, input *fabricidentityv1.RegisterIdentityWorkflowInput)) *MockFabricIdentityWorkflows_RegisterIdentity_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(workflow.Context), args[1].(*fabricidentityv1.RegisterIdentityWorkflowInput))
-	})
-	return _c
-}
-
-func (_c *MockFabricIdentityWorkflows_RegisterIdentity_Call) Return(_a0 fabricidentityv1.RegisterIdentityWorkflow, _a1 error) *MockFabricIdentityWorkflows_RegisterIdentity_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockFabricIdentityWorkflows_RegisterIdentity_Call) RunAndReturn(run func(workflow.Context, *fabricidentityv1.RegisterIdentityWorkflowInput) (fabricidentityv1.RegisterIdentityWorkflow, error)) *MockFabricIdentityWorkflows_RegisterIdentity_Call {
 	_c.Call.Return(run)
 	return _c
 }

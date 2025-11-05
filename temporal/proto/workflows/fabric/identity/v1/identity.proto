@@ -17,13 +17,6 @@ service FabricIdentity {
 
   // RegisterIdentity registers a new identity with Fabric CA
   rpc RegisterIdentity(RegisterIdentityInput) returns (RegisterIdentityOutput) {
-    // Workflow metadata
-    option (temporal.v1.workflow) = {
-      name: "fabric.identity.v1.RegisterIdentity"
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
-    };
-
     // Activity execution metadata
     option (temporal.v1.activity) = {
       name: "fabric.identity.v1.RegisterIdentity"
@@ -33,13 +26,6 @@ service FabricIdentity {
 
   // EnrollIdentity enrolls an identity to obtain certificates
   rpc EnrollIdentity(EnrollIdentityInput) returns (EnrollIdentityOutput) {
-    // Workflow metadata
-    option (temporal.v1.workflow) = {
-      name: "fabric.identity.v1.EnrollIdentity"
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
-    };
-
     // Activity execution metadata
     option (temporal.v1.activity) = {
       name: "fabric.identity.v1.EnrollIdentity"
@@ -49,13 +35,6 @@ service FabricIdentity {
 
   // AssembleMsp assembles a complete MSP structure from enrollments
   rpc AssembleMsp(AssembleMspInput) returns (AssembleMspOutput) {
-    // Workflow metadata
-    option (temporal.v1.workflow) = {
-      name: "fabric.identity.v1.AssembleMsp"
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
-    };
-
     // Activity execution metadata
     option (temporal.v1.activity) = {
       name: "fabric.identity.v1.AssembleMsp"

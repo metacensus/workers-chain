@@ -13,9 +13,9 @@ var Module = fx.Module("kube",
 
 	// Provide Activities
 	fx.Provide(NewActivities),
-
-	// Register activities with worker
-	fx.Invoke(func(w worker.Worker, activities *Activities) {
-		pb.RegisterKubernetesActivities(w, activities)
-	}),
 )
+
+// RegisterActivities registers kubernetes activities with the worker
+func RegisterActivities(w worker.Worker, activities *Activities) {
+	pb.RegisterKubernetesActivities(w, activities)
+}

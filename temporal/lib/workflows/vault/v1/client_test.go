@@ -5,18 +5,18 @@ package vault
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
-	pb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-// TestVaultClient_RealVault tests against an actual Vault instance in Docker
+// TestVaultClient_GenericOperations tests the generic Write/Read/Delete operations
 // Run with: go test -tags=integration ./workflows/vault/v1
-func TestVaultClient_RealVault(t *testing.T) {
+func TestVaultClient_GenericOperations(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
@@ -62,179 +62,153 @@ func TestVaultClient_RealVault(t *testing.T) {
 
 	vaultAddr := fmt.Sprintf("http://%s:%s", host, port.Port())
 
-	// Create client
+	// Create generic client
 	client := NewVaultClient(VaultConfig{
-		Address:    vaultAddr,
-		Token:      "root",
-		MountPath:  "secret",
-		EngineType: "kv",
+		Address: vaultAddr,
+		Token:   "root",
 	})
 
-	t.Run("store and fetch secret", func(t *testing.T) {
-		// Store a secret
-		secret := &pb.Secret{
-			Name:      "test-secret",
-			Namespace: "test-namespace",
-			Data: map[string][]byte{
-				"username": []byte("admin"),
-				"password": []byte("secret123"),
+	t.Run("write and read secret data", func(t *testing.T) {
+		// Write secret data using generic Write
+		path := "secret/data/test-namespace/my-secret"
+		data := map[string]any{
+			"data": map[string]string{
+				"username": "admin",
+				"password": "secret123",
 			},
 		}
 
-		ref, err := client.StoreSecret(ctx, secret)
+		err := client.Write(ctx, path, data)
 		if err != nil {
-			t.Fatalf("failed to store secret: %v", err)
+			t.Fatalf("failed to write secret: %v", err)
 		}
 
-		if ref.Name != secret.Name {
-			t.Errorf("name mismatch: got %q, want %q", ref.Name, secret.Name)
-		}
-		if ref.Namespace != secret.Namespace {
-			t.Errorf("namespace mismatch: got %q, want %q", ref.Namespace, secret.Namespace)
-		}
-		if ref.Version != 1 {
-			t.Errorf("expected version 1, got %d", ref.Version)
-		}
-
-		// Fetch it back
-		fetchRef := &pb.SecretRef{
-			Name:      secret.Name,
-			Namespace: secret.Namespace,
-		}
-
-		fetched, err := client.FetchSecret(ctx, fetchRef)
+		// Read it back using generic Read
+		result, err := client.Read(ctx, path)
 		if err != nil {
-			t.Fatalf("failed to fetch secret: %v", err)
+			t.Fatalf("failed to read secret: %v", err)
 		}
 
-		if fetched.Name != secret.Name {
-			t.Errorf("fetched name mismatch: got %q, want %q", fetched.Name, secret.Name)
+		// Verify response structure
+		dataSection, ok := result["data"].(map[string]any)
+		if !ok {
+			t.Fatal("result missing 'data' section")
 		}
-		if string(fetched.Data["username"]) != string(secret.Data["username"]) {
-			t.Errorf("username mismatch: got %q, want %q", fetched.Data["username"], secret.Data["username"])
+
+		secretData, ok := dataSection["data"].(map[string]any)
+		if !ok {
+			t.Fatal("data section missing 'data' subsection")
 		}
-		if string(fetched.Data["password"]) != string(secret.Data["password"]) {
-			t.Errorf("password mismatch: got %q, want %q", fetched.Data["password"], secret.Data["password"])
+
+		if username, ok := secretData["username"].(string); !ok || username != "admin" {
+			t.Errorf("username mismatch: got %q", username)
 		}
 	})
 
-	t.Run("secret not found", func(t *testing.T) {
-		ref := &pb.SecretRef{
-			Name:      "nonexistent",
-			Namespace: "test",
+	t.Run("delete secret", func(t *testing.T) {
+		// First write a secret
+		path := "secret/data/test-namespace/to-delete"
+		data := map[string]any{
+			"data": map[string]string{
+				"key": "value",
+			},
+		}
+		err := client.Write(ctx, path, data)
+		if err != nil {
+			t.Fatalf("failed to write secret: %v", err)
 		}
 
-		_, err := client.FetchSecret(ctx, ref)
+		// Delete it
+		err = client.Delete(ctx, path)
+		if err != nil {
+			t.Fatalf("failed to delete secret: %v", err)
+		}
+
+		// Verify it's gone
+		_, err = client.Read(ctx, path)
+		if err == nil {
+			t.Fatal("expected error reading deleted secret, got nil")
+		}
+		if !errors.Is(err, ErrNotFound) {
+			t.Errorf("expected ErrNotFound, got: %v", err)
+		}
+	})
+
+	t.Run("read nonexistent secret returns not found", func(t *testing.T) {
+		path := "secret/data/test-namespace/does-not-exist"
+		_, err := client.Read(ctx, path)
 		if err == nil {
 			t.Fatal("expected error for nonexistent secret, got nil")
 		}
-	})
-
-	t.Run("multiple versions", func(t *testing.T) {
-		// Store version 1
-		secret1 := &pb.Secret{
-			Name:      "versioned-secret",
-			Namespace: "test",
-			Data: map[string][]byte{
-				"value": []byte("version1"),
-			},
-		}
-		ref1, err := client.StoreSecret(ctx, secret1)
-		if err != nil {
-			t.Fatalf("failed to store version 1: %v", err)
-		}
-		if ref1.Version != 1 {
-			t.Errorf("expected version 1, got %d", ref1.Version)
-		}
-
-		// Store version 2 (update)
-		secret2 := &pb.Secret{
-			Name:      "versioned-secret",
-			Namespace: "test",
-			Data: map[string][]byte{
-				"value": []byte("version2"),
-			},
-		}
-		ref2, err := client.StoreSecret(ctx, secret2)
-		if err != nil {
-			t.Fatalf("failed to store version 2: %v", err)
-		}
-		if ref2.Version != 2 {
-			t.Errorf("expected version 2, got %d", ref2.Version)
-		}
-
-		// Fetch version 1 specifically
-		fetchRef1 := &pb.SecretRef{
-			Name:      "versioned-secret",
-			Namespace: "test",
-			Version:   1,
-		}
-		fetched1, err := client.FetchSecret(ctx, fetchRef1)
-		if err != nil {
-			t.Fatalf("failed to fetch version 1: %v", err)
-		}
-		if string(fetched1.Data["value"]) != "version1" {
-			t.Errorf("version 1 value: got %q, want %q", fetched1.Data["value"], "version1")
-		}
-
-		// Fetch version 2 (latest)
-		fetchRef2 := &pb.SecretRef{
-			Name:      "versioned-secret",
-			Namespace: "test",
-			Version:   0, // Latest
-		}
-		fetched2, err := client.FetchSecret(ctx, fetchRef2)
-		if err != nil {
-			t.Fatalf("failed to fetch latest: %v", err)
-		}
-		if string(fetched2.Data["value"]) != "version2" {
-			t.Errorf("latest value: got %q, want %q", fetched2.Data["value"], "version2")
-		}
-		if fetched2.Version != 2 {
-			t.Errorf("latest version: got %d, want 2", fetched2.Version)
+		if !errors.Is(err, ErrNotFound) {
+			t.Errorf("expected ErrNotFound, got: %v", err)
 		}
 	})
 
-	t.Run("multiple secrets in different namespaces", func(t *testing.T) {
-		secrets := []*pb.Secret{
-			{
-				Name:      "secret1",
-				Namespace: "prod",
-				Data:      map[string][]byte{"key": []byte("prod-value")},
-			},
-			{
-				Name:      "secret1",
-				Namespace: "staging",
-				Data:      map[string][]byte{"key": []byte("staging-value")},
-			},
+	t.Run("write and read policies", func(t *testing.T) {
+		// Write a policy
+		policyPath := "sys/policies/acl/test-policy"
+		policyData := map[string]any{
+			"policy": `path "secret/data/test/*" { capabilities = ["read"] }`,
 		}
 
-		// Store both
-		for _, s := range secrets {
-			if _, err := client.StoreSecret(ctx, s); err != nil {
-				t.Fatalf("failed to store %s/%s: %v", s.Namespace, s.Name, err)
-			}
+		err := client.Write(ctx, policyPath, policyData)
+		if err != nil {
+			t.Fatalf("failed to write policy: %v", err)
 		}
 
-		// Fetch and verify they're independent
-		for _, s := range secrets {
-			ref := &pb.SecretRef{
-				Name:      s.Name,
-				Namespace: s.Namespace,
-			}
-			fetched, err := client.FetchSecret(ctx, ref)
-			if err != nil {
-				t.Fatalf("failed to fetch %s/%s: %v", s.Namespace, s.Name, err)
-			}
-			if string(fetched.Data["key"]) != string(s.Data["key"]) {
-				t.Errorf("%s/%s: got %q, want %q", s.Namespace, s.Name, fetched.Data["key"], s.Data["key"])
-			}
+		// Read it back
+		result, err := client.Read(ctx, policyPath)
+		if err != nil {
+			t.Fatalf("failed to read policy: %v", err)
+		}
+
+		if policy, ok := result["policy"].(string); !ok || policy == "" {
+			t.Error("policy not found in response")
+		}
+
+		// Delete the policy
+		err = client.Delete(ctx, policyPath)
+		if err != nil {
+			t.Fatalf("failed to delete policy: %v", err)
+		}
+	})
+
+	t.Run("write and read auth role", func(t *testing.T) {
+		// Write a Kubernetes auth role
+		rolePath := "auth/kubernetes/role/test-role"
+		roleData := map[string]any{
+			"bound_service_account_names":      []string{"test-sa"},
+			"bound_service_account_namespaces": []string{"default"},
+			"policies":                         []string{"test-policy"},
+		}
+
+		err := client.Write(ctx, rolePath, roleData)
+		if err != nil {
+			t.Fatalf("failed to write auth role: %v", err)
+		}
+
+		// Read it back
+		result, err := client.Read(ctx, rolePath)
+		if err != nil {
+			t.Fatalf("failed to read auth role: %v", err)
+		}
+
+		// Verify role data
+		if names, ok := result["bound_service_account_names"].([]any); !ok || len(names) == 0 {
+			t.Error("bound_service_account_names not found or empty")
+		}
+
+		// Delete the role
+		err = client.Delete(ctx, rolePath)
+		if err != nil {
+			t.Fatalf("failed to delete auth role: %v", err)
 		}
 	})
 }
 
-// TestVaultClient_RealVault_ErrorHandling tests error cases with real Vault
-func TestVaultClient_RealVault_ErrorHandling(t *testing.T) {
+// TestVaultClient_ErrorHandling tests error cases with real Vault
+func TestVaultClient_ErrorHandling(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
@@ -267,42 +241,38 @@ func TestVaultClient_RealVault_ErrorHandling(t *testing.T) {
 	port, _ := container.MappedPort(ctx, "8200")
 	vaultAddr := fmt.Sprintf("http://%s:%s", host, port.Port())
 
-	t.Run("invalid token", func(t *testing.T) {
+	t.Run("unauthorized token returns error", func(t *testing.T) {
 		client := NewVaultClient(VaultConfig{
-			Address:    vaultAddr,
-			Token:      "invalid-token",
-			MountPath:  "secret",
-			EngineType: "kv",
+			Address: vaultAddr,
+			Token:   "invalid-token",
 		})
 
-		secret := &pb.Secret{
-			Name:      "test",
-			Namespace: "test",
-			Data:      map[string][]byte{"key": []byte("value")},
+		path := "secret/data/test/secret"
+		data := map[string]any{
+			"data": map[string]string{"key": "value"},
 		}
 
-		_, err := client.StoreSecret(ctx, secret)
+		err := client.Write(ctx, path, data)
 		if err == nil {
 			t.Fatal("expected error with invalid token, got nil")
 		}
+		if !errors.Is(err, ErrUnauthorized) {
+			t.Errorf("expected ErrUnauthorized, got: %v", err)
+		}
 	})
 
-	t.Run("fetch nonexistent secret", func(t *testing.T) {
+	t.Run("read nonexistent path returns not found", func(t *testing.T) {
 		client := NewVaultClient(VaultConfig{
-			Address:    vaultAddr,
-			Token:      "root",
-			MountPath:  "secret",
-			EngineType: "kv",
+			Address: vaultAddr,
+			Token:   "root",
 		})
 
-		ref := &pb.SecretRef{
-			Name:      "does-not-exist",
-			Namespace: "test",
-		}
-
-		_, err := client.FetchSecret(ctx, ref)
+		_, err := client.Read(ctx, "secret/data/nonexistent/secret")
 		if err == nil {
 			t.Fatal("expected error for nonexistent secret, got nil")
+		}
+		if !errors.Is(err, ErrNotFound) {
+			t.Errorf("expected ErrNotFound, got: %v", err)
 		}
 	})
 }

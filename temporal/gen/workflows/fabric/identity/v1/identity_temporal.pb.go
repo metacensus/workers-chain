@@ -32,14 +32,11 @@ var FabricIdentityTaskQueue = "fabric-identity"
 
 // fabric.identity.v1.FabricIdentity workflow names
 const (
-	AssembleMspWorkflowName      = "fabric.identity.v1.AssembleMsp"
 	BootstrapAdminWorkflowName   = "fabric.identity.v1.BootstrapAdmin"
-	EnrollIdentityWorkflowName   = "fabric.identity.v1.EnrollIdentity"
 	ProvisionClientWorkflowName  = "fabric.identity.v1.ProvisionClient"
 	ProvisionOrdererWorkflowName = "fabric.identity.v1.ProvisionOrderer"
 	ProvisionOrgWorkflowName     = "fabric.identity.v1.ProvisionOrg"
 	ProvisionPeerWorkflowName    = "fabric.identity.v1.ProvisionPeer"
-	RegisterIdentityWorkflowName = "fabric.identity.v1.RegisterIdentity"
 )
 
 // fabric.identity.v1.FabricIdentity activity names
@@ -55,15 +52,6 @@ const (
 
 // FabricIdentityClient describes a client for a(n) fabric.identity.v1.FabricIdentity worker
 type FabricIdentityClient interface {
-	// AssembleMsp assembles a complete MSP structure from enrollments
-	AssembleMsp(ctx context.Context, req *AssembleMspInput, opts ...*AssembleMspOptions) (*AssembleMspOutput, error)
-
-	// AssembleMspAsync starts a(n) fabric.identity.v1.AssembleMsp workflow and returns a handle to the workflow run
-	AssembleMspAsync(ctx context.Context, req *AssembleMspInput, opts ...*AssembleMspOptions) (AssembleMspRun, error)
-
-	// GetAssembleMsp retrieves a handle to an existing fabric.identity.v1.AssembleMsp workflow execution
-	GetAssembleMsp(ctx context.Context, workflowID string, runID string) AssembleMspRun
-
 	// BootstrapAdmin creates a new admin identity and revokes the default one
 	BootstrapAdmin(ctx context.Context, req *BootstrapAdminInput, opts ...*BootstrapAdminOptions) (*BootstrapAdminOutput, error)
 
@@ -72,15 +60,6 @@ type FabricIdentityClient interface {
 
 	// GetBootstrapAdmin retrieves a handle to an existing fabric.identity.v1.BootstrapAdmin workflow execution
 	GetBootstrapAdmin(ctx context.Context, workflowID string, runID string) BootstrapAdminRun
-
-	// EnrollIdentity enrolls an identity to obtain certificates
-	EnrollIdentity(ctx context.Context, req *EnrollIdentityInput, opts ...*EnrollIdentityOptions) (*EnrollIdentityOutput, error)
-
-	// EnrollIdentityAsync starts a(n) fabric.identity.v1.EnrollIdentity workflow and returns a handle to the workflow run
-	EnrollIdentityAsync(ctx context.Context, req *EnrollIdentityInput, opts ...*EnrollIdentityOptions) (EnrollIdentityRun, error)
-
-	// GetEnrollIdentity retrieves a handle to an existing fabric.identity.v1.EnrollIdentity workflow execution
-	GetEnrollIdentity(ctx context.Context, workflowID string, runID string) EnrollIdentityRun
 
 	// ProvisionClient provisions a client identity (simpler flow)
 	ProvisionClient(ctx context.Context, req *ProvisionClientInput, opts ...*ProvisionClientOptions) (*ProvisionClientOutput, error)
@@ -117,15 +96,6 @@ type FabricIdentityClient interface {
 
 	// GetProvisionPeer retrieves a handle to an existing fabric.identity.v1.ProvisionPeer workflow execution
 	GetProvisionPeer(ctx context.Context, workflowID string, runID string) ProvisionPeerRun
-
-	// RegisterIdentity registers a new identity with Fabric CA
-	RegisterIdentity(ctx context.Context, req *RegisterIdentityInput, opts ...*RegisterIdentityOptions) (*RegisterIdentityOutput, error)
-
-	// RegisterIdentityAsync starts a(n) fabric.identity.v1.RegisterIdentity workflow and returns a handle to the workflow run
-	RegisterIdentityAsync(ctx context.Context, req *RegisterIdentityInput, opts ...*RegisterIdentityOptions) (RegisterIdentityRun, error)
-
-	// GetRegisterIdentity retrieves a handle to an existing fabric.identity.v1.RegisterIdentity workflow execution
-	GetRegisterIdentity(ctx context.Context, workflowID string, runID string) RegisterIdentityRun
 
 	// CancelWorkflow requests cancellation of an existing workflow execution
 	CancelWorkflow(ctx context.Context, workflowID string, runID string) error
@@ -199,48 +169,6 @@ func (opts *fabricIdentityClientOptions) getLogger() *slog.Logger {
 	return slog.Default()
 }
 
-// AssembleMsp assembles a complete MSP structure from enrollments
-func (c *fabricIdentityClient) AssembleMsp(ctx context.Context, req *AssembleMspInput, options ...*AssembleMspOptions) (*AssembleMspOutput, error) {
-	run, err := c.AssembleMspAsync(ctx, req, options...)
-	if err != nil {
-		return nil, err
-	}
-	return run.Get(ctx)
-}
-
-// AssembleMsp assembles a complete MSP structure from enrollments
-func (c *fabricIdentityClient) AssembleMspAsync(ctx context.Context, req *AssembleMspInput, options ...*AssembleMspOptions) (AssembleMspRun, error) {
-	var o *AssembleMspOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewAssembleMspOptions()
-	}
-	opts, err := o.Build(req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
-	}
-	run, err := c.client.ExecuteWorkflow(ctx, opts, AssembleMspWorkflowName, req)
-	if err != nil {
-		return nil, err
-	}
-	if run == nil {
-		return nil, errors.New("execute workflow returned nil run")
-	}
-	return &assembleMspRun{
-		client: c,
-		run:    run,
-	}, nil
-}
-
-// GetAssembleMsp fetches an existing fabric.identity.v1.AssembleMsp execution
-func (c *fabricIdentityClient) GetAssembleMsp(ctx context.Context, workflowID string, runID string) AssembleMspRun {
-	return &assembleMspRun{
-		client: c,
-		run:    c.client.GetWorkflow(ctx, workflowID, runID),
-	}
-}
-
 // BootstrapAdmin creates a new admin identity and revokes the default one
 func (c *fabricIdentityClient) BootstrapAdmin(ctx context.Context, req *BootstrapAdminInput, options ...*BootstrapAdminOptions) (*BootstrapAdminOutput, error) {
 	run, err := c.BootstrapAdminAsync(ctx, req, options...)
@@ -278,48 +206,6 @@ func (c *fabricIdentityClient) BootstrapAdminAsync(ctx context.Context, req *Boo
 // GetBootstrapAdmin fetches an existing fabric.identity.v1.BootstrapAdmin execution
 func (c *fabricIdentityClient) GetBootstrapAdmin(ctx context.Context, workflowID string, runID string) BootstrapAdminRun {
 	return &bootstrapAdminRun{
-		client: c,
-		run:    c.client.GetWorkflow(ctx, workflowID, runID),
-	}
-}
-
-// EnrollIdentity enrolls an identity to obtain certificates
-func (c *fabricIdentityClient) EnrollIdentity(ctx context.Context, req *EnrollIdentityInput, options ...*EnrollIdentityOptions) (*EnrollIdentityOutput, error) {
-	run, err := c.EnrollIdentityAsync(ctx, req, options...)
-	if err != nil {
-		return nil, err
-	}
-	return run.Get(ctx)
-}
-
-// EnrollIdentity enrolls an identity to obtain certificates
-func (c *fabricIdentityClient) EnrollIdentityAsync(ctx context.Context, req *EnrollIdentityInput, options ...*EnrollIdentityOptions) (EnrollIdentityRun, error) {
-	var o *EnrollIdentityOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewEnrollIdentityOptions()
-	}
-	opts, err := o.Build(req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
-	}
-	run, err := c.client.ExecuteWorkflow(ctx, opts, EnrollIdentityWorkflowName, req)
-	if err != nil {
-		return nil, err
-	}
-	if run == nil {
-		return nil, errors.New("execute workflow returned nil run")
-	}
-	return &enrollIdentityRun{
-		client: c,
-		run:    run,
-	}, nil
-}
-
-// GetEnrollIdentity fetches an existing fabric.identity.v1.EnrollIdentity execution
-func (c *fabricIdentityClient) GetEnrollIdentity(ctx context.Context, workflowID string, runID string) EnrollIdentityRun {
-	return &enrollIdentityRun{
 		client: c,
 		run:    c.client.GetWorkflow(ctx, workflowID, runID),
 	}
@@ -493,48 +379,6 @@ func (c *fabricIdentityClient) GetProvisionPeer(ctx context.Context, workflowID 
 	}
 }
 
-// RegisterIdentity registers a new identity with Fabric CA
-func (c *fabricIdentityClient) RegisterIdentity(ctx context.Context, req *RegisterIdentityInput, options ...*RegisterIdentityOptions) (*RegisterIdentityOutput, error) {
-	run, err := c.RegisterIdentityAsync(ctx, req, options...)
-	if err != nil {
-		return nil, err
-	}
-	return run.Get(ctx)
-}
-
-// RegisterIdentity registers a new identity with Fabric CA
-func (c *fabricIdentityClient) RegisterIdentityAsync(ctx context.Context, req *RegisterIdentityInput, options ...*RegisterIdentityOptions) (RegisterIdentityRun, error) {
-	var o *RegisterIdentityOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewRegisterIdentityOptions()
-	}
-	opts, err := o.Build(req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
-	}
-	run, err := c.client.ExecuteWorkflow(ctx, opts, RegisterIdentityWorkflowName, req)
-	if err != nil {
-		return nil, err
-	}
-	if run == nil {
-		return nil, errors.New("execute workflow returned nil run")
-	}
-	return &registerIdentityRun{
-		client: c,
-		run:    run,
-	}, nil
-}
-
-// GetRegisterIdentity fetches an existing fabric.identity.v1.RegisterIdentity execution
-func (c *fabricIdentityClient) GetRegisterIdentity(ctx context.Context, workflowID string, runID string) RegisterIdentityRun {
-	return &registerIdentityRun{
-		client: c,
-		run:    c.client.GetWorkflow(ctx, workflowID, runID),
-	}
-}
-
 // CancelWorkflow requests cancellation of an existing workflow execution
 func (c *fabricIdentityClient) CancelWorkflow(ctx context.Context, workflowID string, runID string) error {
 	return c.client.CancelWorkflow(ctx, workflowID, runID)
@@ -543,183 +387,6 @@ func (c *fabricIdentityClient) CancelWorkflow(ctx context.Context, workflowID st
 // TerminateWorkflow terminates an existing workflow execution
 func (c *fabricIdentityClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
 	return c.client.TerminateWorkflow(ctx, workflowID, runID, reason, details...)
-}
-
-// AssembleMspOptions provides configuration for a fabric.identity.v1.AssembleMsp workflow operation
-type AssembleMspOptions struct {
-	options                  client.StartWorkflowOptions
-	executionTimeout         *time.Duration
-	id                       *string
-	idReusePolicy            enumsv1.WorkflowIdReusePolicy
-	retryPolicy              *temporal.RetryPolicy
-	runTimeout               *time.Duration
-	searchAttributes         map[string]any
-	taskQueue                *string
-	taskTimeout              *time.Duration
-	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
-}
-
-// NewAssembleMspOptions initializes a new AssembleMspOptions value
-func NewAssembleMspOptions() *AssembleMspOptions {
-	return &AssembleMspOptions{}
-}
-
-// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
-func (o *AssembleMspOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
-	opts := o.options
-	if v := o.id; v != nil {
-		opts.ID = *v
-	}
-	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = v
-	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-	}
-	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
-		opts.WorkflowIDConflictPolicy = v
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = FabricIdentityTaskQueue
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.searchAttributes; v != nil {
-		opts.SearchAttributes = o.searchAttributes
-	}
-	if v := o.executionTimeout; v != nil {
-		opts.WorkflowExecutionTimeout = *v
-	}
-	if v := o.runTimeout; v != nil {
-		opts.WorkflowRunTimeout = *v
-	}
-	if v := o.taskTimeout; v != nil {
-		opts.WorkflowTaskTimeout = *v
-	}
-	return opts, nil
-}
-
-// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
-func (o *AssembleMspOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *AssembleMspOptions {
-	o.options = options
-	return o
-}
-
-// WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *AssembleMspOptions) WithExecutionTimeout(d time.Duration) *AssembleMspOptions {
-	o.executionTimeout = &d
-	return o
-}
-
-// WithID sets the ID value
-func (o *AssembleMspOptions) WithID(id string) *AssembleMspOptions {
-	o.id = &id
-	return o
-}
-
-// WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *AssembleMspOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *AssembleMspOptions {
-	o.idReusePolicy = policy
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *AssembleMspOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *AssembleMspOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithRunTimeout sets the WorkflowRunTimeout value
-func (o *AssembleMspOptions) WithRunTimeout(d time.Duration) *AssembleMspOptions {
-	o.runTimeout = &d
-	return o
-}
-
-// WithSearchAttributes sets the SearchAttributes value
-func (o *AssembleMspOptions) WithSearchAttributes(sa map[string]any) *AssembleMspOptions {
-	o.searchAttributes = sa
-	return o
-}
-
-// WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *AssembleMspOptions) WithTaskTimeout(d time.Duration) *AssembleMspOptions {
-	o.taskTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *AssembleMspOptions) WithTaskQueue(tq string) *AssembleMspOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *AssembleMspOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *AssembleMspOptions {
-	o.workflowIdConflictPolicy = policy
-	return o
-}
-
-// AssembleMspRun describes a(n) fabric.identity.v1.AssembleMsp workflow run
-type AssembleMspRun interface {
-	// ID returns the workflow ID
-	ID() string
-
-	// RunID returns the workflow instance ID
-	RunID() string
-
-	// Run returns the inner client.WorkflowRun
-	Run() client.WorkflowRun
-
-	// Get blocks until the workflow is complete and returns the result
-	Get(ctx context.Context) (*AssembleMspOutput, error)
-
-	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-	Cancel(ctx context.Context) error
-
-	// Terminate terminates a workflow in execution, returning an error if applicable
-	Terminate(ctx context.Context, reason string, details ...interface{}) error
-}
-
-// assembleMspRun provides an internal implementation of a(n) AssembleMspRunRun
-type assembleMspRun struct {
-	client *fabricIdentityClient
-	run    client.WorkflowRun
-}
-
-// ID returns the workflow ID
-func (r *assembleMspRun) ID() string {
-	return r.run.GetID()
-}
-
-// Run returns the inner client.WorkflowRun
-func (r *assembleMspRun) Run() client.WorkflowRun {
-	return r.run
-}
-
-// RunID returns the execution ID
-func (r *assembleMspRun) RunID() string {
-	return r.run.GetRunID()
-}
-
-// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *assembleMspRun) Cancel(ctx context.Context) error {
-	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
-}
-
-// Get blocks until the workflow is complete, returning the result if applicable
-func (r *assembleMspRun) Get(ctx context.Context) (*AssembleMspOutput, error) {
-	var resp AssembleMspOutput
-	if err := r.run.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Terminate terminates a workflow in execution, returning an error if applicable
-func (r *assembleMspRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
-	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
 // BootstrapAdminOptions provides configuration for a fabric.identity.v1.BootstrapAdmin workflow operation
@@ -896,183 +563,6 @@ func (r *bootstrapAdminRun) Get(ctx context.Context) (*BootstrapAdminOutput, err
 
 // Terminate terminates a workflow in execution, returning an error if applicable
 func (r *bootstrapAdminRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
-	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
-}
-
-// EnrollIdentityOptions provides configuration for a fabric.identity.v1.EnrollIdentity workflow operation
-type EnrollIdentityOptions struct {
-	options                  client.StartWorkflowOptions
-	executionTimeout         *time.Duration
-	id                       *string
-	idReusePolicy            enumsv1.WorkflowIdReusePolicy
-	retryPolicy              *temporal.RetryPolicy
-	runTimeout               *time.Duration
-	searchAttributes         map[string]any
-	taskQueue                *string
-	taskTimeout              *time.Duration
-	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
-}
-
-// NewEnrollIdentityOptions initializes a new EnrollIdentityOptions value
-func NewEnrollIdentityOptions() *EnrollIdentityOptions {
-	return &EnrollIdentityOptions{}
-}
-
-// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
-func (o *EnrollIdentityOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
-	opts := o.options
-	if v := o.id; v != nil {
-		opts.ID = *v
-	}
-	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = v
-	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-	}
-	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
-		opts.WorkflowIDConflictPolicy = v
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = FabricIdentityTaskQueue
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.searchAttributes; v != nil {
-		opts.SearchAttributes = o.searchAttributes
-	}
-	if v := o.executionTimeout; v != nil {
-		opts.WorkflowExecutionTimeout = *v
-	}
-	if v := o.runTimeout; v != nil {
-		opts.WorkflowRunTimeout = *v
-	}
-	if v := o.taskTimeout; v != nil {
-		opts.WorkflowTaskTimeout = *v
-	}
-	return opts, nil
-}
-
-// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
-func (o *EnrollIdentityOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *EnrollIdentityOptions {
-	o.options = options
-	return o
-}
-
-// WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *EnrollIdentityOptions) WithExecutionTimeout(d time.Duration) *EnrollIdentityOptions {
-	o.executionTimeout = &d
-	return o
-}
-
-// WithID sets the ID value
-func (o *EnrollIdentityOptions) WithID(id string) *EnrollIdentityOptions {
-	o.id = &id
-	return o
-}
-
-// WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *EnrollIdentityOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *EnrollIdentityOptions {
-	o.idReusePolicy = policy
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *EnrollIdentityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *EnrollIdentityOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithRunTimeout sets the WorkflowRunTimeout value
-func (o *EnrollIdentityOptions) WithRunTimeout(d time.Duration) *EnrollIdentityOptions {
-	o.runTimeout = &d
-	return o
-}
-
-// WithSearchAttributes sets the SearchAttributes value
-func (o *EnrollIdentityOptions) WithSearchAttributes(sa map[string]any) *EnrollIdentityOptions {
-	o.searchAttributes = sa
-	return o
-}
-
-// WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *EnrollIdentityOptions) WithTaskTimeout(d time.Duration) *EnrollIdentityOptions {
-	o.taskTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *EnrollIdentityOptions) WithTaskQueue(tq string) *EnrollIdentityOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *EnrollIdentityOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *EnrollIdentityOptions {
-	o.workflowIdConflictPolicy = policy
-	return o
-}
-
-// EnrollIdentityRun describes a(n) fabric.identity.v1.EnrollIdentity workflow run
-type EnrollIdentityRun interface {
-	// ID returns the workflow ID
-	ID() string
-
-	// RunID returns the workflow instance ID
-	RunID() string
-
-	// Run returns the inner client.WorkflowRun
-	Run() client.WorkflowRun
-
-	// Get blocks until the workflow is complete and returns the result
-	Get(ctx context.Context) (*EnrollIdentityOutput, error)
-
-	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-	Cancel(ctx context.Context) error
-
-	// Terminate terminates a workflow in execution, returning an error if applicable
-	Terminate(ctx context.Context, reason string, details ...interface{}) error
-}
-
-// enrollIdentityRun provides an internal implementation of a(n) EnrollIdentityRunRun
-type enrollIdentityRun struct {
-	client *fabricIdentityClient
-	run    client.WorkflowRun
-}
-
-// ID returns the workflow ID
-func (r *enrollIdentityRun) ID() string {
-	return r.run.GetID()
-}
-
-// Run returns the inner client.WorkflowRun
-func (r *enrollIdentityRun) Run() client.WorkflowRun {
-	return r.run
-}
-
-// RunID returns the execution ID
-func (r *enrollIdentityRun) RunID() string {
-	return r.run.GetRunID()
-}
-
-// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *enrollIdentityRun) Cancel(ctx context.Context) error {
-	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
-}
-
-// Get blocks until the workflow is complete, returning the result if applicable
-func (r *enrollIdentityRun) Get(ctx context.Context) (*EnrollIdentityOutput, error) {
-	var resp EnrollIdentityOutput
-	if err := r.run.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Terminate terminates a workflow in execution, returning an error if applicable
-func (r *enrollIdentityRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
@@ -1784,193 +1274,12 @@ func (r *provisionPeerRun) Terminate(ctx context.Context, reason string, details
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-// RegisterIdentityOptions provides configuration for a fabric.identity.v1.RegisterIdentity workflow operation
-type RegisterIdentityOptions struct {
-	options                  client.StartWorkflowOptions
-	executionTimeout         *time.Duration
-	id                       *string
-	idReusePolicy            enumsv1.WorkflowIdReusePolicy
-	retryPolicy              *temporal.RetryPolicy
-	runTimeout               *time.Duration
-	searchAttributes         map[string]any
-	taskQueue                *string
-	taskTimeout              *time.Duration
-	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
-}
-
-// NewRegisterIdentityOptions initializes a new RegisterIdentityOptions value
-func NewRegisterIdentityOptions() *RegisterIdentityOptions {
-	return &RegisterIdentityOptions{}
-}
-
-// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
-func (o *RegisterIdentityOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
-	opts := o.options
-	if v := o.id; v != nil {
-		opts.ID = *v
-	}
-	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = v
-	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-	}
-	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
-		opts.WorkflowIDConflictPolicy = v
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = FabricIdentityTaskQueue
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.searchAttributes; v != nil {
-		opts.SearchAttributes = o.searchAttributes
-	}
-	if v := o.executionTimeout; v != nil {
-		opts.WorkflowExecutionTimeout = *v
-	}
-	if v := o.runTimeout; v != nil {
-		opts.WorkflowRunTimeout = *v
-	}
-	if v := o.taskTimeout; v != nil {
-		opts.WorkflowTaskTimeout = *v
-	}
-	return opts, nil
-}
-
-// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
-func (o *RegisterIdentityOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *RegisterIdentityOptions {
-	o.options = options
-	return o
-}
-
-// WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *RegisterIdentityOptions) WithExecutionTimeout(d time.Duration) *RegisterIdentityOptions {
-	o.executionTimeout = &d
-	return o
-}
-
-// WithID sets the ID value
-func (o *RegisterIdentityOptions) WithID(id string) *RegisterIdentityOptions {
-	o.id = &id
-	return o
-}
-
-// WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *RegisterIdentityOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *RegisterIdentityOptions {
-	o.idReusePolicy = policy
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *RegisterIdentityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *RegisterIdentityOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithRunTimeout sets the WorkflowRunTimeout value
-func (o *RegisterIdentityOptions) WithRunTimeout(d time.Duration) *RegisterIdentityOptions {
-	o.runTimeout = &d
-	return o
-}
-
-// WithSearchAttributes sets the SearchAttributes value
-func (o *RegisterIdentityOptions) WithSearchAttributes(sa map[string]any) *RegisterIdentityOptions {
-	o.searchAttributes = sa
-	return o
-}
-
-// WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *RegisterIdentityOptions) WithTaskTimeout(d time.Duration) *RegisterIdentityOptions {
-	o.taskTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *RegisterIdentityOptions) WithTaskQueue(tq string) *RegisterIdentityOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *RegisterIdentityOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *RegisterIdentityOptions {
-	o.workflowIdConflictPolicy = policy
-	return o
-}
-
-// RegisterIdentityRun describes a(n) fabric.identity.v1.RegisterIdentity workflow run
-type RegisterIdentityRun interface {
-	// ID returns the workflow ID
-	ID() string
-
-	// RunID returns the workflow instance ID
-	RunID() string
-
-	// Run returns the inner client.WorkflowRun
-	Run() client.WorkflowRun
-
-	// Get blocks until the workflow is complete and returns the result
-	Get(ctx context.Context) (*RegisterIdentityOutput, error)
-
-	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-	Cancel(ctx context.Context) error
-
-	// Terminate terminates a workflow in execution, returning an error if applicable
-	Terminate(ctx context.Context, reason string, details ...interface{}) error
-}
-
-// registerIdentityRun provides an internal implementation of a(n) RegisterIdentityRunRun
-type registerIdentityRun struct {
-	client *fabricIdentityClient
-	run    client.WorkflowRun
-}
-
-// ID returns the workflow ID
-func (r *registerIdentityRun) ID() string {
-	return r.run.GetID()
-}
-
-// Run returns the inner client.WorkflowRun
-func (r *registerIdentityRun) Run() client.WorkflowRun {
-	return r.run
-}
-
-// RunID returns the execution ID
-func (r *registerIdentityRun) RunID() string {
-	return r.run.GetRunID()
-}
-
-// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *registerIdentityRun) Cancel(ctx context.Context) error {
-	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
-}
-
-// Get blocks until the workflow is complete, returning the result if applicable
-func (r *registerIdentityRun) Get(ctx context.Context) (*RegisterIdentityOutput, error) {
-	var resp RegisterIdentityOutput
-	if err := r.run.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Terminate terminates a workflow in execution, returning an error if applicable
-func (r *registerIdentityRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
-	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
-}
-
 // Reference to generated workflow functions
 var (
 	// fabricIdentityRegistrationMutex is a mutex for registering fabric.identity.v1.FabricIdentity workflows
 	fabricIdentityRegistrationMutex sync.Mutex
-	// AssembleMsp assembles a complete MSP structure from enrollments
-	AssembleMspFunction func(workflow.Context, *AssembleMspInput) (*AssembleMspOutput, error)
 	// BootstrapAdmin creates a new admin identity and revokes the default one
 	BootstrapAdminFunction func(workflow.Context, *BootstrapAdminInput) (*BootstrapAdminOutput, error)
-	// EnrollIdentity enrolls an identity to obtain certificates
-	EnrollIdentityFunction func(workflow.Context, *EnrollIdentityInput) (*EnrollIdentityOutput, error)
 	// ProvisionClient provisions a client identity (simpler flow)
 	ProvisionClientFunction func(workflow.Context, *ProvisionClientInput) (*ProvisionClientOutput, error)
 	// ProvisionOrderer provisions a complete orderer with all necessary certificates
@@ -1979,20 +1288,14 @@ var (
 	ProvisionOrgFunction func(workflow.Context, *ProvisionOrgInput) (*ProvisionOrgOutput, error)
 	// ProvisionPeer provisions a complete peer with all necessary certificates
 	ProvisionPeerFunction func(workflow.Context, *ProvisionPeerInput) (*ProvisionPeerOutput, error)
-	// RegisterIdentity registers a new identity with Fabric CA
-	RegisterIdentityFunction func(workflow.Context, *RegisterIdentityInput) (*RegisterIdentityOutput, error)
 )
 
 // FabricIdentityWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
 type (
 	// FabricIdentityWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
 	FabricIdentityWorkflowFunctions interface {
-		// AssembleMsp assembles a complete MSP structure from enrollments
-		AssembleMsp(workflow.Context, *AssembleMspInput) (*AssembleMspOutput, error)
 		// BootstrapAdmin creates a new admin identity and revokes the default one
 		BootstrapAdmin(workflow.Context, *BootstrapAdminInput) (*BootstrapAdminOutput, error)
-		// EnrollIdentity enrolls an identity to obtain certificates
-		EnrollIdentity(workflow.Context, *EnrollIdentityInput) (*EnrollIdentityOutput, error)
 		// ProvisionClient provisions a client identity (simpler flow)
 		ProvisionClient(workflow.Context, *ProvisionClientInput) (*ProvisionClientOutput, error)
 		// ProvisionOrderer provisions a complete orderer with all necessary certificates
@@ -2001,8 +1304,6 @@ type (
 		ProvisionOrg(workflow.Context, *ProvisionOrgInput) (*ProvisionOrgOutput, error)
 		// ProvisionPeer provisions a complete peer with all necessary certificates
 		ProvisionPeer(workflow.Context, *ProvisionPeerInput) (*ProvisionPeerOutput, error)
-		// RegisterIdentity registers a new identity with Fabric CA
-		RegisterIdentity(workflow.Context, *RegisterIdentityInput) (*RegisterIdentityOutput, error)
 	}
 	// fabricIdentityWorkflowFunctions provides an internal FabricIdentityWorkflowFunctions implementation
 	fabricIdentityWorkflowFunctions struct{}
@@ -2012,28 +1313,12 @@ func NewFabricIdentityWorkflowFunctions() FabricIdentityWorkflowFunctions {
 	return &fabricIdentityWorkflowFunctions{}
 }
 
-// AssembleMsp assembles a complete MSP structure from enrollments
-func (f *fabricIdentityWorkflowFunctions) AssembleMsp(ctx workflow.Context, req *AssembleMspInput) (*AssembleMspOutput, error) {
-	if AssembleMspFunction == nil {
-		return nil, errors.New("AssembleMsp requires workflow registration via RegisterFabricIdentityWorkflows or RegisterAssembleMspWorkflow")
-	}
-	return AssembleMspFunction(ctx, req)
-}
-
 // BootstrapAdmin creates a new admin identity and revokes the default one
 func (f *fabricIdentityWorkflowFunctions) BootstrapAdmin(ctx workflow.Context, req *BootstrapAdminInput) (*BootstrapAdminOutput, error) {
 	if BootstrapAdminFunction == nil {
 		return nil, errors.New("BootstrapAdmin requires workflow registration via RegisterFabricIdentityWorkflows or RegisterBootstrapAdminWorkflow")
 	}
 	return BootstrapAdminFunction(ctx, req)
-}
-
-// EnrollIdentity enrolls an identity to obtain certificates
-func (f *fabricIdentityWorkflowFunctions) EnrollIdentity(ctx workflow.Context, req *EnrollIdentityInput) (*EnrollIdentityOutput, error) {
-	if EnrollIdentityFunction == nil {
-		return nil, errors.New("EnrollIdentity requires workflow registration via RegisterFabricIdentityWorkflows or RegisterEnrollIdentityWorkflow")
-	}
-	return EnrollIdentityFunction(ctx, req)
 }
 
 // ProvisionClient provisions a client identity (simpler flow)
@@ -2068,24 +1353,10 @@ func (f *fabricIdentityWorkflowFunctions) ProvisionPeer(ctx workflow.Context, re
 	return ProvisionPeerFunction(ctx, req)
 }
 
-// RegisterIdentity registers a new identity with Fabric CA
-func (f *fabricIdentityWorkflowFunctions) RegisterIdentity(ctx workflow.Context, req *RegisterIdentityInput) (*RegisterIdentityOutput, error) {
-	if RegisterIdentityFunction == nil {
-		return nil, errors.New("RegisterIdentity requires workflow registration via RegisterFabricIdentityWorkflows or RegisterRegisterIdentityWorkflow")
-	}
-	return RegisterIdentityFunction(ctx, req)
-}
-
 // FabricIdentityWorkflows provides methods for initializing new fabric.identity.v1.FabricIdentity workflow values
 type FabricIdentityWorkflows interface {
-	// AssembleMsp assembles a complete MSP structure from enrollments
-	AssembleMsp(ctx workflow.Context, input *AssembleMspWorkflowInput) (AssembleMspWorkflow, error)
-
 	// BootstrapAdmin creates a new admin identity and revokes the default one
 	BootstrapAdmin(ctx workflow.Context, input *BootstrapAdminWorkflowInput) (BootstrapAdminWorkflow, error)
-
-	// EnrollIdentity enrolls an identity to obtain certificates
-	EnrollIdentity(ctx workflow.Context, input *EnrollIdentityWorkflowInput) (EnrollIdentityWorkflow, error)
 
 	// ProvisionClient provisions a client identity (simpler flow)
 	ProvisionClient(ctx workflow.Context, input *ProvisionClientWorkflowInput) (ProvisionClientWorkflow, error)
@@ -2098,272 +1369,15 @@ type FabricIdentityWorkflows interface {
 
 	// ProvisionPeer provisions a complete peer with all necessary certificates
 	ProvisionPeer(ctx workflow.Context, input *ProvisionPeerWorkflowInput) (ProvisionPeerWorkflow, error)
-
-	// RegisterIdentity registers a new identity with Fabric CA
-	RegisterIdentity(ctx workflow.Context, input *RegisterIdentityWorkflowInput) (RegisterIdentityWorkflow, error)
 }
 
 // RegisterFabricIdentityWorkflows registers fabric.identity.v1.FabricIdentity workflows with the given worker
 func RegisterFabricIdentityWorkflows(r worker.WorkflowRegistry, workflows FabricIdentityWorkflows) {
-	RegisterAssembleMspWorkflow(r, workflows.AssembleMsp)
 	RegisterBootstrapAdminWorkflow(r, workflows.BootstrapAdmin)
-	RegisterEnrollIdentityWorkflow(r, workflows.EnrollIdentity)
 	RegisterProvisionClientWorkflow(r, workflows.ProvisionClient)
 	RegisterProvisionOrdererWorkflow(r, workflows.ProvisionOrderer)
 	RegisterProvisionOrgWorkflow(r, workflows.ProvisionOrg)
 	RegisterProvisionPeerWorkflow(r, workflows.ProvisionPeer)
-	RegisterRegisterIdentityWorkflow(r, workflows.RegisterIdentity)
-}
-
-// RegisterAssembleMspWorkflow registers a fabric.identity.v1.FabricIdentity.AssembleMsp workflow with the given worker
-func RegisterAssembleMspWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *AssembleMspWorkflowInput) (AssembleMspWorkflow, error)) {
-	fabricIdentityRegistrationMutex.Lock()
-	defer fabricIdentityRegistrationMutex.Unlock()
-	AssembleMspFunction = buildAssembleMsp(wf)
-	r.RegisterWorkflowWithOptions(AssembleMspFunction, workflow.RegisterOptions{Name: AssembleMspWorkflowName})
-}
-
-// buildAssembleMsp converts a AssembleMsp workflow struct into a valid workflow function
-func buildAssembleMsp(ctor func(workflow.Context, *AssembleMspWorkflowInput) (AssembleMspWorkflow, error)) func(workflow.Context, *AssembleMspInput) (*AssembleMspOutput, error) {
-	return func(ctx workflow.Context, req *AssembleMspInput) (*AssembleMspOutput, error) {
-		input := &AssembleMspWorkflowInput{
-			Req: req,
-		}
-		wf, err := ctor(ctx, input)
-		if err != nil {
-			return nil, err
-		}
-		if initializable, ok := wf.(helpers.Initializable); ok {
-			if err := initializable.Initialize(ctx); err != nil {
-				return nil, err
-			}
-		}
-		return wf.Execute(ctx)
-	}
-}
-
-// AssembleMspWorkflowInput describes the input to a(n) fabric.identity.v1.AssembleMsp workflow constructor
-type AssembleMspWorkflowInput struct {
-	Req *AssembleMspInput
-}
-
-// AssembleMsp assembles a complete MSP structure from enrollments
-//
-// workflow details: (name: "fabric.identity.v1.AssembleMsp")
-type AssembleMspWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.identity.v1.AssembleMsp workflow
-	Execute(ctx workflow.Context) (*AssembleMspOutput, error)
-}
-
-// AssembleMsp assembles a complete MSP structure from enrollments
-func AssembleMspChild(ctx workflow.Context, req *AssembleMspInput, options ...*AssembleMspChildOptions) (*AssembleMspOutput, error) {
-	childRun, err := AssembleMspChildAsync(ctx, req, options...)
-	if err != nil {
-		return nil, err
-	}
-	return childRun.Get(ctx)
-}
-
-// AssembleMsp assembles a complete MSP structure from enrollments
-func AssembleMspChildAsync(ctx workflow.Context, req *AssembleMspInput, options ...*AssembleMspChildOptions) (*AssembleMspChildRun, error) {
-	var o *AssembleMspChildOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewAssembleMspChildOptions()
-	}
-	opts, err := o.Build(ctx, req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
-	}
-	ctx = workflow.WithChildOptions(ctx, opts)
-	if o.dc != nil {
-		ctx = workflow.WithDataConverter(ctx, o.dc)
-	}
-	return &AssembleMspChildRun{Future: workflow.ExecuteChildWorkflow(ctx, AssembleMspWorkflowName, req)}, nil
-}
-
-// AssembleMspChildOptions provides configuration for a child fabric.identity.v1.AssembleMsp workflow operation
-type AssembleMspChildOptions struct {
-	options                  workflow.ChildWorkflowOptions
-	executionTimeout         *time.Duration
-	id                       *string
-	idReusePolicy            enumsv1.WorkflowIdReusePolicy
-	retryPolicy              *temporal.RetryPolicy
-	runTimeout               *time.Duration
-	searchAttributes         map[string]any
-	taskQueue                *string
-	taskTimeout              *time.Duration
-	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
-	dc                       converter.DataConverter
-	parentClosePolicy        enumsv1.ParentClosePolicy
-	waitForCancellation      *bool
-}
-
-// NewAssembleMspChildOptions initializes a new AssembleMspChildOptions value
-func NewAssembleMspChildOptions() *AssembleMspChildOptions {
-	return &AssembleMspChildOptions{}
-}
-
-// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
-func (o *AssembleMspChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
-	opts := o.options
-	if v := o.id; v != nil {
-		opts.WorkflowID = *v
-	}
-	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = v
-	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = FabricIdentityTaskQueue
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.searchAttributes; v != nil {
-		opts.SearchAttributes = o.searchAttributes
-	}
-	if v := o.executionTimeout; v != nil {
-		opts.WorkflowExecutionTimeout = *v
-	}
-	if v := o.runTimeout; v != nil {
-		opts.WorkflowRunTimeout = *v
-	}
-	if v := o.taskTimeout; v != nil {
-		opts.WorkflowTaskTimeout = *v
-	}
-	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
-		opts.ParentClosePolicy = v
-	} else if opts.ParentClosePolicy == enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
-		opts.ParentClosePolicy = enumsv1.PARENT_CLOSE_POLICY_REQUEST_CANCEL
-	}
-	if v := o.waitForCancellation; v != nil {
-		opts.WaitForCancellation = *v
-	}
-	return opts, nil
-}
-
-// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
-func (o *AssembleMspChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *AssembleMspChildOptions {
-	o.options = options
-	return o
-}
-
-// WithDataConverter registers a DataConverter for the child workflow
-func (o *AssembleMspChildOptions) WithDataConverter(dc converter.DataConverter) *AssembleMspChildOptions {
-	o.dc = dc
-	return o
-}
-
-// WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *AssembleMspChildOptions) WithExecutionTimeout(d time.Duration) *AssembleMspChildOptions {
-	o.executionTimeout = &d
-	return o
-}
-
-// WithID sets the WorkflowID value
-func (o *AssembleMspChildOptions) WithID(id string) *AssembleMspChildOptions {
-	o.id = &id
-	return o
-}
-
-// WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *AssembleMspChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *AssembleMspChildOptions {
-	o.idReusePolicy = policy
-	return o
-}
-
-// WithParentClosePolicy sets the WorkflowIDReusePolicy value
-func (o *AssembleMspChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *AssembleMspChildOptions {
-	o.parentClosePolicy = policy
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *AssembleMspChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *AssembleMspChildOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithRunTimeout sets the WorkflowRunTimeout value
-func (o *AssembleMspChildOptions) WithRunTimeout(d time.Duration) *AssembleMspChildOptions {
-	o.runTimeout = &d
-	return o
-}
-
-// WithSearchAttributes sets the SearchAttributes value
-func (o *AssembleMspChildOptions) WithSearchAttributes(sa map[string]any) *AssembleMspChildOptions {
-	o.searchAttributes = sa
-	return o
-}
-
-// WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *AssembleMspChildOptions) WithTaskTimeout(d time.Duration) *AssembleMspChildOptions {
-	o.taskTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *AssembleMspChildOptions) WithTaskQueue(tq string) *AssembleMspChildOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWaitForCancellation sets the WaitForCancellation value
-func (o *AssembleMspChildOptions) WithWaitForCancellation(wait bool) *AssembleMspChildOptions {
-	o.waitForCancellation = &wait
-	return o
-}
-
-// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *AssembleMspChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *AssembleMspChildOptions {
-	o.workflowIdConflictPolicy = policy
-	return o
-}
-
-// AssembleMspChildRun describes a child AssembleMsp workflow run
-type AssembleMspChildRun struct {
-	Future workflow.ChildWorkflowFuture
-}
-
-// Get blocks until the workflow is completed, returning the response value
-func (r *AssembleMspChildRun) Get(ctx workflow.Context) (*AssembleMspOutput, error) {
-	var resp AssembleMspOutput
-	if err := r.Future.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Select adds this completion to the selector. Callback can be nil.
-func (r *AssembleMspChildRun) Select(sel workflow.Selector, fn func(*AssembleMspChildRun)) workflow.Selector {
-	return sel.AddFuture(r.Future, func(workflow.Future) {
-		if fn != nil {
-			fn(r)
-		}
-	})
-}
-
-// SelectStart adds waiting for start to the selector. Callback can be nil.
-func (r *AssembleMspChildRun) SelectStart(sel workflow.Selector, fn func(*AssembleMspChildRun)) workflow.Selector {
-	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
-		if fn != nil {
-			fn(r)
-		}
-	})
-}
-
-// WaitStart waits for the child workflow to start
-func (r *AssembleMspChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
-	var exec workflow.Execution
-	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
-		return nil, err
-	}
-	return &exec, nil
 }
 
 // RegisterBootstrapAdminWorkflow registers a fabric.identity.v1.FabricIdentity.BootstrapAdmin workflow with the given worker
@@ -2610,257 +1624,6 @@ func (r *BootstrapAdminChildRun) SelectStart(sel workflow.Selector, fn func(*Boo
 
 // WaitStart waits for the child workflow to start
 func (r *BootstrapAdminChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
-	var exec workflow.Execution
-	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
-		return nil, err
-	}
-	return &exec, nil
-}
-
-// RegisterEnrollIdentityWorkflow registers a fabric.identity.v1.FabricIdentity.EnrollIdentity workflow with the given worker
-func RegisterEnrollIdentityWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *EnrollIdentityWorkflowInput) (EnrollIdentityWorkflow, error)) {
-	fabricIdentityRegistrationMutex.Lock()
-	defer fabricIdentityRegistrationMutex.Unlock()
-	EnrollIdentityFunction = buildEnrollIdentity(wf)
-	r.RegisterWorkflowWithOptions(EnrollIdentityFunction, workflow.RegisterOptions{Name: EnrollIdentityWorkflowName})
-}
-
-// buildEnrollIdentity converts a EnrollIdentity workflow struct into a valid workflow function
-func buildEnrollIdentity(ctor func(workflow.Context, *EnrollIdentityWorkflowInput) (EnrollIdentityWorkflow, error)) func(workflow.Context, *EnrollIdentityInput) (*EnrollIdentityOutput, error) {
-	return func(ctx workflow.Context, req *EnrollIdentityInput) (*EnrollIdentityOutput, error) {
-		input := &EnrollIdentityWorkflowInput{
-			Req: req,
-		}
-		wf, err := ctor(ctx, input)
-		if err != nil {
-			return nil, err
-		}
-		if initializable, ok := wf.(helpers.Initializable); ok {
-			if err := initializable.Initialize(ctx); err != nil {
-				return nil, err
-			}
-		}
-		return wf.Execute(ctx)
-	}
-}
-
-// EnrollIdentityWorkflowInput describes the input to a(n) fabric.identity.v1.EnrollIdentity workflow constructor
-type EnrollIdentityWorkflowInput struct {
-	Req *EnrollIdentityInput
-}
-
-// EnrollIdentity enrolls an identity to obtain certificates
-//
-// workflow details: (name: "fabric.identity.v1.EnrollIdentity")
-type EnrollIdentityWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.identity.v1.EnrollIdentity workflow
-	Execute(ctx workflow.Context) (*EnrollIdentityOutput, error)
-}
-
-// EnrollIdentity enrolls an identity to obtain certificates
-func EnrollIdentityChild(ctx workflow.Context, req *EnrollIdentityInput, options ...*EnrollIdentityChildOptions) (*EnrollIdentityOutput, error) {
-	childRun, err := EnrollIdentityChildAsync(ctx, req, options...)
-	if err != nil {
-		return nil, err
-	}
-	return childRun.Get(ctx)
-}
-
-// EnrollIdentity enrolls an identity to obtain certificates
-func EnrollIdentityChildAsync(ctx workflow.Context, req *EnrollIdentityInput, options ...*EnrollIdentityChildOptions) (*EnrollIdentityChildRun, error) {
-	var o *EnrollIdentityChildOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewEnrollIdentityChildOptions()
-	}
-	opts, err := o.Build(ctx, req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
-	}
-	ctx = workflow.WithChildOptions(ctx, opts)
-	if o.dc != nil {
-		ctx = workflow.WithDataConverter(ctx, o.dc)
-	}
-	return &EnrollIdentityChildRun{Future: workflow.ExecuteChildWorkflow(ctx, EnrollIdentityWorkflowName, req)}, nil
-}
-
-// EnrollIdentityChildOptions provides configuration for a child fabric.identity.v1.EnrollIdentity workflow operation
-type EnrollIdentityChildOptions struct {
-	options                  workflow.ChildWorkflowOptions
-	executionTimeout         *time.Duration
-	id                       *string
-	idReusePolicy            enumsv1.WorkflowIdReusePolicy
-	retryPolicy              *temporal.RetryPolicy
-	runTimeout               *time.Duration
-	searchAttributes         map[string]any
-	taskQueue                *string
-	taskTimeout              *time.Duration
-	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
-	dc                       converter.DataConverter
-	parentClosePolicy        enumsv1.ParentClosePolicy
-	waitForCancellation      *bool
-}
-
-// NewEnrollIdentityChildOptions initializes a new EnrollIdentityChildOptions value
-func NewEnrollIdentityChildOptions() *EnrollIdentityChildOptions {
-	return &EnrollIdentityChildOptions{}
-}
-
-// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
-func (o *EnrollIdentityChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
-	opts := o.options
-	if v := o.id; v != nil {
-		opts.WorkflowID = *v
-	}
-	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = v
-	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = FabricIdentityTaskQueue
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.searchAttributes; v != nil {
-		opts.SearchAttributes = o.searchAttributes
-	}
-	if v := o.executionTimeout; v != nil {
-		opts.WorkflowExecutionTimeout = *v
-	}
-	if v := o.runTimeout; v != nil {
-		opts.WorkflowRunTimeout = *v
-	}
-	if v := o.taskTimeout; v != nil {
-		opts.WorkflowTaskTimeout = *v
-	}
-	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
-		opts.ParentClosePolicy = v
-	} else if opts.ParentClosePolicy == enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
-		opts.ParentClosePolicy = enumsv1.PARENT_CLOSE_POLICY_REQUEST_CANCEL
-	}
-	if v := o.waitForCancellation; v != nil {
-		opts.WaitForCancellation = *v
-	}
-	return opts, nil
-}
-
-// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
-func (o *EnrollIdentityChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *EnrollIdentityChildOptions {
-	o.options = options
-	return o
-}
-
-// WithDataConverter registers a DataConverter for the child workflow
-func (o *EnrollIdentityChildOptions) WithDataConverter(dc converter.DataConverter) *EnrollIdentityChildOptions {
-	o.dc = dc
-	return o
-}
-
-// WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *EnrollIdentityChildOptions) WithExecutionTimeout(d time.Duration) *EnrollIdentityChildOptions {
-	o.executionTimeout = &d
-	return o
-}
-
-// WithID sets the WorkflowID value
-func (o *EnrollIdentityChildOptions) WithID(id string) *EnrollIdentityChildOptions {
-	o.id = &id
-	return o
-}
-
-// WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *EnrollIdentityChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *EnrollIdentityChildOptions {
-	o.idReusePolicy = policy
-	return o
-}
-
-// WithParentClosePolicy sets the WorkflowIDReusePolicy value
-func (o *EnrollIdentityChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *EnrollIdentityChildOptions {
-	o.parentClosePolicy = policy
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *EnrollIdentityChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *EnrollIdentityChildOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithRunTimeout sets the WorkflowRunTimeout value
-func (o *EnrollIdentityChildOptions) WithRunTimeout(d time.Duration) *EnrollIdentityChildOptions {
-	o.runTimeout = &d
-	return o
-}
-
-// WithSearchAttributes sets the SearchAttributes value
-func (o *EnrollIdentityChildOptions) WithSearchAttributes(sa map[string]any) *EnrollIdentityChildOptions {
-	o.searchAttributes = sa
-	return o
-}
-
-// WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *EnrollIdentityChildOptions) WithTaskTimeout(d time.Duration) *EnrollIdentityChildOptions {
-	o.taskTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *EnrollIdentityChildOptions) WithTaskQueue(tq string) *EnrollIdentityChildOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWaitForCancellation sets the WaitForCancellation value
-func (o *EnrollIdentityChildOptions) WithWaitForCancellation(wait bool) *EnrollIdentityChildOptions {
-	o.waitForCancellation = &wait
-	return o
-}
-
-// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *EnrollIdentityChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *EnrollIdentityChildOptions {
-	o.workflowIdConflictPolicy = policy
-	return o
-}
-
-// EnrollIdentityChildRun describes a child EnrollIdentity workflow run
-type EnrollIdentityChildRun struct {
-	Future workflow.ChildWorkflowFuture
-}
-
-// Get blocks until the workflow is completed, returning the response value
-func (r *EnrollIdentityChildRun) Get(ctx workflow.Context) (*EnrollIdentityOutput, error) {
-	var resp EnrollIdentityOutput
-	if err := r.Future.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Select adds this completion to the selector. Callback can be nil.
-func (r *EnrollIdentityChildRun) Select(sel workflow.Selector, fn func(*EnrollIdentityChildRun)) workflow.Selector {
-	return sel.AddFuture(r.Future, func(workflow.Future) {
-		if fn != nil {
-			fn(r)
-		}
-	})
-}
-
-// SelectStart adds waiting for start to the selector. Callback can be nil.
-func (r *EnrollIdentityChildRun) SelectStart(sel workflow.Selector, fn func(*EnrollIdentityChildRun)) workflow.Selector {
-	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
-		if fn != nil {
-			fn(r)
-		}
-	})
-}
-
-// WaitStart waits for the child workflow to start
-func (r *EnrollIdentityChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
 	var exec workflow.Execution
 	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
 		return nil, err
@@ -3865,257 +2628,6 @@ func (r *ProvisionPeerChildRun) SelectStart(sel workflow.Selector, fn func(*Prov
 
 // WaitStart waits for the child workflow to start
 func (r *ProvisionPeerChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
-	var exec workflow.Execution
-	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
-		return nil, err
-	}
-	return &exec, nil
-}
-
-// RegisterRegisterIdentityWorkflow registers a fabric.identity.v1.FabricIdentity.RegisterIdentity workflow with the given worker
-func RegisterRegisterIdentityWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *RegisterIdentityWorkflowInput) (RegisterIdentityWorkflow, error)) {
-	fabricIdentityRegistrationMutex.Lock()
-	defer fabricIdentityRegistrationMutex.Unlock()
-	RegisterIdentityFunction = buildRegisterIdentity(wf)
-	r.RegisterWorkflowWithOptions(RegisterIdentityFunction, workflow.RegisterOptions{Name: RegisterIdentityWorkflowName})
-}
-
-// buildRegisterIdentity converts a RegisterIdentity workflow struct into a valid workflow function
-func buildRegisterIdentity(ctor func(workflow.Context, *RegisterIdentityWorkflowInput) (RegisterIdentityWorkflow, error)) func(workflow.Context, *RegisterIdentityInput) (*RegisterIdentityOutput, error) {
-	return func(ctx workflow.Context, req *RegisterIdentityInput) (*RegisterIdentityOutput, error) {
-		input := &RegisterIdentityWorkflowInput{
-			Req: req,
-		}
-		wf, err := ctor(ctx, input)
-		if err != nil {
-			return nil, err
-		}
-		if initializable, ok := wf.(helpers.Initializable); ok {
-			if err := initializable.Initialize(ctx); err != nil {
-				return nil, err
-			}
-		}
-		return wf.Execute(ctx)
-	}
-}
-
-// RegisterIdentityWorkflowInput describes the input to a(n) fabric.identity.v1.RegisterIdentity workflow constructor
-type RegisterIdentityWorkflowInput struct {
-	Req *RegisterIdentityInput
-}
-
-// RegisterIdentity registers a new identity with Fabric CA
-//
-// workflow details: (name: "fabric.identity.v1.RegisterIdentity")
-type RegisterIdentityWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.identity.v1.RegisterIdentity workflow
-	Execute(ctx workflow.Context) (*RegisterIdentityOutput, error)
-}
-
-// RegisterIdentity registers a new identity with Fabric CA
-func RegisterIdentityChild(ctx workflow.Context, req *RegisterIdentityInput, options ...*RegisterIdentityChildOptions) (*RegisterIdentityOutput, error) {
-	childRun, err := RegisterIdentityChildAsync(ctx, req, options...)
-	if err != nil {
-		return nil, err
-	}
-	return childRun.Get(ctx)
-}
-
-// RegisterIdentity registers a new identity with Fabric CA
-func RegisterIdentityChildAsync(ctx workflow.Context, req *RegisterIdentityInput, options ...*RegisterIdentityChildOptions) (*RegisterIdentityChildRun, error) {
-	var o *RegisterIdentityChildOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewRegisterIdentityChildOptions()
-	}
-	opts, err := o.Build(ctx, req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
-	}
-	ctx = workflow.WithChildOptions(ctx, opts)
-	if o.dc != nil {
-		ctx = workflow.WithDataConverter(ctx, o.dc)
-	}
-	return &RegisterIdentityChildRun{Future: workflow.ExecuteChildWorkflow(ctx, RegisterIdentityWorkflowName, req)}, nil
-}
-
-// RegisterIdentityChildOptions provides configuration for a child fabric.identity.v1.RegisterIdentity workflow operation
-type RegisterIdentityChildOptions struct {
-	options                  workflow.ChildWorkflowOptions
-	executionTimeout         *time.Duration
-	id                       *string
-	idReusePolicy            enumsv1.WorkflowIdReusePolicy
-	retryPolicy              *temporal.RetryPolicy
-	runTimeout               *time.Duration
-	searchAttributes         map[string]any
-	taskQueue                *string
-	taskTimeout              *time.Duration
-	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
-	dc                       converter.DataConverter
-	parentClosePolicy        enumsv1.ParentClosePolicy
-	waitForCancellation      *bool
-}
-
-// NewRegisterIdentityChildOptions initializes a new RegisterIdentityChildOptions value
-func NewRegisterIdentityChildOptions() *RegisterIdentityChildOptions {
-	return &RegisterIdentityChildOptions{}
-}
-
-// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
-func (o *RegisterIdentityChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
-	opts := o.options
-	if v := o.id; v != nil {
-		opts.WorkflowID = *v
-	}
-	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = v
-	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = FabricIdentityTaskQueue
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.searchAttributes; v != nil {
-		opts.SearchAttributes = o.searchAttributes
-	}
-	if v := o.executionTimeout; v != nil {
-		opts.WorkflowExecutionTimeout = *v
-	}
-	if v := o.runTimeout; v != nil {
-		opts.WorkflowRunTimeout = *v
-	}
-	if v := o.taskTimeout; v != nil {
-		opts.WorkflowTaskTimeout = *v
-	}
-	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
-		opts.ParentClosePolicy = v
-	} else if opts.ParentClosePolicy == enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
-		opts.ParentClosePolicy = enumsv1.PARENT_CLOSE_POLICY_REQUEST_CANCEL
-	}
-	if v := o.waitForCancellation; v != nil {
-		opts.WaitForCancellation = *v
-	}
-	return opts, nil
-}
-
-// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
-func (o *RegisterIdentityChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *RegisterIdentityChildOptions {
-	o.options = options
-	return o
-}
-
-// WithDataConverter registers a DataConverter for the child workflow
-func (o *RegisterIdentityChildOptions) WithDataConverter(dc converter.DataConverter) *RegisterIdentityChildOptions {
-	o.dc = dc
-	return o
-}
-
-// WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *RegisterIdentityChildOptions) WithExecutionTimeout(d time.Duration) *RegisterIdentityChildOptions {
-	o.executionTimeout = &d
-	return o
-}
-
-// WithID sets the WorkflowID value
-func (o *RegisterIdentityChildOptions) WithID(id string) *RegisterIdentityChildOptions {
-	o.id = &id
-	return o
-}
-
-// WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *RegisterIdentityChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *RegisterIdentityChildOptions {
-	o.idReusePolicy = policy
-	return o
-}
-
-// WithParentClosePolicy sets the WorkflowIDReusePolicy value
-func (o *RegisterIdentityChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *RegisterIdentityChildOptions {
-	o.parentClosePolicy = policy
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *RegisterIdentityChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *RegisterIdentityChildOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithRunTimeout sets the WorkflowRunTimeout value
-func (o *RegisterIdentityChildOptions) WithRunTimeout(d time.Duration) *RegisterIdentityChildOptions {
-	o.runTimeout = &d
-	return o
-}
-
-// WithSearchAttributes sets the SearchAttributes value
-func (o *RegisterIdentityChildOptions) WithSearchAttributes(sa map[string]any) *RegisterIdentityChildOptions {
-	o.searchAttributes = sa
-	return o
-}
-
-// WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *RegisterIdentityChildOptions) WithTaskTimeout(d time.Duration) *RegisterIdentityChildOptions {
-	o.taskTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *RegisterIdentityChildOptions) WithTaskQueue(tq string) *RegisterIdentityChildOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWaitForCancellation sets the WaitForCancellation value
-func (o *RegisterIdentityChildOptions) WithWaitForCancellation(wait bool) *RegisterIdentityChildOptions {
-	o.waitForCancellation = &wait
-	return o
-}
-
-// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *RegisterIdentityChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *RegisterIdentityChildOptions {
-	o.workflowIdConflictPolicy = policy
-	return o
-}
-
-// RegisterIdentityChildRun describes a child RegisterIdentity workflow run
-type RegisterIdentityChildRun struct {
-	Future workflow.ChildWorkflowFuture
-}
-
-// Get blocks until the workflow is completed, returning the response value
-func (r *RegisterIdentityChildRun) Get(ctx workflow.Context) (*RegisterIdentityOutput, error) {
-	var resp RegisterIdentityOutput
-	if err := r.Future.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Select adds this completion to the selector. Callback can be nil.
-func (r *RegisterIdentityChildRun) Select(sel workflow.Selector, fn func(*RegisterIdentityChildRun)) workflow.Selector {
-	return sel.AddFuture(r.Future, func(workflow.Future) {
-		if fn != nil {
-			fn(r)
-		}
-	})
-}
-
-// SelectStart adds waiting for start to the selector. Callback can be nil.
-func (r *RegisterIdentityChildRun) SelectStart(sel workflow.Selector, fn func(*RegisterIdentityChildRun)) workflow.Selector {
-	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
-		if fn != nil {
-			fn(r)
-		}
-	})
-}
-
-// WaitStart waits for the child workflow to start
-func (r *RegisterIdentityChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
 	var exec workflow.Execution
 	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
 		return nil, err
@@ -5997,35 +4509,6 @@ func NewTestFabricIdentityClient(env *testsuite.TestWorkflowEnvironment, workflo
 	return &TestFabricIdentityClient{env, workflows}
 }
 
-// AssembleMsp executes a(n) fabric.identity.v1.AssembleMsp workflow in the test environment
-func (c *TestFabricIdentityClient) AssembleMsp(ctx context.Context, req *AssembleMspInput, opts ...*AssembleMspOptions) (*AssembleMspOutput, error) {
-	run, err := c.AssembleMspAsync(ctx, req, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return run.Get(ctx)
-}
-
-// AssembleMspAsync executes a(n) fabric.identity.v1.AssembleMsp workflow in the test environment
-func (c *TestFabricIdentityClient) AssembleMspAsync(ctx context.Context, req *AssembleMspInput, options ...*AssembleMspOptions) (AssembleMspRun, error) {
-	var o *AssembleMspOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewAssembleMspOptions()
-	}
-	opts, err := o.Build(req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
-	}
-	return &testAssembleMspRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
-}
-
-// GetAssembleMsp is a noop
-func (c *TestFabricIdentityClient) GetAssembleMsp(ctx context.Context, workflowID string, runID string) AssembleMspRun {
-	return &testAssembleMspRun{env: c.env, workflows: c.workflows}
-}
-
 // BootstrapAdmin executes a(n) fabric.identity.v1.BootstrapAdmin workflow in the test environment
 func (c *TestFabricIdentityClient) BootstrapAdmin(ctx context.Context, req *BootstrapAdminInput, opts ...*BootstrapAdminOptions) (*BootstrapAdminOutput, error) {
 	run, err := c.BootstrapAdminAsync(ctx, req, opts...)
@@ -6053,35 +4536,6 @@ func (c *TestFabricIdentityClient) BootstrapAdminAsync(ctx context.Context, req 
 // GetBootstrapAdmin is a noop
 func (c *TestFabricIdentityClient) GetBootstrapAdmin(ctx context.Context, workflowID string, runID string) BootstrapAdminRun {
 	return &testBootstrapAdminRun{env: c.env, workflows: c.workflows}
-}
-
-// EnrollIdentity executes a(n) fabric.identity.v1.EnrollIdentity workflow in the test environment
-func (c *TestFabricIdentityClient) EnrollIdentity(ctx context.Context, req *EnrollIdentityInput, opts ...*EnrollIdentityOptions) (*EnrollIdentityOutput, error) {
-	run, err := c.EnrollIdentityAsync(ctx, req, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return run.Get(ctx)
-}
-
-// EnrollIdentityAsync executes a(n) fabric.identity.v1.EnrollIdentity workflow in the test environment
-func (c *TestFabricIdentityClient) EnrollIdentityAsync(ctx context.Context, req *EnrollIdentityInput, options ...*EnrollIdentityOptions) (EnrollIdentityRun, error) {
-	var o *EnrollIdentityOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewEnrollIdentityOptions()
-	}
-	opts, err := o.Build(req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
-	}
-	return &testEnrollIdentityRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
-}
-
-// GetEnrollIdentity is a noop
-func (c *TestFabricIdentityClient) GetEnrollIdentity(ctx context.Context, workflowID string, runID string) EnrollIdentityRun {
-	return &testEnrollIdentityRun{env: c.env, workflows: c.workflows}
 }
 
 // ProvisionClient executes a(n) fabric.identity.v1.ProvisionClient workflow in the test environment
@@ -6200,35 +4654,6 @@ func (c *TestFabricIdentityClient) GetProvisionPeer(ctx context.Context, workflo
 	return &testProvisionPeerRun{env: c.env, workflows: c.workflows}
 }
 
-// RegisterIdentity executes a(n) fabric.identity.v1.RegisterIdentity workflow in the test environment
-func (c *TestFabricIdentityClient) RegisterIdentity(ctx context.Context, req *RegisterIdentityInput, opts ...*RegisterIdentityOptions) (*RegisterIdentityOutput, error) {
-	run, err := c.RegisterIdentityAsync(ctx, req, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return run.Get(ctx)
-}
-
-// RegisterIdentityAsync executes a(n) fabric.identity.v1.RegisterIdentity workflow in the test environment
-func (c *TestFabricIdentityClient) RegisterIdentityAsync(ctx context.Context, req *RegisterIdentityInput, options ...*RegisterIdentityOptions) (RegisterIdentityRun, error) {
-	var o *RegisterIdentityOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewRegisterIdentityOptions()
-	}
-	opts, err := o.Build(req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
-	}
-	return &testRegisterIdentityRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
-}
-
-// GetRegisterIdentity is a noop
-func (c *TestFabricIdentityClient) GetRegisterIdentity(ctx context.Context, workflowID string, runID string) RegisterIdentityRun {
-	return &testRegisterIdentityRun{env: c.env, workflows: c.workflows}
-}
-
 // CancelWorkflow requests cancellation of an existing workflow execution
 func (c *TestFabricIdentityClient) CancelWorkflow(ctx context.Context, workflowID string, runID string) error {
 	c.env.CancelWorkflow()
@@ -6238,64 +4663,6 @@ func (c *TestFabricIdentityClient) CancelWorkflow(ctx context.Context, workflowI
 // TerminateWorkflow terminates an existing workflow execution
 func (c *TestFabricIdentityClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
 	return c.CancelWorkflow(ctx, workflowID, runID)
-}
-
-var _ AssembleMspRun = &testAssembleMspRun{}
-
-// testAssembleMspRun provides convenience methods for interacting with a(n) fabric.identity.v1.AssembleMsp workflow in the test environment
-type testAssembleMspRun struct {
-	client    *TestFabricIdentityClient
-	env       *testsuite.TestWorkflowEnvironment
-	isStarted atomic.Bool
-	opts      *client.StartWorkflowOptions
-	req       *AssembleMspInput
-	workflows FabricIdentityWorkflows
-}
-
-// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *testAssembleMspRun) Cancel(ctx context.Context) error {
-	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
-}
-
-// Get retrieves a test fabric.identity.v1.AssembleMsp workflow result
-func (r *testAssembleMspRun) Get(context.Context) (*AssembleMspOutput, error) {
-	if r.isStarted.CompareAndSwap(false, true) {
-		r.env.ExecuteWorkflow(AssembleMspWorkflowName, r.req)
-	}
-	if !r.env.IsWorkflowCompleted() {
-		return nil, errors.New("workflow in progress")
-	}
-	if err := r.env.GetWorkflowError(); err != nil {
-		return nil, err
-	}
-	var result AssembleMspOutput
-	if err := r.env.GetWorkflowResult(&result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// ID returns a test fabric.identity.v1.AssembleMsp workflow run's workflow ID
-func (r *testAssembleMspRun) ID() string {
-	if r.opts != nil {
-		return r.opts.ID
-	}
-	return ""
-}
-
-// Run noop implementation
-func (r *testAssembleMspRun) Run() client.WorkflowRun {
-	return nil
-}
-
-// RunID noop implementation
-func (r *testAssembleMspRun) RunID() string {
-	return ""
-}
-
-// Terminate terminates a workflow in execution, returning an error if applicable
-func (r *testAssembleMspRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
-	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
 var _ BootstrapAdminRun = &testBootstrapAdminRun{}
@@ -6353,64 +4720,6 @@ func (r *testBootstrapAdminRun) RunID() string {
 
 // Terminate terminates a workflow in execution, returning an error if applicable
 func (r *testBootstrapAdminRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
-	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
-}
-
-var _ EnrollIdentityRun = &testEnrollIdentityRun{}
-
-// testEnrollIdentityRun provides convenience methods for interacting with a(n) fabric.identity.v1.EnrollIdentity workflow in the test environment
-type testEnrollIdentityRun struct {
-	client    *TestFabricIdentityClient
-	env       *testsuite.TestWorkflowEnvironment
-	isStarted atomic.Bool
-	opts      *client.StartWorkflowOptions
-	req       *EnrollIdentityInput
-	workflows FabricIdentityWorkflows
-}
-
-// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *testEnrollIdentityRun) Cancel(ctx context.Context) error {
-	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
-}
-
-// Get retrieves a test fabric.identity.v1.EnrollIdentity workflow result
-func (r *testEnrollIdentityRun) Get(context.Context) (*EnrollIdentityOutput, error) {
-	if r.isStarted.CompareAndSwap(false, true) {
-		r.env.ExecuteWorkflow(EnrollIdentityWorkflowName, r.req)
-	}
-	if !r.env.IsWorkflowCompleted() {
-		return nil, errors.New("workflow in progress")
-	}
-	if err := r.env.GetWorkflowError(); err != nil {
-		return nil, err
-	}
-	var result EnrollIdentityOutput
-	if err := r.env.GetWorkflowResult(&result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// ID returns a test fabric.identity.v1.EnrollIdentity workflow run's workflow ID
-func (r *testEnrollIdentityRun) ID() string {
-	if r.opts != nil {
-		return r.opts.ID
-	}
-	return ""
-}
-
-// Run noop implementation
-func (r *testEnrollIdentityRun) Run() client.WorkflowRun {
-	return nil
-}
-
-// RunID noop implementation
-func (r *testEnrollIdentityRun) RunID() string {
-	return ""
-}
-
-// Terminate terminates a workflow in execution, returning an error if applicable
-func (r *testEnrollIdentityRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
@@ -6643,63 +4952,5 @@ func (r *testProvisionPeerRun) RunID() string {
 
 // Terminate terminates a workflow in execution, returning an error if applicable
 func (r *testProvisionPeerRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
-	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
-}
-
-var _ RegisterIdentityRun = &testRegisterIdentityRun{}
-
-// testRegisterIdentityRun provides convenience methods for interacting with a(n) fabric.identity.v1.RegisterIdentity workflow in the test environment
-type testRegisterIdentityRun struct {
-	client    *TestFabricIdentityClient
-	env       *testsuite.TestWorkflowEnvironment
-	isStarted atomic.Bool
-	opts      *client.StartWorkflowOptions
-	req       *RegisterIdentityInput
-	workflows FabricIdentityWorkflows
-}
-
-// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *testRegisterIdentityRun) Cancel(ctx context.Context) error {
-	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
-}
-
-// Get retrieves a test fabric.identity.v1.RegisterIdentity workflow result
-func (r *testRegisterIdentityRun) Get(context.Context) (*RegisterIdentityOutput, error) {
-	if r.isStarted.CompareAndSwap(false, true) {
-		r.env.ExecuteWorkflow(RegisterIdentityWorkflowName, r.req)
-	}
-	if !r.env.IsWorkflowCompleted() {
-		return nil, errors.New("workflow in progress")
-	}
-	if err := r.env.GetWorkflowError(); err != nil {
-		return nil, err
-	}
-	var result RegisterIdentityOutput
-	if err := r.env.GetWorkflowResult(&result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// ID returns a test fabric.identity.v1.RegisterIdentity workflow run's workflow ID
-func (r *testRegisterIdentityRun) ID() string {
-	if r.opts != nil {
-		return r.opts.ID
-	}
-	return ""
-}
-
-// Run noop implementation
-func (r *testRegisterIdentityRun) Run() client.WorkflowRun {
-	return nil
-}
-
-// RunID noop implementation
-func (r *testRegisterIdentityRun) RunID() string {
-	return ""
-}
-
-// Terminate terminates a workflow in execution, returning an error if applicable
-func (r *testRegisterIdentityRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }

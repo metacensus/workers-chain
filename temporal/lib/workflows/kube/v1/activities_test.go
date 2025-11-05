@@ -146,7 +146,7 @@ func TestCreateActivity(t *testing.T) {
 			activities := kube.NewActivities(mockClient)
 			env.RegisterActivity(activities.Create)
 
-			req := &pb.CreateRequest{Resources: tt.resources}
+			req := &pb.CreateInput{Resources: tt.resources}
 			res, err := env.ExecuteActivity(activities.Create, req)
 
 			if tt.expectErr {
@@ -157,7 +157,7 @@ func TestCreateActivity(t *testing.T) {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
-				var result *pb.CreateResponse
+				var result *pb.CreateOutput
 				if err := res.Get(&result); err != nil {
 					t.Fatalf("failed to get activity result: %v", err)
 				}
@@ -256,7 +256,7 @@ func TestUpdateActivity(t *testing.T) {
 			activities := kube.NewActivities(mockClient)
 			env.RegisterActivity(activities.Update)
 
-			req := &pb.UpdateRequest{Resources: tt.resources}
+			req := &pb.UpdateInput{Resources: tt.resources}
 			res, err := env.ExecuteActivity(activities.Update, req)
 
 			if tt.expectErr {
@@ -267,7 +267,7 @@ func TestUpdateActivity(t *testing.T) {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
-				var result *pb.UpdateResponse
+				var result *pb.UpdateOutput
 				if err := res.Get(&result); err != nil {
 					t.Fatalf("failed to get activity result: %v", err)
 				}
@@ -368,7 +368,7 @@ func TestApplyActivity(t *testing.T) {
 			activities := kube.NewActivities(mockClient)
 			env.RegisterActivity(activities.Apply)
 
-			req := &pb.ApplyRequest{Resources: tt.resources}
+			req := &pb.ApplyInput{Resources: tt.resources}
 			res, err := env.ExecuteActivity(activities.Apply, req)
 
 			if tt.expectErr {
@@ -379,7 +379,7 @@ func TestApplyActivity(t *testing.T) {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
-				var result *pb.ApplyResponse
+				var result *pb.ApplyOutput
 				if err := res.Get(&result); err != nil {
 					t.Fatalf("failed to get activity result: %v", err)
 				}
@@ -467,7 +467,7 @@ func TestDeleteActivity(t *testing.T) {
 			activities := kube.NewActivities(mockClient)
 			env.RegisterActivity(activities.Delete)
 
-			req := &pb.DeleteRequest{Resources: tt.resources}
+			req := &pb.DeleteInput{Resources: tt.resources}
 			res, err := env.ExecuteActivity(activities.Delete, req)
 
 			if tt.expectErr {
@@ -478,7 +478,7 @@ func TestDeleteActivity(t *testing.T) {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
-				var result *pb.DeleteResponse
+				var result *pb.DeleteOutput
 				if err := res.Get(&result); err != nil {
 					t.Fatalf("failed to get activity result: %v", err)
 				}
@@ -562,7 +562,7 @@ func TestGetStatusActivity(t *testing.T) {
 				},
 			},
 			expectErr:     false,
-			expectOverall: kube.StatusReady, // All return the first status (ready)
+			expectOverall: kube.StatusDegraded, // Mixed status (some ready, some not) = degraded
 			expectCount:   2,
 		},
 		{
@@ -583,15 +583,21 @@ func TestGetStatusActivity(t *testing.T) {
 
 			// Set up specific expectations based on scenario
 			if len(tt.resources) > 0 {
-				// Get the first status to return for all calls
-				var statusToReturn *kube.ResourceStatus
-				if len(tt.statusResults) > 0 {
-					for _, status := range tt.statusResults {
-						statusToReturn = status
-						break
+				// Get the statuses from statusResults map (order might vary, but that's OK for this test)
+				var firstStatus, secondStatus *kube.ResourceStatus
+				count := 0
+				for _, status := range tt.statusResults {
+					if count == 0 {
+						firstStatus = status
+					} else if count == 1 {
+						secondStatus = status
 					}
-				} else {
-					statusToReturn = &kube.ResourceStatus{
+					count++
+				}
+
+				// If no statuses specified, use default
+				if firstStatus == nil {
+					firstStatus = &kube.ResourceStatus{
 						Ready:           true,
 						Message:         "ready",
 						DesiredReplicas: 1,
@@ -599,16 +605,30 @@ func TestGetStatusActivity(t *testing.T) {
 					}
 				}
 
-				mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
-					Return(statusToReturn, nil).
-					Times(len(tt.resources))
+				// Set up mock to return statuses in sequence
+				if len(tt.resources) == 1 {
+					mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+						Return(firstStatus, nil)
+				} else if len(tt.resources) == 2 && secondStatus != nil {
+					mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+						Return(firstStatus, nil).
+						Once()
+					mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+						Return(secondStatus, nil).
+						Once()
+				} else {
+					// For other cases, just return first status for all
+					mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+						Return(firstStatus, nil).
+						Times(len(tt.resources))
+				}
 			}
 			// For empty manifests, no GetResourceStatus calls
 
 			activities := kube.NewActivities(mockClient)
 			env.RegisterActivity(activities.GetStatus)
 
-			req := &pb.GetStatusRequest{Resources: tt.resources}
+			req := &pb.GetStatusInput{Resources: tt.resources}
 			res, err := env.ExecuteActivity(activities.GetStatus, req)
 
 			if tt.expectErr {
@@ -619,7 +639,7 @@ func TestGetStatusActivity(t *testing.T) {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
-				var result *pb.GetStatusResponse
+				var result *pb.GetStatusOutput
 				if err := res.Get(&result); err != nil {
 					t.Fatalf("failed to get activity result: %v", err)
 				}

@@ -16,7 +16,7 @@ service Kubernetes {
   };
 
   // Create creates new resources in the cluster (fails if already exists)
-  rpc Create(CreateRequest) returns (CreateResponse) {
+  rpc Create(CreateInput) returns (CreateOutput) {
     // Activity execution metadata
     option (temporal.v1.activity) = {
       name: "kubernetes.Create"
@@ -25,7 +25,7 @@ service Kubernetes {
   }
 
   // Update updates existing resources in the cluster (fails if not found)
-  rpc Update(UpdateRequest) returns (UpdateResponse) {
+  rpc Update(UpdateInput) returns (UpdateOutput) {
     // Activity execution metadata
     option (temporal.v1.activity) = {
       name: "kubernetes.Update"
@@ -34,7 +34,7 @@ service Kubernetes {
   }
 
   // Apply deploys resources to the cluster (create or update)
-  rpc Apply(ApplyRequest) returns (ApplyResponse) {
+  rpc Apply(ApplyInput) returns (ApplyOutput) {
     // Activity execution metadata
     option (temporal.v1.activity) = {
       name: "kubernetes.Apply"
@@ -43,7 +43,7 @@ service Kubernetes {
   }
 
   // Delete removes resources from the cluster
-  rpc Delete(DeleteRequest) returns (DeleteResponse) {
+  rpc Delete(DeleteInput) returns (DeleteOutput) {
     // Activity execution metadata
     option (temporal.v1.activity) = {
       name: "kubernetes.Delete"
@@ -52,7 +52,7 @@ service Kubernetes {
   }
 
   // GetStatus retrieves the current status of deployed resources
-  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {
+  rpc GetStatus(GetStatusInput) returns (GetStatusOutput) {
     // Activity execution metadata
     option (temporal.v1.activity) = {
       name: "kubernetes.GetStatus"
@@ -69,18 +69,18 @@ message Resource {
   bytes manifest_yaml = 1;
 }
 
-// CreateRequest defines inputs for the Create activity
-message CreateRequest {
+// CreateInput defines inputs for the Create activity
+message CreateInput {
   // resources is a map of resource_id → resource
   // resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
   // Each resource's YAML must include namespace (or be cluster-scoped)
   map<string, Resource> resources = 1;
 }
 
-// CreateResponse represents the result of creating resources
-message CreateResponse {
+// CreateOutput represents the result of creating resources
+message CreateOutput {
   // results contains the outcome for each resource
-  // Keys match the resource_id from CreateRequest
+  // Keys match the resource_id from CreateInput
   map<string, CreateResult> results = 1;
   
   // summary provides high-level statistics
@@ -106,18 +106,18 @@ message CreateSummary {
   int32 failed = 3;
 }
 
-// UpdateRequest defines inputs for the Update activity
-message UpdateRequest {
+// UpdateInput defines inputs for the Update activity
+message UpdateInput {
   // resources is a map of resource_id → resource
   // resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
   // Each resource's YAML must include namespace (or be cluster-scoped)
   map<string, Resource> resources = 1;
 }
 
-// UpdateResponse represents the result of updating resources
-message UpdateResponse {
+// UpdateOutput represents the result of updating resources
+message UpdateOutput {
   // results contains the outcome for each resource
-  // Keys match the resource_id from UpdateRequest
+  // Keys match the resource_id from UpdateInput
   map<string, UpdateResult> results = 1;
   
   // summary provides high-level statistics
@@ -143,18 +143,18 @@ message UpdateSummary {
   int32 failed = 3;
 }
 
-// ApplyRequest defines inputs for the Apply activity
-message ApplyRequest {
+// ApplyInput defines inputs for the Apply activity
+message ApplyInput {
   // resources is a map of resource_id → resource
   // resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
   // Each resource's YAML must include namespace (or be cluster-scoped)
   map<string, Resource> resources = 1;
 }
 
-// ApplyResponse represents the result of applying resources
-message ApplyResponse {
+// ApplyOutput represents the result of applying resources
+message ApplyOutput {
   // results contains the outcome for each resource
-  // Keys match the resource_id from ApplyRequest
+  // Keys match the resource_id from ApplyInput
   map<string, ApplyResult> results = 1;
   
   // summary provides high-level statistics
@@ -180,16 +180,16 @@ message ApplySummary {
   int32 failed = 3;
 }
 
-// DeleteRequest defines inputs for the Delete activity
-message DeleteRequest {
+// DeleteInput defines inputs for the Delete activity
+message DeleteInput {
   // resources to delete
-  // Keys are resource_id (same as ApplyRequest)
+  // Keys are resource_id (same as ApplyInput)
   // Each resource's YAML must include namespace (or be cluster-scoped)
   map<string, Resource> resources = 1;
 }
 
-// DeleteResponse represents the result of deleting resources
-message DeleteResponse {
+// DeleteOutput represents the result of deleting resources
+message DeleteOutput {
   // results contains the outcome for each resource
   map<string, DeleteResult> results = 1;
   
@@ -213,17 +213,17 @@ message DeleteSummary {
   int32 failed = 3;
 }
 
-// GetStatusRequest queries the status of deployed resources
-message GetStatusRequest {
+// GetStatusInput queries the status of deployed resources
+message GetStatusInput {
   // resources to check status for
   // Each resource's YAML must include namespace (or be cluster-scoped)
   map<string, Resource> resources = 1;
 }
 
-// GetStatusResponse represents the current status of resources
-message GetStatusResponse {
+// GetStatusOutput represents the current status of resources
+message GetStatusOutput {
   // results contains status for each resource
-  // Keys match resource_id from GetStatusRequest
+  // Keys match resource_id from GetStatusInput
   map<string, ResourceStatus> results = 1;
   
   // overall_status is a summary: "ready", "pending", "degraded", "error", "unknown"

@@ -3,26 +3,37 @@ package vault
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
-
-	pb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 )
 
-// VaultConfig represents Vault configuration
+// Sentinel errors for Vault API responses
+var (
+	ErrNotFound     = errors.New("vault: not found")
+	ErrUnauthorized = errors.New("vault: unauthorized")
+	ErrForbidden    = errors.New("vault: forbidden")
+)
+
+// VaultConfig represents Vault connection configuration
 type VaultConfig struct {
-	Address    string
-	Token      string
-	MountPath  string
-	EngineType string // kv or transit
+	Address string // Vault server address (e.g., "https://vault.example.com")
+	Token   string // Authentication token
 }
 
-// VaultClient defines the interface for Vault operations
+// VaultClient defines generic path-based operations for Vault
 type VaultClient interface {
-	StoreSecret(ctx context.Context, req *pb.Secret) (*pb.SecretRef, error)
-	FetchSecret(ctx context.Context, req *pb.SecretRef) (*pb.Secret, error)
+	// Write performs a PUT request to the given path with data
+	Write(ctx context.Context, path string, data map[string]any) error
+
+	// Read performs a GET request to the given path and returns the response data
+	Read(ctx context.Context, path string) (map[string]any, error)
+
+	// Delete performs a DELETE request to the given path
+	Delete(ctx context.Context, path string) error
 }
 
 // vaultClient implements VaultClient
@@ -32,7 +43,6 @@ type vaultClient struct {
 }
 
 // NewVaultClient creates a new Vault client with the given configuration
-// This is the constructor that fx will use to provide VaultClient
 func NewVaultClient(config VaultConfig) VaultClient {
 	return &vaultClient{
 		config: config,
@@ -42,122 +52,115 @@ func NewVaultClient(config VaultConfig) VaultClient {
 	}
 }
 
-// StoreSecret stores a secret in Vault
-func (vc *vaultClient) StoreSecret(ctx context.Context, req *pb.Secret) (*pb.SecretRef, error) {
-	path := fmt.Sprintf("%s/data/%s/%s", vc.config.MountPath, req.GetNamespace(), req.GetName())
-	url := fmt.Sprintf("%s/v1/%s", strings.TrimSuffix(vc.config.Address, "/"), path)
+// Write performs a PUT request to the given path with data
+func (vc *vaultClient) Write(ctx context.Context, path string, data map[string]any) error {
+	url := vc.buildURL(path)
 
-	// Convert byte data to strings for Vault KV v2 storage
-	dataStr := make(map[string]string)
-	for k, v := range req.GetData() {
-		dataStr[k] = string(v)
-	}
-
-	// Prepare request body with Vault KV v2 format
-	body := map[string]any{
-		"data": dataStr,
-	}
-
-	bodyBytes, err := json.Marshal(body)
+	bodyBytes, err := json.Marshal(data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
+		return fmt.Errorf("marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, strings.NewReader(string(bodyBytes)))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, url, strings.NewReader(string(bodyBytes)))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return fmt.Errorf("create request: %w", err)
 	}
 
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("X-Vault-Token", vc.config.Token)
-
+	vc.setHeaders(httpReq)
 	resp, err := vc.httpClient.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
+		return fmt.Errorf("send request: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		return nil, fmt.Errorf("vault returned status %d", resp.StatusCode)
+	if err := vc.checkError(resp); err != nil {
+		return err
 	}
 
-	// Parse response to get version
-	var vaultResp struct {
-		Data struct {
-			Version int64 `json:"version"`
-		} `json:"data"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&vaultResp); err != nil {
-		// If we can't decode, still consider it success but with unknown version
-		return &pb.SecretRef{
-			Name:      req.GetName(),
-			Namespace: req.GetNamespace(),
-			Version:   req.GetVersion(),
-		}, nil
-	}
-
-	return &pb.SecretRef{
-		Name:      req.GetName(),
-		Namespace: req.GetNamespace(),
-		Version:   vaultResp.Data.Version,
-	}, nil
+	return nil
 }
 
-// FetchSecret retrieves a secret from Vault
-func (vc *vaultClient) FetchSecret(ctx context.Context, req *pb.SecretRef) (*pb.Secret, error) {
-	path := fmt.Sprintf("%s/data/%s/%s", vc.config.MountPath, req.GetNamespace(), req.GetName())
-	url := fmt.Sprintf("%s/v1/%s", strings.TrimSuffix(vc.config.Address, "/"), path)
+// Read performs a GET request to the given path and returns the response data
+func (vc *vaultClient) Read(ctx context.Context, path string) (map[string]any, error) {
+	url := vc.buildURL(path)
 
-	// Add version parameter if specified
-	if req.GetVersion() > 0 {
-		url = fmt.Sprintf("%s?version=%d", url, req.GetVersion())
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	httpReq.Header.Set("X-Vault-Token", vc.config.Token)
-
+	vc.setHeaders(httpReq)
 	resp, err := vc.httpClient.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
+		return nil, fmt.Errorf("send request: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("secret not found: %s/%s", req.GetNamespace(), req.GetName())
+	if err := vc.checkError(resp); err != nil {
+		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("vault returned status %d", resp.StatusCode)
+	var result map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
-	// Parse Vault KV v2 response
-	var vaultResp struct {
-		Data struct {
-			Data     map[string]string `json:"data"`
-			Metadata struct {
-				Version int64 `json:"version"`
-			} `json:"metadata"`
-		} `json:"data"`
+	return result, nil
+}
+
+// Delete performs a DELETE request to the given path
+func (vc *vaultClient) Delete(ctx context.Context, path string) error {
+	url := vc.buildURL(path)
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&vaultResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	vc.setHeaders(httpReq)
+	resp, err := vc.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if err := vc.checkError(resp); err != nil {
+		return err
 	}
 
-	// Convert strings to bytes
-	data := make(map[string][]byte)
-	for k, v := range vaultResp.Data.Data {
-		data[k] = []byte(v)
+	return nil
+}
+
+// buildURL constructs the full Vault API URL from a path
+func (vc *vaultClient) buildURL(path string) string {
+	baseURL := strings.TrimSuffix(vc.config.Address, "/")
+	return fmt.Sprintf("%s/v1/%s", baseURL, path)
+}
+
+// setHeaders sets authentication and content-type headers on the request
+func (vc *vaultClient) setHeaders(req *http.Request) {
+	req.Header.Set("X-Vault-Token", vc.config.Token)
+	req.Header.Set("Content-Type", "application/json")
+}
+
+// checkError checks the HTTP response status and returns appropriate errors
+func (vc *vaultClient) checkError(resp *http.Response) error {
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
+		return nil
 	}
 
-	return &pb.Secret{
-		Name:      req.GetName(),
-		Namespace: req.GetNamespace(),
-		Data:      data,
-		Version:   vaultResp.Data.Metadata.Version,
-	}, nil
+	// Read error body for Vault error message
+	body, _ := io.ReadAll(resp.Body)
+	errMsg := string(body)
+
+	switch resp.StatusCode {
+	case http.StatusNotFound:
+		return fmt.Errorf("vault: %w (status: %d)", ErrNotFound, resp.StatusCode)
+	case http.StatusForbidden:
+		return fmt.Errorf("vault: %w (status: %d)", ErrForbidden, resp.StatusCode)
+	case http.StatusUnauthorized:
+		return fmt.Errorf("vault: %w (status: %d)", ErrUnauthorized, resp.StatusCode)
+	default:
+		return fmt.Errorf("vault: request failed with status %d: %s", resp.StatusCode, errMsg)
+	}
 }

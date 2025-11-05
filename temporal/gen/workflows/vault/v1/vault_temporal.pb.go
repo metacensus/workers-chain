@@ -9,1156 +9,1365 @@ package vaultv1
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	helpers "github.com/cludden/protoc-gen-go-temporal/pkg/helpers"
-	enumsv1 "go.temporal.io/api/enums/v1"
 	activity "go.temporal.io/sdk/activity"
-	client "go.temporal.io/sdk/client"
 	converter "go.temporal.io/sdk/converter"
 	temporal "go.temporal.io/sdk/temporal"
-	testsuite "go.temporal.io/sdk/testsuite"
 	worker "go.temporal.io/sdk/worker"
 	workflow "go.temporal.io/sdk/workflow"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	"log/slog"
-	"sync"
-	"sync/atomic"
 	"time"
 )
 
 // VaultTaskQueue is the default task-queue for a vault.v1.Vault worker
 var VaultTaskQueue = "vault"
 
-// vault.v1.Vault workflow names
-const (
-	FetchSecretWorkflowName = "vault.v1.FetchSecret"
-	StoreSecretWorkflowName = "vault.v1.StoreSecret"
-)
-
 // vault.v1.Vault activity names
 const (
-	FetchSecretActivityName = "vault.v1.FetchSecret"
-	StoreSecretActivityName = "vault.v1.StoreSecret"
+	CreateAuthRoleActivityName = "vault.v1.CreateAuthRole"
+	CreatePolicyActivityName   = "vault.v1.CreatePolicy"
+	DeleteAuthRoleActivityName = "vault.v1.DeleteAuthRole"
+	DeletePolicyActivityName   = "vault.v1.DeletePolicy"
+	DeleteSecretActivityName   = "vault.v1.DeleteSecret"
+	FetchSecretActivityName    = "vault.v1.FetchSecret"
+	StoreSecretActivityName    = "vault.v1.StoreSecret"
 )
-
-// VaultClient describes a client for a(n) vault.v1.Vault worker
-type VaultClient interface {
-	// FetchSecret retrieves a secret from Vault
-	FetchSecret(ctx context.Context, req *SecretRef, opts ...*FetchSecretOptions) (*Secret, error)
-
-	// FetchSecretAsync starts a(n) vault.v1.FetchSecret workflow and returns a handle to the workflow run
-	FetchSecretAsync(ctx context.Context, req *SecretRef, opts ...*FetchSecretOptions) (FetchSecretRun, error)
-
-	// GetFetchSecret retrieves a handle to an existing vault.v1.FetchSecret workflow execution
-	GetFetchSecret(ctx context.Context, workflowID string, runID string) FetchSecretRun
-
-	// StoreSecret stores (or updates) a secret in Vault
-	StoreSecret(ctx context.Context, req *Secret, opts ...*StoreSecretOptions) (*SecretRef, error)
-
-	// StoreSecretAsync starts a(n) vault.v1.StoreSecret workflow and returns a handle to the workflow run
-	StoreSecretAsync(ctx context.Context, req *Secret, opts ...*StoreSecretOptions) (StoreSecretRun, error)
-
-	// GetStoreSecret retrieves a handle to an existing vault.v1.StoreSecret workflow execution
-	GetStoreSecret(ctx context.Context, workflowID string, runID string) StoreSecretRun
-
-	// CancelWorkflow requests cancellation of an existing workflow execution
-	CancelWorkflow(ctx context.Context, workflowID string, runID string) error
-
-	// TerminateWorkflow an existing workflow execution
-	TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error
-}
-
-// vaultClient implements a temporal client for a vault.v1.Vault service
-type vaultClient struct {
-	client client.Client
-	log    *slog.Logger
-}
-
-// NewVaultClient initializes a new vault.v1.Vault client
-func NewVaultClient(c client.Client, options ...*vaultClientOptions) VaultClient {
-	var cfg *vaultClientOptions
-	if len(options) > 0 {
-		cfg = options[0]
-	} else {
-		cfg = NewVaultClientOptions()
-	}
-	return &vaultClient{
-		client: c,
-		log:    cfg.getLogger(),
-	}
-}
-
-// NewVaultClientWithOptions initializes a new Vault client with the given options
-func NewVaultClientWithOptions(c client.Client, opts client.Options, options ...*vaultClientOptions) (VaultClient, error) {
-	var err error
-	c, err = client.NewClientFromExisting(c, opts)
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client with options: %w", err)
-	}
-	var cfg *vaultClientOptions
-	if len(options) > 0 {
-		cfg = options[0]
-	} else {
-		cfg = NewVaultClientOptions()
-	}
-	return &vaultClient{
-		client: c,
-		log:    cfg.getLogger(),
-	}, nil
-}
-
-// vaultClientOptions describes optional runtime configuration for a VaultClient
-type vaultClientOptions struct {
-	log *slog.Logger
-}
-
-// NewVaultClientOptions initializes a new vaultClientOptions value
-func NewVaultClientOptions() *vaultClientOptions {
-	return &vaultClientOptions{}
-}
-
-// WithLogger can be used to override the default logger
-func (opts *vaultClientOptions) WithLogger(l *slog.Logger) *vaultClientOptions {
-	if l != nil {
-		opts.log = l
-	}
-	return opts
-}
-
-// getLogger returns the configured logger, or the default logger
-func (opts *vaultClientOptions) getLogger() *slog.Logger {
-	if opts != nil && opts.log != nil {
-		return opts.log
-	}
-	return slog.Default()
-}
-
-// FetchSecret retrieves a secret from Vault
-func (c *vaultClient) FetchSecret(ctx context.Context, req *SecretRef, options ...*FetchSecretOptions) (*Secret, error) {
-	run, err := c.FetchSecretAsync(ctx, req, options...)
-	if err != nil {
-		return nil, err
-	}
-	return run.Get(ctx)
-}
-
-// FetchSecret retrieves a secret from Vault
-func (c *vaultClient) FetchSecretAsync(ctx context.Context, req *SecretRef, options ...*FetchSecretOptions) (FetchSecretRun, error) {
-	var o *FetchSecretOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewFetchSecretOptions()
-	}
-	opts, err := o.Build(req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
-	}
-	run, err := c.client.ExecuteWorkflow(ctx, opts, FetchSecretWorkflowName, req)
-	if err != nil {
-		return nil, err
-	}
-	if run == nil {
-		return nil, errors.New("execute workflow returned nil run")
-	}
-	return &fetchSecretRun{
-		client: c,
-		run:    run,
-	}, nil
-}
-
-// GetFetchSecret fetches an existing vault.v1.FetchSecret execution
-func (c *vaultClient) GetFetchSecret(ctx context.Context, workflowID string, runID string) FetchSecretRun {
-	return &fetchSecretRun{
-		client: c,
-		run:    c.client.GetWorkflow(ctx, workflowID, runID),
-	}
-}
-
-// StoreSecret stores (or updates) a secret in Vault
-func (c *vaultClient) StoreSecret(ctx context.Context, req *Secret, options ...*StoreSecretOptions) (*SecretRef, error) {
-	run, err := c.StoreSecretAsync(ctx, req, options...)
-	if err != nil {
-		return nil, err
-	}
-	return run.Get(ctx)
-}
-
-// StoreSecret stores (or updates) a secret in Vault
-func (c *vaultClient) StoreSecretAsync(ctx context.Context, req *Secret, options ...*StoreSecretOptions) (StoreSecretRun, error) {
-	var o *StoreSecretOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewStoreSecretOptions()
-	}
-	opts, err := o.Build(req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
-	}
-	run, err := c.client.ExecuteWorkflow(ctx, opts, StoreSecretWorkflowName, req)
-	if err != nil {
-		return nil, err
-	}
-	if run == nil {
-		return nil, errors.New("execute workflow returned nil run")
-	}
-	return &storeSecretRun{
-		client: c,
-		run:    run,
-	}, nil
-}
-
-// GetStoreSecret fetches an existing vault.v1.StoreSecret execution
-func (c *vaultClient) GetStoreSecret(ctx context.Context, workflowID string, runID string) StoreSecretRun {
-	return &storeSecretRun{
-		client: c,
-		run:    c.client.GetWorkflow(ctx, workflowID, runID),
-	}
-}
-
-// CancelWorkflow requests cancellation of an existing workflow execution
-func (c *vaultClient) CancelWorkflow(ctx context.Context, workflowID string, runID string) error {
-	return c.client.CancelWorkflow(ctx, workflowID, runID)
-}
-
-// TerminateWorkflow terminates an existing workflow execution
-func (c *vaultClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
-	return c.client.TerminateWorkflow(ctx, workflowID, runID, reason, details...)
-}
-
-// FetchSecretOptions provides configuration for a vault.v1.FetchSecret workflow operation
-type FetchSecretOptions struct {
-	options                  client.StartWorkflowOptions
-	executionTimeout         *time.Duration
-	id                       *string
-	idReusePolicy            enumsv1.WorkflowIdReusePolicy
-	retryPolicy              *temporal.RetryPolicy
-	runTimeout               *time.Duration
-	searchAttributes         map[string]any
-	taskQueue                *string
-	taskTimeout              *time.Duration
-	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
-}
-
-// NewFetchSecretOptions initializes a new FetchSecretOptions value
-func NewFetchSecretOptions() *FetchSecretOptions {
-	return &FetchSecretOptions{}
-}
-
-// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
-func (o *FetchSecretOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
-	opts := o.options
-	if v := o.id; v != nil {
-		opts.ID = *v
-	}
-	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = v
-	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-	}
-	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
-		opts.WorkflowIDConflictPolicy = v
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = VaultTaskQueue
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.searchAttributes; v != nil {
-		opts.SearchAttributes = o.searchAttributes
-	}
-	if v := o.executionTimeout; v != nil {
-		opts.WorkflowExecutionTimeout = *v
-	}
-	if v := o.runTimeout; v != nil {
-		opts.WorkflowRunTimeout = *v
-	}
-	if v := o.taskTimeout; v != nil {
-		opts.WorkflowTaskTimeout = *v
-	}
-	return opts, nil
-}
-
-// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
-func (o *FetchSecretOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *FetchSecretOptions {
-	o.options = options
-	return o
-}
-
-// WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *FetchSecretOptions) WithExecutionTimeout(d time.Duration) *FetchSecretOptions {
-	o.executionTimeout = &d
-	return o
-}
-
-// WithID sets the ID value
-func (o *FetchSecretOptions) WithID(id string) *FetchSecretOptions {
-	o.id = &id
-	return o
-}
-
-// WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *FetchSecretOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *FetchSecretOptions {
-	o.idReusePolicy = policy
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *FetchSecretOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *FetchSecretOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithRunTimeout sets the WorkflowRunTimeout value
-func (o *FetchSecretOptions) WithRunTimeout(d time.Duration) *FetchSecretOptions {
-	o.runTimeout = &d
-	return o
-}
-
-// WithSearchAttributes sets the SearchAttributes value
-func (o *FetchSecretOptions) WithSearchAttributes(sa map[string]any) *FetchSecretOptions {
-	o.searchAttributes = sa
-	return o
-}
-
-// WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *FetchSecretOptions) WithTaskTimeout(d time.Duration) *FetchSecretOptions {
-	o.taskTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *FetchSecretOptions) WithTaskQueue(tq string) *FetchSecretOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *FetchSecretOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *FetchSecretOptions {
-	o.workflowIdConflictPolicy = policy
-	return o
-}
-
-// FetchSecretRun describes a(n) vault.v1.FetchSecret workflow run
-type FetchSecretRun interface {
-	// ID returns the workflow ID
-	ID() string
-
-	// RunID returns the workflow instance ID
-	RunID() string
-
-	// Run returns the inner client.WorkflowRun
-	Run() client.WorkflowRun
-
-	// Get blocks until the workflow is complete and returns the result
-	Get(ctx context.Context) (*Secret, error)
-
-	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-	Cancel(ctx context.Context) error
-
-	// Terminate terminates a workflow in execution, returning an error if applicable
-	Terminate(ctx context.Context, reason string, details ...interface{}) error
-}
-
-// fetchSecretRun provides an internal implementation of a(n) FetchSecretRunRun
-type fetchSecretRun struct {
-	client *vaultClient
-	run    client.WorkflowRun
-}
-
-// ID returns the workflow ID
-func (r *fetchSecretRun) ID() string {
-	return r.run.GetID()
-}
-
-// Run returns the inner client.WorkflowRun
-func (r *fetchSecretRun) Run() client.WorkflowRun {
-	return r.run
-}
-
-// RunID returns the execution ID
-func (r *fetchSecretRun) RunID() string {
-	return r.run.GetRunID()
-}
-
-// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *fetchSecretRun) Cancel(ctx context.Context) error {
-	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
-}
-
-// Get blocks until the workflow is complete, returning the result if applicable
-func (r *fetchSecretRun) Get(ctx context.Context) (*Secret, error) {
-	var resp Secret
-	if err := r.run.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Terminate terminates a workflow in execution, returning an error if applicable
-func (r *fetchSecretRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
-	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
-}
-
-// StoreSecretOptions provides configuration for a vault.v1.StoreSecret workflow operation
-type StoreSecretOptions struct {
-	options                  client.StartWorkflowOptions
-	executionTimeout         *time.Duration
-	id                       *string
-	idReusePolicy            enumsv1.WorkflowIdReusePolicy
-	retryPolicy              *temporal.RetryPolicy
-	runTimeout               *time.Duration
-	searchAttributes         map[string]any
-	taskQueue                *string
-	taskTimeout              *time.Duration
-	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
-}
-
-// NewStoreSecretOptions initializes a new StoreSecretOptions value
-func NewStoreSecretOptions() *StoreSecretOptions {
-	return &StoreSecretOptions{}
-}
-
-// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
-func (o *StoreSecretOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
-	opts := o.options
-	if v := o.id; v != nil {
-		opts.ID = *v
-	}
-	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = v
-	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-	}
-	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
-		opts.WorkflowIDConflictPolicy = v
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = VaultTaskQueue
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.searchAttributes; v != nil {
-		opts.SearchAttributes = o.searchAttributes
-	}
-	if v := o.executionTimeout; v != nil {
-		opts.WorkflowExecutionTimeout = *v
-	}
-	if v := o.runTimeout; v != nil {
-		opts.WorkflowRunTimeout = *v
-	}
-	if v := o.taskTimeout; v != nil {
-		opts.WorkflowTaskTimeout = *v
-	}
-	return opts, nil
-}
-
-// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
-func (o *StoreSecretOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *StoreSecretOptions {
-	o.options = options
-	return o
-}
-
-// WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *StoreSecretOptions) WithExecutionTimeout(d time.Duration) *StoreSecretOptions {
-	o.executionTimeout = &d
-	return o
-}
-
-// WithID sets the ID value
-func (o *StoreSecretOptions) WithID(id string) *StoreSecretOptions {
-	o.id = &id
-	return o
-}
-
-// WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *StoreSecretOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *StoreSecretOptions {
-	o.idReusePolicy = policy
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *StoreSecretOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *StoreSecretOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithRunTimeout sets the WorkflowRunTimeout value
-func (o *StoreSecretOptions) WithRunTimeout(d time.Duration) *StoreSecretOptions {
-	o.runTimeout = &d
-	return o
-}
-
-// WithSearchAttributes sets the SearchAttributes value
-func (o *StoreSecretOptions) WithSearchAttributes(sa map[string]any) *StoreSecretOptions {
-	o.searchAttributes = sa
-	return o
-}
-
-// WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *StoreSecretOptions) WithTaskTimeout(d time.Duration) *StoreSecretOptions {
-	o.taskTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *StoreSecretOptions) WithTaskQueue(tq string) *StoreSecretOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *StoreSecretOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *StoreSecretOptions {
-	o.workflowIdConflictPolicy = policy
-	return o
-}
-
-// StoreSecretRun describes a(n) vault.v1.StoreSecret workflow run
-type StoreSecretRun interface {
-	// ID returns the workflow ID
-	ID() string
-
-	// RunID returns the workflow instance ID
-	RunID() string
-
-	// Run returns the inner client.WorkflowRun
-	Run() client.WorkflowRun
-
-	// Get blocks until the workflow is complete and returns the result
-	Get(ctx context.Context) (*SecretRef, error)
-
-	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-	Cancel(ctx context.Context) error
-
-	// Terminate terminates a workflow in execution, returning an error if applicable
-	Terminate(ctx context.Context, reason string, details ...interface{}) error
-}
-
-// storeSecretRun provides an internal implementation of a(n) StoreSecretRunRun
-type storeSecretRun struct {
-	client *vaultClient
-	run    client.WorkflowRun
-}
-
-// ID returns the workflow ID
-func (r *storeSecretRun) ID() string {
-	return r.run.GetID()
-}
-
-// Run returns the inner client.WorkflowRun
-func (r *storeSecretRun) Run() client.WorkflowRun {
-	return r.run
-}
-
-// RunID returns the execution ID
-func (r *storeSecretRun) RunID() string {
-	return r.run.GetRunID()
-}
-
-// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *storeSecretRun) Cancel(ctx context.Context) error {
-	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
-}
-
-// Get blocks until the workflow is complete, returning the result if applicable
-func (r *storeSecretRun) Get(ctx context.Context) (*SecretRef, error) {
-	var resp SecretRef
-	if err := r.run.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Terminate terminates a workflow in execution, returning an error if applicable
-func (r *storeSecretRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
-	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
-}
-
-// Reference to generated workflow functions
-var (
-	// vaultRegistrationMutex is a mutex for registering vault.v1.Vault workflows
-	vaultRegistrationMutex sync.Mutex
-	// FetchSecret retrieves a secret from Vault
-	FetchSecretFunction func(workflow.Context, *SecretRef) (*Secret, error)
-	// StoreSecret stores (or updates) a secret in Vault
-	StoreSecretFunction func(workflow.Context, *Secret) (*SecretRef, error)
-)
-
-// VaultWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
-type (
-	// VaultWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
-	VaultWorkflowFunctions interface {
-		// FetchSecret retrieves a secret from Vault
-		FetchSecret(workflow.Context, *SecretRef) (*Secret, error)
-		// StoreSecret stores (or updates) a secret in Vault
-		StoreSecret(workflow.Context, *Secret) (*SecretRef, error)
-	}
-	// vaultWorkflowFunctions provides an internal VaultWorkflowFunctions implementation
-	vaultWorkflowFunctions struct{}
-)
-
-func NewVaultWorkflowFunctions() VaultWorkflowFunctions {
-	return &vaultWorkflowFunctions{}
-}
-
-// FetchSecret retrieves a secret from Vault
-func (f *vaultWorkflowFunctions) FetchSecret(ctx workflow.Context, req *SecretRef) (*Secret, error) {
-	if FetchSecretFunction == nil {
-		return nil, errors.New("FetchSecret requires workflow registration via RegisterVaultWorkflows or RegisterFetchSecretWorkflow")
-	}
-	return FetchSecretFunction(ctx, req)
-}
-
-// StoreSecret stores (or updates) a secret in Vault
-func (f *vaultWorkflowFunctions) StoreSecret(ctx workflow.Context, req *Secret) (*SecretRef, error) {
-	if StoreSecretFunction == nil {
-		return nil, errors.New("StoreSecret requires workflow registration via RegisterVaultWorkflows or RegisterStoreSecretWorkflow")
-	}
-	return StoreSecretFunction(ctx, req)
-}
-
-// VaultWorkflows provides methods for initializing new vault.v1.Vault workflow values
-type VaultWorkflows interface {
-	// FetchSecret retrieves a secret from Vault
-	FetchSecret(ctx workflow.Context, input *FetchSecretWorkflowInput) (FetchSecretWorkflow, error)
-
-	// StoreSecret stores (or updates) a secret in Vault
-	StoreSecret(ctx workflow.Context, input *StoreSecretWorkflowInput) (StoreSecretWorkflow, error)
-}
-
-// RegisterVaultWorkflows registers vault.v1.Vault workflows with the given worker
-func RegisterVaultWorkflows(r worker.WorkflowRegistry, workflows VaultWorkflows) {
-	RegisterFetchSecretWorkflow(r, workflows.FetchSecret)
-	RegisterStoreSecretWorkflow(r, workflows.StoreSecret)
-}
-
-// RegisterFetchSecretWorkflow registers a vault.v1.Vault.FetchSecret workflow with the given worker
-func RegisterFetchSecretWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *FetchSecretWorkflowInput) (FetchSecretWorkflow, error)) {
-	vaultRegistrationMutex.Lock()
-	defer vaultRegistrationMutex.Unlock()
-	FetchSecretFunction = buildFetchSecret(wf)
-	r.RegisterWorkflowWithOptions(FetchSecretFunction, workflow.RegisterOptions{Name: FetchSecretWorkflowName})
-}
-
-// buildFetchSecret converts a FetchSecret workflow struct into a valid workflow function
-func buildFetchSecret(ctor func(workflow.Context, *FetchSecretWorkflowInput) (FetchSecretWorkflow, error)) func(workflow.Context, *SecretRef) (*Secret, error) {
-	return func(ctx workflow.Context, req *SecretRef) (*Secret, error) {
-		input := &FetchSecretWorkflowInput{
-			Req: req,
-		}
-		wf, err := ctor(ctx, input)
-		if err != nil {
-			return nil, err
-		}
-		if initializable, ok := wf.(helpers.Initializable); ok {
-			if err := initializable.Initialize(ctx); err != nil {
-				return nil, err
-			}
-		}
-		return wf.Execute(ctx)
-	}
-}
-
-// FetchSecretWorkflowInput describes the input to a(n) vault.v1.FetchSecret workflow constructor
-type FetchSecretWorkflowInput struct {
-	Req *SecretRef
-}
-
-// FetchSecret retrieves a secret from Vault
-//
-// workflow details: (name: "vault.v1.FetchSecret")
-type FetchSecretWorkflow interface {
-	// Execute defines the entrypoint to a(n) vault.v1.FetchSecret workflow
-	Execute(ctx workflow.Context) (*Secret, error)
-}
-
-// FetchSecret retrieves a secret from Vault
-func FetchSecretChild(ctx workflow.Context, req *SecretRef, options ...*FetchSecretChildOptions) (*Secret, error) {
-	childRun, err := FetchSecretChildAsync(ctx, req, options...)
-	if err != nil {
-		return nil, err
-	}
-	return childRun.Get(ctx)
-}
-
-// FetchSecret retrieves a secret from Vault
-func FetchSecretChildAsync(ctx workflow.Context, req *SecretRef, options ...*FetchSecretChildOptions) (*FetchSecretChildRun, error) {
-	var o *FetchSecretChildOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewFetchSecretChildOptions()
-	}
-	opts, err := o.Build(ctx, req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
-	}
-	ctx = workflow.WithChildOptions(ctx, opts)
-	if o.dc != nil {
-		ctx = workflow.WithDataConverter(ctx, o.dc)
-	}
-	return &FetchSecretChildRun{Future: workflow.ExecuteChildWorkflow(ctx, FetchSecretWorkflowName, req)}, nil
-}
-
-// FetchSecretChildOptions provides configuration for a child vault.v1.FetchSecret workflow operation
-type FetchSecretChildOptions struct {
-	options                  workflow.ChildWorkflowOptions
-	executionTimeout         *time.Duration
-	id                       *string
-	idReusePolicy            enumsv1.WorkflowIdReusePolicy
-	retryPolicy              *temporal.RetryPolicy
-	runTimeout               *time.Duration
-	searchAttributes         map[string]any
-	taskQueue                *string
-	taskTimeout              *time.Duration
-	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
-	dc                       converter.DataConverter
-	parentClosePolicy        enumsv1.ParentClosePolicy
-	waitForCancellation      *bool
-}
-
-// NewFetchSecretChildOptions initializes a new FetchSecretChildOptions value
-func NewFetchSecretChildOptions() *FetchSecretChildOptions {
-	return &FetchSecretChildOptions{}
-}
-
-// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
-func (o *FetchSecretChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
-	opts := o.options
-	if v := o.id; v != nil {
-		opts.WorkflowID = *v
-	}
-	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = v
-	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = VaultTaskQueue
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.searchAttributes; v != nil {
-		opts.SearchAttributes = o.searchAttributes
-	}
-	if v := o.executionTimeout; v != nil {
-		opts.WorkflowExecutionTimeout = *v
-	}
-	if v := o.runTimeout; v != nil {
-		opts.WorkflowRunTimeout = *v
-	}
-	if v := o.taskTimeout; v != nil {
-		opts.WorkflowTaskTimeout = *v
-	}
-	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
-		opts.ParentClosePolicy = v
-	} else if opts.ParentClosePolicy == enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
-		opts.ParentClosePolicy = enumsv1.PARENT_CLOSE_POLICY_REQUEST_CANCEL
-	}
-	if v := o.waitForCancellation; v != nil {
-		opts.WaitForCancellation = *v
-	}
-	return opts, nil
-}
-
-// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
-func (o *FetchSecretChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *FetchSecretChildOptions {
-	o.options = options
-	return o
-}
-
-// WithDataConverter registers a DataConverter for the child workflow
-func (o *FetchSecretChildOptions) WithDataConverter(dc converter.DataConverter) *FetchSecretChildOptions {
-	o.dc = dc
-	return o
-}
-
-// WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *FetchSecretChildOptions) WithExecutionTimeout(d time.Duration) *FetchSecretChildOptions {
-	o.executionTimeout = &d
-	return o
-}
-
-// WithID sets the WorkflowID value
-func (o *FetchSecretChildOptions) WithID(id string) *FetchSecretChildOptions {
-	o.id = &id
-	return o
-}
-
-// WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *FetchSecretChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *FetchSecretChildOptions {
-	o.idReusePolicy = policy
-	return o
-}
-
-// WithParentClosePolicy sets the WorkflowIDReusePolicy value
-func (o *FetchSecretChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *FetchSecretChildOptions {
-	o.parentClosePolicy = policy
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *FetchSecretChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *FetchSecretChildOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithRunTimeout sets the WorkflowRunTimeout value
-func (o *FetchSecretChildOptions) WithRunTimeout(d time.Duration) *FetchSecretChildOptions {
-	o.runTimeout = &d
-	return o
-}
-
-// WithSearchAttributes sets the SearchAttributes value
-func (o *FetchSecretChildOptions) WithSearchAttributes(sa map[string]any) *FetchSecretChildOptions {
-	o.searchAttributes = sa
-	return o
-}
-
-// WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *FetchSecretChildOptions) WithTaskTimeout(d time.Duration) *FetchSecretChildOptions {
-	o.taskTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *FetchSecretChildOptions) WithTaskQueue(tq string) *FetchSecretChildOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWaitForCancellation sets the WaitForCancellation value
-func (o *FetchSecretChildOptions) WithWaitForCancellation(wait bool) *FetchSecretChildOptions {
-	o.waitForCancellation = &wait
-	return o
-}
-
-// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *FetchSecretChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *FetchSecretChildOptions {
-	o.workflowIdConflictPolicy = policy
-	return o
-}
-
-// FetchSecretChildRun describes a child FetchSecret workflow run
-type FetchSecretChildRun struct {
-	Future workflow.ChildWorkflowFuture
-}
-
-// Get blocks until the workflow is completed, returning the response value
-func (r *FetchSecretChildRun) Get(ctx workflow.Context) (*Secret, error) {
-	var resp Secret
-	if err := r.Future.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Select adds this completion to the selector. Callback can be nil.
-func (r *FetchSecretChildRun) Select(sel workflow.Selector, fn func(*FetchSecretChildRun)) workflow.Selector {
-	return sel.AddFuture(r.Future, func(workflow.Future) {
-		if fn != nil {
-			fn(r)
-		}
-	})
-}
-
-// SelectStart adds waiting for start to the selector. Callback can be nil.
-func (r *FetchSecretChildRun) SelectStart(sel workflow.Selector, fn func(*FetchSecretChildRun)) workflow.Selector {
-	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
-		if fn != nil {
-			fn(r)
-		}
-	})
-}
-
-// WaitStart waits for the child workflow to start
-func (r *FetchSecretChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
-	var exec workflow.Execution
-	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
-		return nil, err
-	}
-	return &exec, nil
-}
-
-// RegisterStoreSecretWorkflow registers a vault.v1.Vault.StoreSecret workflow with the given worker
-func RegisterStoreSecretWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *StoreSecretWorkflowInput) (StoreSecretWorkflow, error)) {
-	vaultRegistrationMutex.Lock()
-	defer vaultRegistrationMutex.Unlock()
-	StoreSecretFunction = buildStoreSecret(wf)
-	r.RegisterWorkflowWithOptions(StoreSecretFunction, workflow.RegisterOptions{Name: StoreSecretWorkflowName})
-}
-
-// buildStoreSecret converts a StoreSecret workflow struct into a valid workflow function
-func buildStoreSecret(ctor func(workflow.Context, *StoreSecretWorkflowInput) (StoreSecretWorkflow, error)) func(workflow.Context, *Secret) (*SecretRef, error) {
-	return func(ctx workflow.Context, req *Secret) (*SecretRef, error) {
-		input := &StoreSecretWorkflowInput{
-			Req: req,
-		}
-		wf, err := ctor(ctx, input)
-		if err != nil {
-			return nil, err
-		}
-		if initializable, ok := wf.(helpers.Initializable); ok {
-			if err := initializable.Initialize(ctx); err != nil {
-				return nil, err
-			}
-		}
-		return wf.Execute(ctx)
-	}
-}
-
-// StoreSecretWorkflowInput describes the input to a(n) vault.v1.StoreSecret workflow constructor
-type StoreSecretWorkflowInput struct {
-	Req *Secret
-}
-
-// StoreSecret stores (or updates) a secret in Vault
-//
-// workflow details: (name: "vault.v1.StoreSecret")
-type StoreSecretWorkflow interface {
-	// Execute defines the entrypoint to a(n) vault.v1.StoreSecret workflow
-	Execute(ctx workflow.Context) (*SecretRef, error)
-}
-
-// StoreSecret stores (or updates) a secret in Vault
-func StoreSecretChild(ctx workflow.Context, req *Secret, options ...*StoreSecretChildOptions) (*SecretRef, error) {
-	childRun, err := StoreSecretChildAsync(ctx, req, options...)
-	if err != nil {
-		return nil, err
-	}
-	return childRun.Get(ctx)
-}
-
-// StoreSecret stores (or updates) a secret in Vault
-func StoreSecretChildAsync(ctx workflow.Context, req *Secret, options ...*StoreSecretChildOptions) (*StoreSecretChildRun, error) {
-	var o *StoreSecretChildOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewStoreSecretChildOptions()
-	}
-	opts, err := o.Build(ctx, req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
-	}
-	ctx = workflow.WithChildOptions(ctx, opts)
-	if o.dc != nil {
-		ctx = workflow.WithDataConverter(ctx, o.dc)
-	}
-	return &StoreSecretChildRun{Future: workflow.ExecuteChildWorkflow(ctx, StoreSecretWorkflowName, req)}, nil
-}
-
-// StoreSecretChildOptions provides configuration for a child vault.v1.StoreSecret workflow operation
-type StoreSecretChildOptions struct {
-	options                  workflow.ChildWorkflowOptions
-	executionTimeout         *time.Duration
-	id                       *string
-	idReusePolicy            enumsv1.WorkflowIdReusePolicy
-	retryPolicy              *temporal.RetryPolicy
-	runTimeout               *time.Duration
-	searchAttributes         map[string]any
-	taskQueue                *string
-	taskTimeout              *time.Duration
-	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
-	dc                       converter.DataConverter
-	parentClosePolicy        enumsv1.ParentClosePolicy
-	waitForCancellation      *bool
-}
-
-// NewStoreSecretChildOptions initializes a new StoreSecretChildOptions value
-func NewStoreSecretChildOptions() *StoreSecretChildOptions {
-	return &StoreSecretChildOptions{}
-}
-
-// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
-func (o *StoreSecretChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
-	opts := o.options
-	if v := o.id; v != nil {
-		opts.WorkflowID = *v
-	}
-	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = v
-	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = VaultTaskQueue
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.searchAttributes; v != nil {
-		opts.SearchAttributes = o.searchAttributes
-	}
-	if v := o.executionTimeout; v != nil {
-		opts.WorkflowExecutionTimeout = *v
-	}
-	if v := o.runTimeout; v != nil {
-		opts.WorkflowRunTimeout = *v
-	}
-	if v := o.taskTimeout; v != nil {
-		opts.WorkflowTaskTimeout = *v
-	}
-	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
-		opts.ParentClosePolicy = v
-	} else if opts.ParentClosePolicy == enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
-		opts.ParentClosePolicy = enumsv1.PARENT_CLOSE_POLICY_REQUEST_CANCEL
-	}
-	if v := o.waitForCancellation; v != nil {
-		opts.WaitForCancellation = *v
-	}
-	return opts, nil
-}
-
-// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
-func (o *StoreSecretChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *StoreSecretChildOptions {
-	o.options = options
-	return o
-}
-
-// WithDataConverter registers a DataConverter for the child workflow
-func (o *StoreSecretChildOptions) WithDataConverter(dc converter.DataConverter) *StoreSecretChildOptions {
-	o.dc = dc
-	return o
-}
-
-// WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *StoreSecretChildOptions) WithExecutionTimeout(d time.Duration) *StoreSecretChildOptions {
-	o.executionTimeout = &d
-	return o
-}
-
-// WithID sets the WorkflowID value
-func (o *StoreSecretChildOptions) WithID(id string) *StoreSecretChildOptions {
-	o.id = &id
-	return o
-}
-
-// WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *StoreSecretChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *StoreSecretChildOptions {
-	o.idReusePolicy = policy
-	return o
-}
-
-// WithParentClosePolicy sets the WorkflowIDReusePolicy value
-func (o *StoreSecretChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *StoreSecretChildOptions {
-	o.parentClosePolicy = policy
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *StoreSecretChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *StoreSecretChildOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithRunTimeout sets the WorkflowRunTimeout value
-func (o *StoreSecretChildOptions) WithRunTimeout(d time.Duration) *StoreSecretChildOptions {
-	o.runTimeout = &d
-	return o
-}
-
-// WithSearchAttributes sets the SearchAttributes value
-func (o *StoreSecretChildOptions) WithSearchAttributes(sa map[string]any) *StoreSecretChildOptions {
-	o.searchAttributes = sa
-	return o
-}
-
-// WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *StoreSecretChildOptions) WithTaskTimeout(d time.Duration) *StoreSecretChildOptions {
-	o.taskTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *StoreSecretChildOptions) WithTaskQueue(tq string) *StoreSecretChildOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWaitForCancellation sets the WaitForCancellation value
-func (o *StoreSecretChildOptions) WithWaitForCancellation(wait bool) *StoreSecretChildOptions {
-	o.waitForCancellation = &wait
-	return o
-}
-
-// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *StoreSecretChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *StoreSecretChildOptions {
-	o.workflowIdConflictPolicy = policy
-	return o
-}
-
-// StoreSecretChildRun describes a child StoreSecret workflow run
-type StoreSecretChildRun struct {
-	Future workflow.ChildWorkflowFuture
-}
-
-// Get blocks until the workflow is completed, returning the response value
-func (r *StoreSecretChildRun) Get(ctx workflow.Context) (*SecretRef, error) {
-	var resp SecretRef
-	if err := r.Future.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Select adds this completion to the selector. Callback can be nil.
-func (r *StoreSecretChildRun) Select(sel workflow.Selector, fn func(*StoreSecretChildRun)) workflow.Selector {
-	return sel.AddFuture(r.Future, func(workflow.Future) {
-		if fn != nil {
-			fn(r)
-		}
-	})
-}
-
-// SelectStart adds waiting for start to the selector. Callback can be nil.
-func (r *StoreSecretChildRun) SelectStart(sel workflow.Selector, fn func(*StoreSecretChildRun)) workflow.Selector {
-	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
-		if fn != nil {
-			fn(r)
-		}
-	})
-}
-
-// WaitStart waits for the child workflow to start
-func (r *StoreSecretChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
-	var exec workflow.Execution
-	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
-		return nil, err
-	}
-	return &exec, nil
-}
 
 // VaultActivities describes available worker activities
 type VaultActivities interface {
-	// FetchSecret retrieves a secret from Vault
-	FetchSecret(ctx context.Context, req *SecretRef) (*Secret, error)
+	// Auth Role Management
+	CreateAuthRole(ctx context.Context, req *CreateAuthRoleInput) (*CreateAuthRoleOutput, error)
 
-	// StoreSecret stores (or updates) a secret in Vault
-	StoreSecret(ctx context.Context, req *Secret) (*SecretRef, error)
+	// Policy Management
+	CreatePolicy(ctx context.Context, req *CreatePolicyInput) (*CreatePolicyOutput, error)
+
+	// vault.v1.Vault.DeleteAuthRole implements a(n) vault.v1.DeleteAuthRole activity definition
+	DeleteAuthRole(ctx context.Context, req *DeleteAuthRoleInput) (*DeleteAuthRoleOutput, error)
+
+	// vault.v1.Vault.DeletePolicy implements a(n) vault.v1.DeletePolicy activity definition
+	DeletePolicy(ctx context.Context, req *DeletePolicyInput) (*DeletePolicyOutput, error)
+
+	// vault.v1.Vault.DeleteSecret implements a(n) vault.v1.DeleteSecret activity definition
+	DeleteSecret(ctx context.Context, req *DeleteSecretInput) (*DeleteSecretOutput, error)
+
+	// vault.v1.Vault.FetchSecret implements a(n) vault.v1.FetchSecret activity definition
+	FetchSecret(ctx context.Context, req *FetchSecretInput) (*FetchSecretOutput, error)
+
+	// Secret Management
+	StoreSecret(ctx context.Context, req *StoreSecretInput) (*StoreSecretOutput, error)
 }
 
 // RegisterVaultActivities registers activities with a worker
 func RegisterVaultActivities(r worker.ActivityRegistry, activities VaultActivities) {
+	RegisterCreateAuthRoleActivity(r, activities.CreateAuthRole)
+	RegisterCreatePolicyActivity(r, activities.CreatePolicy)
+	RegisterDeleteAuthRoleActivity(r, activities.DeleteAuthRole)
+	RegisterDeletePolicyActivity(r, activities.DeletePolicy)
+	RegisterDeleteSecretActivity(r, activities.DeleteSecret)
 	RegisterFetchSecretActivity(r, activities.FetchSecret)
 	RegisterStoreSecretActivity(r, activities.StoreSecret)
 }
 
+// RegisterCreateAuthRoleActivity registers a vault.v1.CreateAuthRole activity
+func RegisterCreateAuthRoleActivity(r worker.ActivityRegistry, fn func(context.Context, *CreateAuthRoleInput) (*CreateAuthRoleOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: CreateAuthRoleActivityName,
+	})
+}
+
+// CreateAuthRoleFuture describes a(n) vault.v1.CreateAuthRole activity execution
+type CreateAuthRoleFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *CreateAuthRoleFuture) Get(ctx workflow.Context) (*CreateAuthRoleOutput, error) {
+	var resp CreateAuthRoleOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *CreateAuthRoleFuture) Select(sel workflow.Selector, fn func(*CreateAuthRoleFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// Auth Role Management
+func CreateAuthRole(ctx workflow.Context, req *CreateAuthRoleInput, options ...*CreateAuthRoleActivityOptions) (*CreateAuthRoleOutput, error) {
+	return CreateAuthRoleAsync(ctx, req, options...).Get(ctx)
+}
+
+// Auth Role Management
+func CreateAuthRoleAsync(ctx workflow.Context, req *CreateAuthRoleInput, options ...*CreateAuthRoleActivityOptions) *CreateAuthRoleFuture {
+	var o *CreateAuthRoleActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateAuthRoleActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &CreateAuthRoleFuture{Future: errF}
+	}
+	activity := CreateAuthRoleActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &CreateAuthRoleFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// Auth Role Management
+func CreateAuthRoleLocal(ctx workflow.Context, req *CreateAuthRoleInput, options ...*CreateAuthRoleLocalActivityOptions) (*CreateAuthRoleOutput, error) {
+	return CreateAuthRoleLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// Auth Role Management
+func CreateAuthRoleLocalAsync(ctx workflow.Context, req *CreateAuthRoleInput, options ...*CreateAuthRoleLocalActivityOptions) *CreateAuthRoleFuture {
+	var o *CreateAuthRoleLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateAuthRoleLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &CreateAuthRoleFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = CreateAuthRoleActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &CreateAuthRoleFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// CreateAuthRoleActivityOptions provides configuration for a(n) vault.v1.CreateAuthRole activity
+type CreateAuthRoleActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewCreateAuthRoleActivityOptions initializes a new CreateAuthRoleActivityOptions value
+func NewCreateAuthRoleActivityOptions() *CreateAuthRoleActivityOptions {
+	return &CreateAuthRoleActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *CreateAuthRoleActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = VaultTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *CreateAuthRoleActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *CreateAuthRoleActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *CreateAuthRoleActivityOptions) WithDataConverter(dc converter.DataConverter) *CreateAuthRoleActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *CreateAuthRoleActivityOptions) WithHeartbeatTimeout(d time.Duration) *CreateAuthRoleActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CreateAuthRoleActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateAuthRoleActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *CreateAuthRoleActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *CreateAuthRoleActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *CreateAuthRoleActivityOptions) WithScheduleToStartTimeout(d time.Duration) *CreateAuthRoleActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *CreateAuthRoleActivityOptions) WithStartToCloseTimeout(d time.Duration) *CreateAuthRoleActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *CreateAuthRoleActivityOptions) WithTaskQueue(tq string) *CreateAuthRoleActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *CreateAuthRoleActivityOptions) WithWaitForCancellation(wait bool) *CreateAuthRoleActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// CreateAuthRoleLocalActivityOptions provides configuration for a(n) vault.v1.CreateAuthRole activity
+type CreateAuthRoleLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *CreateAuthRoleInput) (*CreateAuthRoleOutput, error)
+}
+
+// NewCreateAuthRoleLocalActivityOptions initializes a new CreateAuthRoleLocalActivityOptions value
+func NewCreateAuthRoleLocalActivityOptions() *CreateAuthRoleLocalActivityOptions {
+	return &CreateAuthRoleLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *CreateAuthRoleLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom vault.v1.CreateAuthRole implementation
+func (o *CreateAuthRoleLocalActivityOptions) Local(fn func(context.Context, *CreateAuthRoleInput) (*CreateAuthRoleOutput, error)) *CreateAuthRoleLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *CreateAuthRoleLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *CreateAuthRoleLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *CreateAuthRoleLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *CreateAuthRoleLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CreateAuthRoleLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateAuthRoleLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *CreateAuthRoleLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *CreateAuthRoleLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *CreateAuthRoleLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *CreateAuthRoleLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterCreatePolicyActivity registers a vault.v1.CreatePolicy activity
+func RegisterCreatePolicyActivity(r worker.ActivityRegistry, fn func(context.Context, *CreatePolicyInput) (*CreatePolicyOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: CreatePolicyActivityName,
+	})
+}
+
+// CreatePolicyFuture describes a(n) vault.v1.CreatePolicy activity execution
+type CreatePolicyFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *CreatePolicyFuture) Get(ctx workflow.Context) (*CreatePolicyOutput, error) {
+	var resp CreatePolicyOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *CreatePolicyFuture) Select(sel workflow.Selector, fn func(*CreatePolicyFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// Policy Management
+func CreatePolicy(ctx workflow.Context, req *CreatePolicyInput, options ...*CreatePolicyActivityOptions) (*CreatePolicyOutput, error) {
+	return CreatePolicyAsync(ctx, req, options...).Get(ctx)
+}
+
+// Policy Management
+func CreatePolicyAsync(ctx workflow.Context, req *CreatePolicyInput, options ...*CreatePolicyActivityOptions) *CreatePolicyFuture {
+	var o *CreatePolicyActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreatePolicyActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &CreatePolicyFuture{Future: errF}
+	}
+	activity := CreatePolicyActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &CreatePolicyFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// Policy Management
+func CreatePolicyLocal(ctx workflow.Context, req *CreatePolicyInput, options ...*CreatePolicyLocalActivityOptions) (*CreatePolicyOutput, error) {
+	return CreatePolicyLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// Policy Management
+func CreatePolicyLocalAsync(ctx workflow.Context, req *CreatePolicyInput, options ...*CreatePolicyLocalActivityOptions) *CreatePolicyFuture {
+	var o *CreatePolicyLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreatePolicyLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &CreatePolicyFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = CreatePolicyActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &CreatePolicyFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// CreatePolicyActivityOptions provides configuration for a(n) vault.v1.CreatePolicy activity
+type CreatePolicyActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewCreatePolicyActivityOptions initializes a new CreatePolicyActivityOptions value
+func NewCreatePolicyActivityOptions() *CreatePolicyActivityOptions {
+	return &CreatePolicyActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *CreatePolicyActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = VaultTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *CreatePolicyActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *CreatePolicyActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *CreatePolicyActivityOptions) WithDataConverter(dc converter.DataConverter) *CreatePolicyActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *CreatePolicyActivityOptions) WithHeartbeatTimeout(d time.Duration) *CreatePolicyActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CreatePolicyActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreatePolicyActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *CreatePolicyActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *CreatePolicyActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *CreatePolicyActivityOptions) WithScheduleToStartTimeout(d time.Duration) *CreatePolicyActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *CreatePolicyActivityOptions) WithStartToCloseTimeout(d time.Duration) *CreatePolicyActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *CreatePolicyActivityOptions) WithTaskQueue(tq string) *CreatePolicyActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *CreatePolicyActivityOptions) WithWaitForCancellation(wait bool) *CreatePolicyActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// CreatePolicyLocalActivityOptions provides configuration for a(n) vault.v1.CreatePolicy activity
+type CreatePolicyLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *CreatePolicyInput) (*CreatePolicyOutput, error)
+}
+
+// NewCreatePolicyLocalActivityOptions initializes a new CreatePolicyLocalActivityOptions value
+func NewCreatePolicyLocalActivityOptions() *CreatePolicyLocalActivityOptions {
+	return &CreatePolicyLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *CreatePolicyLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom vault.v1.CreatePolicy implementation
+func (o *CreatePolicyLocalActivityOptions) Local(fn func(context.Context, *CreatePolicyInput) (*CreatePolicyOutput, error)) *CreatePolicyLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *CreatePolicyLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *CreatePolicyLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *CreatePolicyLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *CreatePolicyLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CreatePolicyLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreatePolicyLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *CreatePolicyLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *CreatePolicyLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *CreatePolicyLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *CreatePolicyLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterDeleteAuthRoleActivity registers a vault.v1.DeleteAuthRole activity
+func RegisterDeleteAuthRoleActivity(r worker.ActivityRegistry, fn func(context.Context, *DeleteAuthRoleInput) (*DeleteAuthRoleOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: DeleteAuthRoleActivityName,
+	})
+}
+
+// DeleteAuthRoleFuture describes a(n) vault.v1.DeleteAuthRole activity execution
+type DeleteAuthRoleFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *DeleteAuthRoleFuture) Get(ctx workflow.Context) (*DeleteAuthRoleOutput, error) {
+	var resp DeleteAuthRoleOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *DeleteAuthRoleFuture) Select(sel workflow.Selector, fn func(*DeleteAuthRoleFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// DeleteAuthRole executes a(n) vault.v1.DeleteAuthRole activity
+func DeleteAuthRole(ctx workflow.Context, req *DeleteAuthRoleInput, options ...*DeleteAuthRoleActivityOptions) (*DeleteAuthRoleOutput, error) {
+	return DeleteAuthRoleAsync(ctx, req, options...).Get(ctx)
+}
+
+// DeleteAuthRoleAsync executes a(n) vault.v1.DeleteAuthRole activity (asynchronously)
+func DeleteAuthRoleAsync(ctx workflow.Context, req *DeleteAuthRoleInput, options ...*DeleteAuthRoleActivityOptions) *DeleteAuthRoleFuture {
+	var o *DeleteAuthRoleActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeleteAuthRoleActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &DeleteAuthRoleFuture{Future: errF}
+	}
+	activity := DeleteAuthRoleActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &DeleteAuthRoleFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// DeleteAuthRoleLocal executes a(n) vault.v1.DeleteAuthRole activity (locally)
+func DeleteAuthRoleLocal(ctx workflow.Context, req *DeleteAuthRoleInput, options ...*DeleteAuthRoleLocalActivityOptions) (*DeleteAuthRoleOutput, error) {
+	return DeleteAuthRoleLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// DeleteAuthRoleLocalAsync executes a(n) vault.v1.DeleteAuthRole activity (asynchronously, locally)
+func DeleteAuthRoleLocalAsync(ctx workflow.Context, req *DeleteAuthRoleInput, options ...*DeleteAuthRoleLocalActivityOptions) *DeleteAuthRoleFuture {
+	var o *DeleteAuthRoleLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeleteAuthRoleLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &DeleteAuthRoleFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = DeleteAuthRoleActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &DeleteAuthRoleFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// DeleteAuthRoleActivityOptions provides configuration for a(n) vault.v1.DeleteAuthRole activity
+type DeleteAuthRoleActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewDeleteAuthRoleActivityOptions initializes a new DeleteAuthRoleActivityOptions value
+func NewDeleteAuthRoleActivityOptions() *DeleteAuthRoleActivityOptions {
+	return &DeleteAuthRoleActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *DeleteAuthRoleActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = VaultTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *DeleteAuthRoleActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *DeleteAuthRoleActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *DeleteAuthRoleActivityOptions) WithDataConverter(dc converter.DataConverter) *DeleteAuthRoleActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *DeleteAuthRoleActivityOptions) WithHeartbeatTimeout(d time.Duration) *DeleteAuthRoleActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeleteAuthRoleActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeleteAuthRoleActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *DeleteAuthRoleActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *DeleteAuthRoleActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *DeleteAuthRoleActivityOptions) WithScheduleToStartTimeout(d time.Duration) *DeleteAuthRoleActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *DeleteAuthRoleActivityOptions) WithStartToCloseTimeout(d time.Duration) *DeleteAuthRoleActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeleteAuthRoleActivityOptions) WithTaskQueue(tq string) *DeleteAuthRoleActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *DeleteAuthRoleActivityOptions) WithWaitForCancellation(wait bool) *DeleteAuthRoleActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// DeleteAuthRoleLocalActivityOptions provides configuration for a(n) vault.v1.DeleteAuthRole activity
+type DeleteAuthRoleLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *DeleteAuthRoleInput) (*DeleteAuthRoleOutput, error)
+}
+
+// NewDeleteAuthRoleLocalActivityOptions initializes a new DeleteAuthRoleLocalActivityOptions value
+func NewDeleteAuthRoleLocalActivityOptions() *DeleteAuthRoleLocalActivityOptions {
+	return &DeleteAuthRoleLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *DeleteAuthRoleLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom vault.v1.DeleteAuthRole implementation
+func (o *DeleteAuthRoleLocalActivityOptions) Local(fn func(context.Context, *DeleteAuthRoleInput) (*DeleteAuthRoleOutput, error)) *DeleteAuthRoleLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *DeleteAuthRoleLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *DeleteAuthRoleLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *DeleteAuthRoleLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *DeleteAuthRoleLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeleteAuthRoleLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeleteAuthRoleLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *DeleteAuthRoleLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *DeleteAuthRoleLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *DeleteAuthRoleLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *DeleteAuthRoleLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterDeletePolicyActivity registers a vault.v1.DeletePolicy activity
+func RegisterDeletePolicyActivity(r worker.ActivityRegistry, fn func(context.Context, *DeletePolicyInput) (*DeletePolicyOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: DeletePolicyActivityName,
+	})
+}
+
+// DeletePolicyFuture describes a(n) vault.v1.DeletePolicy activity execution
+type DeletePolicyFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *DeletePolicyFuture) Get(ctx workflow.Context) (*DeletePolicyOutput, error) {
+	var resp DeletePolicyOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *DeletePolicyFuture) Select(sel workflow.Selector, fn func(*DeletePolicyFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// DeletePolicy executes a(n) vault.v1.DeletePolicy activity
+func DeletePolicy(ctx workflow.Context, req *DeletePolicyInput, options ...*DeletePolicyActivityOptions) (*DeletePolicyOutput, error) {
+	return DeletePolicyAsync(ctx, req, options...).Get(ctx)
+}
+
+// DeletePolicyAsync executes a(n) vault.v1.DeletePolicy activity (asynchronously)
+func DeletePolicyAsync(ctx workflow.Context, req *DeletePolicyInput, options ...*DeletePolicyActivityOptions) *DeletePolicyFuture {
+	var o *DeletePolicyActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeletePolicyActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &DeletePolicyFuture{Future: errF}
+	}
+	activity := DeletePolicyActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &DeletePolicyFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// DeletePolicyLocal executes a(n) vault.v1.DeletePolicy activity (locally)
+func DeletePolicyLocal(ctx workflow.Context, req *DeletePolicyInput, options ...*DeletePolicyLocalActivityOptions) (*DeletePolicyOutput, error) {
+	return DeletePolicyLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// DeletePolicyLocalAsync executes a(n) vault.v1.DeletePolicy activity (asynchronously, locally)
+func DeletePolicyLocalAsync(ctx workflow.Context, req *DeletePolicyInput, options ...*DeletePolicyLocalActivityOptions) *DeletePolicyFuture {
+	var o *DeletePolicyLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeletePolicyLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &DeletePolicyFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = DeletePolicyActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &DeletePolicyFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// DeletePolicyActivityOptions provides configuration for a(n) vault.v1.DeletePolicy activity
+type DeletePolicyActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewDeletePolicyActivityOptions initializes a new DeletePolicyActivityOptions value
+func NewDeletePolicyActivityOptions() *DeletePolicyActivityOptions {
+	return &DeletePolicyActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *DeletePolicyActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = VaultTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *DeletePolicyActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *DeletePolicyActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *DeletePolicyActivityOptions) WithDataConverter(dc converter.DataConverter) *DeletePolicyActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *DeletePolicyActivityOptions) WithHeartbeatTimeout(d time.Duration) *DeletePolicyActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeletePolicyActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeletePolicyActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *DeletePolicyActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *DeletePolicyActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *DeletePolicyActivityOptions) WithScheduleToStartTimeout(d time.Duration) *DeletePolicyActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *DeletePolicyActivityOptions) WithStartToCloseTimeout(d time.Duration) *DeletePolicyActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeletePolicyActivityOptions) WithTaskQueue(tq string) *DeletePolicyActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *DeletePolicyActivityOptions) WithWaitForCancellation(wait bool) *DeletePolicyActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// DeletePolicyLocalActivityOptions provides configuration for a(n) vault.v1.DeletePolicy activity
+type DeletePolicyLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *DeletePolicyInput) (*DeletePolicyOutput, error)
+}
+
+// NewDeletePolicyLocalActivityOptions initializes a new DeletePolicyLocalActivityOptions value
+func NewDeletePolicyLocalActivityOptions() *DeletePolicyLocalActivityOptions {
+	return &DeletePolicyLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *DeletePolicyLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom vault.v1.DeletePolicy implementation
+func (o *DeletePolicyLocalActivityOptions) Local(fn func(context.Context, *DeletePolicyInput) (*DeletePolicyOutput, error)) *DeletePolicyLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *DeletePolicyLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *DeletePolicyLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *DeletePolicyLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *DeletePolicyLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeletePolicyLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeletePolicyLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *DeletePolicyLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *DeletePolicyLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *DeletePolicyLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *DeletePolicyLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterDeleteSecretActivity registers a vault.v1.DeleteSecret activity
+func RegisterDeleteSecretActivity(r worker.ActivityRegistry, fn func(context.Context, *DeleteSecretInput) (*DeleteSecretOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: DeleteSecretActivityName,
+	})
+}
+
+// DeleteSecretFuture describes a(n) vault.v1.DeleteSecret activity execution
+type DeleteSecretFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *DeleteSecretFuture) Get(ctx workflow.Context) (*DeleteSecretOutput, error) {
+	var resp DeleteSecretOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *DeleteSecretFuture) Select(sel workflow.Selector, fn func(*DeleteSecretFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// DeleteSecret executes a(n) vault.v1.DeleteSecret activity
+func DeleteSecret(ctx workflow.Context, req *DeleteSecretInput, options ...*DeleteSecretActivityOptions) (*DeleteSecretOutput, error) {
+	return DeleteSecretAsync(ctx, req, options...).Get(ctx)
+}
+
+// DeleteSecretAsync executes a(n) vault.v1.DeleteSecret activity (asynchronously)
+func DeleteSecretAsync(ctx workflow.Context, req *DeleteSecretInput, options ...*DeleteSecretActivityOptions) *DeleteSecretFuture {
+	var o *DeleteSecretActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeleteSecretActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &DeleteSecretFuture{Future: errF}
+	}
+	activity := DeleteSecretActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &DeleteSecretFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// DeleteSecretLocal executes a(n) vault.v1.DeleteSecret activity (locally)
+func DeleteSecretLocal(ctx workflow.Context, req *DeleteSecretInput, options ...*DeleteSecretLocalActivityOptions) (*DeleteSecretOutput, error) {
+	return DeleteSecretLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// DeleteSecretLocalAsync executes a(n) vault.v1.DeleteSecret activity (asynchronously, locally)
+func DeleteSecretLocalAsync(ctx workflow.Context, req *DeleteSecretInput, options ...*DeleteSecretLocalActivityOptions) *DeleteSecretFuture {
+	var o *DeleteSecretLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeleteSecretLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &DeleteSecretFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = DeleteSecretActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &DeleteSecretFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// DeleteSecretActivityOptions provides configuration for a(n) vault.v1.DeleteSecret activity
+type DeleteSecretActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewDeleteSecretActivityOptions initializes a new DeleteSecretActivityOptions value
+func NewDeleteSecretActivityOptions() *DeleteSecretActivityOptions {
+	return &DeleteSecretActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *DeleteSecretActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = VaultTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *DeleteSecretActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *DeleteSecretActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *DeleteSecretActivityOptions) WithDataConverter(dc converter.DataConverter) *DeleteSecretActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *DeleteSecretActivityOptions) WithHeartbeatTimeout(d time.Duration) *DeleteSecretActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeleteSecretActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeleteSecretActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *DeleteSecretActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *DeleteSecretActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *DeleteSecretActivityOptions) WithScheduleToStartTimeout(d time.Duration) *DeleteSecretActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *DeleteSecretActivityOptions) WithStartToCloseTimeout(d time.Duration) *DeleteSecretActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeleteSecretActivityOptions) WithTaskQueue(tq string) *DeleteSecretActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *DeleteSecretActivityOptions) WithWaitForCancellation(wait bool) *DeleteSecretActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// DeleteSecretLocalActivityOptions provides configuration for a(n) vault.v1.DeleteSecret activity
+type DeleteSecretLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *DeleteSecretInput) (*DeleteSecretOutput, error)
+}
+
+// NewDeleteSecretLocalActivityOptions initializes a new DeleteSecretLocalActivityOptions value
+func NewDeleteSecretLocalActivityOptions() *DeleteSecretLocalActivityOptions {
+	return &DeleteSecretLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *DeleteSecretLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom vault.v1.DeleteSecret implementation
+func (o *DeleteSecretLocalActivityOptions) Local(fn func(context.Context, *DeleteSecretInput) (*DeleteSecretOutput, error)) *DeleteSecretLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *DeleteSecretLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *DeleteSecretLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *DeleteSecretLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *DeleteSecretLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeleteSecretLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeleteSecretLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *DeleteSecretLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *DeleteSecretLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *DeleteSecretLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *DeleteSecretLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
 // RegisterFetchSecretActivity registers a vault.v1.FetchSecret activity
-func RegisterFetchSecretActivity(r worker.ActivityRegistry, fn func(context.Context, *SecretRef) (*Secret, error)) {
+func RegisterFetchSecretActivity(r worker.ActivityRegistry, fn func(context.Context, *FetchSecretInput) (*FetchSecretOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: FetchSecretActivityName,
 	})
@@ -1170,8 +1379,8 @@ type FetchSecretFuture struct {
 }
 
 // Get blocks on the activity's completion, returning the response
-func (f *FetchSecretFuture) Get(ctx workflow.Context) (*Secret, error) {
-	var resp Secret
+func (f *FetchSecretFuture) Get(ctx workflow.Context) (*FetchSecretOutput, error) {
+	var resp FetchSecretOutput
 	if err := f.Future.Get(ctx, &resp); err != nil {
 		return nil, err
 	}
@@ -1187,13 +1396,13 @@ func (f *FetchSecretFuture) Select(sel workflow.Selector, fn func(*FetchSecretFu
 	})
 }
 
-// FetchSecret retrieves a secret from Vault
-func FetchSecret(ctx workflow.Context, req *SecretRef, options ...*FetchSecretActivityOptions) (*Secret, error) {
+// FetchSecret executes a(n) vault.v1.FetchSecret activity
+func FetchSecret(ctx workflow.Context, req *FetchSecretInput, options ...*FetchSecretActivityOptions) (*FetchSecretOutput, error) {
 	return FetchSecretAsync(ctx, req, options...).Get(ctx)
 }
 
-// FetchSecret retrieves a secret from Vault
-func FetchSecretAsync(ctx workflow.Context, req *SecretRef, options ...*FetchSecretActivityOptions) *FetchSecretFuture {
+// FetchSecretAsync executes a(n) vault.v1.FetchSecret activity (asynchronously)
+func FetchSecretAsync(ctx workflow.Context, req *FetchSecretInput, options ...*FetchSecretActivityOptions) *FetchSecretFuture {
 	var o *FetchSecretActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
@@ -1214,13 +1423,13 @@ func FetchSecretAsync(ctx workflow.Context, req *SecretRef, options ...*FetchSec
 	return future
 }
 
-// FetchSecret retrieves a secret from Vault
-func FetchSecretLocal(ctx workflow.Context, req *SecretRef, options ...*FetchSecretLocalActivityOptions) (*Secret, error) {
+// FetchSecretLocal executes a(n) vault.v1.FetchSecret activity (locally)
+func FetchSecretLocal(ctx workflow.Context, req *FetchSecretInput, options ...*FetchSecretLocalActivityOptions) (*FetchSecretOutput, error) {
 	return FetchSecretLocalAsync(ctx, req, options...).Get(ctx)
 }
 
-// FetchSecret retrieves a secret from Vault
-func FetchSecretLocalAsync(ctx workflow.Context, req *SecretRef, options ...*FetchSecretLocalActivityOptions) *FetchSecretFuture {
+// FetchSecretLocalAsync executes a(n) vault.v1.FetchSecret activity (asynchronously, locally)
+func FetchSecretLocalAsync(ctx workflow.Context, req *FetchSecretInput, options ...*FetchSecretLocalActivityOptions) *FetchSecretFuture {
 	var o *FetchSecretLocalActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
@@ -1276,7 +1485,7 @@ func (o *FetchSecretActivityOptions) Build(ctx workflow.Context) (workflow.Conte
 	if v := o.scheduleToCloseTimeout; v != nil {
 		opts.ScheduleToCloseTimeout = *v
 	} else if opts.ScheduleToCloseTimeout == 0 {
-		opts.ScheduleToCloseTimeout = 3600000000000 // 1 hour
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
 	}
 	if v := o.scheduleToStartTimeout; v != nil {
 		opts.ScheduleToStartTimeout = *v
@@ -1356,7 +1565,7 @@ type FetchSecretLocalActivityOptions struct {
 	scheduleToCloseTimeout *time.Duration
 	startToCloseTimeout    *time.Duration
 	dc                     converter.DataConverter
-	fn                     func(context.Context, *SecretRef) (*Secret, error)
+	fn                     func(context.Context, *FetchSecretInput) (*FetchSecretOutput, error)
 }
 
 // NewFetchSecretLocalActivityOptions initializes a new FetchSecretLocalActivityOptions value
@@ -1373,7 +1582,7 @@ func (o *FetchSecretLocalActivityOptions) Build(ctx workflow.Context) (workflow.
 	if v := o.scheduleToCloseTimeout; v != nil {
 		opts.ScheduleToCloseTimeout = *v
 	} else if opts.ScheduleToCloseTimeout == 0 {
-		opts.ScheduleToCloseTimeout = 3600000000000 // 1 hour
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
 	}
 	if v := o.startToCloseTimeout; v != nil {
 		opts.StartToCloseTimeout = *v
@@ -1382,7 +1591,7 @@ func (o *FetchSecretLocalActivityOptions) Build(ctx workflow.Context) (workflow.
 }
 
 // Local specifies a custom vault.v1.FetchSecret implementation
-func (o *FetchSecretLocalActivityOptions) Local(fn func(context.Context, *SecretRef) (*Secret, error)) *FetchSecretLocalActivityOptions {
+func (o *FetchSecretLocalActivityOptions) Local(fn func(context.Context, *FetchSecretInput) (*FetchSecretOutput, error)) *FetchSecretLocalActivityOptions {
 	o.fn = fn
 	return o
 }
@@ -1418,7 +1627,7 @@ func (o *FetchSecretLocalActivityOptions) WithStartToCloseTimeout(d time.Duratio
 }
 
 // RegisterStoreSecretActivity registers a vault.v1.StoreSecret activity
-func RegisterStoreSecretActivity(r worker.ActivityRegistry, fn func(context.Context, *Secret) (*SecretRef, error)) {
+func RegisterStoreSecretActivity(r worker.ActivityRegistry, fn func(context.Context, *StoreSecretInput) (*StoreSecretOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: StoreSecretActivityName,
 	})
@@ -1430,8 +1639,8 @@ type StoreSecretFuture struct {
 }
 
 // Get blocks on the activity's completion, returning the response
-func (f *StoreSecretFuture) Get(ctx workflow.Context) (*SecretRef, error) {
-	var resp SecretRef
+func (f *StoreSecretFuture) Get(ctx workflow.Context) (*StoreSecretOutput, error) {
+	var resp StoreSecretOutput
 	if err := f.Future.Get(ctx, &resp); err != nil {
 		return nil, err
 	}
@@ -1447,13 +1656,13 @@ func (f *StoreSecretFuture) Select(sel workflow.Selector, fn func(*StoreSecretFu
 	})
 }
 
-// StoreSecret stores (or updates) a secret in Vault
-func StoreSecret(ctx workflow.Context, req *Secret, options ...*StoreSecretActivityOptions) (*SecretRef, error) {
+// Secret Management
+func StoreSecret(ctx workflow.Context, req *StoreSecretInput, options ...*StoreSecretActivityOptions) (*StoreSecretOutput, error) {
 	return StoreSecretAsync(ctx, req, options...).Get(ctx)
 }
 
-// StoreSecret stores (or updates) a secret in Vault
-func StoreSecretAsync(ctx workflow.Context, req *Secret, options ...*StoreSecretActivityOptions) *StoreSecretFuture {
+// Secret Management
+func StoreSecretAsync(ctx workflow.Context, req *StoreSecretInput, options ...*StoreSecretActivityOptions) *StoreSecretFuture {
 	var o *StoreSecretActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
@@ -1474,13 +1683,13 @@ func StoreSecretAsync(ctx workflow.Context, req *Secret, options ...*StoreSecret
 	return future
 }
 
-// StoreSecret stores (or updates) a secret in Vault
-func StoreSecretLocal(ctx workflow.Context, req *Secret, options ...*StoreSecretLocalActivityOptions) (*SecretRef, error) {
+// Secret Management
+func StoreSecretLocal(ctx workflow.Context, req *StoreSecretInput, options ...*StoreSecretLocalActivityOptions) (*StoreSecretOutput, error) {
 	return StoreSecretLocalAsync(ctx, req, options...).Get(ctx)
 }
 
-// StoreSecret stores (or updates) a secret in Vault
-func StoreSecretLocalAsync(ctx workflow.Context, req *Secret, options ...*StoreSecretLocalActivityOptions) *StoreSecretFuture {
+// Secret Management
+func StoreSecretLocalAsync(ctx workflow.Context, req *StoreSecretInput, options ...*StoreSecretLocalActivityOptions) *StoreSecretFuture {
 	var o *StoreSecretLocalActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
@@ -1536,7 +1745,7 @@ func (o *StoreSecretActivityOptions) Build(ctx workflow.Context) (workflow.Conte
 	if v := o.scheduleToCloseTimeout; v != nil {
 		opts.ScheduleToCloseTimeout = *v
 	} else if opts.ScheduleToCloseTimeout == 0 {
-		opts.ScheduleToCloseTimeout = 3600000000000 // 1 hour
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
 	}
 	if v := o.scheduleToStartTimeout; v != nil {
 		opts.ScheduleToStartTimeout = *v
@@ -1616,7 +1825,7 @@ type StoreSecretLocalActivityOptions struct {
 	scheduleToCloseTimeout *time.Duration
 	startToCloseTimeout    *time.Duration
 	dc                     converter.DataConverter
-	fn                     func(context.Context, *Secret) (*SecretRef, error)
+	fn                     func(context.Context, *StoreSecretInput) (*StoreSecretOutput, error)
 }
 
 // NewStoreSecretLocalActivityOptions initializes a new StoreSecretLocalActivityOptions value
@@ -1633,7 +1842,7 @@ func (o *StoreSecretLocalActivityOptions) Build(ctx workflow.Context) (workflow.
 	if v := o.scheduleToCloseTimeout; v != nil {
 		opts.ScheduleToCloseTimeout = *v
 	} else if opts.ScheduleToCloseTimeout == 0 {
-		opts.ScheduleToCloseTimeout = 3600000000000 // 1 hour
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
 	}
 	if v := o.startToCloseTimeout; v != nil {
 		opts.StartToCloseTimeout = *v
@@ -1642,7 +1851,7 @@ func (o *StoreSecretLocalActivityOptions) Build(ctx workflow.Context) (workflow.
 }
 
 // Local specifies a custom vault.v1.StoreSecret implementation
-func (o *StoreSecretLocalActivityOptions) Local(fn func(context.Context, *Secret) (*SecretRef, error)) *StoreSecretLocalActivityOptions {
+func (o *StoreSecretLocalActivityOptions) Local(fn func(context.Context, *StoreSecretInput) (*StoreSecretOutput, error)) *StoreSecretLocalActivityOptions {
 	o.fn = fn
 	return o
 }
@@ -1675,208 +1884,4 @@ func (o *StoreSecretLocalActivityOptions) WithScheduleToCloseTimeout(d time.Dura
 func (o *StoreSecretLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *StoreSecretLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
-}
-
-// TestClient provides a testsuite-compatible Client
-type TestVaultClient struct {
-	env       *testsuite.TestWorkflowEnvironment
-	workflows VaultWorkflows
-}
-
-var _ VaultClient = &TestVaultClient{}
-
-// NewTestVaultClient initializes a new TestVaultClient value
-func NewTestVaultClient(env *testsuite.TestWorkflowEnvironment, workflows VaultWorkflows, activities VaultActivities) *TestVaultClient {
-	if workflows != nil {
-		RegisterVaultWorkflows(env, workflows)
-	}
-	if activities != nil {
-		RegisterVaultActivities(env, activities)
-	}
-	return &TestVaultClient{env, workflows}
-}
-
-// FetchSecret executes a(n) vault.v1.FetchSecret workflow in the test environment
-func (c *TestVaultClient) FetchSecret(ctx context.Context, req *SecretRef, opts ...*FetchSecretOptions) (*Secret, error) {
-	run, err := c.FetchSecretAsync(ctx, req, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return run.Get(ctx)
-}
-
-// FetchSecretAsync executes a(n) vault.v1.FetchSecret workflow in the test environment
-func (c *TestVaultClient) FetchSecretAsync(ctx context.Context, req *SecretRef, options ...*FetchSecretOptions) (FetchSecretRun, error) {
-	var o *FetchSecretOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewFetchSecretOptions()
-	}
-	opts, err := o.Build(req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
-	}
-	return &testFetchSecretRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
-}
-
-// GetFetchSecret is a noop
-func (c *TestVaultClient) GetFetchSecret(ctx context.Context, workflowID string, runID string) FetchSecretRun {
-	return &testFetchSecretRun{env: c.env, workflows: c.workflows}
-}
-
-// StoreSecret executes a(n) vault.v1.StoreSecret workflow in the test environment
-func (c *TestVaultClient) StoreSecret(ctx context.Context, req *Secret, opts ...*StoreSecretOptions) (*SecretRef, error) {
-	run, err := c.StoreSecretAsync(ctx, req, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return run.Get(ctx)
-}
-
-// StoreSecretAsync executes a(n) vault.v1.StoreSecret workflow in the test environment
-func (c *TestVaultClient) StoreSecretAsync(ctx context.Context, req *Secret, options ...*StoreSecretOptions) (StoreSecretRun, error) {
-	var o *StoreSecretOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewStoreSecretOptions()
-	}
-	opts, err := o.Build(req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
-	}
-	return &testStoreSecretRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
-}
-
-// GetStoreSecret is a noop
-func (c *TestVaultClient) GetStoreSecret(ctx context.Context, workflowID string, runID string) StoreSecretRun {
-	return &testStoreSecretRun{env: c.env, workflows: c.workflows}
-}
-
-// CancelWorkflow requests cancellation of an existing workflow execution
-func (c *TestVaultClient) CancelWorkflow(ctx context.Context, workflowID string, runID string) error {
-	c.env.CancelWorkflow()
-	return nil
-}
-
-// TerminateWorkflow terminates an existing workflow execution
-func (c *TestVaultClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
-	return c.CancelWorkflow(ctx, workflowID, runID)
-}
-
-var _ FetchSecretRun = &testFetchSecretRun{}
-
-// testFetchSecretRun provides convenience methods for interacting with a(n) vault.v1.FetchSecret workflow in the test environment
-type testFetchSecretRun struct {
-	client    *TestVaultClient
-	env       *testsuite.TestWorkflowEnvironment
-	isStarted atomic.Bool
-	opts      *client.StartWorkflowOptions
-	req       *SecretRef
-	workflows VaultWorkflows
-}
-
-// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *testFetchSecretRun) Cancel(ctx context.Context) error {
-	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
-}
-
-// Get retrieves a test vault.v1.FetchSecret workflow result
-func (r *testFetchSecretRun) Get(context.Context) (*Secret, error) {
-	if r.isStarted.CompareAndSwap(false, true) {
-		r.env.ExecuteWorkflow(FetchSecretWorkflowName, r.req)
-	}
-	if !r.env.IsWorkflowCompleted() {
-		return nil, errors.New("workflow in progress")
-	}
-	if err := r.env.GetWorkflowError(); err != nil {
-		return nil, err
-	}
-	var result Secret
-	if err := r.env.GetWorkflowResult(&result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// ID returns a test vault.v1.FetchSecret workflow run's workflow ID
-func (r *testFetchSecretRun) ID() string {
-	if r.opts != nil {
-		return r.opts.ID
-	}
-	return ""
-}
-
-// Run noop implementation
-func (r *testFetchSecretRun) Run() client.WorkflowRun {
-	return nil
-}
-
-// RunID noop implementation
-func (r *testFetchSecretRun) RunID() string {
-	return ""
-}
-
-// Terminate terminates a workflow in execution, returning an error if applicable
-func (r *testFetchSecretRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
-	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
-}
-
-var _ StoreSecretRun = &testStoreSecretRun{}
-
-// testStoreSecretRun provides convenience methods for interacting with a(n) vault.v1.StoreSecret workflow in the test environment
-type testStoreSecretRun struct {
-	client    *TestVaultClient
-	env       *testsuite.TestWorkflowEnvironment
-	isStarted atomic.Bool
-	opts      *client.StartWorkflowOptions
-	req       *Secret
-	workflows VaultWorkflows
-}
-
-// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *testStoreSecretRun) Cancel(ctx context.Context) error {
-	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
-}
-
-// Get retrieves a test vault.v1.StoreSecret workflow result
-func (r *testStoreSecretRun) Get(context.Context) (*SecretRef, error) {
-	if r.isStarted.CompareAndSwap(false, true) {
-		r.env.ExecuteWorkflow(StoreSecretWorkflowName, r.req)
-	}
-	if !r.env.IsWorkflowCompleted() {
-		return nil, errors.New("workflow in progress")
-	}
-	if err := r.env.GetWorkflowError(); err != nil {
-		return nil, err
-	}
-	var result SecretRef
-	if err := r.env.GetWorkflowResult(&result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// ID returns a test vault.v1.StoreSecret workflow run's workflow ID
-func (r *testStoreSecretRun) ID() string {
-	if r.opts != nil {
-		return r.opts.ID
-	}
-	return ""
-}
-
-// Run noop implementation
-func (r *testStoreSecretRun) Run() client.WorkflowRun {
-	return nil
-}
-
-// RunID noop implementation
-func (r *testStoreSecretRun) RunID() string {
-	return ""
-}
-
-// Terminate terminates a workflow in execution, returning an error if applicable
-func (r *testStoreSecretRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
-	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }

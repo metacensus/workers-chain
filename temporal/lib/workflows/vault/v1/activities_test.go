@@ -2,6 +2,7 @@ package vault
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
@@ -13,36 +14,27 @@ import (
 var (
 	// Test error sentinels for client errors
 	errClientConnectionRefused = errors.New("connection refused")
-	errClientNotFound          = errors.New("secret not found")
 )
 
 func TestStoreSecretActivity(t *testing.T) {
 	tests := []struct {
 		name      string
-		input     *pb.Secret
-		clientRes *pb.SecretRef
+		input     *pb.StoreSecretInput
 		clientErr error
 	}{
 		{
 			name: "success",
-			input: &pb.Secret{
-				Name:      "my-secret",
-				Namespace: "production",
+			input: &pb.StoreSecretInput{
+				Path: "fabric/metacensus/msp/peer-peer0",
 				Data: map[string][]byte{
 					"key": []byte("value"),
 				},
 			},
-			clientRes: &pb.SecretRef{
-				Name:      "my-secret",
-				Namespace: "production",
-				Version:   1,
-			},
 		},
 		{
 			name: "client error propagated",
-			input: &pb.Secret{
-				Name:      "test-secret",
-				Namespace: "test",
+			input: &pb.StoreSecretInput{
+				Path: "fabric/test/msp/peer-peer1",
 			},
 			clientErr: errClientConnectionRefused,
 		},
@@ -55,8 +47,15 @@ func TestStoreSecretActivity(t *testing.T) {
 
 			mockClient := vaultmocks.NewMockVaultClient(t)
 			mockClient.EXPECT().
-				StoreSecret(mock.Anything, tt.input).
-				Return(tt.clientRes, tt.clientErr)
+				Write(mock.Anything, mock.Anything, mock.MatchedBy(func(data map[string]any) bool {
+					// Verify the data structure contains what we expect
+					if _, ok := data["data"]; !ok {
+						return false
+					}
+					return true
+				})).
+				Return(tt.clientErr).
+				Maybe() // Only if test case uses this path
 
 			activities := NewActivities(mockClient)
 			env.RegisterActivity(activities.StoreSecret)
@@ -75,12 +74,15 @@ func TestStoreSecretActivity(t *testing.T) {
 				if err != nil {
 					t.Fatalf("unexpected error from ExecuteActivity: %v", err)
 				}
-				var result *pb.SecretRef
+				var result *pb.StoreSecretOutput
 				if err := val.Get(&result); err != nil {
 					t.Fatalf("unexpected error from Get: %v", err)
 				}
-				if result.Name != tt.clientRes.Name || result.Namespace != tt.clientRes.Namespace || result.Version != tt.clientRes.Version {
-					t.Errorf("result mismatch: got %+v, want %+v", result, tt.clientRes)
+				if result.SecretRef == nil {
+					t.Errorf("result.SecretRef is nil")
+				}
+				if result.SecretRef.Path != tt.input.Path {
+					t.Errorf("result.SecretRef.Path mismatch: got %s, want %s", result.SecretRef.Path, tt.input.Path)
 				}
 			}
 		})
@@ -90,46 +92,131 @@ func TestStoreSecretActivity(t *testing.T) {
 func TestFetchSecretActivity(t *testing.T) {
 	tests := []struct {
 		name      string
-		input     *pb.SecretRef
-		clientRes *pb.Secret
+		input     *pb.FetchSecretInput
+		mockData  map[string]any
 		clientErr error
 	}{
 		{
 			name: "success - latest version",
-			input: &pb.SecretRef{
-				Name:      "my-secret",
-				Namespace: "production",
-				Version:   0, // Latest
+			input: &pb.FetchSecretInput{
+				Path:    "fabric/metacensus/msp/peer-peer0",
+				Version: 0, // Latest
 			},
-			clientRes: &pb.Secret{
-				Name:      "my-secret",
-				Namespace: "production",
-				Data: map[string][]byte{
-					"key": []byte("value"),
+			mockData: map[string]any{
+				"data": map[string]any{
+					"data": map[string]any{
+						"key": "value",
+					},
+					"metadata": map[string]any{
+						"version": float64(5),
+					},
 				},
-				Version: 5,
 			},
 		},
 		{
 			name: "success - specific version",
-			input: &pb.SecretRef{
-				Name:      "my-secret",
-				Namespace: "production",
-				Version:   3,
+			input: &pb.FetchSecretInput{
+				Path:    "fabric/metacensus/msp/peer-peer0",
+				Version: 3,
 			},
-			clientRes: &pb.Secret{
-				Name:      "my-secret",
-				Namespace: "production",
-				Version:   3,
+			mockData: map[string]any{
+				"data": map[string]any{
+					"data": map[string]any{
+						"key": "value",
+					},
+					"metadata": map[string]any{
+						"version": float64(3),
+					},
+				},
 			},
 		},
 		{
 			name: "client error propagated",
-			input: &pb.SecretRef{
-				Name:      "nonexistent",
-				Namespace: "test",
+			input: &pb.FetchSecretInput{
+				Path:    "fabric/test/msp/peer-peer1",
+				Version: 0,
 			},
-			clientErr: errClientNotFound,
+			clientErr: ErrNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestActivityEnvironment()
+
+			mockClient := vaultmocks.NewMockVaultClient(t)
+
+			// Setup mock based on whether we expect an error
+			if tt.clientErr != nil {
+				mockClient.EXPECT().
+					Read(mock.Anything, mock.MatchedBy(func(path string) bool {
+						return path == fmt.Sprintf("secret/data/%s", tt.input.Path) ||
+							path == fmt.Sprintf("secret/data/%s?version=%d", tt.input.Path, tt.input.Version)
+					})).
+					Return(nil, tt.clientErr)
+			} else {
+				mockClient.EXPECT().
+					Read(mock.Anything, mock.MatchedBy(func(path string) bool {
+						// Match either with or without version param
+						return path == fmt.Sprintf("secret/data/%s", tt.input.Path) ||
+							path == fmt.Sprintf("secret/data/%s?version=%d", tt.input.Path, tt.input.Version)
+					})).
+					Return(tt.mockData, nil)
+			}
+
+			activities := NewActivities(mockClient)
+			env.RegisterActivity(activities.FetchSecret)
+
+			// Execute activity
+			val, err := env.ExecuteActivity(activities.FetchSecret, tt.input)
+
+			if tt.clientErr != nil {
+				// Expect error
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+			} else {
+				// Expect success
+				if err != nil {
+					t.Fatalf("unexpected error from ExecuteActivity: %v", err)
+				}
+				var result *pb.FetchSecretOutput
+				if err := val.Get(&result); err != nil {
+					t.Fatalf("unexpected error from Get: %v", err)
+				}
+				if result.SecretRef == nil {
+					t.Errorf("result.SecretRef is nil")
+				}
+				if result.SecretRef.Path != tt.input.Path {
+					t.Errorf("result.SecretRef.Path mismatch: got %s, want %s", result.SecretRef.Path, tt.input.Path)
+				}
+				if len(result.Data) == 0 {
+					t.Errorf("result.Data is empty")
+				}
+			}
+		})
+	}
+}
+
+func TestDeleteSecretActivity(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     *pb.DeleteSecretInput
+		clientErr error
+	}{
+		{
+			name: "success",
+			input: &pb.DeleteSecretInput{
+				Path: "fabric/metacensus/msp/peer-peer0",
+			},
+		},
+		{
+			name: "client error propagated",
+			input: &pb.DeleteSecretInput{
+				Path: "fabric/test/msp/peer-peer1",
+			},
+			clientErr: ErrNotFound,
 		},
 	}
 
@@ -140,18 +227,20 @@ func TestFetchSecretActivity(t *testing.T) {
 
 			mockClient := vaultmocks.NewMockVaultClient(t)
 			mockClient.EXPECT().
-				FetchSecret(mock.Anything, tt.input).
-				Return(tt.clientRes, tt.clientErr)
+				Delete(mock.Anything, mock.MatchedBy(func(path string) bool {
+					return path == fmt.Sprintf("secret/data/%s", tt.input.Path)
+				})).
+				Return(tt.clientErr).
+				Maybe()
 
 			activities := NewActivities(mockClient)
-			env.RegisterActivity(activities.FetchSecret)
+			env.RegisterActivity(activities.DeleteSecret)
 
 			// Execute activity
-			val, err := env.ExecuteActivity(activities.FetchSecret, tt.input)
+			val, err := env.ExecuteActivity(activities.DeleteSecret, tt.input)
 
 			if tt.clientErr != nil {
-				// Expect error - activity test environment returns errors from ExecuteActivity
-				// Note: Temporal wraps errors multiple levels, so we just verify an error occurred
+				// Expect error
 				if err == nil {
 					t.Fatal("expected error, got nil")
 				}
@@ -160,12 +249,9 @@ func TestFetchSecretActivity(t *testing.T) {
 				if err != nil {
 					t.Fatalf("unexpected error from ExecuteActivity: %v", err)
 				}
-				var result *pb.Secret
+				var result *pb.DeleteSecretOutput
 				if err := val.Get(&result); err != nil {
 					t.Fatalf("unexpected error from Get: %v", err)
-				}
-				if result.Name != tt.clientRes.Name || result.Namespace != tt.clientRes.Namespace || result.Version != tt.clientRes.Version {
-					t.Errorf("result mismatch: got %+v, want %+v", result, tt.clientRes)
 				}
 			}
 		})

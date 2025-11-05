@@ -22,28 +22,323 @@ func (_m *MockVaultActivities) EXPECT() *MockVaultActivities_Expecter {
 	return &MockVaultActivities_Expecter{mock: &_m.Mock}
 }
 
+// CreateAuthRole provides a mock function with given fields: ctx, req
+func (_m *MockVaultActivities) CreateAuthRole(ctx context.Context, req *vaultv1.CreateAuthRoleInput) (*vaultv1.CreateAuthRoleOutput, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateAuthRole")
+	}
+
+	var r0 *vaultv1.CreateAuthRoleOutput
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.CreateAuthRoleInput) (*vaultv1.CreateAuthRoleOutput, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.CreateAuthRoleInput) *vaultv1.CreateAuthRoleOutput); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*vaultv1.CreateAuthRoleOutput)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *vaultv1.CreateAuthRoleInput) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockVaultActivities_CreateAuthRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateAuthRole'
+type MockVaultActivities_CreateAuthRole_Call struct {
+	*mock.Call
+}
+
+// CreateAuthRole is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *vaultv1.CreateAuthRoleInput
+func (_e *MockVaultActivities_Expecter) CreateAuthRole(ctx interface{}, req interface{}) *MockVaultActivities_CreateAuthRole_Call {
+	return &MockVaultActivities_CreateAuthRole_Call{Call: _e.mock.On("CreateAuthRole", ctx, req)}
+}
+
+func (_c *MockVaultActivities_CreateAuthRole_Call) Run(run func(ctx context.Context, req *vaultv1.CreateAuthRoleInput)) *MockVaultActivities_CreateAuthRole_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*vaultv1.CreateAuthRoleInput))
+	})
+	return _c
+}
+
+func (_c *MockVaultActivities_CreateAuthRole_Call) Return(_a0 *vaultv1.CreateAuthRoleOutput, _a1 error) *MockVaultActivities_CreateAuthRole_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockVaultActivities_CreateAuthRole_Call) RunAndReturn(run func(context.Context, *vaultv1.CreateAuthRoleInput) (*vaultv1.CreateAuthRoleOutput, error)) *MockVaultActivities_CreateAuthRole_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreatePolicy provides a mock function with given fields: ctx, req
+func (_m *MockVaultActivities) CreatePolicy(ctx context.Context, req *vaultv1.CreatePolicyInput) (*vaultv1.CreatePolicyOutput, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreatePolicy")
+	}
+
+	var r0 *vaultv1.CreatePolicyOutput
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.CreatePolicyInput) (*vaultv1.CreatePolicyOutput, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.CreatePolicyInput) *vaultv1.CreatePolicyOutput); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*vaultv1.CreatePolicyOutput)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *vaultv1.CreatePolicyInput) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockVaultActivities_CreatePolicy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreatePolicy'
+type MockVaultActivities_CreatePolicy_Call struct {
+	*mock.Call
+}
+
+// CreatePolicy is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *vaultv1.CreatePolicyInput
+func (_e *MockVaultActivities_Expecter) CreatePolicy(ctx interface{}, req interface{}) *MockVaultActivities_CreatePolicy_Call {
+	return &MockVaultActivities_CreatePolicy_Call{Call: _e.mock.On("CreatePolicy", ctx, req)}
+}
+
+func (_c *MockVaultActivities_CreatePolicy_Call) Run(run func(ctx context.Context, req *vaultv1.CreatePolicyInput)) *MockVaultActivities_CreatePolicy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*vaultv1.CreatePolicyInput))
+	})
+	return _c
+}
+
+func (_c *MockVaultActivities_CreatePolicy_Call) Return(_a0 *vaultv1.CreatePolicyOutput, _a1 error) *MockVaultActivities_CreatePolicy_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockVaultActivities_CreatePolicy_Call) RunAndReturn(run func(context.Context, *vaultv1.CreatePolicyInput) (*vaultv1.CreatePolicyOutput, error)) *MockVaultActivities_CreatePolicy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteAuthRole provides a mock function with given fields: ctx, req
+func (_m *MockVaultActivities) DeleteAuthRole(ctx context.Context, req *vaultv1.DeleteAuthRoleInput) (*vaultv1.DeleteAuthRoleOutput, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteAuthRole")
+	}
+
+	var r0 *vaultv1.DeleteAuthRoleOutput
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.DeleteAuthRoleInput) (*vaultv1.DeleteAuthRoleOutput, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.DeleteAuthRoleInput) *vaultv1.DeleteAuthRoleOutput); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*vaultv1.DeleteAuthRoleOutput)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *vaultv1.DeleteAuthRoleInput) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockVaultActivities_DeleteAuthRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteAuthRole'
+type MockVaultActivities_DeleteAuthRole_Call struct {
+	*mock.Call
+}
+
+// DeleteAuthRole is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *vaultv1.DeleteAuthRoleInput
+func (_e *MockVaultActivities_Expecter) DeleteAuthRole(ctx interface{}, req interface{}) *MockVaultActivities_DeleteAuthRole_Call {
+	return &MockVaultActivities_DeleteAuthRole_Call{Call: _e.mock.On("DeleteAuthRole", ctx, req)}
+}
+
+func (_c *MockVaultActivities_DeleteAuthRole_Call) Run(run func(ctx context.Context, req *vaultv1.DeleteAuthRoleInput)) *MockVaultActivities_DeleteAuthRole_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*vaultv1.DeleteAuthRoleInput))
+	})
+	return _c
+}
+
+func (_c *MockVaultActivities_DeleteAuthRole_Call) Return(_a0 *vaultv1.DeleteAuthRoleOutput, _a1 error) *MockVaultActivities_DeleteAuthRole_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockVaultActivities_DeleteAuthRole_Call) RunAndReturn(run func(context.Context, *vaultv1.DeleteAuthRoleInput) (*vaultv1.DeleteAuthRoleOutput, error)) *MockVaultActivities_DeleteAuthRole_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeletePolicy provides a mock function with given fields: ctx, req
+func (_m *MockVaultActivities) DeletePolicy(ctx context.Context, req *vaultv1.DeletePolicyInput) (*vaultv1.DeletePolicyOutput, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeletePolicy")
+	}
+
+	var r0 *vaultv1.DeletePolicyOutput
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.DeletePolicyInput) (*vaultv1.DeletePolicyOutput, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.DeletePolicyInput) *vaultv1.DeletePolicyOutput); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*vaultv1.DeletePolicyOutput)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *vaultv1.DeletePolicyInput) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockVaultActivities_DeletePolicy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeletePolicy'
+type MockVaultActivities_DeletePolicy_Call struct {
+	*mock.Call
+}
+
+// DeletePolicy is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *vaultv1.DeletePolicyInput
+func (_e *MockVaultActivities_Expecter) DeletePolicy(ctx interface{}, req interface{}) *MockVaultActivities_DeletePolicy_Call {
+	return &MockVaultActivities_DeletePolicy_Call{Call: _e.mock.On("DeletePolicy", ctx, req)}
+}
+
+func (_c *MockVaultActivities_DeletePolicy_Call) Run(run func(ctx context.Context, req *vaultv1.DeletePolicyInput)) *MockVaultActivities_DeletePolicy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*vaultv1.DeletePolicyInput))
+	})
+	return _c
+}
+
+func (_c *MockVaultActivities_DeletePolicy_Call) Return(_a0 *vaultv1.DeletePolicyOutput, _a1 error) *MockVaultActivities_DeletePolicy_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockVaultActivities_DeletePolicy_Call) RunAndReturn(run func(context.Context, *vaultv1.DeletePolicyInput) (*vaultv1.DeletePolicyOutput, error)) *MockVaultActivities_DeletePolicy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteSecret provides a mock function with given fields: ctx, req
+func (_m *MockVaultActivities) DeleteSecret(ctx context.Context, req *vaultv1.DeleteSecretInput) (*vaultv1.DeleteSecretOutput, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteSecret")
+	}
+
+	var r0 *vaultv1.DeleteSecretOutput
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.DeleteSecretInput) (*vaultv1.DeleteSecretOutput, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.DeleteSecretInput) *vaultv1.DeleteSecretOutput); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*vaultv1.DeleteSecretOutput)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *vaultv1.DeleteSecretInput) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockVaultActivities_DeleteSecret_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteSecret'
+type MockVaultActivities_DeleteSecret_Call struct {
+	*mock.Call
+}
+
+// DeleteSecret is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *vaultv1.DeleteSecretInput
+func (_e *MockVaultActivities_Expecter) DeleteSecret(ctx interface{}, req interface{}) *MockVaultActivities_DeleteSecret_Call {
+	return &MockVaultActivities_DeleteSecret_Call{Call: _e.mock.On("DeleteSecret", ctx, req)}
+}
+
+func (_c *MockVaultActivities_DeleteSecret_Call) Run(run func(ctx context.Context, req *vaultv1.DeleteSecretInput)) *MockVaultActivities_DeleteSecret_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*vaultv1.DeleteSecretInput))
+	})
+	return _c
+}
+
+func (_c *MockVaultActivities_DeleteSecret_Call) Return(_a0 *vaultv1.DeleteSecretOutput, _a1 error) *MockVaultActivities_DeleteSecret_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockVaultActivities_DeleteSecret_Call) RunAndReturn(run func(context.Context, *vaultv1.DeleteSecretInput) (*vaultv1.DeleteSecretOutput, error)) *MockVaultActivities_DeleteSecret_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // FetchSecret provides a mock function with given fields: ctx, req
-func (_m *MockVaultActivities) FetchSecret(ctx context.Context, req *vaultv1.SecretRef) (*vaultv1.Secret, error) {
+func (_m *MockVaultActivities) FetchSecret(ctx context.Context, req *vaultv1.FetchSecretInput) (*vaultv1.FetchSecretOutput, error) {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FetchSecret")
 	}
 
-	var r0 *vaultv1.Secret
+	var r0 *vaultv1.FetchSecretOutput
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.SecretRef) (*vaultv1.Secret, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.FetchSecretInput) (*vaultv1.FetchSecretOutput, error)); ok {
 		return rf(ctx, req)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.SecretRef) *vaultv1.Secret); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.FetchSecretInput) *vaultv1.FetchSecretOutput); ok {
 		r0 = rf(ctx, req)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*vaultv1.Secret)
+			r0 = ret.Get(0).(*vaultv1.FetchSecretOutput)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *vaultv1.SecretRef) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *vaultv1.FetchSecretInput) error); ok {
 		r1 = rf(ctx, req)
 	} else {
 		r1 = ret.Error(1)
@@ -59,50 +354,50 @@ type MockVaultActivities_FetchSecret_Call struct {
 
 // FetchSecret is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req *vaultv1.SecretRef
+//   - req *vaultv1.FetchSecretInput
 func (_e *MockVaultActivities_Expecter) FetchSecret(ctx interface{}, req interface{}) *MockVaultActivities_FetchSecret_Call {
 	return &MockVaultActivities_FetchSecret_Call{Call: _e.mock.On("FetchSecret", ctx, req)}
 }
 
-func (_c *MockVaultActivities_FetchSecret_Call) Run(run func(ctx context.Context, req *vaultv1.SecretRef)) *MockVaultActivities_FetchSecret_Call {
+func (_c *MockVaultActivities_FetchSecret_Call) Run(run func(ctx context.Context, req *vaultv1.FetchSecretInput)) *MockVaultActivities_FetchSecret_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*vaultv1.SecretRef))
+		run(args[0].(context.Context), args[1].(*vaultv1.FetchSecretInput))
 	})
 	return _c
 }
 
-func (_c *MockVaultActivities_FetchSecret_Call) Return(_a0 *vaultv1.Secret, _a1 error) *MockVaultActivities_FetchSecret_Call {
+func (_c *MockVaultActivities_FetchSecret_Call) Return(_a0 *vaultv1.FetchSecretOutput, _a1 error) *MockVaultActivities_FetchSecret_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockVaultActivities_FetchSecret_Call) RunAndReturn(run func(context.Context, *vaultv1.SecretRef) (*vaultv1.Secret, error)) *MockVaultActivities_FetchSecret_Call {
+func (_c *MockVaultActivities_FetchSecret_Call) RunAndReturn(run func(context.Context, *vaultv1.FetchSecretInput) (*vaultv1.FetchSecretOutput, error)) *MockVaultActivities_FetchSecret_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // StoreSecret provides a mock function with given fields: ctx, req
-func (_m *MockVaultActivities) StoreSecret(ctx context.Context, req *vaultv1.Secret) (*vaultv1.SecretRef, error) {
+func (_m *MockVaultActivities) StoreSecret(ctx context.Context, req *vaultv1.StoreSecretInput) (*vaultv1.StoreSecretOutput, error) {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for StoreSecret")
 	}
 
-	var r0 *vaultv1.SecretRef
+	var r0 *vaultv1.StoreSecretOutput
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.Secret) (*vaultv1.SecretRef, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.StoreSecretInput) (*vaultv1.StoreSecretOutput, error)); ok {
 		return rf(ctx, req)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.Secret) *vaultv1.SecretRef); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *vaultv1.StoreSecretInput) *vaultv1.StoreSecretOutput); ok {
 		r0 = rf(ctx, req)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*vaultv1.SecretRef)
+			r0 = ret.Get(0).(*vaultv1.StoreSecretOutput)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *vaultv1.Secret) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *vaultv1.StoreSecretInput) error); ok {
 		r1 = rf(ctx, req)
 	} else {
 		r1 = ret.Error(1)
@@ -118,24 +413,24 @@ type MockVaultActivities_StoreSecret_Call struct {
 
 // StoreSecret is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req *vaultv1.Secret
+//   - req *vaultv1.StoreSecretInput
 func (_e *MockVaultActivities_Expecter) StoreSecret(ctx interface{}, req interface{}) *MockVaultActivities_StoreSecret_Call {
 	return &MockVaultActivities_StoreSecret_Call{Call: _e.mock.On("StoreSecret", ctx, req)}
 }
 
-func (_c *MockVaultActivities_StoreSecret_Call) Run(run func(ctx context.Context, req *vaultv1.Secret)) *MockVaultActivities_StoreSecret_Call {
+func (_c *MockVaultActivities_StoreSecret_Call) Run(run func(ctx context.Context, req *vaultv1.StoreSecretInput)) *MockVaultActivities_StoreSecret_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*vaultv1.Secret))
+		run(args[0].(context.Context), args[1].(*vaultv1.StoreSecretInput))
 	})
 	return _c
 }
 
-func (_c *MockVaultActivities_StoreSecret_Call) Return(_a0 *vaultv1.SecretRef, _a1 error) *MockVaultActivities_StoreSecret_Call {
+func (_c *MockVaultActivities_StoreSecret_Call) Return(_a0 *vaultv1.StoreSecretOutput, _a1 error) *MockVaultActivities_StoreSecret_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockVaultActivities_StoreSecret_Call) RunAndReturn(run func(context.Context, *vaultv1.Secret) (*vaultv1.SecretRef, error)) *MockVaultActivities_StoreSecret_Call {
+func (_c *MockVaultActivities_StoreSecret_Call) RunAndReturn(run func(context.Context, *vaultv1.StoreSecretInput) (*vaultv1.StoreSecretOutput, error)) *MockVaultActivities_StoreSecret_Call {
 	_c.Call.Return(run)
 	return _c
 }

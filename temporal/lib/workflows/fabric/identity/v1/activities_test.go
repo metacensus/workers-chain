@@ -14,7 +14,6 @@ var (
 	// Test error sentinels for client errors
 	errClientConnectionRefused = errors.New("connection refused")
 	errClientUnauthorized      = errors.New("unauthorized")
-	errClientInvalidInput      = errors.New("invalid input")
 )
 
 func TestRegisterIdentityActivity(t *testing.T) {

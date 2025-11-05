@@ -32,19 +32,19 @@ const (
 // KubernetesActivities describes available worker activities
 type KubernetesActivities interface {
 	// Apply deploys resources to the cluster (create or update)
-	Apply(ctx context.Context, req *ApplyRequest) (*ApplyResponse, error)
+	Apply(ctx context.Context, req *ApplyInput) (*ApplyOutput, error)
 
 	// Create creates new resources in the cluster (fails if already exists)
-	Create(ctx context.Context, req *CreateRequest) (*CreateResponse, error)
+	Create(ctx context.Context, req *CreateInput) (*CreateOutput, error)
 
 	// Delete removes resources from the cluster
-	Delete(ctx context.Context, req *DeleteRequest) (*DeleteResponse, error)
+	Delete(ctx context.Context, req *DeleteInput) (*DeleteOutput, error)
 
 	// GetStatus retrieves the current status of deployed resources
-	GetStatus(ctx context.Context, req *GetStatusRequest) (*GetStatusResponse, error)
+	GetStatus(ctx context.Context, req *GetStatusInput) (*GetStatusOutput, error)
 
 	// Update updates existing resources in the cluster (fails if not found)
-	Update(ctx context.Context, req *UpdateRequest) (*UpdateResponse, error)
+	Update(ctx context.Context, req *UpdateInput) (*UpdateOutput, error)
 }
 
 // RegisterKubernetesActivities registers activities with a worker
@@ -57,7 +57,7 @@ func RegisterKubernetesActivities(r worker.ActivityRegistry, activities Kubernet
 }
 
 // RegisterApplyActivity registers a kubernetes.Apply activity
-func RegisterApplyActivity(r worker.ActivityRegistry, fn func(context.Context, *ApplyRequest) (*ApplyResponse, error)) {
+func RegisterApplyActivity(r worker.ActivityRegistry, fn func(context.Context, *ApplyInput) (*ApplyOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: ApplyActivityName,
 	})
@@ -69,8 +69,8 @@ type ApplyFuture struct {
 }
 
 // Get blocks on the activity's completion, returning the response
-func (f *ApplyFuture) Get(ctx workflow.Context) (*ApplyResponse, error) {
-	var resp ApplyResponse
+func (f *ApplyFuture) Get(ctx workflow.Context) (*ApplyOutput, error) {
+	var resp ApplyOutput
 	if err := f.Future.Get(ctx, &resp); err != nil {
 		return nil, err
 	}
@@ -87,12 +87,12 @@ func (f *ApplyFuture) Select(sel workflow.Selector, fn func(*ApplyFuture)) workf
 }
 
 // Apply deploys resources to the cluster (create or update)
-func Apply(ctx workflow.Context, req *ApplyRequest, options ...*ApplyActivityOptions) (*ApplyResponse, error) {
+func Apply(ctx workflow.Context, req *ApplyInput, options ...*ApplyActivityOptions) (*ApplyOutput, error) {
 	return ApplyAsync(ctx, req, options...).Get(ctx)
 }
 
 // Apply deploys resources to the cluster (create or update)
-func ApplyAsync(ctx workflow.Context, req *ApplyRequest, options ...*ApplyActivityOptions) *ApplyFuture {
+func ApplyAsync(ctx workflow.Context, req *ApplyInput, options ...*ApplyActivityOptions) *ApplyFuture {
 	var o *ApplyActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
@@ -114,12 +114,12 @@ func ApplyAsync(ctx workflow.Context, req *ApplyRequest, options ...*ApplyActivi
 }
 
 // Apply deploys resources to the cluster (create or update)
-func ApplyLocal(ctx workflow.Context, req *ApplyRequest, options ...*ApplyLocalActivityOptions) (*ApplyResponse, error) {
+func ApplyLocal(ctx workflow.Context, req *ApplyInput, options ...*ApplyLocalActivityOptions) (*ApplyOutput, error) {
 	return ApplyLocalAsync(ctx, req, options...).Get(ctx)
 }
 
 // Apply deploys resources to the cluster (create or update)
-func ApplyLocalAsync(ctx workflow.Context, req *ApplyRequest, options ...*ApplyLocalActivityOptions) *ApplyFuture {
+func ApplyLocalAsync(ctx workflow.Context, req *ApplyInput, options ...*ApplyLocalActivityOptions) *ApplyFuture {
 	var o *ApplyLocalActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
@@ -255,7 +255,7 @@ type ApplyLocalActivityOptions struct {
 	scheduleToCloseTimeout *time.Duration
 	startToCloseTimeout    *time.Duration
 	dc                     converter.DataConverter
-	fn                     func(context.Context, *ApplyRequest) (*ApplyResponse, error)
+	fn                     func(context.Context, *ApplyInput) (*ApplyOutput, error)
 }
 
 // NewApplyLocalActivityOptions initializes a new ApplyLocalActivityOptions value
@@ -281,7 +281,7 @@ func (o *ApplyLocalActivityOptions) Build(ctx workflow.Context) (workflow.Contex
 }
 
 // Local specifies a custom kubernetes.Apply implementation
-func (o *ApplyLocalActivityOptions) Local(fn func(context.Context, *ApplyRequest) (*ApplyResponse, error)) *ApplyLocalActivityOptions {
+func (o *ApplyLocalActivityOptions) Local(fn func(context.Context, *ApplyInput) (*ApplyOutput, error)) *ApplyLocalActivityOptions {
 	o.fn = fn
 	return o
 }
@@ -317,7 +317,7 @@ func (o *ApplyLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *Ap
 }
 
 // RegisterCreateActivity registers a kubernetes.Create activity
-func RegisterCreateActivity(r worker.ActivityRegistry, fn func(context.Context, *CreateRequest) (*CreateResponse, error)) {
+func RegisterCreateActivity(r worker.ActivityRegistry, fn func(context.Context, *CreateInput) (*CreateOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: CreateActivityName,
 	})
@@ -329,8 +329,8 @@ type CreateFuture struct {
 }
 
 // Get blocks on the activity's completion, returning the response
-func (f *CreateFuture) Get(ctx workflow.Context) (*CreateResponse, error) {
-	var resp CreateResponse
+func (f *CreateFuture) Get(ctx workflow.Context) (*CreateOutput, error) {
+	var resp CreateOutput
 	if err := f.Future.Get(ctx, &resp); err != nil {
 		return nil, err
 	}
@@ -347,12 +347,12 @@ func (f *CreateFuture) Select(sel workflow.Selector, fn func(*CreateFuture)) wor
 }
 
 // Create creates new resources in the cluster (fails if already exists)
-func Create(ctx workflow.Context, req *CreateRequest, options ...*CreateActivityOptions) (*CreateResponse, error) {
+func Create(ctx workflow.Context, req *CreateInput, options ...*CreateActivityOptions) (*CreateOutput, error) {
 	return CreateAsync(ctx, req, options...).Get(ctx)
 }
 
 // Create creates new resources in the cluster (fails if already exists)
-func CreateAsync(ctx workflow.Context, req *CreateRequest, options ...*CreateActivityOptions) *CreateFuture {
+func CreateAsync(ctx workflow.Context, req *CreateInput, options ...*CreateActivityOptions) *CreateFuture {
 	var o *CreateActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
@@ -374,12 +374,12 @@ func CreateAsync(ctx workflow.Context, req *CreateRequest, options ...*CreateAct
 }
 
 // Create creates new resources in the cluster (fails if already exists)
-func CreateLocal(ctx workflow.Context, req *CreateRequest, options ...*CreateLocalActivityOptions) (*CreateResponse, error) {
+func CreateLocal(ctx workflow.Context, req *CreateInput, options ...*CreateLocalActivityOptions) (*CreateOutput, error) {
 	return CreateLocalAsync(ctx, req, options...).Get(ctx)
 }
 
 // Create creates new resources in the cluster (fails if already exists)
-func CreateLocalAsync(ctx workflow.Context, req *CreateRequest, options ...*CreateLocalActivityOptions) *CreateFuture {
+func CreateLocalAsync(ctx workflow.Context, req *CreateInput, options ...*CreateLocalActivityOptions) *CreateFuture {
 	var o *CreateLocalActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
@@ -515,7 +515,7 @@ type CreateLocalActivityOptions struct {
 	scheduleToCloseTimeout *time.Duration
 	startToCloseTimeout    *time.Duration
 	dc                     converter.DataConverter
-	fn                     func(context.Context, *CreateRequest) (*CreateResponse, error)
+	fn                     func(context.Context, *CreateInput) (*CreateOutput, error)
 }
 
 // NewCreateLocalActivityOptions initializes a new CreateLocalActivityOptions value
@@ -541,7 +541,7 @@ func (o *CreateLocalActivityOptions) Build(ctx workflow.Context) (workflow.Conte
 }
 
 // Local specifies a custom kubernetes.Create implementation
-func (o *CreateLocalActivityOptions) Local(fn func(context.Context, *CreateRequest) (*CreateResponse, error)) *CreateLocalActivityOptions {
+func (o *CreateLocalActivityOptions) Local(fn func(context.Context, *CreateInput) (*CreateOutput, error)) *CreateLocalActivityOptions {
 	o.fn = fn
 	return o
 }
@@ -577,7 +577,7 @@ func (o *CreateLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *C
 }
 
 // RegisterDeleteActivity registers a kubernetes.Delete activity
-func RegisterDeleteActivity(r worker.ActivityRegistry, fn func(context.Context, *DeleteRequest) (*DeleteResponse, error)) {
+func RegisterDeleteActivity(r worker.ActivityRegistry, fn func(context.Context, *DeleteInput) (*DeleteOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: DeleteActivityName,
 	})
@@ -589,8 +589,8 @@ type DeleteFuture struct {
 }
 
 // Get blocks on the activity's completion, returning the response
-func (f *DeleteFuture) Get(ctx workflow.Context) (*DeleteResponse, error) {
-	var resp DeleteResponse
+func (f *DeleteFuture) Get(ctx workflow.Context) (*DeleteOutput, error) {
+	var resp DeleteOutput
 	if err := f.Future.Get(ctx, &resp); err != nil {
 		return nil, err
 	}
@@ -607,12 +607,12 @@ func (f *DeleteFuture) Select(sel workflow.Selector, fn func(*DeleteFuture)) wor
 }
 
 // Delete removes resources from the cluster
-func Delete(ctx workflow.Context, req *DeleteRequest, options ...*DeleteActivityOptions) (*DeleteResponse, error) {
+func Delete(ctx workflow.Context, req *DeleteInput, options ...*DeleteActivityOptions) (*DeleteOutput, error) {
 	return DeleteAsync(ctx, req, options...).Get(ctx)
 }
 
 // Delete removes resources from the cluster
-func DeleteAsync(ctx workflow.Context, req *DeleteRequest, options ...*DeleteActivityOptions) *DeleteFuture {
+func DeleteAsync(ctx workflow.Context, req *DeleteInput, options ...*DeleteActivityOptions) *DeleteFuture {
 	var o *DeleteActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
@@ -634,12 +634,12 @@ func DeleteAsync(ctx workflow.Context, req *DeleteRequest, options ...*DeleteAct
 }
 
 // Delete removes resources from the cluster
-func DeleteLocal(ctx workflow.Context, req *DeleteRequest, options ...*DeleteLocalActivityOptions) (*DeleteResponse, error) {
+func DeleteLocal(ctx workflow.Context, req *DeleteInput, options ...*DeleteLocalActivityOptions) (*DeleteOutput, error) {
 	return DeleteLocalAsync(ctx, req, options...).Get(ctx)
 }
 
 // Delete removes resources from the cluster
-func DeleteLocalAsync(ctx workflow.Context, req *DeleteRequest, options ...*DeleteLocalActivityOptions) *DeleteFuture {
+func DeleteLocalAsync(ctx workflow.Context, req *DeleteInput, options ...*DeleteLocalActivityOptions) *DeleteFuture {
 	var o *DeleteLocalActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
@@ -775,7 +775,7 @@ type DeleteLocalActivityOptions struct {
 	scheduleToCloseTimeout *time.Duration
 	startToCloseTimeout    *time.Duration
 	dc                     converter.DataConverter
-	fn                     func(context.Context, *DeleteRequest) (*DeleteResponse, error)
+	fn                     func(context.Context, *DeleteInput) (*DeleteOutput, error)
 }
 
 // NewDeleteLocalActivityOptions initializes a new DeleteLocalActivityOptions value
@@ -801,7 +801,7 @@ func (o *DeleteLocalActivityOptions) Build(ctx workflow.Context) (workflow.Conte
 }
 
 // Local specifies a custom kubernetes.Delete implementation
-func (o *DeleteLocalActivityOptions) Local(fn func(context.Context, *DeleteRequest) (*DeleteResponse, error)) *DeleteLocalActivityOptions {
+func (o *DeleteLocalActivityOptions) Local(fn func(context.Context, *DeleteInput) (*DeleteOutput, error)) *DeleteLocalActivityOptions {
 	o.fn = fn
 	return o
 }
@@ -837,7 +837,7 @@ func (o *DeleteLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *D
 }
 
 // RegisterGetStatusActivity registers a kubernetes.GetStatus activity
-func RegisterGetStatusActivity(r worker.ActivityRegistry, fn func(context.Context, *GetStatusRequest) (*GetStatusResponse, error)) {
+func RegisterGetStatusActivity(r worker.ActivityRegistry, fn func(context.Context, *GetStatusInput) (*GetStatusOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: GetStatusActivityName,
 	})
@@ -849,8 +849,8 @@ type GetStatusFuture struct {
 }
 
 // Get blocks on the activity's completion, returning the response
-func (f *GetStatusFuture) Get(ctx workflow.Context) (*GetStatusResponse, error) {
-	var resp GetStatusResponse
+func (f *GetStatusFuture) Get(ctx workflow.Context) (*GetStatusOutput, error) {
+	var resp GetStatusOutput
 	if err := f.Future.Get(ctx, &resp); err != nil {
 		return nil, err
 	}
@@ -867,12 +867,12 @@ func (f *GetStatusFuture) Select(sel workflow.Selector, fn func(*GetStatusFuture
 }
 
 // GetStatus retrieves the current status of deployed resources
-func GetStatus(ctx workflow.Context, req *GetStatusRequest, options ...*GetStatusActivityOptions) (*GetStatusResponse, error) {
+func GetStatus(ctx workflow.Context, req *GetStatusInput, options ...*GetStatusActivityOptions) (*GetStatusOutput, error) {
 	return GetStatusAsync(ctx, req, options...).Get(ctx)
 }
 
 // GetStatus retrieves the current status of deployed resources
-func GetStatusAsync(ctx workflow.Context, req *GetStatusRequest, options ...*GetStatusActivityOptions) *GetStatusFuture {
+func GetStatusAsync(ctx workflow.Context, req *GetStatusInput, options ...*GetStatusActivityOptions) *GetStatusFuture {
 	var o *GetStatusActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
@@ -894,12 +894,12 @@ func GetStatusAsync(ctx workflow.Context, req *GetStatusRequest, options ...*Get
 }
 
 // GetStatus retrieves the current status of deployed resources
-func GetStatusLocal(ctx workflow.Context, req *GetStatusRequest, options ...*GetStatusLocalActivityOptions) (*GetStatusResponse, error) {
+func GetStatusLocal(ctx workflow.Context, req *GetStatusInput, options ...*GetStatusLocalActivityOptions) (*GetStatusOutput, error) {
 	return GetStatusLocalAsync(ctx, req, options...).Get(ctx)
 }
 
 // GetStatus retrieves the current status of deployed resources
-func GetStatusLocalAsync(ctx workflow.Context, req *GetStatusRequest, options ...*GetStatusLocalActivityOptions) *GetStatusFuture {
+func GetStatusLocalAsync(ctx workflow.Context, req *GetStatusInput, options ...*GetStatusLocalActivityOptions) *GetStatusFuture {
 	var o *GetStatusLocalActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
@@ -1035,7 +1035,7 @@ type GetStatusLocalActivityOptions struct {
 	scheduleToCloseTimeout *time.Duration
 	startToCloseTimeout    *time.Duration
 	dc                     converter.DataConverter
-	fn                     func(context.Context, *GetStatusRequest) (*GetStatusResponse, error)
+	fn                     func(context.Context, *GetStatusInput) (*GetStatusOutput, error)
 }
 
 // NewGetStatusLocalActivityOptions initializes a new GetStatusLocalActivityOptions value
@@ -1061,7 +1061,7 @@ func (o *GetStatusLocalActivityOptions) Build(ctx workflow.Context) (workflow.Co
 }
 
 // Local specifies a custom kubernetes.GetStatus implementation
-func (o *GetStatusLocalActivityOptions) Local(fn func(context.Context, *GetStatusRequest) (*GetStatusResponse, error)) *GetStatusLocalActivityOptions {
+func (o *GetStatusLocalActivityOptions) Local(fn func(context.Context, *GetStatusInput) (*GetStatusOutput, error)) *GetStatusLocalActivityOptions {
 	o.fn = fn
 	return o
 }
@@ -1097,7 +1097,7 @@ func (o *GetStatusLocalActivityOptions) WithStartToCloseTimeout(d time.Duration)
 }
 
 // RegisterUpdateActivity registers a kubernetes.Update activity
-func RegisterUpdateActivity(r worker.ActivityRegistry, fn func(context.Context, *UpdateRequest) (*UpdateResponse, error)) {
+func RegisterUpdateActivity(r worker.ActivityRegistry, fn func(context.Context, *UpdateInput) (*UpdateOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: UpdateActivityName,
 	})
@@ -1109,8 +1109,8 @@ type UpdateFuture struct {
 }
 
 // Get blocks on the activity's completion, returning the response
-func (f *UpdateFuture) Get(ctx workflow.Context) (*UpdateResponse, error) {
-	var resp UpdateResponse
+func (f *UpdateFuture) Get(ctx workflow.Context) (*UpdateOutput, error) {
+	var resp UpdateOutput
 	if err := f.Future.Get(ctx, &resp); err != nil {
 		return nil, err
 	}
@@ -1127,12 +1127,12 @@ func (f *UpdateFuture) Select(sel workflow.Selector, fn func(*UpdateFuture)) wor
 }
 
 // Update updates existing resources in the cluster (fails if not found)
-func Update(ctx workflow.Context, req *UpdateRequest, options ...*UpdateActivityOptions) (*UpdateResponse, error) {
+func Update(ctx workflow.Context, req *UpdateInput, options ...*UpdateActivityOptions) (*UpdateOutput, error) {
 	return UpdateAsync(ctx, req, options...).Get(ctx)
 }
 
 // Update updates existing resources in the cluster (fails if not found)
-func UpdateAsync(ctx workflow.Context, req *UpdateRequest, options ...*UpdateActivityOptions) *UpdateFuture {
+func UpdateAsync(ctx workflow.Context, req *UpdateInput, options ...*UpdateActivityOptions) *UpdateFuture {
 	var o *UpdateActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
@@ -1154,12 +1154,12 @@ func UpdateAsync(ctx workflow.Context, req *UpdateRequest, options ...*UpdateAct
 }
 
 // Update updates existing resources in the cluster (fails if not found)
-func UpdateLocal(ctx workflow.Context, req *UpdateRequest, options ...*UpdateLocalActivityOptions) (*UpdateResponse, error) {
+func UpdateLocal(ctx workflow.Context, req *UpdateInput, options ...*UpdateLocalActivityOptions) (*UpdateOutput, error) {
 	return UpdateLocalAsync(ctx, req, options...).Get(ctx)
 }
 
 // Update updates existing resources in the cluster (fails if not found)
-func UpdateLocalAsync(ctx workflow.Context, req *UpdateRequest, options ...*UpdateLocalActivityOptions) *UpdateFuture {
+func UpdateLocalAsync(ctx workflow.Context, req *UpdateInput, options ...*UpdateLocalActivityOptions) *UpdateFuture {
 	var o *UpdateLocalActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
@@ -1295,7 +1295,7 @@ type UpdateLocalActivityOptions struct {
 	scheduleToCloseTimeout *time.Duration
 	startToCloseTimeout    *time.Duration
 	dc                     converter.DataConverter
-	fn                     func(context.Context, *UpdateRequest) (*UpdateResponse, error)
+	fn                     func(context.Context, *UpdateInput) (*UpdateOutput, error)
 }
 
 // NewUpdateLocalActivityOptions initializes a new UpdateLocalActivityOptions value
@@ -1321,7 +1321,7 @@ func (o *UpdateLocalActivityOptions) Build(ctx workflow.Context) (workflow.Conte
 }
 
 // Local specifies a custom kubernetes.Update implementation
-func (o *UpdateLocalActivityOptions) Local(fn func(context.Context, *UpdateRequest) (*UpdateResponse, error)) *UpdateLocalActivityOptions {
+func (o *UpdateLocalActivityOptions) Local(fn func(context.Context, *UpdateInput) (*UpdateOutput, error)) *UpdateLocalActivityOptions {
 	o.fn = fn
 	return o
 }

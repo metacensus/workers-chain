@@ -70,8 +70,8 @@ func (x *Resource) GetManifestYaml() []byte {
 	return nil
 }
 
-// CreateRequest defines inputs for the Create activity
-type CreateRequest struct {
+// CreateInput defines inputs for the Create activity
+type CreateInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// resources is a map of resource_id → resource
 	// resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
@@ -81,20 +81,20 @@ type CreateRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreateRequest) Reset() {
-	*x = CreateRequest{}
+func (x *CreateInput) Reset() {
+	*x = CreateInput{}
 	mi := &file_kube_v1_kube_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreateRequest) String() string {
+func (x *CreateInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateRequest) ProtoMessage() {}
+func (*CreateInput) ProtoMessage() {}
 
-func (x *CreateRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateInput) ProtoReflect() protoreflect.Message {
 	mi := &file_kube_v1_kube_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -106,23 +106,23 @@ func (x *CreateRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateRequest.ProtoReflect.Descriptor instead.
-func (*CreateRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateInput.ProtoReflect.Descriptor instead.
+func (*CreateInput) Descriptor() ([]byte, []int) {
 	return file_kube_v1_kube_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *CreateRequest) GetResources() map[string]*Resource {
+func (x *CreateInput) GetResources() map[string]*Resource {
 	if x != nil {
 		return x.Resources
 	}
 	return nil
 }
 
-// CreateResponse represents the result of creating resources
-type CreateResponse struct {
+// CreateOutput represents the result of creating resources
+type CreateOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// results contains the outcome for each resource
-	// Keys match the resource_id from CreateRequest
+	// Keys match the resource_id from CreateInput
 	Results map[string]*CreateResult `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// summary provides high-level statistics
 	Summary       *CreateSummary `protobuf:"bytes,2,opt,name=summary,proto3" json:"summary,omitempty"`
@@ -130,20 +130,20 @@ type CreateResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreateResponse) Reset() {
-	*x = CreateResponse{}
+func (x *CreateOutput) Reset() {
+	*x = CreateOutput{}
 	mi := &file_kube_v1_kube_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreateResponse) String() string {
+func (x *CreateOutput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateResponse) ProtoMessage() {}
+func (*CreateOutput) ProtoMessage() {}
 
-func (x *CreateResponse) ProtoReflect() protoreflect.Message {
+func (x *CreateOutput) ProtoReflect() protoreflect.Message {
 	mi := &file_kube_v1_kube_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -155,19 +155,19 @@ func (x *CreateResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateResponse.ProtoReflect.Descriptor instead.
-func (*CreateResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateOutput.ProtoReflect.Descriptor instead.
+func (*CreateOutput) Descriptor() ([]byte, []int) {
 	return file_kube_v1_kube_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *CreateResponse) GetResults() map[string]*CreateResult {
+func (x *CreateOutput) GetResults() map[string]*CreateResult {
 	if x != nil {
 		return x.Results
 	}
 	return nil
 }
 
-func (x *CreateResponse) GetSummary() *CreateSummary {
+func (x *CreateOutput) GetSummary() *CreateSummary {
 	if x != nil {
 		return x.Summary
 	}
@@ -299,8 +299,8 @@ func (x *CreateSummary) GetFailed() int32 {
 	return 0
 }
 
-// UpdateRequest defines inputs for the Update activity
-type UpdateRequest struct {
+// UpdateInput defines inputs for the Update activity
+type UpdateInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// resources is a map of resource_id → resource
 	// resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
@@ -310,20 +310,20 @@ type UpdateRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UpdateRequest) Reset() {
-	*x = UpdateRequest{}
+func (x *UpdateInput) Reset() {
+	*x = UpdateInput{}
 	mi := &file_kube_v1_kube_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpdateRequest) String() string {
+func (x *UpdateInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdateRequest) ProtoMessage() {}
+func (*UpdateInput) ProtoMessage() {}
 
-func (x *UpdateRequest) ProtoReflect() protoreflect.Message {
+func (x *UpdateInput) ProtoReflect() protoreflect.Message {
 	mi := &file_kube_v1_kube_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -335,23 +335,23 @@ func (x *UpdateRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateRequest.ProtoReflect.Descriptor instead.
-func (*UpdateRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateInput.ProtoReflect.Descriptor instead.
+func (*UpdateInput) Descriptor() ([]byte, []int) {
 	return file_kube_v1_kube_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *UpdateRequest) GetResources() map[string]*Resource {
+func (x *UpdateInput) GetResources() map[string]*Resource {
 	if x != nil {
 		return x.Resources
 	}
 	return nil
 }
 
-// UpdateResponse represents the result of updating resources
-type UpdateResponse struct {
+// UpdateOutput represents the result of updating resources
+type UpdateOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// results contains the outcome for each resource
-	// Keys match the resource_id from UpdateRequest
+	// Keys match the resource_id from UpdateInput
 	Results map[string]*UpdateResult `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// summary provides high-level statistics
 	Summary       *UpdateSummary `protobuf:"bytes,2,opt,name=summary,proto3" json:"summary,omitempty"`
@@ -359,20 +359,20 @@ type UpdateResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UpdateResponse) Reset() {
-	*x = UpdateResponse{}
+func (x *UpdateOutput) Reset() {
+	*x = UpdateOutput{}
 	mi := &file_kube_v1_kube_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpdateResponse) String() string {
+func (x *UpdateOutput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdateResponse) ProtoMessage() {}
+func (*UpdateOutput) ProtoMessage() {}
 
-func (x *UpdateResponse) ProtoReflect() protoreflect.Message {
+func (x *UpdateOutput) ProtoReflect() protoreflect.Message {
 	mi := &file_kube_v1_kube_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -384,19 +384,19 @@ func (x *UpdateResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateResponse.ProtoReflect.Descriptor instead.
-func (*UpdateResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateOutput.ProtoReflect.Descriptor instead.
+func (*UpdateOutput) Descriptor() ([]byte, []int) {
 	return file_kube_v1_kube_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *UpdateResponse) GetResults() map[string]*UpdateResult {
+func (x *UpdateOutput) GetResults() map[string]*UpdateResult {
 	if x != nil {
 		return x.Results
 	}
 	return nil
 }
 
-func (x *UpdateResponse) GetSummary() *UpdateSummary {
+func (x *UpdateOutput) GetSummary() *UpdateSummary {
 	if x != nil {
 		return x.Summary
 	}
@@ -528,8 +528,8 @@ func (x *UpdateSummary) GetFailed() int32 {
 	return 0
 }
 
-// ApplyRequest defines inputs for the Apply activity
-type ApplyRequest struct {
+// ApplyInput defines inputs for the Apply activity
+type ApplyInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// resources is a map of resource_id → resource
 	// resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
@@ -539,20 +539,20 @@ type ApplyRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ApplyRequest) Reset() {
-	*x = ApplyRequest{}
+func (x *ApplyInput) Reset() {
+	*x = ApplyInput{}
 	mi := &file_kube_v1_kube_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ApplyRequest) String() string {
+func (x *ApplyInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ApplyRequest) ProtoMessage() {}
+func (*ApplyInput) ProtoMessage() {}
 
-func (x *ApplyRequest) ProtoReflect() protoreflect.Message {
+func (x *ApplyInput) ProtoReflect() protoreflect.Message {
 	mi := &file_kube_v1_kube_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -564,23 +564,23 @@ func (x *ApplyRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplyRequest.ProtoReflect.Descriptor instead.
-func (*ApplyRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ApplyInput.ProtoReflect.Descriptor instead.
+func (*ApplyInput) Descriptor() ([]byte, []int) {
 	return file_kube_v1_kube_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *ApplyRequest) GetResources() map[string]*Resource {
+func (x *ApplyInput) GetResources() map[string]*Resource {
 	if x != nil {
 		return x.Resources
 	}
 	return nil
 }
 
-// ApplyResponse represents the result of applying resources
-type ApplyResponse struct {
+// ApplyOutput represents the result of applying resources
+type ApplyOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// results contains the outcome for each resource
-	// Keys match the resource_id from ApplyRequest
+	// Keys match the resource_id from ApplyInput
 	Results map[string]*ApplyResult `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// summary provides high-level statistics
 	Summary       *ApplySummary `protobuf:"bytes,2,opt,name=summary,proto3" json:"summary,omitempty"`
@@ -588,20 +588,20 @@ type ApplyResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ApplyResponse) Reset() {
-	*x = ApplyResponse{}
+func (x *ApplyOutput) Reset() {
+	*x = ApplyOutput{}
 	mi := &file_kube_v1_kube_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ApplyResponse) String() string {
+func (x *ApplyOutput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ApplyResponse) ProtoMessage() {}
+func (*ApplyOutput) ProtoMessage() {}
 
-func (x *ApplyResponse) ProtoReflect() protoreflect.Message {
+func (x *ApplyOutput) ProtoReflect() protoreflect.Message {
 	mi := &file_kube_v1_kube_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -613,19 +613,19 @@ func (x *ApplyResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplyResponse.ProtoReflect.Descriptor instead.
-func (*ApplyResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ApplyOutput.ProtoReflect.Descriptor instead.
+func (*ApplyOutput) Descriptor() ([]byte, []int) {
 	return file_kube_v1_kube_proto_rawDescGZIP(), []int{10}
 }
 
-func (x *ApplyResponse) GetResults() map[string]*ApplyResult {
+func (x *ApplyOutput) GetResults() map[string]*ApplyResult {
 	if x != nil {
 		return x.Results
 	}
 	return nil
 }
 
-func (x *ApplyResponse) GetSummary() *ApplySummary {
+func (x *ApplyOutput) GetSummary() *ApplySummary {
 	if x != nil {
 		return x.Summary
 	}
@@ -757,31 +757,31 @@ func (x *ApplySummary) GetFailed() int32 {
 	return 0
 }
 
-// DeleteRequest defines inputs for the Delete activity
-type DeleteRequest struct {
+// DeleteInput defines inputs for the Delete activity
+type DeleteInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// resources to delete
-	// Keys are resource_id (same as ApplyRequest)
+	// Keys are resource_id (same as ApplyInput)
 	// Each resource's YAML must include namespace (or be cluster-scoped)
 	Resources     map[string]*Resource `protobuf:"bytes,1,rep,name=resources,proto3" json:"resources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteRequest) Reset() {
-	*x = DeleteRequest{}
+func (x *DeleteInput) Reset() {
+	*x = DeleteInput{}
 	mi := &file_kube_v1_kube_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteRequest) String() string {
+func (x *DeleteInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteRequest) ProtoMessage() {}
+func (*DeleteInput) ProtoMessage() {}
 
-func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
+func (x *DeleteInput) ProtoReflect() protoreflect.Message {
 	mi := &file_kube_v1_kube_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -793,20 +793,20 @@ func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteRequest.ProtoReflect.Descriptor instead.
-func (*DeleteRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteInput.ProtoReflect.Descriptor instead.
+func (*DeleteInput) Descriptor() ([]byte, []int) {
 	return file_kube_v1_kube_proto_rawDescGZIP(), []int{13}
 }
 
-func (x *DeleteRequest) GetResources() map[string]*Resource {
+func (x *DeleteInput) GetResources() map[string]*Resource {
 	if x != nil {
 		return x.Resources
 	}
 	return nil
 }
 
-// DeleteResponse represents the result of deleting resources
-type DeleteResponse struct {
+// DeleteOutput represents the result of deleting resources
+type DeleteOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// results contains the outcome for each resource
 	Results map[string]*DeleteResult `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -816,20 +816,20 @@ type DeleteResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteResponse) Reset() {
-	*x = DeleteResponse{}
+func (x *DeleteOutput) Reset() {
+	*x = DeleteOutput{}
 	mi := &file_kube_v1_kube_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteResponse) String() string {
+func (x *DeleteOutput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteResponse) ProtoMessage() {}
+func (*DeleteOutput) ProtoMessage() {}
 
-func (x *DeleteResponse) ProtoReflect() protoreflect.Message {
+func (x *DeleteOutput) ProtoReflect() protoreflect.Message {
 	mi := &file_kube_v1_kube_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -841,19 +841,19 @@ func (x *DeleteResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteResponse.ProtoReflect.Descriptor instead.
-func (*DeleteResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteOutput.ProtoReflect.Descriptor instead.
+func (*DeleteOutput) Descriptor() ([]byte, []int) {
 	return file_kube_v1_kube_proto_rawDescGZIP(), []int{14}
 }
 
-func (x *DeleteResponse) GetResults() map[string]*DeleteResult {
+func (x *DeleteOutput) GetResults() map[string]*DeleteResult {
 	if x != nil {
 		return x.Results
 	}
 	return nil
 }
 
-func (x *DeleteResponse) GetSummary() *DeleteSummary {
+func (x *DeleteOutput) GetSummary() *DeleteSummary {
 	if x != nil {
 		return x.Summary
 	}
@@ -976,8 +976,8 @@ func (x *DeleteSummary) GetFailed() int32 {
 	return 0
 }
 
-// GetStatusRequest queries the status of deployed resources
-type GetStatusRequest struct {
+// GetStatusInput queries the status of deployed resources
+type GetStatusInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// resources to check status for
 	// Each resource's YAML must include namespace (or be cluster-scoped)
@@ -986,20 +986,20 @@ type GetStatusRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetStatusRequest) Reset() {
-	*x = GetStatusRequest{}
+func (x *GetStatusInput) Reset() {
+	*x = GetStatusInput{}
 	mi := &file_kube_v1_kube_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetStatusRequest) String() string {
+func (x *GetStatusInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetStatusRequest) ProtoMessage() {}
+func (*GetStatusInput) ProtoMessage() {}
 
-func (x *GetStatusRequest) ProtoReflect() protoreflect.Message {
+func (x *GetStatusInput) ProtoReflect() protoreflect.Message {
 	mi := &file_kube_v1_kube_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1011,23 +1011,23 @@ func (x *GetStatusRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetStatusRequest.ProtoReflect.Descriptor instead.
-func (*GetStatusRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetStatusInput.ProtoReflect.Descriptor instead.
+func (*GetStatusInput) Descriptor() ([]byte, []int) {
 	return file_kube_v1_kube_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *GetStatusRequest) GetResources() map[string]*Resource {
+func (x *GetStatusInput) GetResources() map[string]*Resource {
 	if x != nil {
 		return x.Resources
 	}
 	return nil
 }
 
-// GetStatusResponse represents the current status of resources
-type GetStatusResponse struct {
+// GetStatusOutput represents the current status of resources
+type GetStatusOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// results contains status for each resource
-	// Keys match resource_id from GetStatusRequest
+	// Keys match resource_id from GetStatusInput
 	Results map[string]*ResourceStatus `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// overall_status is a summary: "ready", "pending", "degraded", "error", "unknown"
 	OverallStatus string `protobuf:"bytes,2,opt,name=overall_status,json=overallStatus,proto3" json:"overall_status,omitempty"`
@@ -1035,20 +1035,20 @@ type GetStatusResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetStatusResponse) Reset() {
-	*x = GetStatusResponse{}
+func (x *GetStatusOutput) Reset() {
+	*x = GetStatusOutput{}
 	mi := &file_kube_v1_kube_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetStatusResponse) String() string {
+func (x *GetStatusOutput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetStatusResponse) ProtoMessage() {}
+func (*GetStatusOutput) ProtoMessage() {}
 
-func (x *GetStatusResponse) ProtoReflect() protoreflect.Message {
+func (x *GetStatusOutput) ProtoReflect() protoreflect.Message {
 	mi := &file_kube_v1_kube_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1060,19 +1060,19 @@ func (x *GetStatusResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetStatusResponse.ProtoReflect.Descriptor instead.
-func (*GetStatusResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetStatusOutput.ProtoReflect.Descriptor instead.
+func (*GetStatusOutput) Descriptor() ([]byte, []int) {
 	return file_kube_v1_kube_proto_rawDescGZIP(), []int{18}
 }
 
-func (x *GetStatusResponse) GetResults() map[string]*ResourceStatus {
+func (x *GetStatusOutput) GetResults() map[string]*ResourceStatus {
 	if x != nil {
 		return x.Results
 	}
 	return nil
 }
 
-func (x *GetStatusResponse) GetOverallStatus() string {
+func (x *GetStatusOutput) GetOverallStatus() string {
 	if x != nil {
 		return x.OverallStatus
 	}
@@ -1261,14 +1261,14 @@ const file_kube_v1_kube_proto_rawDesc = "" +
 	"\n" +
 	"\x12kube/v1/kube.proto\x12\akube.v1\x1a\x1atemporal/v1/temporal.proto\"/\n" +
 	"\bResource\x12#\n" +
-	"\rmanifest_yaml\x18\x01 \x01(\fR\fmanifestYaml\"\xa5\x01\n" +
-	"\rCreateRequest\x12C\n" +
-	"\tresources\x18\x01 \x03(\v2%.kube.v1.CreateRequest.ResourcesEntryR\tresources\x1aO\n" +
+	"\rmanifest_yaml\x18\x01 \x01(\fR\fmanifestYaml\"\xa1\x01\n" +
+	"\vCreateInput\x12A\n" +
+	"\tresources\x18\x01 \x03(\v2#.kube.v1.CreateInput.ResourcesEntryR\tresources\x1aO\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12'\n" +
-	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xd5\x01\n" +
-	"\x0eCreateResponse\x12>\n" +
-	"\aresults\x18\x01 \x03(\v2$.kube.v1.CreateResponse.ResultsEntryR\aresults\x120\n" +
+	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xd1\x01\n" +
+	"\fCreateOutput\x12<\n" +
+	"\aresults\x18\x01 \x03(\v2\".kube.v1.CreateOutput.ResultsEntryR\aresults\x120\n" +
 	"\asummary\x18\x02 \x01(\v2\x16.kube.v1.CreateSummaryR\asummary\x1aQ\n" +
 	"\fResultsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12+\n" +
@@ -1281,14 +1281,14 @@ const file_kube_v1_kube_proto_rawDesc = "" +
 	"\rCreateSummary\x12\x14\n" +
 	"\x05total\x18\x01 \x01(\x05R\x05total\x12\x18\n" +
 	"\acreated\x18\x02 \x01(\x05R\acreated\x12\x16\n" +
-	"\x06failed\x18\x03 \x01(\x05R\x06failed\"\xa5\x01\n" +
-	"\rUpdateRequest\x12C\n" +
-	"\tresources\x18\x01 \x03(\v2%.kube.v1.UpdateRequest.ResourcesEntryR\tresources\x1aO\n" +
+	"\x06failed\x18\x03 \x01(\x05R\x06failed\"\xa1\x01\n" +
+	"\vUpdateInput\x12A\n" +
+	"\tresources\x18\x01 \x03(\v2#.kube.v1.UpdateInput.ResourcesEntryR\tresources\x1aO\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12'\n" +
-	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xd5\x01\n" +
-	"\x0eUpdateResponse\x12>\n" +
-	"\aresults\x18\x01 \x03(\v2$.kube.v1.UpdateResponse.ResultsEntryR\aresults\x120\n" +
+	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xd1\x01\n" +
+	"\fUpdateOutput\x12<\n" +
+	"\aresults\x18\x01 \x03(\v2\".kube.v1.UpdateOutput.ResultsEntryR\aresults\x120\n" +
 	"\asummary\x18\x02 \x01(\v2\x16.kube.v1.UpdateSummaryR\asummary\x1aQ\n" +
 	"\fResultsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12+\n" +
@@ -1301,14 +1301,15 @@ const file_kube_v1_kube_proto_rawDesc = "" +
 	"\rUpdateSummary\x12\x14\n" +
 	"\x05total\x18\x01 \x01(\x05R\x05total\x12\x18\n" +
 	"\aupdated\x18\x02 \x01(\x05R\aupdated\x12\x16\n" +
-	"\x06failed\x18\x03 \x01(\x05R\x06failed\"\xa3\x01\n" +
-	"\fApplyRequest\x12B\n" +
-	"\tresources\x18\x01 \x03(\v2$.kube.v1.ApplyRequest.ResourcesEntryR\tresources\x1aO\n" +
+	"\x06failed\x18\x03 \x01(\x05R\x06failed\"\x9f\x01\n" +
+	"\n" +
+	"ApplyInput\x12@\n" +
+	"\tresources\x18\x01 \x03(\v2\".kube.v1.ApplyInput.ResourcesEntryR\tresources\x1aO\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12'\n" +
-	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xd1\x01\n" +
-	"\rApplyResponse\x12=\n" +
-	"\aresults\x18\x01 \x03(\v2#.kube.v1.ApplyResponse.ResultsEntryR\aresults\x12/\n" +
+	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xcd\x01\n" +
+	"\vApplyOutput\x12;\n" +
+	"\aresults\x18\x01 \x03(\v2!.kube.v1.ApplyOutput.ResultsEntryR\aresults\x12/\n" +
 	"\asummary\x18\x02 \x01(\v2\x15.kube.v1.ApplySummaryR\asummary\x1aP\n" +
 	"\fResultsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12*\n" +
@@ -1321,14 +1322,14 @@ const file_kube_v1_kube_proto_rawDesc = "" +
 	"\fApplySummary\x12\x14\n" +
 	"\x05total\x18\x01 \x01(\x05R\x05total\x12\x18\n" +
 	"\aapplied\x18\x02 \x01(\x05R\aapplied\x12\x16\n" +
-	"\x06failed\x18\x03 \x01(\x05R\x06failed\"\xa5\x01\n" +
-	"\rDeleteRequest\x12C\n" +
-	"\tresources\x18\x01 \x03(\v2%.kube.v1.DeleteRequest.ResourcesEntryR\tresources\x1aO\n" +
+	"\x06failed\x18\x03 \x01(\x05R\x06failed\"\xa1\x01\n" +
+	"\vDeleteInput\x12A\n" +
+	"\tresources\x18\x01 \x03(\v2#.kube.v1.DeleteInput.ResourcesEntryR\tresources\x1aO\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12'\n" +
-	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xd5\x01\n" +
-	"\x0eDeleteResponse\x12>\n" +
-	"\aresults\x18\x01 \x03(\v2$.kube.v1.DeleteResponse.ResultsEntryR\aresults\x120\n" +
+	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xd1\x01\n" +
+	"\fDeleteOutput\x12<\n" +
+	"\aresults\x18\x01 \x03(\v2\".kube.v1.DeleteOutput.ResultsEntryR\aresults\x120\n" +
 	"\asummary\x18\x02 \x01(\v2\x16.kube.v1.DeleteSummaryR\asummary\x1aQ\n" +
 	"\fResultsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12+\n" +
@@ -1340,14 +1341,14 @@ const file_kube_v1_kube_proto_rawDesc = "" +
 	"\rDeleteSummary\x12\x14\n" +
 	"\x05total\x18\x01 \x01(\x05R\x05total\x12\x18\n" +
 	"\adeleted\x18\x02 \x01(\x05R\adeleted\x12\x16\n" +
-	"\x06failed\x18\x03 \x01(\x05R\x06failed\"\xab\x01\n" +
-	"\x10GetStatusRequest\x12F\n" +
-	"\tresources\x18\x01 \x03(\v2(.kube.v1.GetStatusRequest.ResourcesEntryR\tresources\x1aO\n" +
+	"\x06failed\x18\x03 \x01(\x05R\x06failed\"\xa7\x01\n" +
+	"\x0eGetStatusInput\x12D\n" +
+	"\tresources\x18\x01 \x03(\v2&.kube.v1.GetStatusInput.ResourcesEntryR\tresources\x1aO\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12'\n" +
-	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xd2\x01\n" +
-	"\x11GetStatusResponse\x12A\n" +
-	"\aresults\x18\x01 \x03(\v2'.kube.v1.GetStatusResponse.ResultsEntryR\aresults\x12%\n" +
+	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xce\x01\n" +
+	"\x0fGetStatusOutput\x12?\n" +
+	"\aresults\x18\x01 \x03(\v2%.kube.v1.GetStatusOutput.ResultsEntryR\aresults\x12%\n" +
 	"\x0eoverall_status\x18\x02 \x01(\tR\roverallStatus\x1aS\n" +
 	"\fResultsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12-\n" +
@@ -1365,14 +1366,14 @@ const file_kube_v1_kube_proto_rawDesc = "" +
 	"\x06status\x18\x04 \x01(\tR\x06status\x12%\n" +
 	"\x0eready_replicas\x18\x05 \x01(\x05R\rreadyReplicas\x12)\n" +
 	"\x10desired_replicas\x18\x06 \x01(\x05R\x0fdesiredReplicas\x12\x18\n" +
-	"\amessage\x18\a \x01(\tR\amessage2\xdc\x03\n" +
+	"\amessage\x18\a \x01(\tR\amessage2\xc8\x03\n" +
 	"\n" +
-	"Kubernetes\x12W\n" +
-	"\x06Create\x12\x16.kube.v1.CreateRequest\x1a\x17.kube.v1.CreateResponse\"\x1c\x92\xc4\x03\x18\x12\x03\b\xd8\x04:\x11kubernetes.Create\x12W\n" +
-	"\x06Update\x12\x16.kube.v1.UpdateRequest\x1a\x17.kube.v1.UpdateResponse\"\x1c\x92\xc4\x03\x18\x12\x03\b\xd8\x04:\x11kubernetes.Update\x12S\n" +
-	"\x05Apply\x12\x15.kube.v1.ApplyRequest\x1a\x16.kube.v1.ApplyResponse\"\x1b\x92\xc4\x03\x17\x12\x03\b\xd8\x04:\x10kubernetes.Apply\x12W\n" +
-	"\x06Delete\x12\x16.kube.v1.DeleteRequest\x1a\x17.kube.v1.DeleteResponse\"\x1c\x92\xc4\x03\x18\x12\x03\b\xac\x02:\x11kubernetes.Delete\x12b\n" +
-	"\tGetStatus\x12\x19.kube.v1.GetStatusRequest\x1a\x1a.kube.v1.GetStatusResponse\"\x1e\x92\xc4\x03\x1a\x12\x02\b<:\x14kubernetes.GetStatus\x1a\n" +
+	"Kubernetes\x12S\n" +
+	"\x06Create\x12\x14.kube.v1.CreateInput\x1a\x15.kube.v1.CreateOutput\"\x1c\x92\xc4\x03\x18\x12\x03\b\xd8\x04:\x11kubernetes.Create\x12S\n" +
+	"\x06Update\x12\x14.kube.v1.UpdateInput\x1a\x15.kube.v1.UpdateOutput\"\x1c\x92\xc4\x03\x18\x12\x03\b\xd8\x04:\x11kubernetes.Update\x12O\n" +
+	"\x05Apply\x12\x13.kube.v1.ApplyInput\x1a\x14.kube.v1.ApplyOutput\"\x1b\x92\xc4\x03\x17\x12\x03\b\xd8\x04:\x10kubernetes.Apply\x12S\n" +
+	"\x06Delete\x12\x14.kube.v1.DeleteInput\x1a\x15.kube.v1.DeleteOutput\"\x1c\x92\xc4\x03\x18\x12\x03\b\xac\x02:\x11kubernetes.Delete\x12^\n" +
+	"\tGetStatus\x12\x17.kube.v1.GetStatusInput\x1a\x18.kube.v1.GetStatusOutput\"\x1e\x92\xc4\x03\x1a\x12\x02\b<:\x14kubernetes.GetStatus\x1a\n" +
 	"\x8a\xc4\x03\x06\n" +
 	"\x04kubeB\x98\x01\n" +
 	"\vcom.kube.v1B\tKubeProtoP\x01ZAgithub.com/metacensus/infra/temporal/gen/workflows/kube/v1;kubev1\xa2\x02\x03KXX\xaa\x02\aKube.V1\xca\x02\aKube\\V1\xe2\x02\x13Kube\\V1\\GPBMetadata\xea\x02\bKube::V1b\x06proto3"
@@ -1392,75 +1393,75 @@ func file_kube_v1_kube_proto_rawDescGZIP() []byte {
 var file_kube_v1_kube_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_kube_v1_kube_proto_goTypes = []any{
 	(*Resource)(nil),           // 0: kube.v1.Resource
-	(*CreateRequest)(nil),      // 1: kube.v1.CreateRequest
-	(*CreateResponse)(nil),     // 2: kube.v1.CreateResponse
+	(*CreateInput)(nil),        // 1: kube.v1.CreateInput
+	(*CreateOutput)(nil),       // 2: kube.v1.CreateOutput
 	(*CreateResult)(nil),       // 3: kube.v1.CreateResult
 	(*CreateSummary)(nil),      // 4: kube.v1.CreateSummary
-	(*UpdateRequest)(nil),      // 5: kube.v1.UpdateRequest
-	(*UpdateResponse)(nil),     // 6: kube.v1.UpdateResponse
+	(*UpdateInput)(nil),        // 5: kube.v1.UpdateInput
+	(*UpdateOutput)(nil),       // 6: kube.v1.UpdateOutput
 	(*UpdateResult)(nil),       // 7: kube.v1.UpdateResult
 	(*UpdateSummary)(nil),      // 8: kube.v1.UpdateSummary
-	(*ApplyRequest)(nil),       // 9: kube.v1.ApplyRequest
-	(*ApplyResponse)(nil),      // 10: kube.v1.ApplyResponse
+	(*ApplyInput)(nil),         // 9: kube.v1.ApplyInput
+	(*ApplyOutput)(nil),        // 10: kube.v1.ApplyOutput
 	(*ApplyResult)(nil),        // 11: kube.v1.ApplyResult
 	(*ApplySummary)(nil),       // 12: kube.v1.ApplySummary
-	(*DeleteRequest)(nil),      // 13: kube.v1.DeleteRequest
-	(*DeleteResponse)(nil),     // 14: kube.v1.DeleteResponse
+	(*DeleteInput)(nil),        // 13: kube.v1.DeleteInput
+	(*DeleteOutput)(nil),       // 14: kube.v1.DeleteOutput
 	(*DeleteResult)(nil),       // 15: kube.v1.DeleteResult
 	(*DeleteSummary)(nil),      // 16: kube.v1.DeleteSummary
-	(*GetStatusRequest)(nil),   // 17: kube.v1.GetStatusRequest
-	(*GetStatusResponse)(nil),  // 18: kube.v1.GetStatusResponse
+	(*GetStatusInput)(nil),     // 17: kube.v1.GetStatusInput
+	(*GetStatusOutput)(nil),    // 18: kube.v1.GetStatusOutput
 	(*ResourceIdentifier)(nil), // 19: kube.v1.ResourceIdentifier
 	(*ResourceStatus)(nil),     // 20: kube.v1.ResourceStatus
-	nil,                        // 21: kube.v1.CreateRequest.ResourcesEntry
-	nil,                        // 22: kube.v1.CreateResponse.ResultsEntry
-	nil,                        // 23: kube.v1.UpdateRequest.ResourcesEntry
-	nil,                        // 24: kube.v1.UpdateResponse.ResultsEntry
-	nil,                        // 25: kube.v1.ApplyRequest.ResourcesEntry
-	nil,                        // 26: kube.v1.ApplyResponse.ResultsEntry
-	nil,                        // 27: kube.v1.DeleteRequest.ResourcesEntry
-	nil,                        // 28: kube.v1.DeleteResponse.ResultsEntry
-	nil,                        // 29: kube.v1.GetStatusRequest.ResourcesEntry
-	nil,                        // 30: kube.v1.GetStatusResponse.ResultsEntry
+	nil,                        // 21: kube.v1.CreateInput.ResourcesEntry
+	nil,                        // 22: kube.v1.CreateOutput.ResultsEntry
+	nil,                        // 23: kube.v1.UpdateInput.ResourcesEntry
+	nil,                        // 24: kube.v1.UpdateOutput.ResultsEntry
+	nil,                        // 25: kube.v1.ApplyInput.ResourcesEntry
+	nil,                        // 26: kube.v1.ApplyOutput.ResultsEntry
+	nil,                        // 27: kube.v1.DeleteInput.ResourcesEntry
+	nil,                        // 28: kube.v1.DeleteOutput.ResultsEntry
+	nil,                        // 29: kube.v1.GetStatusInput.ResourcesEntry
+	nil,                        // 30: kube.v1.GetStatusOutput.ResultsEntry
 }
 var file_kube_v1_kube_proto_depIdxs = []int32{
-	21, // 0: kube.v1.CreateRequest.resources:type_name -> kube.v1.CreateRequest.ResourcesEntry
-	22, // 1: kube.v1.CreateResponse.results:type_name -> kube.v1.CreateResponse.ResultsEntry
-	4,  // 2: kube.v1.CreateResponse.summary:type_name -> kube.v1.CreateSummary
+	21, // 0: kube.v1.CreateInput.resources:type_name -> kube.v1.CreateInput.ResourcesEntry
+	22, // 1: kube.v1.CreateOutput.results:type_name -> kube.v1.CreateOutput.ResultsEntry
+	4,  // 2: kube.v1.CreateOutput.summary:type_name -> kube.v1.CreateSummary
 	20, // 3: kube.v1.CreateResult.resource_status:type_name -> kube.v1.ResourceStatus
-	23, // 4: kube.v1.UpdateRequest.resources:type_name -> kube.v1.UpdateRequest.ResourcesEntry
-	24, // 5: kube.v1.UpdateResponse.results:type_name -> kube.v1.UpdateResponse.ResultsEntry
-	8,  // 6: kube.v1.UpdateResponse.summary:type_name -> kube.v1.UpdateSummary
+	23, // 4: kube.v1.UpdateInput.resources:type_name -> kube.v1.UpdateInput.ResourcesEntry
+	24, // 5: kube.v1.UpdateOutput.results:type_name -> kube.v1.UpdateOutput.ResultsEntry
+	8,  // 6: kube.v1.UpdateOutput.summary:type_name -> kube.v1.UpdateSummary
 	20, // 7: kube.v1.UpdateResult.resource_status:type_name -> kube.v1.ResourceStatus
-	25, // 8: kube.v1.ApplyRequest.resources:type_name -> kube.v1.ApplyRequest.ResourcesEntry
-	26, // 9: kube.v1.ApplyResponse.results:type_name -> kube.v1.ApplyResponse.ResultsEntry
-	12, // 10: kube.v1.ApplyResponse.summary:type_name -> kube.v1.ApplySummary
+	25, // 8: kube.v1.ApplyInput.resources:type_name -> kube.v1.ApplyInput.ResourcesEntry
+	26, // 9: kube.v1.ApplyOutput.results:type_name -> kube.v1.ApplyOutput.ResultsEntry
+	12, // 10: kube.v1.ApplyOutput.summary:type_name -> kube.v1.ApplySummary
 	20, // 11: kube.v1.ApplyResult.resource_status:type_name -> kube.v1.ResourceStatus
-	27, // 12: kube.v1.DeleteRequest.resources:type_name -> kube.v1.DeleteRequest.ResourcesEntry
-	28, // 13: kube.v1.DeleteResponse.results:type_name -> kube.v1.DeleteResponse.ResultsEntry
-	16, // 14: kube.v1.DeleteResponse.summary:type_name -> kube.v1.DeleteSummary
-	29, // 15: kube.v1.GetStatusRequest.resources:type_name -> kube.v1.GetStatusRequest.ResourcesEntry
-	30, // 16: kube.v1.GetStatusResponse.results:type_name -> kube.v1.GetStatusResponse.ResultsEntry
-	0,  // 17: kube.v1.CreateRequest.ResourcesEntry.value:type_name -> kube.v1.Resource
-	3,  // 18: kube.v1.CreateResponse.ResultsEntry.value:type_name -> kube.v1.CreateResult
-	0,  // 19: kube.v1.UpdateRequest.ResourcesEntry.value:type_name -> kube.v1.Resource
-	7,  // 20: kube.v1.UpdateResponse.ResultsEntry.value:type_name -> kube.v1.UpdateResult
-	0,  // 21: kube.v1.ApplyRequest.ResourcesEntry.value:type_name -> kube.v1.Resource
-	11, // 22: kube.v1.ApplyResponse.ResultsEntry.value:type_name -> kube.v1.ApplyResult
-	0,  // 23: kube.v1.DeleteRequest.ResourcesEntry.value:type_name -> kube.v1.Resource
-	15, // 24: kube.v1.DeleteResponse.ResultsEntry.value:type_name -> kube.v1.DeleteResult
-	0,  // 25: kube.v1.GetStatusRequest.ResourcesEntry.value:type_name -> kube.v1.Resource
-	20, // 26: kube.v1.GetStatusResponse.ResultsEntry.value:type_name -> kube.v1.ResourceStatus
-	1,  // 27: kube.v1.Kubernetes.Create:input_type -> kube.v1.CreateRequest
-	5,  // 28: kube.v1.Kubernetes.Update:input_type -> kube.v1.UpdateRequest
-	9,  // 29: kube.v1.Kubernetes.Apply:input_type -> kube.v1.ApplyRequest
-	13, // 30: kube.v1.Kubernetes.Delete:input_type -> kube.v1.DeleteRequest
-	17, // 31: kube.v1.Kubernetes.GetStatus:input_type -> kube.v1.GetStatusRequest
-	2,  // 32: kube.v1.Kubernetes.Create:output_type -> kube.v1.CreateResponse
-	6,  // 33: kube.v1.Kubernetes.Update:output_type -> kube.v1.UpdateResponse
-	10, // 34: kube.v1.Kubernetes.Apply:output_type -> kube.v1.ApplyResponse
-	14, // 35: kube.v1.Kubernetes.Delete:output_type -> kube.v1.DeleteResponse
-	18, // 36: kube.v1.Kubernetes.GetStatus:output_type -> kube.v1.GetStatusResponse
+	27, // 12: kube.v1.DeleteInput.resources:type_name -> kube.v1.DeleteInput.ResourcesEntry
+	28, // 13: kube.v1.DeleteOutput.results:type_name -> kube.v1.DeleteOutput.ResultsEntry
+	16, // 14: kube.v1.DeleteOutput.summary:type_name -> kube.v1.DeleteSummary
+	29, // 15: kube.v1.GetStatusInput.resources:type_name -> kube.v1.GetStatusInput.ResourcesEntry
+	30, // 16: kube.v1.GetStatusOutput.results:type_name -> kube.v1.GetStatusOutput.ResultsEntry
+	0,  // 17: kube.v1.CreateInput.ResourcesEntry.value:type_name -> kube.v1.Resource
+	3,  // 18: kube.v1.CreateOutput.ResultsEntry.value:type_name -> kube.v1.CreateResult
+	0,  // 19: kube.v1.UpdateInput.ResourcesEntry.value:type_name -> kube.v1.Resource
+	7,  // 20: kube.v1.UpdateOutput.ResultsEntry.value:type_name -> kube.v1.UpdateResult
+	0,  // 21: kube.v1.ApplyInput.ResourcesEntry.value:type_name -> kube.v1.Resource
+	11, // 22: kube.v1.ApplyOutput.ResultsEntry.value:type_name -> kube.v1.ApplyResult
+	0,  // 23: kube.v1.DeleteInput.ResourcesEntry.value:type_name -> kube.v1.Resource
+	15, // 24: kube.v1.DeleteOutput.ResultsEntry.value:type_name -> kube.v1.DeleteResult
+	0,  // 25: kube.v1.GetStatusInput.ResourcesEntry.value:type_name -> kube.v1.Resource
+	20, // 26: kube.v1.GetStatusOutput.ResultsEntry.value:type_name -> kube.v1.ResourceStatus
+	1,  // 27: kube.v1.Kubernetes.Create:input_type -> kube.v1.CreateInput
+	5,  // 28: kube.v1.Kubernetes.Update:input_type -> kube.v1.UpdateInput
+	9,  // 29: kube.v1.Kubernetes.Apply:input_type -> kube.v1.ApplyInput
+	13, // 30: kube.v1.Kubernetes.Delete:input_type -> kube.v1.DeleteInput
+	17, // 31: kube.v1.Kubernetes.GetStatus:input_type -> kube.v1.GetStatusInput
+	2,  // 32: kube.v1.Kubernetes.Create:output_type -> kube.v1.CreateOutput
+	6,  // 33: kube.v1.Kubernetes.Update:output_type -> kube.v1.UpdateOutput
+	10, // 34: kube.v1.Kubernetes.Apply:output_type -> kube.v1.ApplyOutput
+	14, // 35: kube.v1.Kubernetes.Delete:output_type -> kube.v1.DeleteOutput
+	18, // 36: kube.v1.Kubernetes.GetStatus:output_type -> kube.v1.GetStatusOutput
 	32, // [32:37] is the sub-list for method output_type
 	27, // [27:32] is the sub-list for method input_type
 	27, // [27:27] is the sub-list for extension type_name

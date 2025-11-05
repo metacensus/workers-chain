@@ -13,21 +13,6 @@ func NewWorkflows() *Workflows {
 	return &Workflows{}
 }
 
-// RegisterIdentity implements the RegisterIdentity workflow
-func (w *Workflows) RegisterIdentity(ctx workflow.Context, input *pb.RegisterIdentityWorkflowInput) (pb.RegisterIdentityWorkflow, error) {
-	return &registerIdentityWorkflow{input: input}, nil
-}
-
-// EnrollIdentity implements the EnrollIdentity workflow
-func (w *Workflows) EnrollIdentity(ctx workflow.Context, input *pb.EnrollIdentityWorkflowInput) (pb.EnrollIdentityWorkflow, error) {
-	return &enrollIdentityWorkflow{input: input}, nil
-}
-
-// AssembleMsp implements the AssembleMsp workflow
-func (w *Workflows) AssembleMsp(ctx workflow.Context, input *pb.AssembleMspWorkflowInput) (pb.AssembleMspWorkflow, error) {
-	return &assembleMspWorkflow{input: input}, nil
-}
-
 // BootstrapAdmin implements the BootstrapAdmin workflow
 func (w *Workflows) BootstrapAdmin(ctx workflow.Context, input *pb.BootstrapAdminWorkflowInput) (pb.BootstrapAdminWorkflow, error) {
 	return &bootstrapAdminWorkflow{input: input}, nil

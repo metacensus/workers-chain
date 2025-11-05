@@ -2541,11 +2541,11 @@ const file_fabric_identity_v1_identity_proto_rawDesc = "" +
 	"\x0enode_ou_config\x18\x04 \x01(\v2 .fabric.identity.v1.NodeOUConfigR\fnodeOuConfig\"\x88\x01\n" +
 	"\rOrgConfigRefs\x12<\n" +
 	"\x0fca_certificates\x18\x01 \x01(\v2\x13.vault.v1.SecretRefR\x0ecaCertificates\x129\n" +
-	"\x0enode_ou_config\x18\x02 \x01(\v2\x13.vault.v1.SecretRefR\fnodeOuConfig2\xd8\x0f\n" +
-	"\x0eFabricIdentity\x12\xc6\x01\n" +
-	"\x10RegisterIdentity\x12).fabric.identity.v1.RegisterIdentityInput\x1a*.fabric.identity.v1.RegisterIdentityOutput\"[\x8a\xc4\x03)0\x01@\x03r#fabric.identity.v1.RegisterIdentity\x92\xc4\x03*\x12\x03\b\xac\x02:#fabric.identity.v1.RegisterIdentity\x12\xbc\x01\n" +
-	"\x0eEnrollIdentity\x12'.fabric.identity.v1.EnrollIdentityInput\x1a(.fabric.identity.v1.EnrollIdentityOutput\"W\x8a\xc4\x03'0\x01@\x03r!fabric.identity.v1.EnrollIdentity\x92\xc4\x03(\x12\x03\b\xac\x02:!fabric.identity.v1.EnrollIdentity\x12\xac\x01\n" +
-	"\vAssembleMsp\x12$.fabric.identity.v1.AssembleMspInput\x1a%.fabric.identity.v1.AssembleMspOutput\"P\x8a\xc4\x03$0\x01@\x03r\x1efabric.identity.v1.AssembleMsp\x92\xc4\x03$\x12\x02\bx:\x1efabric.identity.v1.AssembleMsp\x12\x8c\x01\n" +
+	"\x0enode_ou_config\x18\x02 \x01(\v2\x13.vault.v1.SecretRefR\fnodeOuConfig2\xd8\x0e\n" +
+	"\x0eFabricIdentity\x12\x99\x01\n" +
+	"\x10RegisterIdentity\x12).fabric.identity.v1.RegisterIdentityInput\x1a*.fabric.identity.v1.RegisterIdentityOutput\".\x92\xc4\x03*\x12\x03\b\xac\x02:#fabric.identity.v1.RegisterIdentity\x12\x91\x01\n" +
+	"\x0eEnrollIdentity\x12'.fabric.identity.v1.EnrollIdentityInput\x1a(.fabric.identity.v1.EnrollIdentityOutput\",\x92\xc4\x03(\x12\x03\b\xac\x02:!fabric.identity.v1.EnrollIdentity\x12\x84\x01\n" +
+	"\vAssembleMsp\x12$.fabric.identity.v1.AssembleMspInput\x1a%.fabric.identity.v1.AssembleMspOutput\"(\x92\xc4\x03$\x12\x02\bx:\x1efabric.identity.v1.AssembleMsp\x12\x8c\x01\n" +
 	"\rProvisionPeer\x12&.fabric.identity.v1.ProvisionPeerInput\x1a'.fabric.identity.v1.ProvisionPeerOutput\"*\x8a\xc4\x03&0\x01@\x03r fabric.identity.v1.ProvisionPeer\x12\x98\x01\n" +
 	"\x10ProvisionOrderer\x12).fabric.identity.v1.ProvisionOrdererInput\x1a*.fabric.identity.v1.ProvisionOrdererOutput\"-\x8a\xc4\x03)0\x01@\x03r#fabric.identity.v1.ProvisionOrderer\x12\x94\x01\n" +
 	"\x0fProvisionClient\x12(.fabric.identity.v1.ProvisionClientInput\x1a).fabric.identity.v1.ProvisionClientOutput\",\x8a\xc4\x03(0\x01@\x03r\"fabric.identity.v1.ProvisionClient\x12\x90\x01\n" +

@@ -23,27 +23,27 @@ func (_m *MockKubernetesActivities) EXPECT() *MockKubernetesActivities_Expecter 
 }
 
 // Apply provides a mock function with given fields: ctx, req
-func (_m *MockKubernetesActivities) Apply(ctx context.Context, req *kubev1.ApplyRequest) (*kubev1.ApplyResponse, error) {
+func (_m *MockKubernetesActivities) Apply(ctx context.Context, req *kubev1.ApplyInput) (*kubev1.ApplyOutput, error) {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Apply")
 	}
 
-	var r0 *kubev1.ApplyResponse
+	var r0 *kubev1.ApplyOutput
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.ApplyRequest) (*kubev1.ApplyResponse, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.ApplyInput) (*kubev1.ApplyOutput, error)); ok {
 		return rf(ctx, req)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.ApplyRequest) *kubev1.ApplyResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.ApplyInput) *kubev1.ApplyOutput); ok {
 		r0 = rf(ctx, req)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*kubev1.ApplyResponse)
+			r0 = ret.Get(0).(*kubev1.ApplyOutput)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *kubev1.ApplyRequest) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *kubev1.ApplyInput) error); ok {
 		r1 = rf(ctx, req)
 	} else {
 		r1 = ret.Error(1)
@@ -59,50 +59,50 @@ type MockKubernetesActivities_Apply_Call struct {
 
 // Apply is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req *kubev1.ApplyRequest
+//   - req *kubev1.ApplyInput
 func (_e *MockKubernetesActivities_Expecter) Apply(ctx interface{}, req interface{}) *MockKubernetesActivities_Apply_Call {
 	return &MockKubernetesActivities_Apply_Call{Call: _e.mock.On("Apply", ctx, req)}
 }
 
-func (_c *MockKubernetesActivities_Apply_Call) Run(run func(ctx context.Context, req *kubev1.ApplyRequest)) *MockKubernetesActivities_Apply_Call {
+func (_c *MockKubernetesActivities_Apply_Call) Run(run func(ctx context.Context, req *kubev1.ApplyInput)) *MockKubernetesActivities_Apply_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*kubev1.ApplyRequest))
+		run(args[0].(context.Context), args[1].(*kubev1.ApplyInput))
 	})
 	return _c
 }
 
-func (_c *MockKubernetesActivities_Apply_Call) Return(_a0 *kubev1.ApplyResponse, _a1 error) *MockKubernetesActivities_Apply_Call {
+func (_c *MockKubernetesActivities_Apply_Call) Return(_a0 *kubev1.ApplyOutput, _a1 error) *MockKubernetesActivities_Apply_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockKubernetesActivities_Apply_Call) RunAndReturn(run func(context.Context, *kubev1.ApplyRequest) (*kubev1.ApplyResponse, error)) *MockKubernetesActivities_Apply_Call {
+func (_c *MockKubernetesActivities_Apply_Call) RunAndReturn(run func(context.Context, *kubev1.ApplyInput) (*kubev1.ApplyOutput, error)) *MockKubernetesActivities_Apply_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Create provides a mock function with given fields: ctx, req
-func (_m *MockKubernetesActivities) Create(ctx context.Context, req *kubev1.CreateRequest) (*kubev1.CreateResponse, error) {
+func (_m *MockKubernetesActivities) Create(ctx context.Context, req *kubev1.CreateInput) (*kubev1.CreateOutput, error) {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Create")
 	}
 
-	var r0 *kubev1.CreateResponse
+	var r0 *kubev1.CreateOutput
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.CreateRequest) (*kubev1.CreateResponse, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.CreateInput) (*kubev1.CreateOutput, error)); ok {
 		return rf(ctx, req)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.CreateRequest) *kubev1.CreateResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.CreateInput) *kubev1.CreateOutput); ok {
 		r0 = rf(ctx, req)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*kubev1.CreateResponse)
+			r0 = ret.Get(0).(*kubev1.CreateOutput)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *kubev1.CreateRequest) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *kubev1.CreateInput) error); ok {
 		r1 = rf(ctx, req)
 	} else {
 		r1 = ret.Error(1)
@@ -118,50 +118,50 @@ type MockKubernetesActivities_Create_Call struct {
 
 // Create is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req *kubev1.CreateRequest
+//   - req *kubev1.CreateInput
 func (_e *MockKubernetesActivities_Expecter) Create(ctx interface{}, req interface{}) *MockKubernetesActivities_Create_Call {
 	return &MockKubernetesActivities_Create_Call{Call: _e.mock.On("Create", ctx, req)}
 }
 
-func (_c *MockKubernetesActivities_Create_Call) Run(run func(ctx context.Context, req *kubev1.CreateRequest)) *MockKubernetesActivities_Create_Call {
+func (_c *MockKubernetesActivities_Create_Call) Run(run func(ctx context.Context, req *kubev1.CreateInput)) *MockKubernetesActivities_Create_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*kubev1.CreateRequest))
+		run(args[0].(context.Context), args[1].(*kubev1.CreateInput))
 	})
 	return _c
 }
 
-func (_c *MockKubernetesActivities_Create_Call) Return(_a0 *kubev1.CreateResponse, _a1 error) *MockKubernetesActivities_Create_Call {
+func (_c *MockKubernetesActivities_Create_Call) Return(_a0 *kubev1.CreateOutput, _a1 error) *MockKubernetesActivities_Create_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockKubernetesActivities_Create_Call) RunAndReturn(run func(context.Context, *kubev1.CreateRequest) (*kubev1.CreateResponse, error)) *MockKubernetesActivities_Create_Call {
+func (_c *MockKubernetesActivities_Create_Call) RunAndReturn(run func(context.Context, *kubev1.CreateInput) (*kubev1.CreateOutput, error)) *MockKubernetesActivities_Create_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Delete provides a mock function with given fields: ctx, req
-func (_m *MockKubernetesActivities) Delete(ctx context.Context, req *kubev1.DeleteRequest) (*kubev1.DeleteResponse, error) {
+func (_m *MockKubernetesActivities) Delete(ctx context.Context, req *kubev1.DeleteInput) (*kubev1.DeleteOutput, error) {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Delete")
 	}
 
-	var r0 *kubev1.DeleteResponse
+	var r0 *kubev1.DeleteOutput
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.DeleteRequest) (*kubev1.DeleteResponse, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.DeleteInput) (*kubev1.DeleteOutput, error)); ok {
 		return rf(ctx, req)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.DeleteRequest) *kubev1.DeleteResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.DeleteInput) *kubev1.DeleteOutput); ok {
 		r0 = rf(ctx, req)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*kubev1.DeleteResponse)
+			r0 = ret.Get(0).(*kubev1.DeleteOutput)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *kubev1.DeleteRequest) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *kubev1.DeleteInput) error); ok {
 		r1 = rf(ctx, req)
 	} else {
 		r1 = ret.Error(1)
@@ -177,50 +177,50 @@ type MockKubernetesActivities_Delete_Call struct {
 
 // Delete is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req *kubev1.DeleteRequest
+//   - req *kubev1.DeleteInput
 func (_e *MockKubernetesActivities_Expecter) Delete(ctx interface{}, req interface{}) *MockKubernetesActivities_Delete_Call {
 	return &MockKubernetesActivities_Delete_Call{Call: _e.mock.On("Delete", ctx, req)}
 }
 
-func (_c *MockKubernetesActivities_Delete_Call) Run(run func(ctx context.Context, req *kubev1.DeleteRequest)) *MockKubernetesActivities_Delete_Call {
+func (_c *MockKubernetesActivities_Delete_Call) Run(run func(ctx context.Context, req *kubev1.DeleteInput)) *MockKubernetesActivities_Delete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*kubev1.DeleteRequest))
+		run(args[0].(context.Context), args[1].(*kubev1.DeleteInput))
 	})
 	return _c
 }
 
-func (_c *MockKubernetesActivities_Delete_Call) Return(_a0 *kubev1.DeleteResponse, _a1 error) *MockKubernetesActivities_Delete_Call {
+func (_c *MockKubernetesActivities_Delete_Call) Return(_a0 *kubev1.DeleteOutput, _a1 error) *MockKubernetesActivities_Delete_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockKubernetesActivities_Delete_Call) RunAndReturn(run func(context.Context, *kubev1.DeleteRequest) (*kubev1.DeleteResponse, error)) *MockKubernetesActivities_Delete_Call {
+func (_c *MockKubernetesActivities_Delete_Call) RunAndReturn(run func(context.Context, *kubev1.DeleteInput) (*kubev1.DeleteOutput, error)) *MockKubernetesActivities_Delete_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // GetStatus provides a mock function with given fields: ctx, req
-func (_m *MockKubernetesActivities) GetStatus(ctx context.Context, req *kubev1.GetStatusRequest) (*kubev1.GetStatusResponse, error) {
+func (_m *MockKubernetesActivities) GetStatus(ctx context.Context, req *kubev1.GetStatusInput) (*kubev1.GetStatusOutput, error) {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetStatus")
 	}
 
-	var r0 *kubev1.GetStatusResponse
+	var r0 *kubev1.GetStatusOutput
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.GetStatusRequest) (*kubev1.GetStatusResponse, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.GetStatusInput) (*kubev1.GetStatusOutput, error)); ok {
 		return rf(ctx, req)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.GetStatusRequest) *kubev1.GetStatusResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.GetStatusInput) *kubev1.GetStatusOutput); ok {
 		r0 = rf(ctx, req)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*kubev1.GetStatusResponse)
+			r0 = ret.Get(0).(*kubev1.GetStatusOutput)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *kubev1.GetStatusRequest) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *kubev1.GetStatusInput) error); ok {
 		r1 = rf(ctx, req)
 	} else {
 		r1 = ret.Error(1)
@@ -236,50 +236,50 @@ type MockKubernetesActivities_GetStatus_Call struct {
 
 // GetStatus is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req *kubev1.GetStatusRequest
+//   - req *kubev1.GetStatusInput
 func (_e *MockKubernetesActivities_Expecter) GetStatus(ctx interface{}, req interface{}) *MockKubernetesActivities_GetStatus_Call {
 	return &MockKubernetesActivities_GetStatus_Call{Call: _e.mock.On("GetStatus", ctx, req)}
 }
 
-func (_c *MockKubernetesActivities_GetStatus_Call) Run(run func(ctx context.Context, req *kubev1.GetStatusRequest)) *MockKubernetesActivities_GetStatus_Call {
+func (_c *MockKubernetesActivities_GetStatus_Call) Run(run func(ctx context.Context, req *kubev1.GetStatusInput)) *MockKubernetesActivities_GetStatus_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*kubev1.GetStatusRequest))
+		run(args[0].(context.Context), args[1].(*kubev1.GetStatusInput))
 	})
 	return _c
 }
 
-func (_c *MockKubernetesActivities_GetStatus_Call) Return(_a0 *kubev1.GetStatusResponse, _a1 error) *MockKubernetesActivities_GetStatus_Call {
+func (_c *MockKubernetesActivities_GetStatus_Call) Return(_a0 *kubev1.GetStatusOutput, _a1 error) *MockKubernetesActivities_GetStatus_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockKubernetesActivities_GetStatus_Call) RunAndReturn(run func(context.Context, *kubev1.GetStatusRequest) (*kubev1.GetStatusResponse, error)) *MockKubernetesActivities_GetStatus_Call {
+func (_c *MockKubernetesActivities_GetStatus_Call) RunAndReturn(run func(context.Context, *kubev1.GetStatusInput) (*kubev1.GetStatusOutput, error)) *MockKubernetesActivities_GetStatus_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Update provides a mock function with given fields: ctx, req
-func (_m *MockKubernetesActivities) Update(ctx context.Context, req *kubev1.UpdateRequest) (*kubev1.UpdateResponse, error) {
+func (_m *MockKubernetesActivities) Update(ctx context.Context, req *kubev1.UpdateInput) (*kubev1.UpdateOutput, error) {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
 	}
 
-	var r0 *kubev1.UpdateResponse
+	var r0 *kubev1.UpdateOutput
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.UpdateRequest) (*kubev1.UpdateResponse, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.UpdateInput) (*kubev1.UpdateOutput, error)); ok {
 		return rf(ctx, req)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.UpdateRequest) *kubev1.UpdateResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.UpdateInput) *kubev1.UpdateOutput); ok {
 		r0 = rf(ctx, req)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*kubev1.UpdateResponse)
+			r0 = ret.Get(0).(*kubev1.UpdateOutput)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *kubev1.UpdateRequest) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *kubev1.UpdateInput) error); ok {
 		r1 = rf(ctx, req)
 	} else {
 		r1 = ret.Error(1)
@@ -295,24 +295,24 @@ type MockKubernetesActivities_Update_Call struct {
 
 // Update is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req *kubev1.UpdateRequest
+//   - req *kubev1.UpdateInput
 func (_e *MockKubernetesActivities_Expecter) Update(ctx interface{}, req interface{}) *MockKubernetesActivities_Update_Call {
 	return &MockKubernetesActivities_Update_Call{Call: _e.mock.On("Update", ctx, req)}
 }
 
-func (_c *MockKubernetesActivities_Update_Call) Run(run func(ctx context.Context, req *kubev1.UpdateRequest)) *MockKubernetesActivities_Update_Call {
+func (_c *MockKubernetesActivities_Update_Call) Run(run func(ctx context.Context, req *kubev1.UpdateInput)) *MockKubernetesActivities_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*kubev1.UpdateRequest))
+		run(args[0].(context.Context), args[1].(*kubev1.UpdateInput))
 	})
 	return _c
 }
 
-func (_c *MockKubernetesActivities_Update_Call) Return(_a0 *kubev1.UpdateResponse, _a1 error) *MockKubernetesActivities_Update_Call {
+func (_c *MockKubernetesActivities_Update_Call) Return(_a0 *kubev1.UpdateOutput, _a1 error) *MockKubernetesActivities_Update_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockKubernetesActivities_Update_Call) RunAndReturn(run func(context.Context, *kubev1.UpdateRequest) (*kubev1.UpdateResponse, error)) *MockKubernetesActivities_Update_Call {
+func (_c *MockKubernetesActivities_Update_Call) RunAndReturn(run func(context.Context, *kubev1.UpdateInput) (*kubev1.UpdateOutput, error)) *MockKubernetesActivities_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

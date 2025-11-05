@@ -36,11 +36,11 @@ func NewActivities(client KubeClient) *Activities {
 }
 
 // Create creates new resources in the cluster
-func (a *Activities) Create(ctx context.Context, req *pb.CreateRequest) (*pb.CreateResponse, error) {
+func (a *Activities) Create(ctx context.Context, req *pb.CreateInput) (*pb.CreateOutput, error) {
 	logger := activity.GetLogger(ctx)
 	logger.Info("Creating resources", "resource_count", len(req.GetResources()))
 
-	response := &pb.CreateResponse{
+	response := &pb.CreateOutput{
 		Results: make(map[string]*pb.CreateResult),
 		Summary: &pb.CreateSummary{
 			Total: int32(len(req.GetResources())),
@@ -109,11 +109,11 @@ func (a *Activities) createSingleResource(ctx context.Context, resourceID string
 }
 
 // Update updates existing resources in the cluster
-func (a *Activities) Update(ctx context.Context, req *pb.UpdateRequest) (*pb.UpdateResponse, error) {
+func (a *Activities) Update(ctx context.Context, req *pb.UpdateInput) (*pb.UpdateOutput, error) {
 	logger := activity.GetLogger(ctx)
 	logger.Info("Updating resources", "resource_count", len(req.GetResources()))
 
-	response := &pb.UpdateResponse{
+	response := &pb.UpdateOutput{
 		Results: make(map[string]*pb.UpdateResult),
 		Summary: &pb.UpdateSummary{
 			Total: int32(len(req.GetResources())),
@@ -182,11 +182,11 @@ func (a *Activities) updateSingleResource(ctx context.Context, resourceID string
 }
 
 // Apply deploys resources to the cluster (create or update)
-func (a *Activities) Apply(ctx context.Context, req *pb.ApplyRequest) (*pb.ApplyResponse, error) {
+func (a *Activities) Apply(ctx context.Context, req *pb.ApplyInput) (*pb.ApplyOutput, error) {
 	logger := activity.GetLogger(ctx)
 	logger.Info("Applying resources", "resource_count", len(req.GetResources()))
 
-	response := &pb.ApplyResponse{
+	response := &pb.ApplyOutput{
 		Results: make(map[string]*pb.ApplyResult),
 		Summary: &pb.ApplySummary{
 			Total: int32(len(req.GetResources())),
@@ -255,11 +255,11 @@ func (a *Activities) applySingleResource(ctx context.Context, resourceID string,
 }
 
 // Delete removes resources from the cluster
-func (a *Activities) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
+func (a *Activities) Delete(ctx context.Context, req *pb.DeleteInput) (*pb.DeleteOutput, error) {
 	logger := activity.GetLogger(ctx)
 	logger.Info("Deleting resources", "resource_count", len(req.GetResources()))
 
-	response := &pb.DeleteResponse{
+	response := &pb.DeleteOutput{
 		Results: make(map[string]*pb.DeleteResult),
 		Summary: &pb.DeleteSummary{
 			Total: int32(len(req.GetResources())),
@@ -312,11 +312,11 @@ func (a *Activities) deleteSingleResource(ctx context.Context, resourceID string
 }
 
 // GetStatus retrieves the current status of deployed resources
-func (a *Activities) GetStatus(ctx context.Context, req *pb.GetStatusRequest) (*pb.GetStatusResponse, error) {
+func (a *Activities) GetStatus(ctx context.Context, req *pb.GetStatusInput) (*pb.GetStatusOutput, error) {
 	logger := activity.GetLogger(ctx)
 	logger.Info("Getting resource status", "resource_count", len(req.GetResources()))
 
-	response := &pb.GetStatusResponse{
+	response := &pb.GetStatusOutput{
 		Results:       make(map[string]*pb.ResourceStatus),
 		OverallStatus: "unknown",
 	}

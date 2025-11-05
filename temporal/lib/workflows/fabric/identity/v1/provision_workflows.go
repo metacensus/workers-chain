@@ -62,19 +62,17 @@ func (w *provisionPeerWorkflow) Execute(ctx workflow.Context) (*identitypb.Provi
 	// Step 2: Register peer identity
 	logger.Info("Registering peer identity")
 	var regOutput *identitypb.RegisterIdentityOutput
-	err = workflow.ExecuteChildWorkflow(ctx, identitypb.RegisterIdentityWorkflowName,
-		&identitypb.RegisterIdentityWorkflowInput{
-			Req: &identitypb.RegisterIdentityInput{
-				Name:        w.input.Req.GetPeerId(),
-				Type:        "peer",
-				Secret:      secretOutput.GetSecret(),
-				Affiliation: w.input.Req.GetOrganization(),
-				Attributes: []*identitypb.Attribute{
-					{Name: "hf.Registrar.Roles", Value: "peer", Ecert: true},
-					{Name: "hf.Type", Value: "peer", Ecert: true},
-				},
-				MaxEnrollments: 1,
+	err = workflow.ExecuteActivity(activityCtx, identitypb.RegisterIdentityActivityName,
+		&identitypb.RegisterIdentityInput{
+			Name:        w.input.Req.GetPeerId(),
+			Type:        "peer",
+			Secret:      secretOutput.GetSecret(),
+			Affiliation: w.input.Req.GetOrganization(),
+			Attributes: []*identitypb.Attribute{
+				{Name: "hf.Registrar.Roles", Value: "peer", Ecert: true},
+				{Name: "hf.Type", Value: "peer", Ecert: true},
 			},
+			MaxEnrollments: 1,
 		}).Get(ctx, &regOutput)
 	if err != nil {
 		logger.Error("Failed to register peer identity", "error", err)
@@ -92,29 +90,25 @@ func (w *provisionPeerWorkflow) Execute(ctx workflow.Context) (*identitypb.Provi
 	hosts = append(hosts, w.input.Req.GetHosts()...)
 
 	// Start both enrollments in parallel
-	signingFuture := workflow.ExecuteChildWorkflow(ctx, identitypb.EnrollIdentityWorkflowName,
-		&identitypb.EnrollIdentityWorkflowInput{
-			Req: &identitypb.EnrollIdentityInput{
-				Name:    regOutput.GetName(),
-				Secret:  regOutput.GetSecret(),
-				Profile: "", // Default profile for signing
-				Csr: &identitypb.CSRInfo{
-					Cn:    w.input.Req.GetPeerId(),
-					Hosts: []string{w.input.Req.GetPeerId()},
-				},
+	signingFuture := workflow.ExecuteActivity(activityCtx, identitypb.EnrollIdentityActivityName,
+		&identitypb.EnrollIdentityInput{
+			Name:    regOutput.GetName(),
+			Secret:  regOutput.GetSecret(),
+			Profile: "", // Default profile for signing
+			Csr: &identitypb.CSRInfo{
+				Cn:    w.input.Req.GetPeerId(),
+				Hosts: hosts,
 			},
 		})
 
-	tlsFuture := workflow.ExecuteChildWorkflow(ctx, identitypb.EnrollIdentityWorkflowName,
-		&identitypb.EnrollIdentityWorkflowInput{
-			Req: &identitypb.EnrollIdentityInput{
-				Name:    regOutput.GetName(),
-				Secret:  regOutput.GetSecret(),
-				Profile: "tls",
-				Csr: &identitypb.CSRInfo{
-					Cn:    w.input.Req.GetPeerId(),
-					Hosts: hosts,
-				},
+	tlsFuture := workflow.ExecuteActivity(activityCtx, identitypb.EnrollIdentityActivityName,
+		&identitypb.EnrollIdentityInput{
+			Name:    regOutput.GetName(),
+			Secret:  regOutput.GetSecret(),
+			Profile: "tls",
+			Csr: &identitypb.CSRInfo{
+				Cn:    w.input.Req.GetPeerId(),
+				Hosts: hosts,
 			},
 		})
 
@@ -132,52 +126,31 @@ func (w *provisionPeerWorkflow) Execute(ctx workflow.Context) (*identitypb.Provi
 		return nil, fmt.Errorf("failed to enroll for TLS cert: %w", err)
 	}
 
-	// Step 4: Store signing secret in Vault
-	logger.Info("Storing signing secret in Vault")
-	var signingSecretRef *vaultpb.SecretRef
-	err = workflow.ExecuteChildWorkflow(ctx, vaultpb.StoreSecretWorkflowName,
-		&vaultpb.StoreSecretWorkflowInput{
-			Req: &vaultpb.Secret{
-				Name:      fmt.Sprintf("peer-%s-signing", w.input.Req.GetPeerId()),
-				Namespace: w.input.Req.GetNamespace(),
-				Data: map[string][]byte{
-					"cert.pem": signingEnroll.GetCertificate(),
-					"key.pem":  signingEnroll.GetPrivateKey(),
-				},
+	// Step 4: Store peer certificates in Vault using MSP directory structure
+	logger.Info("Storing peer certificates in Vault")
+	var storeOutput *vaultpb.StoreSecretOutput
+	vaultPaths := NewVaultPaths(w.input.Req.GetOrganization())
+	err = workflow.ExecuteActivity(activityCtx, vaultpb.StoreSecretActivityName,
+		&vaultpb.StoreSecretInput{
+			Path: vaultPaths.PeerMSP(w.input.Req.GetPeerId()),
+			Data: map[string][]byte{
+				fmt.Sprintf("signcerts/peer-%s.pem", w.input.Req.GetPeerId()):    signingEnroll.GetCertificate(),
+				fmt.Sprintf("keystore/peer-%s-key.pem", w.input.Req.GetPeerId()): signingEnroll.GetPrivateKey(),
+				fmt.Sprintf("tlscerts/peer-%s-tls.pem", w.input.Req.GetPeerId()): tlsEnroll.GetCertificate(),
 			},
-		}).Get(ctx, &signingSecretRef)
+		}).Get(ctx, &storeOutput)
 	if err != nil {
-		logger.Error("Failed to store signing secret", "error", err)
-		return nil, fmt.Errorf("failed to store signing secret: %w", err)
-	}
-
-	// Step 5: Store TLS secret in Vault
-	logger.Info("Storing TLS secret in Vault")
-	var tlsSecretRef *vaultpb.SecretRef
-	err = workflow.ExecuteChildWorkflow(ctx, vaultpb.StoreSecretWorkflowName,
-		&vaultpb.StoreSecretWorkflowInput{
-			Req: &vaultpb.Secret{
-				Name:      fmt.Sprintf("peer-%s-tls", w.input.Req.GetPeerId()),
-				Namespace: w.input.Req.GetNamespace(),
-				Data: map[string][]byte{
-					"cert.pem": tlsEnroll.GetCertificate(),
-					"key.pem":  tlsEnroll.GetPrivateKey(),
-				},
-			},
-		}).Get(ctx, &tlsSecretRef)
-	if err != nil {
-		logger.Error("Failed to store TLS secret", "error", err)
-		return nil, fmt.Errorf("failed to store TLS secret: %w", err)
+		logger.Error("Failed to store peer certificates", "error", err)
+		return nil, fmt.Errorf("failed to store peer certificates: %w", err)
 	}
 
 	logger.Info("ProvisionPeer workflow completed successfully",
 		"peer_id", w.input.Req.GetPeerId(),
-		"signing_secret", signingSecretRef.GetName(),
-		"tls_secret", tlsSecretRef.GetName())
+		"vault_path", vaultPaths.PeerMSP(w.input.Req.GetPeerId()))
 
 	return &identitypb.ProvisionPeerOutput{
-		SigningSecret: signingSecretRef,
-		TlsSecret:     tlsSecretRef,
+		SigningSecret: storeOutput.SecretRef,
+		TlsSecret:     storeOutput.SecretRef, // Both are in the same secret now
 		IdentityName:  regOutput.GetName(),
 		Organization:  w.input.Req.GetOrganization(),
 	}, nil
@@ -235,19 +208,17 @@ func (w *provisionOrdererWorkflow) Execute(ctx workflow.Context) (*identitypb.Pr
 	// Step 2: Register orderer identity
 	logger.Info("Registering orderer identity")
 	var regOutput *identitypb.RegisterIdentityOutput
-	err = workflow.ExecuteChildWorkflow(ctx, identitypb.RegisterIdentityWorkflowName,
-		&identitypb.RegisterIdentityWorkflowInput{
-			Req: &identitypb.RegisterIdentityInput{
-				Name:        w.input.Req.GetOrdererId(),
-				Type:        "orderer",
-				Secret:      secretOutput.GetSecret(),
-				Affiliation: w.input.Req.GetOrganization(),
-				Attributes: []*identitypb.Attribute{
-					{Name: "hf.Registrar.Roles", Value: "orderer", Ecert: true},
-					{Name: "hf.Type", Value: "orderer", Ecert: true},
-				},
-				MaxEnrollments: 1,
+	err = workflow.ExecuteActivity(activityCtx, identitypb.RegisterIdentityActivityName,
+		&identitypb.RegisterIdentityInput{
+			Name:        w.input.Req.GetOrdererId(),
+			Type:        "orderer",
+			Secret:      secretOutput.GetSecret(),
+			Affiliation: w.input.Req.GetOrganization(),
+			Attributes: []*identitypb.Attribute{
+				{Name: "hf.Registrar.Roles", Value: "orderer", Ecert: true},
+				{Name: "hf.Type", Value: "orderer", Ecert: true},
 			},
+			MaxEnrollments: 1,
 		}).Get(ctx, &regOutput)
 	if err != nil {
 		logger.Error("Failed to register orderer identity", "error", err)
@@ -265,29 +236,25 @@ func (w *provisionOrdererWorkflow) Execute(ctx workflow.Context) (*identitypb.Pr
 	hosts = append(hosts, w.input.Req.GetHosts()...)
 
 	// Start both enrollments in parallel
-	signingFuture := workflow.ExecuteChildWorkflow(ctx, identitypb.EnrollIdentityWorkflowName,
-		&identitypb.EnrollIdentityWorkflowInput{
-			Req: &identitypb.EnrollIdentityInput{
-				Name:    regOutput.GetName(),
-				Secret:  regOutput.GetSecret(),
-				Profile: "", // Default profile for signing
-				Csr: &identitypb.CSRInfo{
-					Cn:    w.input.Req.GetOrdererId(),
-					Hosts: []string{w.input.Req.GetOrdererId()},
-				},
+	signingFuture := workflow.ExecuteActivity(activityCtx, identitypb.EnrollIdentityActivityName,
+		&identitypb.EnrollIdentityInput{
+			Name:    regOutput.GetName(),
+			Secret:  regOutput.GetSecret(),
+			Profile: "", // Default profile for signing
+			Csr: &identitypb.CSRInfo{
+				Cn:    w.input.Req.GetOrdererId(),
+				Hosts: hosts,
 			},
 		})
 
-	tlsFuture := workflow.ExecuteChildWorkflow(ctx, identitypb.EnrollIdentityWorkflowName,
-		&identitypb.EnrollIdentityWorkflowInput{
-			Req: &identitypb.EnrollIdentityInput{
-				Name:    regOutput.GetName(),
-				Secret:  regOutput.GetSecret(),
-				Profile: "tls",
-				Csr: &identitypb.CSRInfo{
-					Cn:    w.input.Req.GetOrdererId(),
-					Hosts: hosts,
-				},
+	tlsFuture := workflow.ExecuteActivity(activityCtx, identitypb.EnrollIdentityActivityName,
+		&identitypb.EnrollIdentityInput{
+			Name:    regOutput.GetName(),
+			Secret:  regOutput.GetSecret(),
+			Profile: "tls",
+			Csr: &identitypb.CSRInfo{
+				Cn:    w.input.Req.GetOrdererId(),
+				Hosts: hosts,
 			},
 		})
 
@@ -305,52 +272,31 @@ func (w *provisionOrdererWorkflow) Execute(ctx workflow.Context) (*identitypb.Pr
 		return nil, fmt.Errorf("failed to enroll for TLS cert: %w", err)
 	}
 
-	// Step 4: Store signing secret in Vault
-	logger.Info("Storing signing secret in Vault")
-	var signingSecretRef *vaultpb.SecretRef
-	err = workflow.ExecuteChildWorkflow(ctx, vaultpb.StoreSecretWorkflowName,
-		&vaultpb.StoreSecretWorkflowInput{
-			Req: &vaultpb.Secret{
-				Name:      fmt.Sprintf("orderer-%s-signing", w.input.Req.GetOrdererId()),
-				Namespace: w.input.Req.GetNamespace(),
-				Data: map[string][]byte{
-					"cert.pem": signingEnroll.GetCertificate(),
-					"key.pem":  signingEnroll.GetPrivateKey(),
-				},
+	// Step 4: Store orderer certificates in Vault using MSP directory structure
+	logger.Info("Storing orderer certificates in Vault")
+	var storeOutput *vaultpb.StoreSecretOutput
+	vaultPaths := NewVaultPaths(w.input.Req.GetOrganization())
+	err = workflow.ExecuteActivity(activityCtx, vaultpb.StoreSecretActivityName,
+		&vaultpb.StoreSecretInput{
+			Path: vaultPaths.OrdererMSP(w.input.Req.GetOrdererId()),
+			Data: map[string][]byte{
+				fmt.Sprintf("signcerts/orderer-%s.pem", w.input.Req.GetOrdererId()):    signingEnroll.GetCertificate(),
+				fmt.Sprintf("keystore/orderer-%s-key.pem", w.input.Req.GetOrdererId()): signingEnroll.GetPrivateKey(),
+				fmt.Sprintf("tlscerts/orderer-%s-tls.pem", w.input.Req.GetOrdererId()): tlsEnroll.GetCertificate(),
 			},
-		}).Get(ctx, &signingSecretRef)
+		}).Get(ctx, &storeOutput)
 	if err != nil {
-		logger.Error("Failed to store signing secret", "error", err)
-		return nil, fmt.Errorf("failed to store signing secret: %w", err)
-	}
-
-	// Step 5: Store TLS secret in Vault
-	logger.Info("Storing TLS secret in Vault")
-	var tlsSecretRef *vaultpb.SecretRef
-	err = workflow.ExecuteChildWorkflow(ctx, vaultpb.StoreSecretWorkflowName,
-		&vaultpb.StoreSecretWorkflowInput{
-			Req: &vaultpb.Secret{
-				Name:      fmt.Sprintf("orderer-%s-tls", w.input.Req.GetOrdererId()),
-				Namespace: w.input.Req.GetNamespace(),
-				Data: map[string][]byte{
-					"cert.pem": tlsEnroll.GetCertificate(),
-					"key.pem":  tlsEnroll.GetPrivateKey(),
-				},
-			},
-		}).Get(ctx, &tlsSecretRef)
-	if err != nil {
-		logger.Error("Failed to store TLS secret", "error", err)
-		return nil, fmt.Errorf("failed to store TLS secret: %w", err)
+		logger.Error("Failed to store orderer certificates", "error", err)
+		return nil, fmt.Errorf("failed to store orderer certificates: %w", err)
 	}
 
 	logger.Info("ProvisionOrderer workflow completed successfully",
 		"orderer_id", w.input.Req.GetOrdererId(),
-		"signing_secret", signingSecretRef.GetName(),
-		"tls_secret", tlsSecretRef.GetName())
+		"vault_path", vaultPaths.OrdererMSP(w.input.Req.GetOrdererId()))
 
 	return &identitypb.ProvisionOrdererOutput{
-		SigningSecret: signingSecretRef,
-		TlsSecret:     tlsSecretRef,
+		SigningSecret: storeOutput.SecretRef,
+		TlsSecret:     storeOutput.SecretRef, // Both are in the same secret now
 		IdentityName:  regOutput.GetName(),
 		Organization:  w.input.Req.GetOrganization(),
 	}, nil
@@ -405,16 +351,16 @@ func (w *provisionClientWorkflow) Execute(ctx workflow.Context) (*identitypb.Pro
 	// Step 2: Register client identity
 	logger.Info("Registering client identity")
 	var regOutput *identitypb.RegisterIdentityOutput
-	err = workflow.ExecuteChildWorkflow(ctx, identitypb.RegisterIdentityWorkflowName,
-		&identitypb.RegisterIdentityWorkflowInput{
-			Req: &identitypb.RegisterIdentityInput{
-				Name:           w.input.Req.GetClientId(),
-				Type:           "client",
-				Secret:         secretOutput.GetSecret(),
-				Affiliation:    w.input.Req.GetOrganization(),
-				Attributes:     w.input.Req.GetCustomAttributes(),
-				MaxEnrollments: -1, // Unlimited for clients
+	err = workflow.ExecuteActivity(activityCtx, identitypb.RegisterIdentityActivityName,
+		&identitypb.RegisterIdentityInput{
+			Name:        w.input.Req.GetClientId(),
+			Type:        "client",
+			Secret:      secretOutput.GetSecret(),
+			Affiliation: w.input.Req.GetOrganization(),
+			Attributes: []*identitypb.Attribute{
+				{Name: "hf.Registrar.Roles", Value: "user", Ecert: true},
 			},
+			MaxEnrollments: 1,
 		}).Get(ctx, &regOutput)
 	if err != nil {
 		logger.Error("Failed to register client identity", "error", err)
@@ -424,16 +370,14 @@ func (w *provisionClientWorkflow) Execute(ctx workflow.Context) (*identitypb.Pro
 	// Step 3: Enroll for signing certificate
 	logger.Info("Enrolling client for signing certificate")
 	var signingEnroll *identitypb.EnrollIdentityOutput
-	err = workflow.ExecuteChildWorkflow(ctx, identitypb.EnrollIdentityWorkflowName,
-		&identitypb.EnrollIdentityWorkflowInput{
-			Req: &identitypb.EnrollIdentityInput{
-				Name:    regOutput.GetName(),
-				Secret:  regOutput.GetSecret(),
-				Profile: "", // Default profile for signing
-				Csr: &identitypb.CSRInfo{
-					Cn:    w.input.Req.GetClientId(),
-					Hosts: []string{w.input.Req.GetClientId()},
-				},
+	err = workflow.ExecuteActivity(activityCtx, identitypb.EnrollIdentityActivityName,
+		&identitypb.EnrollIdentityInput{
+			Name:    regOutput.GetName(),
+			Secret:  regOutput.GetSecret(),
+			Profile: "", // Default profile for signing
+			Csr: &identitypb.CSRInfo{
+				Cn:    w.input.Req.GetClientId(),
+				Hosts: []string{w.input.Req.GetClientId()},
 			},
 		}).Get(ctx, &signingEnroll)
 	if err != nil {
@@ -441,23 +385,21 @@ func (w *provisionClientWorkflow) Execute(ctx workflow.Context) (*identitypb.Pro
 		return nil, fmt.Errorf("failed to enroll for signing cert: %w", err)
 	}
 
-	// Step 4: Store signing secret in Vault
-	logger.Info("Storing signing secret in Vault")
-	var signingSecretRef *vaultpb.SecretRef
-	err = workflow.ExecuteChildWorkflow(ctx, vaultpb.StoreSecretWorkflowName,
-		&vaultpb.StoreSecretWorkflowInput{
-			Req: &vaultpb.Secret{
-				Name:      fmt.Sprintf("client-%s-signing", w.input.Req.GetClientId()),
-				Namespace: w.input.Req.GetNamespace(),
-				Data: map[string][]byte{
-					"cert.pem": signingEnroll.GetCertificate(),
-					"key.pem":  signingEnroll.GetPrivateKey(),
-				},
+	// Step 4: Store signing certificate in Vault
+	logger.Info("Storing client signing certificate in Vault")
+	var signingStoreOutput *vaultpb.StoreSecretOutput
+	vaultPaths := NewVaultPaths(w.input.Req.GetOrganization())
+	err = workflow.ExecuteActivity(activityCtx, vaultpb.StoreSecretActivityName,
+		&vaultpb.StoreSecretInput{
+			Path: vaultPaths.ClientMSP(w.input.Req.GetClientId()),
+			Data: map[string][]byte{
+				fmt.Sprintf("signcerts/client-%s.pem", w.input.Req.GetClientId()):    signingEnroll.GetCertificate(),
+				fmt.Sprintf("keystore/client-%s-key.pem", w.input.Req.GetClientId()): signingEnroll.GetPrivateKey(),
 			},
-		}).Get(ctx, &signingSecretRef)
+		}).Get(ctx, &signingStoreOutput)
 	if err != nil {
-		logger.Error("Failed to store signing secret", "error", err)
-		return nil, fmt.Errorf("failed to store signing secret: %w", err)
+		logger.Error("Failed to store client signing certificate", "error", err)
+		return nil, fmt.Errorf("failed to store client signing certificate: %w", err)
 	}
 
 	// Step 5: Optionally enroll for TLS certificate
@@ -470,16 +412,14 @@ func (w *provisionClientWorkflow) Execute(ctx workflow.Context) (*identitypb.Pro
 		hosts = append(hosts, w.input.Req.GetHosts()...)
 
 		var tlsEnroll *identitypb.EnrollIdentityOutput
-		err = workflow.ExecuteChildWorkflow(ctx, identitypb.EnrollIdentityWorkflowName,
-			&identitypb.EnrollIdentityWorkflowInput{
-				Req: &identitypb.EnrollIdentityInput{
-					Name:    regOutput.GetName(),
-					Secret:  regOutput.GetSecret(),
-					Profile: "tls",
-					Csr: &identitypb.CSRInfo{
-						Cn:    w.input.Req.GetClientId(),
-						Hosts: hosts,
-					},
+		err = workflow.ExecuteActivity(activityCtx, identitypb.EnrollIdentityActivityName,
+			&identitypb.EnrollIdentityInput{
+				Name:    regOutput.GetName(),
+				Secret:  regOutput.GetSecret(),
+				Profile: "tls",
+				Csr: &identitypb.CSRInfo{
+					Cn:    w.input.Req.GetClientId(),
+					Hosts: hosts,
 				},
 			}).Get(ctx, &tlsEnroll)
 		if err != nil {
@@ -487,32 +427,30 @@ func (w *provisionClientWorkflow) Execute(ctx workflow.Context) (*identitypb.Pro
 			return nil, fmt.Errorf("failed to enroll for TLS cert: %w", err)
 		}
 
-		// Store TLS secret
-		logger.Info("Storing TLS secret in Vault")
-		err = workflow.ExecuteChildWorkflow(ctx, vaultpb.StoreSecretWorkflowName,
-			&vaultpb.StoreSecretWorkflowInput{
-				Req: &vaultpb.Secret{
-					Name:      fmt.Sprintf("client-%s-tls", w.input.Req.GetClientId()),
-					Namespace: w.input.Req.GetNamespace(),
-					Data: map[string][]byte{
-						"cert.pem": tlsEnroll.GetCertificate(),
-						"key.pem":  tlsEnroll.GetPrivateKey(),
-					},
+		// Store TLS certificate
+		logger.Info("Storing client TLS certificate in Vault")
+		var tlsStoreOutput *vaultpb.StoreSecretOutput
+		err = workflow.ExecuteActivity(activityCtx, vaultpb.StoreSecretActivityName,
+			&vaultpb.StoreSecretInput{
+				Path: vaultPaths.ClientTLSMSP(w.input.Req.GetClientId()),
+				Data: map[string][]byte{
+					fmt.Sprintf("tlscerts/client-%s-tls.pem", w.input.Req.GetClientId()):     tlsEnroll.GetCertificate(),
+					fmt.Sprintf("keystore/client-%s-tls-key.pem", w.input.Req.GetClientId()): tlsEnroll.GetPrivateKey(),
 				},
-			}).Get(ctx, &tlsSecretRef)
+			}).Get(ctx, &tlsStoreOutput)
 		if err != nil {
-			logger.Error("Failed to store TLS secret", "error", err)
-			return nil, fmt.Errorf("failed to store TLS secret: %w", err)
+			logger.Error("Failed to store client TLS certificate", "error", err)
+			return nil, fmt.Errorf("failed to store client TLS certificate: %w", err)
 		}
+		tlsSecretRef = tlsStoreOutput.SecretRef
 	}
 
 	logger.Info("ProvisionClient workflow completed successfully",
 		"client_id", w.input.Req.GetClientId(),
-		"signing_secret", signingSecretRef.GetName(),
 		"tls_enabled", w.input.Req.GetEnableTls())
 
 	return &identitypb.ProvisionClientOutput{
-		SigningSecret: signingSecretRef,
+		SigningSecret: signingStoreOutput.SecretRef,
 		TlsSecret:     tlsSecretRef,
 		IdentityName:  regOutput.GetName(),
 		Organization:  w.input.Req.GetOrganization(),
@@ -545,6 +483,18 @@ func (w *provisionOrgWorkflow) Execute(ctx workflow.Context) (*identitypb.Provis
 	}
 	ctx = workflow.WithChildOptions(ctx, wo)
 
+	// Set up activity options for vault operations
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    3,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
+
 	// Step 1: Bootstrap admin identity
 	logger.Info("Bootstrapping admin identity")
 	var adminOutput *identitypb.BootstrapAdminOutput
@@ -557,47 +507,43 @@ func (w *provisionOrgWorkflow) Execute(ctx workflow.Context) (*identitypb.Provis
 		return nil, fmt.Errorf("failed to bootstrap admin: %w", err)
 	}
 
-	// Step 2: Store admin secret in Vault
-	logger.Info("Storing admin secret in Vault")
-	var adminSecretRef *vaultpb.SecretRef
-	err = workflow.ExecuteChildWorkflow(ctx, vaultpb.StoreSecretWorkflowName,
-		&vaultpb.StoreSecretWorkflowInput{
-			Req: &vaultpb.Secret{
-				Name:      fmt.Sprintf("%s-admin", w.input.Req.GetOrganization()),
-				Namespace: w.input.Req.GetNamespace(),
-				Data: map[string][]byte{
-					"cert.pem":    adminOutput.GetAdminIdentity().GetCertificate(),
-					"key.pem":     adminOutput.GetAdminIdentity().GetPrivateKey(),
-					"ca-cert.pem": adminOutput.GetAdminIdentity().GetCaCert(),
-				},
+	// Step 2: Store admin identity in Vault using MSP directory structure
+	logger.Info("Storing admin identity in Vault")
+	var adminStoreOutput *vaultpb.StoreSecretOutput
+	vaultPaths := NewVaultPaths(w.input.Req.GetOrganization())
+	err = workflow.ExecuteActivity(activityCtx, vaultpb.StoreSecretActivityName,
+		&vaultpb.StoreSecretInput{
+			Path: vaultPaths.AdminMSP(),
+			Data: map[string][]byte{
+				"signcerts/admin.pem":    adminOutput.GetAdminIdentity().GetCertificate(),
+				"keystore/admin-key.pem": adminOutput.GetAdminIdentity().GetPrivateKey(),
+				"ca-certs/org-ca.pem":    adminOutput.GetAdminIdentity().GetCaCert(),
 			},
-		}).Get(ctx, &adminSecretRef)
+		}).Get(ctx, &adminStoreOutput)
 	if err != nil {
-		logger.Error("Failed to store admin secret", "error", err)
-		return nil, fmt.Errorf("failed to store admin secret: %w", err)
+		logger.Error("Failed to store admin identity", "error", err)
+		return nil, fmt.Errorf("failed to store admin identity: %w", err)
 	}
+	adminSecretRef := adminStoreOutput.SecretRef
 
-	// Step 3: Get CA certificates (we have them from admin enrollment)
-	// Store CA certificates as org-wide secret
-	logger.Info("Storing org-wide CA certificates")
-	var caCertRef *vaultpb.SecretRef
-	err = workflow.ExecuteChildWorkflow(ctx, vaultpb.StoreSecretWorkflowName,
-		&vaultpb.StoreSecretWorkflowInput{
-			Req: &vaultpb.Secret{
-				Name:      fmt.Sprintf("%s-ca-certificates", w.input.Req.GetOrganization()),
-				Namespace: w.input.Req.GetNamespace(),
-				Data: map[string][]byte{
-					"ca-cert.pem": adminOutput.GetAdminIdentity().GetCaCert(),
-				},
+	// Step 3: Store CA certificates in Vault
+	logger.Info("Storing CA certificates in Vault")
+	var caCertStoreOutput *vaultpb.StoreSecretOutput
+	err = workflow.ExecuteActivity(activityCtx, vaultpb.StoreSecretActivityName,
+		&vaultpb.StoreSecretInput{
+			Path: vaultPaths.CACerts(),
+			Data: map[string][]byte{
+				"org-ca.pem": adminOutput.GetAdminIdentity().GetCaCert(),
 			},
-		}).Get(ctx, &caCertRef)
+		}).Get(ctx, &caCertStoreOutput)
 	if err != nil {
 		logger.Error("Failed to store CA certificates", "error", err)
 		return nil, fmt.Errorf("failed to store CA certificates: %w", err)
 	}
+	caCertRef := caCertStoreOutput.SecretRef
 
-	// Step 4: Store NodeOU configuration as org-wide secret
-	logger.Info("Storing org-wide NodeOU configuration")
+	// Step 4: Store NodeOU configuration in Vault
+	logger.Info("Storing NodeOU configuration in Vault")
 	nodeOuBytes, err := serializeNodeOUConfig(w.input.Req.GetOrgNodeOus())
 	if err != nil {
 		logger.Error("Failed to serialize NodeOU config", "error", err)
@@ -605,20 +551,19 @@ func (w *provisionOrgWorkflow) Execute(ctx workflow.Context) (*identitypb.Provis
 	}
 
 	var nodeOuConfigRef *vaultpb.SecretRef
-	err = workflow.ExecuteChildWorkflow(ctx, vaultpb.StoreSecretWorkflowName,
-		&vaultpb.StoreSecretWorkflowInput{
-			Req: &vaultpb.Secret{
-				Name:      fmt.Sprintf("%s-node-ou-config", w.input.Req.GetOrganization()),
-				Namespace: w.input.Req.GetNamespace(),
-				Data: map[string][]byte{
-					"config.yaml": nodeOuBytes,
-				},
+	var nodeOuConfigStoreOutput *vaultpb.StoreSecretOutput
+	err = workflow.ExecuteActivity(activityCtx, vaultpb.StoreSecretActivityName,
+		&vaultpb.StoreSecretInput{
+			Path: vaultPaths.Config(),
+			Data: map[string][]byte{
+				"node-ou-config.yaml": nodeOuBytes,
 			},
-		}).Get(ctx, &nodeOuConfigRef)
+		}).Get(ctx, &nodeOuConfigStoreOutput)
 	if err != nil {
 		logger.Error("Failed to store NodeOU config", "error", err)
 		return nil, fmt.Errorf("failed to store NodeOU config: %w", err)
 	}
+	nodeOuConfigRef = nodeOuConfigStoreOutput.SecretRef
 
 	// Step 5: Provision all peers in parallel
 	logger.Info("Provisioning peers", "count", len(w.input.Req.GetPeerIds()))
