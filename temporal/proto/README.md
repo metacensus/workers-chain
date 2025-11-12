@@ -61,6 +61,17 @@
     - [fabric.identity.v1.RegisterIdentityOutput](#fabric-identity-v1-registeridentityoutput)
     - [fabric.identity.v1.RevokeDefaultAdminInput](#fabric-identity-v1-revokedefaultadmininput)
     - [fabric.identity.v1.RevokeDefaultAdminOutput](#fabric-identity-v1-revokedefaultadminoutput)
+- [helm.v1](#helm-v1)
+  - Services
+    - [helm.v1.Helm](#helm-v1-helm)
+      - [Activities](#helm-v1-helm-activities)
+        - [helm.v1.RenderChart](#helm-v1-renderchart-activity)
+  - Messages
+    - [helm.v1.RenderChartInput](#helm-v1-renderchartinput)
+    - [helm.v1.RenderChartOutput](#helm-v1-renderchartoutput)
+    - [helm.v1.RenderChartOutput.FailuresEntry](#helm-v1-renderchartoutput-failuresentry)
+    - [helm.v1.RenderChartOutput.ResourcesEntry](#helm-v1-renderchartoutput-resourcesentry)
+    - [helm.v1.Resource](#helm-v1-resource)
 - [kube.v1](#kube-v1)
   - Services
     - [kube.v1.Kubernetes](#kube-v1-kubernetes)
@@ -2923,6 +2934,252 @@ go_name: Message</pre></td>
 <td><pre>
 json_name: success
 go_name: Success</pre></td>
+</tr>
+</table>
+
+
+
+<a name="helm-v1"></a>
+# helm.v1
+
+<a name="helm-v1-services"></a>
+## Services
+
+<a name="helm-v1-helm"></a>
+## helm.v1.Helm
+
+<pre>
+Helm service defines activities for rendering Helm charts into Kubernetes manifests
+Activities parse the rendered YAML and return individual resources
+</pre>   
+
+<a name="helm-v1-helm-activities"></a>
+### Activities
+
+---
+<a name="helm-v1-renderchart-activity"></a>
+### helm.v1.RenderChart
+
+<pre>
+RenderChart renders a Helm chart with given values and returns parsed resources
+</pre>
+
+**Input:** [helm.v1.RenderChartInput](#helm-v1-renderchartinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>chart_name</td>
+<td>string</td>
+<td><pre>
+chart_name is the chart name to render<br>
+
+json_name: chartName
+go_name: ChartName</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+namespace is the Kubernetes namespace for template context (optional)<br>
+
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>values_yaml</td>
+<td>string</td>
+<td><pre>
+values_yaml is Helm values as a YAML string (merged with chart defaults)<br>
+
+json_name: valuesYaml
+go_name: ValuesYaml</pre></td>
+</tr>
+</table>
+
+**Output:** [helm.v1.RenderChartOutput](#helm-v1-renderchartoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>failures</td>
+<td><a href="#helm-v1-renderchartoutput-failuresentry">helm.v1.RenderChartOutput.FailuresEntry</a></td>
+<td><pre>
+failures is a map of resource_id → error message for resources that failed to parse<br>
+
+json_name: failures
+go_name: Failures</pre></td>
+</tr><tr>
+<td>resources</td>
+<td><a href="#helm-v1-renderchartoutput-resourcesentry">helm.v1.RenderChartOutput.ResourcesEntry</a></td>
+<td><pre>
+resources is a map of resource_id → rendered resource
+Key is caller-defined (e.g., "deployment-api", "service-api")<br>
+
+json_name: resources
+go_name: Resources</pre></td>
+</tr>
+</table>   
+
+<a name="helm-v1-messages"></a>
+## Messages
+
+<a name="helm-v1-renderchartinput"></a>
+### helm.v1.RenderChartInput
+
+<pre>
+RenderChartInput specifies which chart to render and with what values
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>chart_name</td>
+<td>string</td>
+<td><pre>
+chart_name is the chart name to render<br>
+
+json_name: chartName
+go_name: ChartName</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+namespace is the Kubernetes namespace for template context (optional)<br>
+
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>values_yaml</td>
+<td>string</td>
+<td><pre>
+values_yaml is Helm values as a YAML string (merged with chart defaults)<br>
+
+json_name: valuesYaml
+go_name: ValuesYaml</pre></td>
+</tr>
+</table>
+
+
+
+<a name="helm-v1-renderchartoutput"></a>
+### helm.v1.RenderChartOutput
+
+<pre>
+RenderChartOutput represents the rendered resources from a chart
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>failures</td>
+<td><a href="#helm-v1-renderchartoutput-failuresentry">helm.v1.RenderChartOutput.FailuresEntry</a></td>
+<td><pre>
+failures is a map of resource_id → error message for resources that failed to parse<br>
+
+json_name: failures
+go_name: Failures</pre></td>
+</tr><tr>
+<td>resources</td>
+<td><a href="#helm-v1-renderchartoutput-resourcesentry">helm.v1.RenderChartOutput.ResourcesEntry</a></td>
+<td><pre>
+resources is a map of resource_id → rendered resource
+Key is caller-defined (e.g., "deployment-api", "service-api")<br>
+
+json_name: resources
+go_name: Resources</pre></td>
+</tr>
+</table>
+
+
+
+<a name="helm-v1-renderchartoutput-failuresentry"></a>
+### helm.v1.RenderChartOutput.FailuresEntry
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>key</td>
+<td>string</td>
+<td><pre>
+json_name: key
+go_name: Key</pre></td>
+</tr><tr>
+<td>value</td>
+<td>string</td>
+<td><pre>
+json_name: value
+go_name: Value</pre></td>
+</tr>
+</table>
+
+
+
+<a name="helm-v1-renderchartoutput-resourcesentry"></a>
+### helm.v1.RenderChartOutput.ResourcesEntry
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>key</td>
+<td>string</td>
+<td><pre>
+json_name: key
+go_name: Key</pre></td>
+</tr><tr>
+<td>value</td>
+<td><a href="#helm-v1-resource">helm.v1.Resource</a></td>
+<td><pre>
+json_name: value
+go_name: Value</pre></td>
+</tr>
+</table>
+
+
+
+<a name="helm-v1-resource"></a>
+### helm.v1.Resource
+
+<pre>
+Resource represents a single rendered Kubernetes resource as YAML
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>manifest_yaml</td>
+<td>bytes</td>
+<td><pre>
+manifest_yaml is the complete YAML definition of the resource<br>
+
+json_name: manifestYaml
+go_name: ManifestYaml</pre></td>
 </tr>
 </table>
 

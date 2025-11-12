@@ -56,6 +56,13 @@ packages:
     interfaces:
       KubernetesActivities:
 
+  # Helm v1
+  github.com/metacensus/infra/temporal/gen/workflows/helm/v1:
+    config:
+      dir: "mocks/workflows/helm/v1"
+    interfaces:
+      HelmActivities:
+
   # ============================================================================
   # IMPLEMENTATION INTERFACES - Clients from implementation code
   # Used for testing activity implementations with mocked external dependencies
@@ -85,6 +92,14 @@ packages:
       outpkg: "kubev1"
     interfaces:
       KubeClient:
+
+  # Helm v1 client (RepoClient is the repository abstraction)
+  github.com/metacensus/infra/temporal/lib/workflows/helm/v1:
+    config:
+      dir: "mocks/workflows/helm/v1"
+      outpkg: "helmv1"
+    interfaces:
+      RepoClient:
 
   # NOTE: Terraform and S3 client mocks will be added once implementations are created
 
