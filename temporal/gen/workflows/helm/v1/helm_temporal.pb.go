@@ -22,18 +22,23 @@ var HelmTaskQueue = "helm"
 
 // helm.v1.Helm activity names
 const (
-	RenderChartActivityName = "helm.v1.RenderChart"
+	RenderChartActivityName             = "helm.v1.RenderChart"
+	RenderChartWithTemplateActivityName = "helm.v1.RenderChartWithTemplate"
 )
 
 // HelmActivities describes available worker activities
 type HelmActivities interface {
 	// RenderChart renders a Helm chart with given values and returns parsed resources
 	RenderChart(ctx context.Context, req *RenderChartInput) (*RenderChartOutput, error)
+
+	// RenderChartWithTemplate renders a Helm chart after populating a values template
+	RenderChartWithTemplate(ctx context.Context, req *RenderChartWithTemplateInput) (*RenderChartOutput, error)
 }
 
 // RegisterHelmActivities registers activities with a worker
 func RegisterHelmActivities(r worker.ActivityRegistry, activities HelmActivities) {
 	RegisterRenderChartActivity(r, activities.RenderChart)
+	RegisterRenderChartWithTemplateActivity(r, activities.RenderChartWithTemplate)
 }
 
 // RegisterRenderChartActivity registers a helm.v1.RenderChart activity
@@ -292,6 +297,266 @@ func (o *RenderChartLocalActivityOptions) WithScheduleToCloseTimeout(d time.Dura
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
 func (o *RenderChartLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *RenderChartLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterRenderChartWithTemplateActivity registers a helm.v1.RenderChartWithTemplate activity
+func RegisterRenderChartWithTemplateActivity(r worker.ActivityRegistry, fn func(context.Context, *RenderChartWithTemplateInput) (*RenderChartOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: RenderChartWithTemplateActivityName,
+	})
+}
+
+// RenderChartWithTemplateFuture describes a(n) helm.v1.RenderChartWithTemplate activity execution
+type RenderChartWithTemplateFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *RenderChartWithTemplateFuture) Get(ctx workflow.Context) (*RenderChartOutput, error) {
+	var resp RenderChartOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *RenderChartWithTemplateFuture) Select(sel workflow.Selector, fn func(*RenderChartWithTemplateFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// RenderChartWithTemplate renders a Helm chart after populating a values template
+func RenderChartWithTemplate(ctx workflow.Context, req *RenderChartWithTemplateInput, options ...*RenderChartWithTemplateActivityOptions) (*RenderChartOutput, error) {
+	return RenderChartWithTemplateAsync(ctx, req, options...).Get(ctx)
+}
+
+// RenderChartWithTemplate renders a Helm chart after populating a values template
+func RenderChartWithTemplateAsync(ctx workflow.Context, req *RenderChartWithTemplateInput, options ...*RenderChartWithTemplateActivityOptions) *RenderChartWithTemplateFuture {
+	var o *RenderChartWithTemplateActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewRenderChartWithTemplateActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &RenderChartWithTemplateFuture{Future: errF}
+	}
+	activity := RenderChartWithTemplateActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &RenderChartWithTemplateFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// RenderChartWithTemplate renders a Helm chart after populating a values template
+func RenderChartWithTemplateLocal(ctx workflow.Context, req *RenderChartWithTemplateInput, options ...*RenderChartWithTemplateLocalActivityOptions) (*RenderChartOutput, error) {
+	return RenderChartWithTemplateLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// RenderChartWithTemplate renders a Helm chart after populating a values template
+func RenderChartWithTemplateLocalAsync(ctx workflow.Context, req *RenderChartWithTemplateInput, options ...*RenderChartWithTemplateLocalActivityOptions) *RenderChartWithTemplateFuture {
+	var o *RenderChartWithTemplateLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewRenderChartWithTemplateLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &RenderChartWithTemplateFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = RenderChartWithTemplateActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &RenderChartWithTemplateFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// RenderChartWithTemplateActivityOptions provides configuration for a(n) helm.v1.RenderChartWithTemplate activity
+type RenderChartWithTemplateActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewRenderChartWithTemplateActivityOptions initializes a new RenderChartWithTemplateActivityOptions value
+func NewRenderChartWithTemplateActivityOptions() *RenderChartWithTemplateActivityOptions {
+	return &RenderChartWithTemplateActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *RenderChartWithTemplateActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = HelmTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *RenderChartWithTemplateActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *RenderChartWithTemplateActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *RenderChartWithTemplateActivityOptions) WithDataConverter(dc converter.DataConverter) *RenderChartWithTemplateActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *RenderChartWithTemplateActivityOptions) WithHeartbeatTimeout(d time.Duration) *RenderChartWithTemplateActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *RenderChartWithTemplateActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *RenderChartWithTemplateActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *RenderChartWithTemplateActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *RenderChartWithTemplateActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *RenderChartWithTemplateActivityOptions) WithScheduleToStartTimeout(d time.Duration) *RenderChartWithTemplateActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *RenderChartWithTemplateActivityOptions) WithStartToCloseTimeout(d time.Duration) *RenderChartWithTemplateActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *RenderChartWithTemplateActivityOptions) WithTaskQueue(tq string) *RenderChartWithTemplateActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *RenderChartWithTemplateActivityOptions) WithWaitForCancellation(wait bool) *RenderChartWithTemplateActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// RenderChartWithTemplateLocalActivityOptions provides configuration for a(n) helm.v1.RenderChartWithTemplate activity
+type RenderChartWithTemplateLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *RenderChartWithTemplateInput) (*RenderChartOutput, error)
+}
+
+// NewRenderChartWithTemplateLocalActivityOptions initializes a new RenderChartWithTemplateLocalActivityOptions value
+func NewRenderChartWithTemplateLocalActivityOptions() *RenderChartWithTemplateLocalActivityOptions {
+	return &RenderChartWithTemplateLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *RenderChartWithTemplateLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom helm.v1.RenderChartWithTemplate implementation
+func (o *RenderChartWithTemplateLocalActivityOptions) Local(fn func(context.Context, *RenderChartWithTemplateInput) (*RenderChartOutput, error)) *RenderChartWithTemplateLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *RenderChartWithTemplateLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *RenderChartWithTemplateLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *RenderChartWithTemplateLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *RenderChartWithTemplateLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *RenderChartWithTemplateLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *RenderChartWithTemplateLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *RenderChartWithTemplateLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *RenderChartWithTemplateLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *RenderChartWithTemplateLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *RenderChartWithTemplateLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }

@@ -4,6 +4,7 @@ package helm.v1;
 
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/helm/v1;helmv1";
 
+import "google/protobuf/struct.proto";
 import "temporal/v1/temporal.proto";
 
 // Helm service defines activities for rendering Helm charts into Kubernetes manifests
@@ -22,6 +23,14 @@ service Helm {
       schedule_to_close_timeout: {seconds: 300}  // 5 minutes
     };
   }
+
+  // RenderChartWithTemplate renders a Helm chart after populating a values template
+  rpc RenderChartWithTemplate(RenderChartWithTemplateInput) returns (RenderChartOutput) {
+    option (temporal.v1.activity) = {
+      name: "helm.v1.RenderChartWithTemplate"
+      schedule_to_close_timeout: {seconds: 300}
+    };
+  }
 }
 
 // ==================== Chart Rendering ====================
@@ -36,6 +45,21 @@ message RenderChartInput {
 
   // namespace is the Kubernetes namespace for template context (optional)
   optional string namespace = 3;
+}
+
+// RenderChartWithTemplateInput specifies a chart to render after populating a values template
+message RenderChartWithTemplateInput {
+  // chart_name is the chart name to render
+  string chart_name = 1;
+
+  // component is the component type whose values template to load and render
+  string component = 2;
+
+  // values is a structured map of template variables for rendering
+  google.protobuf.Struct values = 3;
+
+  // namespace is the Kubernetes namespace for template context (optional)
+  optional string namespace = 4;
 }
 
 // RenderChartOutput represents the rendered resources from a chart

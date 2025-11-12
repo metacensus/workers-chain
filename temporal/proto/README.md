@@ -66,11 +66,13 @@
     - [helm.v1.Helm](#helm-v1-helm)
       - [Activities](#helm-v1-helm-activities)
         - [helm.v1.RenderChart](#helm-v1-renderchart-activity)
+        - [helm.v1.RenderChartWithTemplate](#helm-v1-renderchartwithtemplate-activity)
   - Messages
     - [helm.v1.RenderChartInput](#helm-v1-renderchartinput)
     - [helm.v1.RenderChartOutput](#helm-v1-renderchartoutput)
     - [helm.v1.RenderChartOutput.FailuresEntry](#helm-v1-renderchartoutput-failuresentry)
     - [helm.v1.RenderChartOutput.ResourcesEntry](#helm-v1-renderchartoutput-resourcesentry)
+    - [helm.v1.RenderChartWithTemplateInput](#helm-v1-renderchartwithtemplateinput)
     - [helm.v1.Resource](#helm-v1-resource)
 - [kube.v1](#kube-v1)
   - Services
@@ -141,6 +143,13 @@
     - [vault.v1.StoreSecretInput](#vault-v1-storesecretinput)
     - [vault.v1.StoreSecretInput.DataEntry](#vault-v1-storesecretinput-dataentry)
     - [vault.v1.StoreSecretOutput](#vault-v1-storesecretoutput)
+- [google.protobuf](#google-protobuf)
+  - Messages
+    - [google.protobuf.ListValue](#google-protobuf-listvalue)
+    - [google.protobuf.NullValue](#google-protobuf-nullvalue)
+    - [google.protobuf.Struct](#google-protobuf-struct)
+    - [google.protobuf.Struct.FieldsEntry](#google-protobuf-struct-fieldsentry)
+    - [google.protobuf.Value](#google-protobuf-value)
 
 <a name="aws-s3-v1"></a>
 # aws.s3.v1
@@ -3025,6 +3034,85 @@ Key is caller-defined (e.g., "deployment-api", "service-api")<br>
 json_name: resources
 go_name: Resources</pre></td>
 </tr>
+</table> 
+
+---
+<a name="helm-v1-renderchartwithtemplate-activity"></a>
+### helm.v1.RenderChartWithTemplate
+
+<pre>
+RenderChartWithTemplate renders a Helm chart after populating a values template
+</pre>
+
+**Input:** [helm.v1.RenderChartWithTemplateInput](#helm-v1-renderchartwithtemplateinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>chart_name</td>
+<td>string</td>
+<td><pre>
+chart_name is the chart name to render<br>
+
+json_name: chartName
+go_name: ChartName</pre></td>
+</tr><tr>
+<td>component</td>
+<td>string</td>
+<td><pre>
+component is the component type whose values template to load and render<br>
+
+json_name: component
+go_name: Component</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+namespace is the Kubernetes namespace for template context (optional)<br>
+
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>values</td>
+<td><a href="#google-protobuf-struct">google.protobuf.Struct</a></td>
+<td><pre>
+values is a structured map of template variables for rendering<br>
+
+json_name: values
+go_name: Values</pre></td>
+</tr>
+</table>
+
+**Output:** [helm.v1.RenderChartOutput](#helm-v1-renderchartoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>failures</td>
+<td><a href="#helm-v1-renderchartoutput-failuresentry">helm.v1.RenderChartOutput.FailuresEntry</a></td>
+<td><pre>
+failures is a map of resource_id → error message for resources that failed to parse<br>
+
+json_name: failures
+go_name: Failures</pre></td>
+</tr><tr>
+<td>resources</td>
+<td><a href="#helm-v1-renderchartoutput-resourcesentry">helm.v1.RenderChartOutput.ResourcesEntry</a></td>
+<td><pre>
+resources is a map of resource_id → rendered resource
+Key is caller-defined (e.g., "deployment-api", "service-api")<br>
+
+json_name: resources
+go_name: Resources</pre></td>
+</tr>
 </table>   
 
 <a name="helm-v1-messages"></a>
@@ -3154,6 +3242,56 @@ go_name: Key</pre></td>
 <td><pre>
 json_name: value
 go_name: Value</pre></td>
+</tr>
+</table>
+
+
+
+<a name="helm-v1-renderchartwithtemplateinput"></a>
+### helm.v1.RenderChartWithTemplateInput
+
+<pre>
+RenderChartWithTemplateInput specifies a chart to render after populating a values template
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>chart_name</td>
+<td>string</td>
+<td><pre>
+chart_name is the chart name to render<br>
+
+json_name: chartName
+go_name: ChartName</pre></td>
+</tr><tr>
+<td>component</td>
+<td>string</td>
+<td><pre>
+component is the component type whose values template to load and render<br>
+
+json_name: component
+go_name: Component</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+namespace is the Kubernetes namespace for template context (optional)<br>
+
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>values</td>
+<td><a href="#google-protobuf-struct">google.protobuf.Struct</a></td>
+<td><pre>
+values is a structured map of template variables for rendering<br>
+
+json_name: values
+go_name: Values</pre></td>
 </tr>
 </table>
 
@@ -5218,6 +5356,191 @@ StoreSecretOutput returns the secret reference with version information
 <td><pre>
 json_name: secretRef
 go_name: SecretRef</pre></td>
+</tr>
+</table>
+
+
+
+
+<a name="google-protobuf"></a>
+# google.protobuf
+
+<a name="google-protobuf-messages"></a>
+## Messages
+
+<a name="google-protobuf-listvalue"></a>
+### google.protobuf.ListValue
+
+<pre>
+`ListValue` is a wrapper around a repeated field of values.
+
+The JSON representation for `ListValue` is JSON array.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>values</td>
+<td><a href="#google-protobuf-value">google.protobuf.Value</a></td>
+<td><pre>
+Repeated field of dynamically typed values.<br>
+
+json_name: values
+go_name: Values</pre></td>
+</tr>
+</table>
+
+
+
+<a name="google-protobuf-nullvalue"></a>
+### google.protobuf.NullValue
+
+<pre>
+`NullValue` is a singleton enumeration to represent the null value for the
+`Value` type union.
+
+The JSON representation for `NullValue` is JSON `null`.
+</pre>
+
+<table>
+<tr><th>Value</th><th>Description</th></tr>
+<tr>
+<td>NULL_VALUE</td>
+<td><pre>
+Null value.
+</pre></td>
+</tr>
+</table>
+
+<a name="google-protobuf-struct"></a>
+### google.protobuf.Struct
+
+<pre>
+`Struct` represents a structured data value, consisting of fields
+which map to dynamically typed values. In some languages, `Struct`
+might be supported by a native representation. For example, in
+scripting languages like JS a struct is represented as an
+object. The details of that representation are described together
+with the proto support for the language.
+
+The JSON representation for `Struct` is JSON object.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>fields</td>
+<td><a href="#google-protobuf-struct-fieldsentry">google.protobuf.Struct.FieldsEntry</a></td>
+<td><pre>
+Unordered map of dynamically typed values.<br>
+
+json_name: fields
+go_name: Fields</pre></td>
+</tr>
+</table>
+
+
+
+<a name="google-protobuf-struct-fieldsentry"></a>
+### google.protobuf.Struct.FieldsEntry
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>key</td>
+<td>string</td>
+<td><pre>
+json_name: key
+go_name: Key</pre></td>
+</tr><tr>
+<td>value</td>
+<td><a href="#google-protobuf-value">google.protobuf.Value</a></td>
+<td><pre>
+json_name: value
+go_name: Value</pre></td>
+</tr>
+</table>
+
+
+
+<a name="google-protobuf-value"></a>
+### google.protobuf.Value
+
+<pre>
+`Value` represents a dynamically typed value which can be either
+null, a number, a string, a boolean, a recursive struct value, or a
+list of values. A producer of value is expected to set one of these
+variants. Absence of any variant indicates an error.
+
+The JSON representation for `Value` is JSON value.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>bool_value</td>
+<td>bool</td>
+<td><pre>
+Represents a boolean value.<br>
+
+json_name: boolValue
+go_name: BoolValue</pre></td>
+</tr><tr>
+<td>list_value</td>
+<td><a href="#google-protobuf-listvalue">google.protobuf.ListValue</a></td>
+<td><pre>
+Represents a repeated `Value`.<br>
+
+json_name: listValue
+go_name: ListValue</pre></td>
+</tr><tr>
+<td>null_value</td>
+<td><a href="#google-protobuf-nullvalue">google.protobuf.NullValue</a></td>
+<td><pre>
+Represents a null value.<br>
+
+json_name: nullValue
+go_name: NullValue</pre></td>
+</tr><tr>
+<td>number_value</td>
+<td>double</td>
+<td><pre>
+Represents a double value.<br>
+
+json_name: numberValue
+go_name: NumberValue</pre></td>
+</tr><tr>
+<td>string_value</td>
+<td>string</td>
+<td><pre>
+Represents a string value.<br>
+
+json_name: stringValue
+go_name: StringValue</pre></td>
+</tr><tr>
+<td>struct_value</td>
+<td><a href="#google-protobuf-struct">google.protobuf.Struct</a></td>
+<td><pre>
+Represents a structured value.<br>
+
+json_name: structValue
+go_name: StructValue</pre></td>
 </tr>
 </table>
 

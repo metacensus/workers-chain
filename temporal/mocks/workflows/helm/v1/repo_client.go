@@ -82,6 +82,63 @@ func (_c *MockRepoClient_GetChart_Call) RunAndReturn(run func(context.Context, s
 	return _c
 }
 
+// GetValuesTemplate provides a mock function with given fields: ctx, component
+func (_m *MockRepoClient) GetValuesTemplate(ctx context.Context, component string) (string, error) {
+	ret := _m.Called(ctx, component)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetValuesTemplate")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
+		return rf(ctx, component)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
+		r0 = rf(ctx, component)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, component)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockRepoClient_GetValuesTemplate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetValuesTemplate'
+type MockRepoClient_GetValuesTemplate_Call struct {
+	*mock.Call
+}
+
+// GetValuesTemplate is a helper method to define mock.On call
+//   - ctx context.Context
+//   - component string
+func (_e *MockRepoClient_Expecter) GetValuesTemplate(ctx interface{}, component interface{}) *MockRepoClient_GetValuesTemplate_Call {
+	return &MockRepoClient_GetValuesTemplate_Call{Call: _e.mock.On("GetValuesTemplate", ctx, component)}
+}
+
+func (_c *MockRepoClient_GetValuesTemplate_Call) Run(run func(ctx context.Context, component string)) *MockRepoClient_GetValuesTemplate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockRepoClient_GetValuesTemplate_Call) Return(_a0 string, _a1 error) *MockRepoClient_GetValuesTemplate_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockRepoClient_GetValuesTemplate_Call) RunAndReturn(run func(context.Context, string) (string, error)) *MockRepoClient_GetValuesTemplate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockRepoClient creates a new instance of MockRepoClient. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockRepoClient(t interface {

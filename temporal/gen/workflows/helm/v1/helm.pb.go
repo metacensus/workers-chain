@@ -10,6 +10,7 @@ import (
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -86,6 +87,79 @@ func (x *RenderChartInput) GetNamespace() string {
 	return ""
 }
 
+// RenderChartWithTemplateInput specifies a chart to render after populating a values template
+type RenderChartWithTemplateInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// chart_name is the chart name to render
+	ChartName string `protobuf:"bytes,1,opt,name=chart_name,json=chartName,proto3" json:"chart_name,omitempty"`
+	// component is the component type whose values template to load and render
+	Component string `protobuf:"bytes,2,opt,name=component,proto3" json:"component,omitempty"`
+	// values is a structured map of template variables for rendering
+	Values *structpb.Struct `protobuf:"bytes,3,opt,name=values,proto3" json:"values,omitempty"`
+	// namespace is the Kubernetes namespace for template context (optional)
+	Namespace     *string `protobuf:"bytes,4,opt,name=namespace,proto3,oneof" json:"namespace,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenderChartWithTemplateInput) Reset() {
+	*x = RenderChartWithTemplateInput{}
+	mi := &file_helm_v1_helm_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenderChartWithTemplateInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenderChartWithTemplateInput) ProtoMessage() {}
+
+func (x *RenderChartWithTemplateInput) ProtoReflect() protoreflect.Message {
+	mi := &file_helm_v1_helm_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenderChartWithTemplateInput.ProtoReflect.Descriptor instead.
+func (*RenderChartWithTemplateInput) Descriptor() ([]byte, []int) {
+	return file_helm_v1_helm_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *RenderChartWithTemplateInput) GetChartName() string {
+	if x != nil {
+		return x.ChartName
+	}
+	return ""
+}
+
+func (x *RenderChartWithTemplateInput) GetComponent() string {
+	if x != nil {
+		return x.Component
+	}
+	return ""
+}
+
+func (x *RenderChartWithTemplateInput) GetValues() *structpb.Struct {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
+func (x *RenderChartWithTemplateInput) GetNamespace() string {
+	if x != nil && x.Namespace != nil {
+		return *x.Namespace
+	}
+	return ""
+}
+
 // RenderChartOutput represents the rendered resources from a chart
 type RenderChartOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -100,7 +174,7 @@ type RenderChartOutput struct {
 
 func (x *RenderChartOutput) Reset() {
 	*x = RenderChartOutput{}
-	mi := &file_helm_v1_helm_proto_msgTypes[1]
+	mi := &file_helm_v1_helm_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -112,7 +186,7 @@ func (x *RenderChartOutput) String() string {
 func (*RenderChartOutput) ProtoMessage() {}
 
 func (x *RenderChartOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_helm_v1_helm_proto_msgTypes[1]
+	mi := &file_helm_v1_helm_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -125,7 +199,7 @@ func (x *RenderChartOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenderChartOutput.ProtoReflect.Descriptor instead.
 func (*RenderChartOutput) Descriptor() ([]byte, []int) {
-	return file_helm_v1_helm_proto_rawDescGZIP(), []int{1}
+	return file_helm_v1_helm_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *RenderChartOutput) GetResources() map[string]*Resource {
@@ -153,7 +227,7 @@ type Resource struct {
 
 func (x *Resource) Reset() {
 	*x = Resource{}
-	mi := &file_helm_v1_helm_proto_msgTypes[2]
+	mi := &file_helm_v1_helm_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -165,7 +239,7 @@ func (x *Resource) String() string {
 func (*Resource) ProtoMessage() {}
 
 func (x *Resource) ProtoReflect() protoreflect.Message {
-	mi := &file_helm_v1_helm_proto_msgTypes[2]
+	mi := &file_helm_v1_helm_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -178,7 +252,7 @@ func (x *Resource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Resource.ProtoReflect.Descriptor instead.
 func (*Resource) Descriptor() ([]byte, []int) {
-	return file_helm_v1_helm_proto_rawDescGZIP(), []int{2}
+	return file_helm_v1_helm_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Resource) GetManifestYaml() []byte {
@@ -192,13 +266,21 @@ var File_helm_v1_helm_proto protoreflect.FileDescriptor
 
 const file_helm_v1_helm_proto_rawDesc = "" +
 	"\n" +
-	"\x12helm/v1/helm.proto\x12\ahelm.v1\x1a\x1atemporal/v1/temporal.proto\"\x83\x01\n" +
+	"\x12helm/v1/helm.proto\x12\ahelm.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1atemporal/v1/temporal.proto\"\x83\x01\n" +
 	"\x10RenderChartInput\x12\x1d\n" +
 	"\n" +
 	"chart_name\x18\x01 \x01(\tR\tchartName\x12\x1f\n" +
 	"\vvalues_yaml\x18\x02 \x01(\tR\n" +
 	"valuesYaml\x12!\n" +
 	"\tnamespace\x18\x03 \x01(\tH\x00R\tnamespace\x88\x01\x01B\f\n" +
+	"\n" +
+	"_namespace\"\xbd\x01\n" +
+	"\x1cRenderChartWithTemplateInput\x12\x1d\n" +
+	"\n" +
+	"chart_name\x18\x01 \x01(\tR\tchartName\x12\x1c\n" +
+	"\tcomponent\x18\x02 \x01(\tR\tcomponent\x12/\n" +
+	"\x06values\x18\x03 \x01(\v2\x17.google.protobuf.StructR\x06values\x12!\n" +
+	"\tnamespace\x18\x04 \x01(\tH\x00R\tnamespace\x88\x01\x01B\f\n" +
 	"\n" +
 	"_namespace\"\xb0\x02\n" +
 	"\x11RenderChartOutput\x12G\n" +
@@ -211,9 +293,10 @@ const file_helm_v1_helm_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"/\n" +
 	"\bResource\x12#\n" +
-	"\rmanifest_yaml\x18\x01 \x01(\fR\fmanifestYaml2x\n" +
+	"\rmanifest_yaml\x18\x01 \x01(\fR\fmanifestYaml2\x83\x02\n" +
 	"\x04Helm\x12d\n" +
-	"\vRenderChart\x12\x19.helm.v1.RenderChartInput\x1a\x1a.helm.v1.RenderChartOutput\"\x1e\x92\xc4\x03\x1a\x12\x03\b\xac\x02:\x13helm.v1.RenderChart\x1a\n" +
+	"\vRenderChart\x12\x19.helm.v1.RenderChartInput\x1a\x1a.helm.v1.RenderChartOutput\"\x1e\x92\xc4\x03\x1a\x12\x03\b\xac\x02:\x13helm.v1.RenderChart\x12\x88\x01\n" +
+	"\x17RenderChartWithTemplate\x12%.helm.v1.RenderChartWithTemplateInput\x1a\x1a.helm.v1.RenderChartOutput\"*\x92\xc4\x03&\x12\x03\b\xac\x02:\x1fhelm.v1.RenderChartWithTemplate\x1a\n" +
 	"\x8a\xc4\x03\x06\n" +
 	"\x04helmB\x98\x01\n" +
 	"\vcom.helm.v1B\tHelmProtoP\x01ZAgithub.com/metacensus/infra/temporal/gen/workflows/helm/v1;helmv1\xa2\x02\x03HXX\xaa\x02\aHelm.V1\xca\x02\aHelm\\V1\xe2\x02\x13Helm\\V1\\GPBMetadata\xea\x02\bHelm::V1b\x06proto3"
@@ -230,25 +313,30 @@ func file_helm_v1_helm_proto_rawDescGZIP() []byte {
 	return file_helm_v1_helm_proto_rawDescData
 }
 
-var file_helm_v1_helm_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_helm_v1_helm_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_helm_v1_helm_proto_goTypes = []any{
-	(*RenderChartInput)(nil),  // 0: helm.v1.RenderChartInput
-	(*RenderChartOutput)(nil), // 1: helm.v1.RenderChartOutput
-	(*Resource)(nil),          // 2: helm.v1.Resource
-	nil,                       // 3: helm.v1.RenderChartOutput.ResourcesEntry
-	nil,                       // 4: helm.v1.RenderChartOutput.FailuresEntry
+	(*RenderChartInput)(nil),             // 0: helm.v1.RenderChartInput
+	(*RenderChartWithTemplateInput)(nil), // 1: helm.v1.RenderChartWithTemplateInput
+	(*RenderChartOutput)(nil),            // 2: helm.v1.RenderChartOutput
+	(*Resource)(nil),                     // 3: helm.v1.Resource
+	nil,                                  // 4: helm.v1.RenderChartOutput.ResourcesEntry
+	nil,                                  // 5: helm.v1.RenderChartOutput.FailuresEntry
+	(*structpb.Struct)(nil),              // 6: google.protobuf.Struct
 }
 var file_helm_v1_helm_proto_depIdxs = []int32{
-	3, // 0: helm.v1.RenderChartOutput.resources:type_name -> helm.v1.RenderChartOutput.ResourcesEntry
-	4, // 1: helm.v1.RenderChartOutput.failures:type_name -> helm.v1.RenderChartOutput.FailuresEntry
-	2, // 2: helm.v1.RenderChartOutput.ResourcesEntry.value:type_name -> helm.v1.Resource
-	0, // 3: helm.v1.Helm.RenderChart:input_type -> helm.v1.RenderChartInput
-	1, // 4: helm.v1.Helm.RenderChart:output_type -> helm.v1.RenderChartOutput
-	4, // [4:5] is the sub-list for method output_type
-	3, // [3:4] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	6, // 0: helm.v1.RenderChartWithTemplateInput.values:type_name -> google.protobuf.Struct
+	4, // 1: helm.v1.RenderChartOutput.resources:type_name -> helm.v1.RenderChartOutput.ResourcesEntry
+	5, // 2: helm.v1.RenderChartOutput.failures:type_name -> helm.v1.RenderChartOutput.FailuresEntry
+	3, // 3: helm.v1.RenderChartOutput.ResourcesEntry.value:type_name -> helm.v1.Resource
+	0, // 4: helm.v1.Helm.RenderChart:input_type -> helm.v1.RenderChartInput
+	1, // 5: helm.v1.Helm.RenderChartWithTemplate:input_type -> helm.v1.RenderChartWithTemplateInput
+	2, // 6: helm.v1.Helm.RenderChart:output_type -> helm.v1.RenderChartOutput
+	2, // 7: helm.v1.Helm.RenderChartWithTemplate:output_type -> helm.v1.RenderChartOutput
+	6, // [6:8] is the sub-list for method output_type
+	4, // [4:6] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_helm_v1_helm_proto_init() }
@@ -257,13 +345,14 @@ func file_helm_v1_helm_proto_init() {
 		return
 	}
 	file_helm_v1_helm_proto_msgTypes[0].OneofWrappers = []any{}
+	file_helm_v1_helm_proto_msgTypes[1].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_helm_v1_helm_proto_rawDesc), len(file_helm_v1_helm_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

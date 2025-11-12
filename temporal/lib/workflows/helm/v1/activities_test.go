@@ -9,14 +9,17 @@ import (
 	helmmocks "github.com/metacensus/infra/temporal/mocks/workflows/helm/v1"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/testsuite"
+	"google.golang.org/protobuf/types/known/structpb"
 	"helm.sh/helm/v3/pkg/chart"
 )
 
 var (
 	// Test error sentinels for client errors
-	errChartNotFound    = errors.New("chart not found")
-	errInvalidChart     = errors.New("invalid chart format")
+	errChartNotFound     = errors.New("chart not found")
+	errInvalidChart      = errors.New("invalid chart format")
 	errInvalidValuesYAML = errors.New("invalid values YAML")
+	errTemplateNotFound  = errors.New("template not found")
+	errInvalidTemplate   = errors.New("invalid template syntax")
 )
 
 // minimumValidChart creates a minimal Helm chart for testing
@@ -374,3 +377,155 @@ func TestRenderChartActivity_ResourceIDGeneration(t *testing.T) {
 	}
 }
 
+func TestRenderChartWithTemplateActivity(t *testing.T) {
+	defaultNS := "default"
+	simpleTemplate := `image:
+  repository: {{.Repo}}
+  tag: "{{.Tag}}"
+`
+
+	tests := []struct {
+		name        string
+		input       *pb.RenderChartWithTemplateInput
+		templateStr string
+		mockChart   *chart.Chart
+		clientErr   error
+		templateErr error
+		expectErr   bool
+	}{
+		{
+			name: "error - chart name is empty",
+			input: &pb.RenderChartWithTemplateInput{
+				ChartName: "",
+				Component: "peer",
+				Values:    &structpb.Struct{},
+				Namespace: &defaultNS,
+			},
+			expectErr: true,
+		},
+		{
+			name: "error - component is empty",
+			input: &pb.RenderChartWithTemplateInput{
+				ChartName: "peer",
+				Component: "",
+				Values:    &structpb.Struct{},
+				Namespace: &defaultNS,
+			},
+			expectErr: true,
+		},
+		{
+			name: "error - values is nil",
+			input: &pb.RenderChartWithTemplateInput{
+				ChartName: "peer",
+				Component: "peer",
+				Values:    nil,
+				Namespace: &defaultNS,
+			},
+			expectErr: true,
+		},
+		{
+			name: "error - template not found",
+			input: &pb.RenderChartWithTemplateInput{
+				ChartName: "peer",
+				Component: "peer",
+				Values:    &structpb.Struct{},
+				Namespace: &defaultNS,
+			},
+			templateErr: errTemplateNotFound,
+			expectErr:   true,
+		},
+		{
+			name: "error - chart not found",
+			input: &pb.RenderChartWithTemplateInput{
+				ChartName: "peer",
+				Component: "peer",
+				Values:    &structpb.Struct{},
+				Namespace: &defaultNS,
+			},
+			templateStr: simpleTemplate,
+			clientErr:   errChartNotFound,
+			expectErr:   true,
+		},
+		{
+			name: "success - template renders and chart loads",
+			input: &pb.RenderChartWithTemplateInput{
+				ChartName: "peer",
+				Component: "peer",
+				Values:    structpbMapToStruct(map[string]interface{}{"Repo": "myrepo"}),
+				Namespace: &defaultNS,
+			},
+			// Template that renders to empty YAML (which parseValues will accept)
+			templateStr: "",
+			mockChart:   minimumValidChart(),
+			expectErr:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestActivityEnvironment()
+
+			mockClient := helmmocks.NewMockRepoClient(t)
+
+			// Setup mock expectations only for tests that pass validation
+			if tt.input.ChartName != "" && tt.input.Component != "" && tt.input.Values != nil {
+				if tt.templateErr != nil {
+					mockClient.EXPECT().
+						GetValuesTemplate(mock.Anything, tt.input.Component).
+						Return("", tt.templateErr).
+						Once()
+				} else if tt.clientErr != nil {
+					mockClient.EXPECT().
+						GetValuesTemplate(mock.Anything, tt.input.Component).
+						Return(tt.templateStr, nil).
+						Once()
+					mockClient.EXPECT().
+						GetChart(mock.Anything, tt.input.ChartName).
+						Return(nil, tt.clientErr).
+						Once()
+				} else {
+					mockClient.EXPECT().
+						GetValuesTemplate(mock.Anything, tt.input.Component).
+						Return(tt.templateStr, nil).
+						Once()
+					mockClient.EXPECT().
+						GetChart(mock.Anything, tt.input.ChartName).
+						Return(tt.mockChart, nil).
+						Once()
+				}
+			}
+
+			activities := helm.NewActivities(mockClient)
+			env.RegisterActivity(activities.RenderChartWithTemplate)
+
+			val, err := env.ExecuteActivity(activities.RenderChartWithTemplate, tt.input)
+
+			if tt.expectErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+
+				var result *pb.RenderChartOutput
+				if err := val.Get(&result); err != nil {
+					t.Fatalf("unexpected error from Get: %v", err)
+				}
+
+				// Verify output is valid
+				if result == nil {
+					t.Fatal("result is nil")
+				}
+			}
+		})
+	}
+}
+
+// Helper function to convert map to structpb.Struct
+func structpbMapToStruct(m map[string]interface{}) *structpb.Struct {
+	s, _ := structpb.NewStruct(m)
+	return s
+}

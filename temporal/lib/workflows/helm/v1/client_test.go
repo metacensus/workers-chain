@@ -217,3 +217,104 @@ version: 1.0.0
 		t.Errorf("chart name: got %q, want %q", chart.Metadata.Name, "test-chart")
 	}
 }
+
+func TestLocalRepoClient_GetValuesTemplate(t *testing.T) {
+	// Create a temporary directory for test templates
+	tmpDir := t.TempDir()
+	templatesDir := filepath.Join(tmpDir, "templates")
+	if err := os.MkdirAll(templatesDir, 0755); err != nil {
+		t.Fatalf("failed to create templates directory: %v", err)
+	}
+
+	// Create template files
+	peerTemplate := filepath.Join(templatesDir, "peer-values.yaml.tpl")
+	peerContent := []byte(`image:
+  repository: {{.ImageRepository}}
+  tag: "{{.ImageTag}}"
+organization: "{{.Organization}}"
+`)
+	if err := os.WriteFile(peerTemplate, peerContent, 0644); err != nil {
+		t.Fatalf("failed to write peer template: %v", err)
+	}
+
+	ordererTemplate := filepath.Join(templatesDir, "orderer-values.yaml.tpl")
+	ordererContent := []byte(`image:
+  repository: {{.ImageRepository}}
+mspId: "{{.MSPID}}"
+`)
+	if err := os.WriteFile(ordererTemplate, ordererContent, 0644); err != nil {
+		t.Fatalf("failed to write orderer template: %v", err)
+	}
+
+	tests := []struct {
+		name          string
+		component     string
+		expectErr     bool
+		expectContent string
+	}{
+		{
+			name:          "success - load peer template",
+			component:     "peer",
+			expectErr:     false,
+			expectContent: "ImageRepository",
+		},
+		{
+			name:          "success - load orderer template",
+			component:     "orderer",
+			expectErr:     false,
+			expectContent: "MSPID",
+		},
+		{
+			name:      "error - template not found",
+			component: "nonexistent",
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := helm.NewLocalRepoClient(tmpDir)
+			if err != nil {
+				t.Fatalf("failed to create client: %v", err)
+			}
+
+			ctx := context.Background()
+			template, err := client.GetValuesTemplate(ctx, tt.component)
+
+			if tt.expectErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if template == "" {
+					t.Fatal("template is empty")
+				}
+				if !contains(template, tt.expectContent) {
+					t.Errorf("template missing expected content: %q", tt.expectContent)
+				}
+			}
+		})
+	}
+}
+
+// Helper function to check if string contains substring
+func contains(s, substr string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i:] >= substr && len(s[i:]) >= len(substr) {
+			match := true
+			for j := 0; j < len(substr); j++ {
+				if s[i+j] != substr[j] {
+					match = false
+					break
+				}
+			}
+			if match {
+				return true
+			}
+		}
+	}
+	return false
+}

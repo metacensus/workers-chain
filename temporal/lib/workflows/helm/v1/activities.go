@@ -1,9 +1,11 @@
 package helm
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
+	"text/template"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/helm/v1"
 	"go.temporal.io/sdk/activity"
@@ -30,31 +32,79 @@ func NewActivities(repo RepoClient) *Activities {
 func (a *Activities) RenderChart(ctx context.Context, req *pb.RenderChartInput) (*pb.RenderChartOutput, error) {
 	logger := activity.GetLogger(ctx)
 
-	logger.Info("Rendering Helm chart",
-		"chart_name", req.GetChartName(),
-		"namespace", req.GetNamespace())
-
-	// Validate input
+	// Validate required fields
 	if req.GetChartName() == "" {
 		return nil, fmt.Errorf("chart_name is required")
 	}
 
+	logger.Info("Rendering Helm chart",
+		"chart_name", req.GetChartName(),
+		"namespace", req.GetNamespace())
+
+	return a.renderChartWithValues(ctx, req.GetChartName(), req.GetValuesYaml(), req.GetNamespace())
+}
+
+// RenderChartWithTemplate renders a Helm values template, then renders the chart with the result
+func (a *Activities) RenderChartWithTemplate(ctx context.Context, req *pb.RenderChartWithTemplateInput) (*pb.RenderChartOutput, error) {
+	logger := activity.GetLogger(ctx)
+
+	// Validate required fields
+	if req.GetChartName() == "" {
+		return nil, fmt.Errorf("chart_name is required")
+	}
+	if req.GetComponent() == "" {
+		return nil, fmt.Errorf("component is required")
+	}
+	if req.GetValues() == nil {
+		return nil, fmt.Errorf("values is required")
+	}
+
+	logger.Info("Rendering Helm chart with template",
+		"chart_name", req.GetChartName(),
+		"component", req.GetComponent(),
+		"namespace", req.GetNamespace())
+
+	// Step 1: Load values template for the component
+	templateStr, err := a.repo.GetValuesTemplate(ctx, req.GetComponent())
+	if err != nil {
+		logger.Error("Failed to get values template", "error", err)
+		return nil, fmt.Errorf("failed to get values template for component %s: %w", req.GetComponent(), err)
+	}
+
+	// Step 2: Convert proto Struct to map[string]interface{}
+	values := req.GetValues().AsMap()
+
+	// Step 3: Render template with values
+	renderedYAML, err := renderTemplate(templateStr, values)
+	if err != nil {
+		logger.Error("Failed to render template", "error", err)
+		return nil, fmt.Errorf("failed to render values template: %w", err)
+	}
+
+	// Step 4: Use shared chart rendering logic
+	return a.renderChartWithValues(ctx, req.GetChartName(), renderedYAML, req.GetNamespace())
+}
+
+// renderChartWithValues is the shared logic for rendering a Helm chart with values YAML
+func (a *Activities) renderChartWithValues(ctx context.Context, chartName, valuesYAML, namespace string) (*pb.RenderChartOutput, error) {
+	logger := activity.GetLogger(ctx)
+
 	// Acquire chart from repository
-	ch, err := a.repo.GetChart(ctx, req.GetChartName())
+	ch, err := a.repo.GetChart(ctx, chartName)
 	if err != nil {
 		logger.Error("Failed to get chart", "error", err)
-		return nil, fmt.Errorf("failed to get chart %s: %w", req.GetChartName(), err)
+		return nil, fmt.Errorf("failed to get chart %s: %w", chartName, err)
 	}
 
 	// Parse values from YAML string
-	vals, err := parseValues(req.GetValuesYaml())
+	vals, err := parseValues(valuesYAML)
 	if err != nil {
 		logger.Error("Failed to parse values", "error", err)
 		return nil, fmt.Errorf("failed to parse values: %w", err)
 	}
 
 	// Render the chart
-	release, err := renderHelmChart(ch, req.GetNamespace(), req.GetChartName(), vals)
+	release, err := renderHelmChart(ch, namespace, chartName, vals)
 	if err != nil {
 		logger.Error("Failed to render chart", "error", err)
 		return nil, fmt.Errorf("failed to render chart: %w", err)
@@ -146,6 +196,21 @@ func parseManifestDocument(doc string, index int) (string, []byte, error) {
 	resourceID := fmt.Sprintf("%s-%s", strings.ToLower(kind), name)
 
 	return resourceID, []byte(doc), nil
+}
+
+// renderTemplate renders a Go template with provided values
+func renderTemplate(templateStr string, values interface{}) (string, error) {
+	tmpl, err := template.New("values").Parse(templateStr)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse template: %w", err)
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, values); err != nil {
+		return "", fmt.Errorf("failed to execute template: %w", err)
+	}
+
+	return buf.String(), nil
 }
 
 // parseValues parses Helm values from a YAML string
