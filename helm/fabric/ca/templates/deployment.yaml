@@ -1,0 +1,56 @@
+{{- /*
+CA Deployment
+Renders a single Hyperledger Fabric Certificate Authority node.
+*/ -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fabric-ca.name" . }}
+  namespace: {{ include "fabric.namespace" . }}
+  labels:
+    {{- include "fabric-ca.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "fabric-ca.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "fabric-ca.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: fabric-{{ .Values.organization.id }}
+      {{- include "fabric.imagePullSecrets" . | nindent 6 }}
+      containers:
+      - name: ca
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: ca
+          containerPort: {{ .Values.service.port }}
+          protocol: TCP
+        env:
+        - name: FABRIC_CA_HOME
+          value: {{ .Values.msp.basePath }}
+        - name: FABRIC_CA_SERVER_CA_NAME
+          value: {{ include "fabric-ca.name" . }}
+        - name: FABRIC_CA_SERVER_CSR_HOSTS
+          value: "{{ include "fabric-ca.name" . }},localhost"
+        volumeMounts:
+        {{- if .Values.msp.csi.enabled }}
+        {{- include "fabric.csiVolumeMount" . | nindent 8 }}
+        {{- else }}
+        {{- include "fabric.mspVolumeMount" . | nindent 8 }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        readinessProbe:
+          {{- toYaml .Values.readinessProbe | nindent 10 }}
+
+      volumes:
+      {{- if .Values.msp.csi.enabled }}
+      {{- include "fabric.csiVolume" .Values.msp.csi.secretProviderClassName | nindent 6 }}
+      {{- else }}
+      {{- include "fabric.mspVolume" (printf "fabric-msp-%s" (include "fabric-ca.name" .)) | nindent 6 }}
+      {{- end }}
+

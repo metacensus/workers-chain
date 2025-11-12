@@ -1,0 +1,22 @@
+{{- /*
+Orderer Service
+Exposes the orderer port for intra-cluster communication.
+Peers and orderers connect to orderers via this service.
+*/ -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fabric-orderer.name" . }}
+  namespace: {{ include "fabric.namespace" . }}
+  labels:
+    {{- include "fabric-orderer.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - name: orderer
+    port: {{ .Values.service.port }}
+    targetPort: orderer
+    protocol: TCP
+  selector:
+    {{- include "fabric-orderer.selectorLabels" . | nindent 4 }}
+

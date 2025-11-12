@@ -1,0 +1,98 @@
+# Hyperledger Fabric Peer Node Configuration
+# This chart deploys a SINGLE peer instance with attached CouchDB state database
+
+# Organization context
+organization:
+  id: "org1"
+  mspId: "Org1MSP"
+
+# Peer component and instance number
+# Used to construct unique identity: peer-{number}
+# Examples: peer-0, peer-1, peer-2
+component: "peer"
+number: 0
+
+# Peer container image
+image:
+  repository: hyperledger/fabric-peer
+  tag: "2.5.0"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# Peer service configuration
+service:
+  type: ClusterIP
+  port: 7051
+
+# Peer resource requests and limits
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+
+# Peer-specific configuration
+loggingSpec: "INFO"
+tls:
+  enabled: true
+  clientAuthRequired: false
+readinessProbe:
+  httpGet:
+    path: /
+    port: 7051
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+# CouchDB state database (paired with this peer)
+couchdb:
+  enabled: true
+  image:
+    repository: couchdb
+    tag: "3.3.2"
+  service:
+    type: ClusterIP
+    port: 5984
+  # NOTE: Credentials MUST be generated and stored in Vault
+  # These are fetched from Vault at runtime, do NOT set here
+  credentials:
+    username: ""      # REQUIRED - set via helm values or --set
+    password: ""      # REQUIRED - set via helm values or --set
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  readinessProbe:
+    httpGet:
+      path: /_up
+      port: 5984
+    initialDelaySeconds: 10
+    periodSeconds: 5
+
+# MSP (Membership Service Provider) configuration
+msp:
+  basePath: "/etc/hyperledger/fabric/msp"
+  paths:
+    signcerts: "/etc/hyperledger/fabric/msp/signcerts/cert.pem"
+    keystore: "/etc/hyperledger/fabric/msp/keystore/key.pem"
+    cacerts: "/etc/hyperledger/fabric/msp/cacerts/ca.pem"
+  
+  # CSI (Vault) volume mounting for certificates
+  csi:
+    enabled: false
+    secretProviderClassName: ""
+
+# Namespace configuration
+namespace:
+  create: false
+  name: ""
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/managed-by: helm
+  app.kubernetes.io/part-of: fabric
+

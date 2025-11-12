@@ -1,0 +1,22 @@
+{{- /*
+CA Service
+Exposes the Certificate Authority port.
+Other Fabric components and external clients connect to the CA via this service.
+*/ -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fabric-ca.name" . }}
+  namespace: {{ include "fabric.namespace" . }}
+  labels:
+    {{- include "fabric-ca.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - name: ca
+    port: {{ .Values.service.port }}
+    targetPort: ca
+    protocol: TCP
+  selector:
+    {{- include "fabric-ca.selectorLabels" . | nindent 4 }}
+

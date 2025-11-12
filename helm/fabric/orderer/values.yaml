@@ -1,0 +1,72 @@
+# Hyperledger Fabric Orderer Node Configuration
+# This chart deploys a SINGLE orderer instance
+
+# Organization context
+organization:
+  id: "org1"
+  mspId: "Org1MSP"
+
+# Orderer component and instance number
+# Used to construct unique identity: orderer-{number}
+# Examples: orderer-0, orderer-1, orderer-2
+component: "orderer"
+number: 0
+
+# Orderer container image
+image:
+  repository: hyperledger/fabric-orderer
+  tag: "2.5.0"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# Orderer service configuration
+service:
+  type: ClusterIP
+  port: 7050
+
+# Orderer resource requests and limits
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+
+# Orderer-specific configuration
+# MSP ID for the orderer (typically different from organization)
+mspId: "OrdererMSP"
+loggingSpec: "INFO"
+tls:
+  enabled: true
+  clientAuthRequired: false
+readinessProbe:
+  httpGet:
+    path: /
+    port: 7050
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+# MSP (Membership Service Provider) configuration
+msp:
+  basePath: "/etc/hyperledger/fabric/msp"
+  paths:
+    signcerts: "/etc/hyperledger/fabric/msp/signcerts/cert.pem"
+    keystore: "/etc/hyperledger/fabric/msp/keystore/key.pem"
+    cacerts: "/etc/hyperledger/fabric/msp/cacerts/ca.pem"
+  
+  # CSI (Vault) volume mounting for certificates
+  csi:
+    enabled: false
+    secretProviderClassName: ""
+
+# Namespace configuration
+namespace:
+  create: false
+  name: ""
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/managed-by: helm
+  app.kubernetes.io/part-of: fabric
+

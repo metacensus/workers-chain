@@ -1,0 +1,22 @@
+{{- /*
+CouchDB Service
+Exposes the CouchDB port for peer access.
+Peers connect to their local CouchDB via this service.
+*/ -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fabric-couchdb.name" . }}
+  namespace: {{ include "fabric.namespace" . }}
+  labels:
+    {{- include "fabric-couchdb.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - name: couchdb
+    port: {{ .Values.service.port }}
+    targetPort: couchdb
+    protocol: TCP
+  selector:
+    {{- include "fabric-couchdb.selectorLabels" . | nindent 4 }}
+

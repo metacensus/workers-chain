@@ -1,0 +1,9 @@
+apiVersion: v2
+name: fabric-ca
+description: Hyperledger Fabric Certificate Authority deployment (single instance)
+type: application
+version: 1.0.0
+appVersion: "1.5.5"
+maintainers:
+  - name: MetaCensus Infrastructure Team
+

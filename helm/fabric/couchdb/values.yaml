@@ -1,0 +1,61 @@
+# CouchDB State Database Configuration
+# This chart deploys a SINGLE CouchDB instance for state database storage
+# Typically paired with a peer via pod co-location in the peer chart
+# Can also be deployed standalone if needed
+
+# Organization context
+organization:
+  id: "org1"
+
+# CouchDB component and instance number
+# Used to construct unique identity: couchdb-{number}
+# Examples: couchdb-0, couchdb-1
+component: "couchdb"
+number: 0
+
+# CouchDB container image
+image:
+  repository: couchdb
+  tag: "3.3.2"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# CouchDB service configuration
+service:
+  type: ClusterIP
+  port: 5984
+
+# CouchDB credentials (for initial setup)
+# NOTE: Credentials MUST be generated and stored in Vault
+# These are fetched from Vault at runtime, do NOT set here
+credentials:
+  username: ""      # REQUIRED - set via helm values or --set
+  password: ""      # REQUIRED - set via helm values or --set
+
+# CouchDB resource requests and limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+# CouchDB health check configuration
+readinessProbe:
+  httpGet:
+    path: /_up
+    port: 5984
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+# Namespace configuration
+namespace:
+  create: false
+  name: ""
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/managed-by: helm
+  app.kubernetes.io/part-of: fabric
+

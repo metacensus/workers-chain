@@ -1,0 +1,9 @@
+# Fabric namespace configuration
+namespace:
+  name: fabric
+
+# Common labels to apply to all resources
+commonLabels:
+  app.kubernetes.io/managed-by: helm
+  app.kubernetes.io/part-of: fabric
+

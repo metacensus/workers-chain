@@ -1,0 +1,67 @@
+# Hyperledger Fabric Certificate Authority Configuration
+# This chart deploys a SINGLE Fabric CA instance
+
+# Organization context
+organization:
+  id: "org1"
+  mspId: "Org1MSP"
+
+# CA component and instance number
+# Used to construct unique identity: ca-{number}
+# Examples: ca-0, ca-1
+component: "ca"
+number: 0
+
+# CA container image
+image:
+  repository: hyperledger/fabric-ca
+  tag: "1.5.5"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# CA service configuration
+service:
+  type: ClusterIP
+  port: 7054
+
+# CA resource requests and limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# CA-specific configuration
+loggingSpec: "INFO"
+readinessProbe:
+  httpGet:
+    path: /
+    port: 7054
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+# MSP (Membership Service Provider) configuration
+msp:
+  basePath: "/etc/hyperledger/fabric/msp"
+  paths:
+    signcerts: "/etc/hyperledger/fabric/msp/signcerts/cert.pem"
+    keystore: "/etc/hyperledger/fabric/msp/keystore/key.pem"
+    cacerts: "/etc/hyperledger/fabric/msp/cacerts/ca.pem"
+  
+  # CSI (Vault) volume mounting for certificates
+  csi:
+    enabled: false
+    secretProviderClassName: ""
+
+# Namespace configuration
+namespace:
+  create: false
+  name: ""
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/managed-by: helm
+  app.kubernetes.io/part-of: fabric
+

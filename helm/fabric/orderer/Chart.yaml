@@ -1,0 +1,9 @@
+apiVersion: v2
+name: fabric-orderer
+description: Hyperledger Fabric orderer node deployment (single instance)
+type: application
+version: 1.0.0
+appVersion: "2.5.0"
+maintainers:
+  - name: MetaCensus Infrastructure Team
+
