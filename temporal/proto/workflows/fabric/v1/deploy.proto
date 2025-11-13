@@ -1,0 +1,257 @@
+syntax = "proto3";
+
+package fabric.identity.v1;
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1";
+
+import "temporal/v1/temporal.proto";
+import "vault/v1/vault.proto";
+import "fabric/identity/v1/identity.proto";
+
+// FabricDeploy service defines workflows for Kubernetes infrastructure provisioning
+// These workflows orchestrate the deployment of Fabric components (CA, peers, orderers, CouchDB)
+// to a Kubernetes cluster with CSI-based secret mounting from Vault.
+service FabricDeploy {
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {
+    task_queue: "infra"
+  };
+
+  // ==================== Infrastructure Setup Workflows ====================
+
+  // CreateNamespace creates a new Kubernetes namespace for an organization
+  rpc CreateNamespace(CreateNamespaceInput) returns (CreateNamespaceOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.identity.v1.CreateNamespace"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+  }
+
+  // CreateServiceAccount creates a Kubernetes service account for Vault authentication
+  rpc CreateServiceAccount(CreateServiceAccountInput) returns (CreateServiceAccountOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.identity.v1.CreateServiceAccount"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+  }
+
+  // CreateVaultRole creates a Vault Kubernetes auth role for the service account
+  rpc CreateVaultRole(CreateVaultRoleInput) returns (CreateVaultRoleOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.identity.v1.CreateVaultRole"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+  }
+
+  // DeployCA deploys the Fabric CA pod to the Kubernetes cluster
+  rpc DeployCA(DeployCaInput) returns (DeployCaOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.identity.v1.DeployCA"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+  }
+
+  // ==================== Component Deployment Workflows ====================
+
+  // DeployCouchDB deploys a CouchDB instance for peer state storage
+  // Each peer gets its own CouchDB instance
+  rpc DeployCouchDB(DeployCouchDbInput) returns (DeployCouchDbOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.identity.v1.DeployCouchDB"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+  }
+
+  // DeployPeer deploys a peer node with certificates and CSI volume mounts
+  // Calls ProvisionPeerWorkflow to generate certs, then deploys the peer pod
+  rpc DeployPeer(DeployPeerInput) returns (DeployPeerOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.identity.v1.DeployPeer"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+  }
+
+  // DeployOrderer deploys an orderer node with certificates and CSI volume mounts
+  // Calls ProvisionOrdererWorkflow to generate certs, then deploys the orderer pod
+  rpc DeployOrderer(DeployOrdererInput) returns (DeployOrdererOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.identity.v1.DeployOrderer"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+  }
+
+  // ==================== Master Orchestration Workflow ====================
+
+  // DeployOrg is the master workflow that orchestrates complete organization deployment
+  // Execution flow:
+  // 1. CreateNamespace
+  // 2. CreateServiceAccount
+  // 3. CreateVaultRole
+  // 4. DeployCA
+  // 5. CreateAffiliations (activity - for CA identity organization)
+  // 6. BootstrapAdmin (workflow - create initial admin identity)
+  // 7. For each peer_id (sequential):
+  //    - DeployCouchDB (for this peer)
+  //    - DeployPeer (this peer)
+  // 8. For each orderer_id (sequential):
+  //    - DeployOrderer (this orderer)
+  rpc DeployOrg(DeployOrgInput) returns (DeployOrgOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.identity.v1.DeployOrg"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+  }
+}
+
+// ==================== Namespace Creation ====================
+
+message CreateNamespaceInput {
+  string organization = 1;  // Organization name for labeling
+  string namespace = 2;      // Kubernetes namespace name
+}
+
+message CreateNamespaceOutput {
+  string namespace = 1;      // Kubernetes namespace name
+}
+
+// ==================== Service Account Creation ====================
+
+message CreateServiceAccountInput {
+  string organization = 1;           // Organization name
+  string namespace = 2;               // Kubernetes namespace
+  string service_account_name = 3;   // Service account name (typically "fabric-{org}")
+}
+
+message CreateServiceAccountOutput {
+  string service_account_name = 1;   // Created service account name
+  string namespace = 2;               // Kubernetes namespace
+}
+
+// ==================== Vault Role Creation ====================
+
+message CreateVaultRoleInput {
+  string organization = 1;            // Organization name
+  string service_account_name = 2;   // Kubernetes service account name
+  string kubernetes_namespace = 3;   // Kubernetes namespace where service account exists
+  repeated string policy_names = 4;  // Vault policies to bind to this role
+}
+
+message CreateVaultRoleOutput {
+  string role_name = 1;  // Created Vault Kubernetes auth role name
+}
+
+// ==================== Fabric CA Deployment ====================
+
+message DeployCaInput {
+  string organization = 1;       // Organization name
+  string namespace = 2;           // Kubernetes namespace
+  string ca_admin_username = 3;  // Fabric CA admin username
+  string ca_admin_password = 4;  // Fabric CA admin password
+}
+
+message DeployCaOutput {
+  string ca_name = 1;       // CA pod name
+  string service_name = 2;  // CA Kubernetes service name (DNS entry)
+}
+
+// ==================== CouchDB Deployment ====================
+
+message DeployCouchDbInput {
+  string organization = 1;       // Organization name
+  string namespace = 2;          // Kubernetes namespace
+  string peer_id = 3;            // Peer identifier this CouchDB serves
+  string admin_username = 4;     // CouchDB admin username
+  string admin_password = 5;     // CouchDB admin password (should be generated)
+}
+
+message DeployCouchDbOutput {
+  string couchdb_name = 1;        // CouchDB pod name
+  string service_name = 2;        // CouchDB Kubernetes service name (DNS entry)
+  vault.v1.SecretRef credentials = 3;  // Reference to stored CouchDB credentials in Vault
+}
+
+// ==================== Peer Deployment ====================
+
+message DeployPeerInput {
+  string organization = 1;           // Organization name
+  string namespace = 2;              // Kubernetes namespace
+  string peer_id = 3;                // Peer identifier (e.g., "peer0", "peer1")
+  string couchdb_service_name = 4;  // CouchDB service name (from DeployCouchDB)
+  NodeOUConfig org_node_ous = 5;    // Node OU configuration for this org
+  repeated string hosts = 6;         // Additional SAN hostnames for TLS cert
+}
+
+message DeployPeerOutput {
+  string peer_name = 1;          // Peer pod name
+  string service_name = 2;       // Peer Kubernetes service name (DNS entry)
+  vault.v1.SecretRef signing_secret = 3;  // Reference to signing cert/key in Vault
+  vault.v1.SecretRef tls_secret = 4;      // Reference to TLS cert/key in Vault
+}
+
+// ==================== Orderer Deployment ====================
+
+message DeployOrdererInput {
+  string organization = 1;         // Organization name
+  string namespace = 2;            // Kubernetes namespace
+  string orderer_id = 3;           // Orderer identifier (e.g., "orderer0")
+  NodeOUConfig org_node_ous = 4;  // Node OU configuration for this org
+  repeated string hosts = 5;       // Additional SAN hostnames for TLS cert
+}
+
+message DeployOrdererOutput {
+  string orderer_name = 1;        // Orderer pod name
+  string service_name = 2;        // Orderer Kubernetes service name (DNS entry)
+  vault.v1.SecretRef signing_secret = 3;  // Reference to signing cert/key in Vault
+  vault.v1.SecretRef tls_secret = 4;      // Reference to TLS cert/key in Vault
+}
+
+// ==================== Organization Deployment (Master) ====================
+
+message DeployOrgInput {
+  string organization = 1;      // Organization name (e.g., "metacensus")
+  string namespace = 2;         // Kubernetes namespace for all resources
+  
+  // CA configuration (bootstrap credentials for Fabric CA)
+  string ca_admin_username = 3;  // Fabric CA admin user for bootstrap
+  string ca_admin_password = 4;  // Fabric CA admin password for bootstrap
+  
+  // Admin identity configuration (to be created via BootstrapAdmin)
+  BootstrapAdminInput admin = 5;
+  
+  // Affiliations to create in the Fabric CA
+  // Examples: ["metacensus", "metacensus.engineering", "metacensus.operations"]
+  repeated string affiliations = 6;
+  
+  // Peer identities to provision and deploy
+  // Examples: ["peer0", "peer1"]
+  repeated string peer_ids = 7;
+  
+  // Orderer identities to provision and deploy
+  // Examples: ["orderer0", "orderer1", "orderer2"]
+  repeated string orderer_ids = 8;
+  
+  // Node OU configuration (stored org-wide in Vault)
+  NodeOUConfig org_node_ous = 9;
+  
+  // Additional SAN hostnames for TLS certificates (optional)
+  // Useful for external DNS names or load balancer endpoints
+  repeated string additional_hosts = 10;
+}
+
+message DeployOrgOutput {
+  string organization = 1;                // Organization name
+  string namespace = 2;                  // Kubernetes namespace
+  vault.v1.SecretRef admin_secret = 3;   // Reference to admin identity in Vault
+  vault.v1.SecretRef ca_certificates = 4;  // Reference to org-wide CA certs in Vault
+  repeated DeployPeerOutput peers = 5;   // Deployed peers and their secret references
+  repeated DeployOrdererOutput orderers = 6;  // Deployed orderers and their secret references
+}
+

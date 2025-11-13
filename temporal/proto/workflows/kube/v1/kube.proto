@@ -12,8 +12,9 @@ import "temporal/v1/temporal.proto";
 service Kubernetes {
   // Service-wide Temporal settings
   option (temporal.v1.service) = {
-    task_queue: "kube"
+    task_queue: "infra"
   };
+  // namespace parameter is used for security enforcement
 
   // Create creates new resources in the cluster (fails if already exists)
   rpc Create(CreateInput) returns (CreateOutput) {

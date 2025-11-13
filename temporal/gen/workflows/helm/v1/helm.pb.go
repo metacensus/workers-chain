@@ -293,12 +293,11 @@ const file_helm_v1_helm_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"/\n" +
 	"\bResource\x12#\n" +
-	"\rmanifest_yaml\x18\x01 \x01(\fR\fmanifestYaml2\x83\x02\n" +
+	"\rmanifest_yaml\x18\x01 \x01(\fR\fmanifestYaml2\x84\x02\n" +
 	"\x04Helm\x12d\n" +
 	"\vRenderChart\x12\x19.helm.v1.RenderChartInput\x1a\x1a.helm.v1.RenderChartOutput\"\x1e\x92\xc4\x03\x1a\x12\x03\b\xac\x02:\x13helm.v1.RenderChart\x12\x88\x01\n" +
-	"\x17RenderChartWithTemplate\x12%.helm.v1.RenderChartWithTemplateInput\x1a\x1a.helm.v1.RenderChartOutput\"*\x92\xc4\x03&\x12\x03\b\xac\x02:\x1fhelm.v1.RenderChartWithTemplate\x1a\n" +
-	"\x8a\xc4\x03\x06\n" +
-	"\x04helmB\x98\x01\n" +
+	"\x17RenderChartWithTemplate\x12%.helm.v1.RenderChartWithTemplateInput\x1a\x1a.helm.v1.RenderChartOutput\"*\x92\xc4\x03&\x12\x03\b\xac\x02:\x1fhelm.v1.RenderChartWithTemplate\x1a\v\x8a\xc4\x03\a\n" +
+	"\x05infraB\x98\x01\n" +
 	"\vcom.helm.v1B\tHelmProtoP\x01ZAgithub.com/metacensus/infra/temporal/gen/workflows/helm/v1;helmv1\xa2\x02\x03HXX\xaa\x02\aHelm.V1\xca\x02\aHelm\\V1\xe2\x02\x13Helm\\V1\\GPBMetadata\xea\x02\bHelm::V1b\x06proto3"
 
 var (

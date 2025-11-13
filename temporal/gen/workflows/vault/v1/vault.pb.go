@@ -805,7 +805,7 @@ const file_vault_v1_vault_proto_rawDesc = "" +
 	"\vStoreSecret\x12\x1a.vault.v1.StoreSecretInput\x1a\x1b.vault.v1.StoreSecretOutput\"\x1f\x92\xc4\x03\x1b\x12\x03\b\xac\x02:\x14vault.v1.StoreSecret\x12f\n" +
 	"\vFetchSecret\x12\x1a.vault.v1.FetchSecretInput\x1a\x1b.vault.v1.FetchSecretOutput\"\x1e\x92\xc4\x03\x1a\x12\x02\b<:\x14vault.v1.FetchSecret\x12k\n" +
 	"\fDeleteSecret\x12\x1b.vault.v1.DeleteSecretInput\x1a\x1c.vault.v1.DeleteSecretOutput\" \x92\xc4\x03\x1c\x12\x03\b\xac\x02:\x15vault.v1.DeleteSecret\x1a\v\x8a\xc4\x03\a\n" +
-	"\x05vaultB\xa0\x01\n" +
+	"\x05infraB\xa0\x01\n" +
 	"\fcom.vault.v1B\n" +
 	"VaultProtoP\x01ZCgithub.com/metacensus/infra/temporal/gen/workflows/vault/v1;vaultv1\xa2\x02\x03VXX\xaa\x02\bVault.V1\xca\x02\bVault\\V1\xe2\x02\x14Vault\\V1\\GPBMetadata\xea\x02\tVault::V1b\x06proto3"
 

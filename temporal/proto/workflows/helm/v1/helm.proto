@@ -12,7 +12,7 @@ import "temporal/v1/temporal.proto";
 service Helm {
   // Service-wide Temporal settings
   option (temporal.v1.service) = {
-    task_queue: "helm"
+    task_queue: "infra"
   };
 
   // RenderChart renders a Helm chart with given values and returns parsed resources

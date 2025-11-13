@@ -10,8 +10,9 @@ import "temporal/v1/temporal.proto";
 service Vault {
   // Service‐wide Temporal settings
   option (temporal.v1.service) = {
-    task_queue: "vault"
+    task_queue: "infra"
   };
+  // Namespace parameter is used for security enforcement on identity activities
 
   // Auth Role Management
   rpc CreateAuthRole(CreateAuthRoleInput) returns (CreateAuthRoleOutput) {

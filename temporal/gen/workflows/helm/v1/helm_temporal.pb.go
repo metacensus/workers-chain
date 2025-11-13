@@ -18,7 +18,7 @@ import (
 )
 
 // HelmTaskQueue is the default task-queue for a helm.v1.Helm worker
-var HelmTaskQueue = "helm"
+var HelmTaskQueue = "infra"
 
 // helm.v1.Helm activity names
 const (

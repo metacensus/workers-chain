@@ -2541,7 +2541,7 @@ const file_fabric_identity_v1_identity_proto_rawDesc = "" +
 	"\x0enode_ou_config\x18\x04 \x01(\v2 .fabric.identity.v1.NodeOUConfigR\fnodeOuConfig\"\x88\x01\n" +
 	"\rOrgConfigRefs\x12<\n" +
 	"\x0fca_certificates\x18\x01 \x01(\v2\x13.vault.v1.SecretRefR\x0ecaCertificates\x129\n" +
-	"\x0enode_ou_config\x18\x02 \x01(\v2\x13.vault.v1.SecretRefR\fnodeOuConfig2\xd8\x0e\n" +
+	"\x0enode_ou_config\x18\x02 \x01(\v2\x13.vault.v1.SecretRefR\fnodeOuConfig2\xce\x0e\n" +
 	"\x0eFabricIdentity\x12\x99\x01\n" +
 	"\x10RegisterIdentity\x12).fabric.identity.v1.RegisterIdentityInput\x1a*.fabric.identity.v1.RegisterIdentityOutput\".\x92\xc4\x03*\x12\x03\b\xac\x02:#fabric.identity.v1.RegisterIdentity\x12\x91\x01\n" +
 	"\x0eEnrollIdentity\x12'.fabric.identity.v1.EnrollIdentityInput\x1a(.fabric.identity.v1.EnrollIdentityOutput\",\x92\xc4\x03(\x12\x03\b\xac\x02:!fabric.identity.v1.EnrollIdentity\x12\x84\x01\n" +
@@ -2554,8 +2554,8 @@ const file_fabric_identity_v1_identity_proto_rawDesc = "" +
 	"\x14GenerateSecureSecret\x12-.fabric.identity.v1.GenerateSecureSecretInput\x1a..fabric.identity.v1.GenerateSecureSecretOutput\"1\x92\xc4\x03-\x12\x02\b\x1e:'fabric.identity.v1.GenerateSecureSecret\x12\xa5\x01\n" +
 	"\x13CreateAdminIdentity\x12,.fabric.identity.v1.CreateAdminIdentityInput\x1a-.fabric.identity.v1.CreateAdminIdentityOutput\"1\x92\xc4\x03-\x12\x03\b\xd8\x04:&fabric.identity.v1.CreateAdminIdentity\x12\xa1\x01\n" +
 	"\x12RevokeDefaultAdmin\x12+.fabric.identity.v1.RevokeDefaultAdminInput\x1a,.fabric.identity.v1.RevokeDefaultAdminOutput\"0\x92\xc4\x03,\x12\x03\b\xac\x02:%fabric.identity.v1.RevokeDefaultAdmin\x12\xa1\x01\n" +
-	"\x12CreateAffiliations\x12+.fabric.identity.v1.CreateAffiliationsInput\x1a,.fabric.identity.v1.CreateAffiliationsOutput\"0\x92\xc4\x03,\x12\x03\b\xac\x02:%fabric.identity.v1.CreateAffiliations\x1a\x15\x8a\xc4\x03\x11\n" +
-	"\x0ffabric-identityB\xe9\x01\n" +
+	"\x12CreateAffiliations\x12+.fabric.identity.v1.CreateAffiliationsInput\x1a,.fabric.identity.v1.CreateAffiliationsOutput\"0\x92\xc4\x03,\x12\x03\b\xac\x02:%fabric.identity.v1.CreateAffiliations\x1a\v\x8a\xc4\x03\a\n" +
+	"\x05infraB\xe9\x01\n" +
 	"\x16com.fabric.identity.v1B\rIdentityProtoP\x01ZVgithub.com/metacensus/infra/temporal/gen/workflows/fabric/identity/v1;fabricidentityv1\xa2\x02\x03FIX\xaa\x02\x12Fabric.Identity.V1\xca\x02\x12Fabric\\Identity\\V1\xe2\x02\x1eFabric\\Identity\\V1\\GPBMetadata\xea\x02\x14Fabric::Identity::V1b\x06proto3"
 
 var (

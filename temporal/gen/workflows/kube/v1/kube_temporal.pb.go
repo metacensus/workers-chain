@@ -18,7 +18,7 @@ import (
 )
 
 // KubernetesTaskQueue is the default task-queue for a kube.v1.Kubernetes worker
-var KubernetesTaskQueue = "kube"
+var KubernetesTaskQueue = "infra"
 
 // kube.v1.Kubernetes activity names
 const (

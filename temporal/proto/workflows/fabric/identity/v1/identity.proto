@@ -12,8 +12,9 @@ import "vault/v1/vault.proto";
 service FabricIdentity {
   // Service-wide Temporal settings
   option (temporal.v1.service) = {
-    task_queue: "fabric-identity"
+    task_queue: "infra"
   };
+  // namespace parameter is used for security enforcement
 
   // RegisterIdentity registers a new identity with Fabric CA
   rpc RegisterIdentity(RegisterIdentityInput) returns (RegisterIdentityOutput) {

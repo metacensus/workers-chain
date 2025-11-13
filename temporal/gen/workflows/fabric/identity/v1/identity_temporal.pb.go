@@ -28,7 +28,7 @@ import (
 )
 
 // FabricIdentityTaskQueue is the default task-queue for a fabric.identity.v1.FabricIdentity worker
-var FabricIdentityTaskQueue = "fabric-identity"
+var FabricIdentityTaskQueue = "infra"
 
 // fabric.identity.v1.FabricIdentity workflow names
 const (

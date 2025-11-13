@@ -18,7 +18,7 @@ import (
 )
 
 // VaultTaskQueue is the default task-queue for a vault.v1.Vault worker
-var VaultTaskQueue = "vault"
+var VaultTaskQueue = "infra"
 
 // vault.v1.Vault activity names
 const (

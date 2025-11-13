@@ -28,6 +28,16 @@
         - [fabric.identity.v1.CreateAdminIdentity](#fabric-identity-v1-createadminidentity-activity)
         - [fabric.identity.v1.RevokeDefaultAdmin](#fabric-identity-v1-revokedefaultadmin-activity)
         - [fabric.identity.v1.CreateAffiliations](#fabric-identity-v1-createaffiliations-activity)
+    - [fabric.identity.v1.FabricDeploy](#fabric-identity-v1-fabricdeploy)
+      - [Workflows](#fabric-identity-v1-fabricdeploy-workflows)
+        - [fabric.identity.v1.CreateNamespace](#fabric-identity-v1-createnamespace-workflow)
+        - [fabric.identity.v1.CreateServiceAccount](#fabric-identity-v1-createserviceaccount-workflow)
+        - [fabric.identity.v1.CreateVaultRole](#fabric-identity-v1-createvaultrole-workflow)
+        - [fabric.identity.v1.DeployCA](#fabric-identity-v1-deployca-workflow)
+        - [fabric.identity.v1.DeployCouchDB](#fabric-identity-v1-deploycouchdb-workflow)
+        - [fabric.identity.v1.DeployPeer](#fabric-identity-v1-deploypeer-workflow)
+        - [fabric.identity.v1.DeployOrderer](#fabric-identity-v1-deployorderer-workflow)
+        - [fabric.identity.v1.DeployOrg](#fabric-identity-v1-deployorg-workflow)
   - Messages
     - [fabric.identity.v1.AdminIdentity](#fabric-identity-v1-adminidentity)
     - [fabric.identity.v1.AssembleMspInput](#fabric-identity-v1-assemblemspinput)
@@ -42,6 +52,22 @@
     - [fabric.identity.v1.CreateAdminIdentityOutput](#fabric-identity-v1-createadminidentityoutput)
     - [fabric.identity.v1.CreateAffiliationsInput](#fabric-identity-v1-createaffiliationsinput)
     - [fabric.identity.v1.CreateAffiliationsOutput](#fabric-identity-v1-createaffiliationsoutput)
+    - [fabric.identity.v1.CreateNamespaceInput](#fabric-identity-v1-createnamespaceinput)
+    - [fabric.identity.v1.CreateNamespaceOutput](#fabric-identity-v1-createnamespaceoutput)
+    - [fabric.identity.v1.CreateServiceAccountInput](#fabric-identity-v1-createserviceaccountinput)
+    - [fabric.identity.v1.CreateServiceAccountOutput](#fabric-identity-v1-createserviceaccountoutput)
+    - [fabric.identity.v1.CreateVaultRoleInput](#fabric-identity-v1-createvaultroleinput)
+    - [fabric.identity.v1.CreateVaultRoleOutput](#fabric-identity-v1-createvaultroleoutput)
+    - [fabric.identity.v1.DeployCaInput](#fabric-identity-v1-deploycainput)
+    - [fabric.identity.v1.DeployCaOutput](#fabric-identity-v1-deploycaoutput)
+    - [fabric.identity.v1.DeployCouchDbInput](#fabric-identity-v1-deploycouchdbinput)
+    - [fabric.identity.v1.DeployCouchDbOutput](#fabric-identity-v1-deploycouchdboutput)
+    - [fabric.identity.v1.DeployOrdererInput](#fabric-identity-v1-deployordererinput)
+    - [fabric.identity.v1.DeployOrdererOutput](#fabric-identity-v1-deployordereroutput)
+    - [fabric.identity.v1.DeployOrgInput](#fabric-identity-v1-deployorginput)
+    - [fabric.identity.v1.DeployOrgOutput](#fabric-identity-v1-deployorgoutput)
+    - [fabric.identity.v1.DeployPeerInput](#fabric-identity-v1-deploypeerinput)
+    - [fabric.identity.v1.DeployPeerOutput](#fabric-identity-v1-deploypeeroutput)
     - [fabric.identity.v1.EnrollIdentityInput](#fabric-identity-v1-enrollidentityinput)
     - [fabric.identity.v1.EnrollIdentityOutput](#fabric-identity-v1-enrollidentityoutput)
     - [fabric.identity.v1.GenerateSecureSecretInput](#fabric-identity-v1-generatesecuresecretinput)
@@ -1598,6 +1624,727 @@ go_name: ExistingAffiliations</pre></td>
 </tr>
 </table>   
 
+<a name="fabric-identity-v1-fabricdeploy"></a>
+## fabric.identity.v1.FabricDeploy
+
+<pre>
+FabricDeploy service defines workflows for Kubernetes infrastructure provisioning
+These workflows orchestrate the deployment of Fabric components (CA, peers, orderers, CouchDB)
+to a Kubernetes cluster with CSI-based secret mounting from Vault.
+</pre>
+
+<a name="fabric-identity-v1-fabricdeploy-workflows"></a>
+### Workflows
+
+---
+<a name="fabric-identity-v1-createnamespace-workflow"></a>
+### fabric.identity.v1.CreateNamespace
+
+<pre>
+CreateNamespace creates a new Kubernetes namespace for an organization
+</pre>
+
+**Input:** [fabric.identity.v1.CreateNamespaceInput](#fabric-identity-v1-createnamespaceinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.identity.v1.CreateNamespaceOutput](#fabric-identity-v1-createnamespaceoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-identity-v1-createserviceaccount-workflow"></a>
+### fabric.identity.v1.CreateServiceAccount
+
+<pre>
+CreateServiceAccount creates a Kubernetes service account for Vault authentication
+</pre>
+
+**Input:** [fabric.identity.v1.CreateServiceAccountInput](#fabric-identity-v1-createserviceaccountinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>service_account_name</td>
+<td>string</td>
+<td><pre>
+json_name: serviceAccountName
+go_name: ServiceAccountName</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.identity.v1.CreateServiceAccountOutput](#fabric-identity-v1-createserviceaccountoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>service_account_name</td>
+<td>string</td>
+<td><pre>
+json_name: serviceAccountName
+go_name: ServiceAccountName</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-identity-v1-createvaultrole-workflow"></a>
+### fabric.identity.v1.CreateVaultRole
+
+<pre>
+CreateVaultRole creates a Vault Kubernetes auth role for the service account
+</pre>
+
+**Input:** [fabric.identity.v1.CreateVaultRoleInput](#fabric-identity-v1-createvaultroleinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>kubernetes_namespace</td>
+<td>string</td>
+<td><pre>
+json_name: kubernetesNamespace
+go_name: KubernetesNamespace</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>policy_names</td>
+<td>string</td>
+<td><pre>
+json_name: policyNames
+go_name: PolicyNames</pre></td>
+</tr><tr>
+<td>service_account_name</td>
+<td>string</td>
+<td><pre>
+json_name: serviceAccountName
+go_name: ServiceAccountName</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.identity.v1.CreateVaultRoleOutput](#fabric-identity-v1-createvaultroleoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>role_name</td>
+<td>string</td>
+<td><pre>
+json_name: roleName
+go_name: RoleName</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-identity-v1-deployca-workflow"></a>
+### fabric.identity.v1.DeployCA
+
+<pre>
+DeployCA deploys the Fabric CA pod to the Kubernetes cluster
+</pre>
+
+**Input:** [fabric.identity.v1.DeployCaInput](#fabric-identity-v1-deploycainput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_admin_password</td>
+<td>string</td>
+<td><pre>
+json_name: caAdminPassword
+go_name: CaAdminPassword</pre></td>
+</tr><tr>
+<td>ca_admin_username</td>
+<td>string</td>
+<td><pre>
+json_name: caAdminUsername
+go_name: CaAdminUsername</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.identity.v1.DeployCaOutput](#fabric-identity-v1-deploycaoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_name</td>
+<td>string</td>
+<td><pre>
+json_name: caName
+go_name: CaName</pre></td>
+</tr><tr>
+<td>service_name</td>
+<td>string</td>
+<td><pre>
+json_name: serviceName
+go_name: ServiceName</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-identity-v1-deploycouchdb-workflow"></a>
+### fabric.identity.v1.DeployCouchDB
+
+<pre>
+DeployCouchDB deploys a CouchDB instance for peer state storage
+Each peer gets its own CouchDB instance
+</pre>
+
+**Input:** [fabric.identity.v1.DeployCouchDbInput](#fabric-identity-v1-deploycouchdbinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>admin_password</td>
+<td>string</td>
+<td><pre>
+json_name: adminPassword
+go_name: AdminPassword</pre></td>
+</tr><tr>
+<td>admin_username</td>
+<td>string</td>
+<td><pre>
+json_name: adminUsername
+go_name: AdminUsername</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>peer_id</td>
+<td>string</td>
+<td><pre>
+json_name: peerId
+go_name: PeerId</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.identity.v1.DeployCouchDbOutput](#fabric-identity-v1-deploycouchdboutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>couchdb_name</td>
+<td>string</td>
+<td><pre>
+json_name: couchdbName
+go_name: CouchdbName</pre></td>
+</tr><tr>
+<td>credentials</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: credentials
+go_name: Credentials</pre></td>
+</tr><tr>
+<td>service_name</td>
+<td>string</td>
+<td><pre>
+json_name: serviceName
+go_name: ServiceName</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-identity-v1-deploypeer-workflow"></a>
+### fabric.identity.v1.DeployPeer
+
+<pre>
+DeployPeer deploys a peer node with certificates and CSI volume mounts
+Calls ProvisionPeerWorkflow to generate certs, then deploys the peer pod
+</pre>
+
+**Input:** [fabric.identity.v1.DeployPeerInput](#fabric-identity-v1-deploypeerinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>couchdb_service_name</td>
+<td>string</td>
+<td><pre>
+json_name: couchdbServiceName
+go_name: CouchdbServiceName</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+json_name: hosts
+go_name: Hosts</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>org_node_ous</td>
+<td><a href="#fabric-identity-v1-nodeouconfig">fabric.identity.v1.NodeOUConfig</a></td>
+<td><pre>
+json_name: orgNodeOus
+go_name: OrgNodeOus</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>peer_id</td>
+<td>string</td>
+<td><pre>
+json_name: peerId
+go_name: PeerId</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.identity.v1.DeployPeerOutput](#fabric-identity-v1-deploypeeroutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>peer_name</td>
+<td>string</td>
+<td><pre>
+json_name: peerName
+go_name: PeerName</pre></td>
+</tr><tr>
+<td>service_name</td>
+<td>string</td>
+<td><pre>
+json_name: serviceName
+go_name: ServiceName</pre></td>
+</tr><tr>
+<td>signing_secret</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: signingSecret
+go_name: SigningSecret</pre></td>
+</tr><tr>
+<td>tls_secret</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: tlsSecret
+go_name: TlsSecret</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-identity-v1-deployorderer-workflow"></a>
+### fabric.identity.v1.DeployOrderer
+
+<pre>
+DeployOrderer deploys an orderer node with certificates and CSI volume mounts
+Calls ProvisionOrdererWorkflow to generate certs, then deploys the orderer pod
+</pre>
+
+**Input:** [fabric.identity.v1.DeployOrdererInput](#fabric-identity-v1-deployordererinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+json_name: hosts
+go_name: Hosts</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>orderer_id</td>
+<td>string</td>
+<td><pre>
+json_name: ordererId
+go_name: OrdererId</pre></td>
+</tr><tr>
+<td>org_node_ous</td>
+<td><a href="#fabric-identity-v1-nodeouconfig">fabric.identity.v1.NodeOUConfig</a></td>
+<td><pre>
+json_name: orgNodeOus
+go_name: OrgNodeOus</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.identity.v1.DeployOrdererOutput](#fabric-identity-v1-deployordereroutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>orderer_name</td>
+<td>string</td>
+<td><pre>
+json_name: ordererName
+go_name: OrdererName</pre></td>
+</tr><tr>
+<td>service_name</td>
+<td>string</td>
+<td><pre>
+json_name: serviceName
+go_name: ServiceName</pre></td>
+</tr><tr>
+<td>signing_secret</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: signingSecret
+go_name: SigningSecret</pre></td>
+</tr><tr>
+<td>tls_secret</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: tlsSecret
+go_name: TlsSecret</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-identity-v1-deployorg-workflow"></a>
+### fabric.identity.v1.DeployOrg
+
+<pre>
+DeployOrg is the master workflow that orchestrates complete organization deployment
+Execution flow:
+1. CreateNamespace
+2. CreateServiceAccount
+3. CreateVaultRole
+4. DeployCA
+5. CreateAffiliations (activity - for CA identity organization)
+6. BootstrapAdmin (workflow - create initial admin identity)
+7. For each peer_id (sequential):
+   - DeployCouchDB (for this peer)
+   - DeployPeer (this peer)
+8. For each orderer_id (sequential):
+   - DeployOrderer (this orderer)
+</pre>
+
+**Input:** [fabric.identity.v1.DeployOrgInput](#fabric-identity-v1-deployorginput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>additional_hosts</td>
+<td>string</td>
+<td><pre>
+Additional SAN hostnames for TLS certificates (optional)
+Useful for external DNS names or load balancer endpoints<br>
+
+json_name: additionalHosts
+go_name: AdditionalHosts</pre></td>
+</tr><tr>
+<td>admin</td>
+<td><a href="#fabric-identity-v1-bootstrapadmininput">fabric.identity.v1.BootstrapAdminInput</a></td>
+<td><pre>
+Admin identity configuration (to be created via BootstrapAdmin)<br>
+
+json_name: admin
+go_name: Admin</pre></td>
+</tr><tr>
+<td>affiliations</td>
+<td>string</td>
+<td><pre>
+Affiliations to create in the Fabric CA
+Examples: ["metacensus", "metacensus.engineering", "metacensus.operations"]<br>
+
+json_name: affiliations
+go_name: Affiliations</pre></td>
+</tr><tr>
+<td>ca_admin_password</td>
+<td>string</td>
+<td><pre>
+json_name: caAdminPassword
+go_name: CaAdminPassword</pre></td>
+</tr><tr>
+<td>ca_admin_username</td>
+<td>string</td>
+<td><pre>
+CA configuration (bootstrap credentials for Fabric CA)<br>
+
+json_name: caAdminUsername
+go_name: CaAdminUsername</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>orderer_ids</td>
+<td>string</td>
+<td><pre>
+Orderer identities to provision and deploy
+Examples: ["orderer0", "orderer1", "orderer2"]<br>
+
+json_name: ordererIds
+go_name: OrdererIds</pre></td>
+</tr><tr>
+<td>org_node_ous</td>
+<td><a href="#fabric-identity-v1-nodeouconfig">fabric.identity.v1.NodeOUConfig</a></td>
+<td><pre>
+Node OU configuration (stored org-wide in Vault)<br>
+
+json_name: orgNodeOus
+go_name: OrgNodeOus</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>peer_ids</td>
+<td>string</td>
+<td><pre>
+Peer identities to provision and deploy
+Examples: ["peer0", "peer1"]<br>
+
+json_name: peerIds
+go_name: PeerIds</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.identity.v1.DeployOrgOutput](#fabric-identity-v1-deployorgoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>admin_secret</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: adminSecret
+go_name: AdminSecret</pre></td>
+</tr><tr>
+<td>ca_certificates</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: caCertificates
+go_name: CaCertificates</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>orderers</td>
+<td><a href="#fabric-identity-v1-deployordereroutput">fabric.identity.v1.DeployOrdererOutput</a></td>
+<td><pre>
+json_name: orderers
+go_name: Orderers</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>peers</td>
+<td><a href="#fabric-identity-v1-deploypeeroutput">fabric.identity.v1.DeployPeerOutput</a></td>
+<td><pre>
+json_name: peers
+go_name: Peers</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
+</table>     
+
 <a name="fabric-identity-v1-messages"></a>
 ## Messages
 
@@ -2124,6 +2871,620 @@ go_name: CreatedAffiliations</pre></td>
 <td><pre>
 json_name: existingAffiliations
 go_name: ExistingAffiliations</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-createnamespaceinput"></a>
+### fabric.identity.v1.CreateNamespaceInput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-createnamespaceoutput"></a>
+### fabric.identity.v1.CreateNamespaceOutput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-createserviceaccountinput"></a>
+### fabric.identity.v1.CreateServiceAccountInput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>service_account_name</td>
+<td>string</td>
+<td><pre>
+json_name: serviceAccountName
+go_name: ServiceAccountName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-createserviceaccountoutput"></a>
+### fabric.identity.v1.CreateServiceAccountOutput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>service_account_name</td>
+<td>string</td>
+<td><pre>
+json_name: serviceAccountName
+go_name: ServiceAccountName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-createvaultroleinput"></a>
+### fabric.identity.v1.CreateVaultRoleInput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>kubernetes_namespace</td>
+<td>string</td>
+<td><pre>
+json_name: kubernetesNamespace
+go_name: KubernetesNamespace</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>policy_names</td>
+<td>string</td>
+<td><pre>
+json_name: policyNames
+go_name: PolicyNames</pre></td>
+</tr><tr>
+<td>service_account_name</td>
+<td>string</td>
+<td><pre>
+json_name: serviceAccountName
+go_name: ServiceAccountName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-createvaultroleoutput"></a>
+### fabric.identity.v1.CreateVaultRoleOutput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>role_name</td>
+<td>string</td>
+<td><pre>
+json_name: roleName
+go_name: RoleName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-deploycainput"></a>
+### fabric.identity.v1.DeployCaInput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_admin_password</td>
+<td>string</td>
+<td><pre>
+json_name: caAdminPassword
+go_name: CaAdminPassword</pre></td>
+</tr><tr>
+<td>ca_admin_username</td>
+<td>string</td>
+<td><pre>
+json_name: caAdminUsername
+go_name: CaAdminUsername</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-deploycaoutput"></a>
+### fabric.identity.v1.DeployCaOutput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_name</td>
+<td>string</td>
+<td><pre>
+json_name: caName
+go_name: CaName</pre></td>
+</tr><tr>
+<td>service_name</td>
+<td>string</td>
+<td><pre>
+json_name: serviceName
+go_name: ServiceName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-deploycouchdbinput"></a>
+### fabric.identity.v1.DeployCouchDbInput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>admin_password</td>
+<td>string</td>
+<td><pre>
+json_name: adminPassword
+go_name: AdminPassword</pre></td>
+</tr><tr>
+<td>admin_username</td>
+<td>string</td>
+<td><pre>
+json_name: adminUsername
+go_name: AdminUsername</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>peer_id</td>
+<td>string</td>
+<td><pre>
+json_name: peerId
+go_name: PeerId</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-deploycouchdboutput"></a>
+### fabric.identity.v1.DeployCouchDbOutput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>couchdb_name</td>
+<td>string</td>
+<td><pre>
+json_name: couchdbName
+go_name: CouchdbName</pre></td>
+</tr><tr>
+<td>credentials</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: credentials
+go_name: Credentials</pre></td>
+</tr><tr>
+<td>service_name</td>
+<td>string</td>
+<td><pre>
+json_name: serviceName
+go_name: ServiceName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-deployordererinput"></a>
+### fabric.identity.v1.DeployOrdererInput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+json_name: hosts
+go_name: Hosts</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>orderer_id</td>
+<td>string</td>
+<td><pre>
+json_name: ordererId
+go_name: OrdererId</pre></td>
+</tr><tr>
+<td>org_node_ous</td>
+<td><a href="#fabric-identity-v1-nodeouconfig">fabric.identity.v1.NodeOUConfig</a></td>
+<td><pre>
+json_name: orgNodeOus
+go_name: OrgNodeOus</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-deployordereroutput"></a>
+### fabric.identity.v1.DeployOrdererOutput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>orderer_name</td>
+<td>string</td>
+<td><pre>
+json_name: ordererName
+go_name: OrdererName</pre></td>
+</tr><tr>
+<td>service_name</td>
+<td>string</td>
+<td><pre>
+json_name: serviceName
+go_name: ServiceName</pre></td>
+</tr><tr>
+<td>signing_secret</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: signingSecret
+go_name: SigningSecret</pre></td>
+</tr><tr>
+<td>tls_secret</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: tlsSecret
+go_name: TlsSecret</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-deployorginput"></a>
+### fabric.identity.v1.DeployOrgInput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>additional_hosts</td>
+<td>string</td>
+<td><pre>
+Additional SAN hostnames for TLS certificates (optional)
+Useful for external DNS names or load balancer endpoints<br>
+
+json_name: additionalHosts
+go_name: AdditionalHosts</pre></td>
+</tr><tr>
+<td>admin</td>
+<td><a href="#fabric-identity-v1-bootstrapadmininput">fabric.identity.v1.BootstrapAdminInput</a></td>
+<td><pre>
+Admin identity configuration (to be created via BootstrapAdmin)<br>
+
+json_name: admin
+go_name: Admin</pre></td>
+</tr><tr>
+<td>affiliations</td>
+<td>string</td>
+<td><pre>
+Affiliations to create in the Fabric CA
+Examples: ["metacensus", "metacensus.engineering", "metacensus.operations"]<br>
+
+json_name: affiliations
+go_name: Affiliations</pre></td>
+</tr><tr>
+<td>ca_admin_password</td>
+<td>string</td>
+<td><pre>
+json_name: caAdminPassword
+go_name: CaAdminPassword</pre></td>
+</tr><tr>
+<td>ca_admin_username</td>
+<td>string</td>
+<td><pre>
+CA configuration (bootstrap credentials for Fabric CA)<br>
+
+json_name: caAdminUsername
+go_name: CaAdminUsername</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>orderer_ids</td>
+<td>string</td>
+<td><pre>
+Orderer identities to provision and deploy
+Examples: ["orderer0", "orderer1", "orderer2"]<br>
+
+json_name: ordererIds
+go_name: OrdererIds</pre></td>
+</tr><tr>
+<td>org_node_ous</td>
+<td><a href="#fabric-identity-v1-nodeouconfig">fabric.identity.v1.NodeOUConfig</a></td>
+<td><pre>
+Node OU configuration (stored org-wide in Vault)<br>
+
+json_name: orgNodeOus
+go_name: OrgNodeOus</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>peer_ids</td>
+<td>string</td>
+<td><pre>
+Peer identities to provision and deploy
+Examples: ["peer0", "peer1"]<br>
+
+json_name: peerIds
+go_name: PeerIds</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-deployorgoutput"></a>
+### fabric.identity.v1.DeployOrgOutput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>admin_secret</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: adminSecret
+go_name: AdminSecret</pre></td>
+</tr><tr>
+<td>ca_certificates</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: caCertificates
+go_name: CaCertificates</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>orderers</td>
+<td><a href="#fabric-identity-v1-deployordereroutput">fabric.identity.v1.DeployOrdererOutput</a></td>
+<td><pre>
+json_name: orderers
+go_name: Orderers</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>peers</td>
+<td><a href="#fabric-identity-v1-deploypeeroutput">fabric.identity.v1.DeployPeerOutput</a></td>
+<td><pre>
+json_name: peers
+go_name: Peers</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-deploypeerinput"></a>
+### fabric.identity.v1.DeployPeerInput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>couchdb_service_name</td>
+<td>string</td>
+<td><pre>
+json_name: couchdbServiceName
+go_name: CouchdbServiceName</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+json_name: hosts
+go_name: Hosts</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>org_node_ous</td>
+<td><a href="#fabric-identity-v1-nodeouconfig">fabric.identity.v1.NodeOUConfig</a></td>
+<td><pre>
+json_name: orgNodeOus
+go_name: OrgNodeOus</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>peer_id</td>
+<td>string</td>
+<td><pre>
+json_name: peerId
+go_name: PeerId</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-identity-v1-deploypeeroutput"></a>
+### fabric.identity.v1.DeployPeerOutput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>peer_name</td>
+<td>string</td>
+<td><pre>
+json_name: peerName
+go_name: PeerName</pre></td>
+</tr><tr>
+<td>service_name</td>
+<td>string</td>
+<td><pre>
+json_name: serviceName
+go_name: ServiceName</pre></td>
+</tr><tr>
+<td>signing_secret</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: signingSecret
+go_name: SigningSecret</pre></td>
+</tr><tr>
+<td>tls_secret</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+json_name: tlsSecret
+go_name: TlsSecret</pre></td>
 </tr>
 </table>
 
