@@ -148,14 +148,24 @@
       - [Activities](#temporal-v1-admin-activities)
         - [temporal.v1.RegisterNamespace](#temporal-v1-registernamespace-activity)
         - [temporal.v1.DescribeNamespace](#temporal-v1-describenamespace-activity)
+        - [temporal.v1.CreateNexusEndpoint](#temporal-v1-createnexusendpoint-activity)
+        - [temporal.v1.DescribeNexusEndpoint](#temporal-v1-describenexusendpoint-activity)
+        - [temporal.v1.UpdateNexusEndpoint](#temporal-v1-updatenexusendpoint-activity)
   - Messages
     - [temporal.v1.CreateNamespaceInput](#temporal-v1-createnamespaceinput)
     - [temporal.v1.CreateNamespaceOutput](#temporal-v1-createnamespaceoutput)
+    - [temporal.v1.CreateNexusEndpointInput](#temporal-v1-createnexusendpointinput)
+    - [temporal.v1.CreateNexusEndpointOutput](#temporal-v1-createnexusendpointoutput)
     - [temporal.v1.DescribeNamespaceInput](#temporal-v1-describenamespaceinput)
     - [temporal.v1.DescribeNamespaceOutput](#temporal-v1-describenamespaceoutput)
+    - [temporal.v1.DescribeNexusEndpointInput](#temporal-v1-describenexusendpointinput)
+    - [temporal.v1.DescribeNexusEndpointOutput](#temporal-v1-describenexusendpointoutput)
+    - [temporal.v1.Endpoint](#temporal-v1-endpoint)
     - [temporal.v1.NamespaceState](#temporal-v1-namespacestate)
     - [temporal.v1.RegisterNamespaceInput](#temporal-v1-registernamespaceinput)
     - [temporal.v1.RegisterNamespaceOutput](#temporal-v1-registernamespaceoutput)
+    - [temporal.v1.UpdateNexusEndpointInput](#temporal-v1-updatenexusendpointinput)
+    - [temporal.v1.UpdateNexusEndpointOutput](#temporal-v1-updatenexusendpointoutput)
 - [vault.v1](#vault-v1)
   - Services
     - [vault.v1.Vault](#vault-v1-vault)
@@ -6064,7 +6074,7 @@ go_name: Name</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_TERMINATE_IF_RUNNING</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>    
 
 <a name="temporal-v1-admin-activities"></a>
@@ -6164,7 +6174,151 @@ state is the current lifecycle state of the namespace<br>
 json_name: state
 go_name: State</pre></td>
 </tr>
-</table>   
+</table> 
+
+---
+<a name="temporal-v1-createnexusendpoint-activity"></a>
+### temporal.v1.CreateNexusEndpoint
+
+<pre>
+CreateNexusEndpoint creates a global Nexus endpoint for cross-namespace Workflow calls
+This endpoint acts as a reverse proxy, routing Nexus requests from caller namespaces
+to a target namespace and task queue (typically for CreateScopedIdentityAccess service).
+Idempotent: returns success if endpoint already exists with same configuration.
+</pre>
+
+**Input:** [temporal.v1.CreateNexusEndpointInput](#temporal-v1-createnexusendpointinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name: endpoint name<br>
+
+json_name: name
+go_name: Name</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+namespace: Temporal namespace to route to<br>
+
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>task_queue</td>
+<td>string</td>
+<td><pre>
+task_queue: task queue within target namespace<br>
+
+json_name: taskQueue
+go_name: TaskQueue</pre></td>
+</tr>
+</table>
+
+**Output:** [temporal.v1.CreateNexusEndpointOutput](#temporal-v1-createnexusendpointoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>id</td>
+<td>string</td>
+<td><pre>
+id: server-generated unique endpoint identifier<br>
+
+json_name: id
+go_name: Id</pre></td>
+</tr>
+</table> 
+
+---
+<a name="temporal-v1-describenexusendpoint-activity"></a>
+### temporal.v1.DescribeNexusEndpoint
+
+<pre>
+DescribeNexusEndpoint retrieves the current configuration of a Nexus endpoint
+Used to fetch existing ACL before updating (for ACL update workflows)
+</pre>
+
+**Input:** [temporal.v1.DescribeNexusEndpointInput](#temporal-v1-describenexusendpointinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>id</td>
+<td>string</td>
+<td><pre>
+id: endpoint identifier to describe<br>
+
+json_name: id
+go_name: Id</pre></td>
+</tr>
+</table>
+
+**Output:** [temporal.v1.DescribeNexusEndpointOutput](#temporal-v1-describenexusendpointoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>endpoint</td>
+<td><a href="#temporal-v1-endpoint">temporal.v1.Endpoint</a></td>
+<td><pre>
+json_name: endpoint
+go_name: Endpoint</pre></td>
+</tr>
+</table> 
+
+---
+<a name="temporal-v1-updatenexusendpoint-activity"></a>
+### temporal.v1.UpdateNexusEndpoint
+
+<pre>
+UpdateNexusEndpoint updates an existing Nexus endpoint configuration
+NOTE: This REPLACES the entire endpoint configuration.
+Caller must provide the complete desired configuration.
+</pre>
+
+**Input:** [temporal.v1.UpdateNexusEndpointInput](#temporal-v1-updatenexusendpointinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>endpoint</td>
+<td><a href="#temporal-v1-endpoint">temporal.v1.Endpoint</a></td>
+<td><pre>
+endpoint: complete endpoint configuration for update
+Must include id, namespace, and task_queue<br>
+
+json_name: endpoint
+go_name: Endpoint</pre></td>
+</tr>
+</table>
+
+**Output:** [temporal.v1.UpdateNexusEndpointOutput](#temporal-v1-updatenexusendpointoutput)
+
+   
 
 <a name="temporal-v1-messages"></a>
 ## Messages
@@ -6231,6 +6385,66 @@ go_name: Name</pre></td>
 
 
 
+<a name="temporal-v1-createnexusendpointinput"></a>
+### temporal.v1.CreateNexusEndpointInput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name: endpoint name<br>
+
+json_name: name
+go_name: Name</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+namespace: Temporal namespace to route to<br>
+
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>task_queue</td>
+<td>string</td>
+<td><pre>
+task_queue: task queue within target namespace<br>
+
+json_name: taskQueue
+go_name: TaskQueue</pre></td>
+</tr>
+</table>
+
+
+
+<a name="temporal-v1-createnexusendpointoutput"></a>
+### temporal.v1.CreateNexusEndpointOutput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>id</td>
+<td>string</td>
+<td><pre>
+id: server-generated unique endpoint identifier<br>
+
+json_name: id
+go_name: Id</pre></td>
+</tr>
+</table>
+
+
+
 <a name="temporal-v1-describenamespaceinput"></a>
 ### temporal.v1.DescribeNamespaceInput
 
@@ -6286,6 +6500,98 @@ state is the current lifecycle state of the namespace<br>
 
 json_name: state
 go_name: State</pre></td>
+</tr>
+</table>
+
+
+
+<a name="temporal-v1-describenexusendpointinput"></a>
+### temporal.v1.DescribeNexusEndpointInput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>id</td>
+<td>string</td>
+<td><pre>
+id: endpoint identifier to describe<br>
+
+json_name: id
+go_name: Id</pre></td>
+</tr>
+</table>
+
+
+
+<a name="temporal-v1-describenexusendpointoutput"></a>
+### temporal.v1.DescribeNexusEndpointOutput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>endpoint</td>
+<td><a href="#temporal-v1-endpoint">temporal.v1.Endpoint</a></td>
+<td><pre>
+json_name: endpoint
+go_name: Endpoint</pre></td>
+</tr>
+</table>
+
+
+
+<a name="temporal-v1-endpoint"></a>
+### temporal.v1.Endpoint
+
+<pre>
+Endpoint defines a Nexus endpoint configuration
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>id</td>
+<td>string</td>
+<td><pre>
+id: server-generated unique endpoint identifier<br>
+
+json_name: id
+go_name: Id</pre></td>
+</tr><tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name: endpoint name (e.g., "CreateScopedIdentityAccess")<br>
+
+json_name: name
+go_name: Name</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+namespace: Temporal namespace to route requests to<br>
+
+json_name: namespace
+go_name: Namespace</pre></td>
+</tr><tr>
+<td>task_queue</td>
+<td>string</td>
+<td><pre>
+task_queue: task queue within target namespace<br>
+
+json_name: taskQueue
+go_name: TaskQueue</pre></td>
 </tr>
 </table>
 
@@ -6353,6 +6659,38 @@ go_name: Retention</pre></td>
 <pre>
 RegisterNamespaceOutput indicates successful namespace registration
 </pre>
+
+
+
+<a name="temporal-v1-updatenexusendpointinput"></a>
+### temporal.v1.UpdateNexusEndpointInput
+
+<pre>
+⚠️ REPLACES entire endpoint configuration (caller provides complete desired state)
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>endpoint</td>
+<td><a href="#temporal-v1-endpoint">temporal.v1.Endpoint</a></td>
+<td><pre>
+endpoint: complete endpoint configuration for update
+Must include id, namespace, and task_queue<br>
+
+json_name: endpoint
+go_name: Endpoint</pre></td>
+</tr>
+</table>
+
+
+
+<a name="temporal-v1-updatenexusendpointoutput"></a>
+### temporal.v1.UpdateNexusEndpointOutput
 
 
 

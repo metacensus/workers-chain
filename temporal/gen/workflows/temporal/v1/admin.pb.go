@@ -370,6 +370,359 @@ func (x *DescribeNamespaceOutput) GetState() NamespaceState {
 	return NamespaceState_UNSPECIFIED
 }
 
+// Endpoint defines a Nexus endpoint configuration
+type Endpoint struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// id: server-generated unique endpoint identifier
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// name: endpoint name (e.g., "CreateScopedIdentityAccess")
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// namespace: Temporal namespace to route requests to
+	Namespace string `protobuf:"bytes,3,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	// task_queue: task queue within target namespace
+	TaskQueue     string `protobuf:"bytes,4,opt,name=task_queue,json=taskQueue,proto3" json:"task_queue,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Endpoint) Reset() {
+	*x = Endpoint{}
+	mi := &file_temporal_v1_admin_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Endpoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Endpoint) ProtoMessage() {}
+
+func (x *Endpoint) ProtoReflect() protoreflect.Message {
+	mi := &file_temporal_v1_admin_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Endpoint.ProtoReflect.Descriptor instead.
+func (*Endpoint) Descriptor() ([]byte, []int) {
+	return file_temporal_v1_admin_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *Endpoint) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Endpoint) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Endpoint) GetNamespace() string {
+	if x != nil {
+		return x.Namespace
+	}
+	return ""
+}
+
+func (x *Endpoint) GetTaskQueue() string {
+	if x != nil {
+		return x.TaskQueue
+	}
+	return ""
+}
+
+type CreateNexusEndpointInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// name: endpoint name
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// namespace: Temporal namespace to route to
+	Namespace string `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	// task_queue: task queue within target namespace
+	TaskQueue     string `protobuf:"bytes,3,opt,name=task_queue,json=taskQueue,proto3" json:"task_queue,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateNexusEndpointInput) Reset() {
+	*x = CreateNexusEndpointInput{}
+	mi := &file_temporal_v1_admin_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateNexusEndpointInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateNexusEndpointInput) ProtoMessage() {}
+
+func (x *CreateNexusEndpointInput) ProtoReflect() protoreflect.Message {
+	mi := &file_temporal_v1_admin_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateNexusEndpointInput.ProtoReflect.Descriptor instead.
+func (*CreateNexusEndpointInput) Descriptor() ([]byte, []int) {
+	return file_temporal_v1_admin_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *CreateNexusEndpointInput) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateNexusEndpointInput) GetNamespace() string {
+	if x != nil {
+		return x.Namespace
+	}
+	return ""
+}
+
+func (x *CreateNexusEndpointInput) GetTaskQueue() string {
+	if x != nil {
+		return x.TaskQueue
+	}
+	return ""
+}
+
+type CreateNexusEndpointOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// id: server-generated unique endpoint identifier
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateNexusEndpointOutput) Reset() {
+	*x = CreateNexusEndpointOutput{}
+	mi := &file_temporal_v1_admin_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateNexusEndpointOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateNexusEndpointOutput) ProtoMessage() {}
+
+func (x *CreateNexusEndpointOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_temporal_v1_admin_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateNexusEndpointOutput.ProtoReflect.Descriptor instead.
+func (*CreateNexusEndpointOutput) Descriptor() ([]byte, []int) {
+	return file_temporal_v1_admin_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *CreateNexusEndpointOutput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DescribeNexusEndpointInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// id: endpoint identifier to describe
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DescribeNexusEndpointInput) Reset() {
+	*x = DescribeNexusEndpointInput{}
+	mi := &file_temporal_v1_admin_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DescribeNexusEndpointInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DescribeNexusEndpointInput) ProtoMessage() {}
+
+func (x *DescribeNexusEndpointInput) ProtoReflect() protoreflect.Message {
+	mi := &file_temporal_v1_admin_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DescribeNexusEndpointInput.ProtoReflect.Descriptor instead.
+func (*DescribeNexusEndpointInput) Descriptor() ([]byte, []int) {
+	return file_temporal_v1_admin_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *DescribeNexusEndpointInput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DescribeNexusEndpointOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Endpoint      *Endpoint              `protobuf:"bytes,1,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DescribeNexusEndpointOutput) Reset() {
+	*x = DescribeNexusEndpointOutput{}
+	mi := &file_temporal_v1_admin_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DescribeNexusEndpointOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DescribeNexusEndpointOutput) ProtoMessage() {}
+
+func (x *DescribeNexusEndpointOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_temporal_v1_admin_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DescribeNexusEndpointOutput.ProtoReflect.Descriptor instead.
+func (*DescribeNexusEndpointOutput) Descriptor() ([]byte, []int) {
+	return file_temporal_v1_admin_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *DescribeNexusEndpointOutput) GetEndpoint() *Endpoint {
+	if x != nil {
+		return x.Endpoint
+	}
+	return nil
+}
+
+// ⚠️ REPLACES entire endpoint configuration (caller provides complete desired state)
+type UpdateNexusEndpointInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// endpoint: complete endpoint configuration for update
+	// Must include id, namespace, and task_queue
+	Endpoint      *Endpoint `protobuf:"bytes,1,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateNexusEndpointInput) Reset() {
+	*x = UpdateNexusEndpointInput{}
+	mi := &file_temporal_v1_admin_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateNexusEndpointInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateNexusEndpointInput) ProtoMessage() {}
+
+func (x *UpdateNexusEndpointInput) ProtoReflect() protoreflect.Message {
+	mi := &file_temporal_v1_admin_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateNexusEndpointInput.ProtoReflect.Descriptor instead.
+func (*UpdateNexusEndpointInput) Descriptor() ([]byte, []int) {
+	return file_temporal_v1_admin_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *UpdateNexusEndpointInput) GetEndpoint() *Endpoint {
+	if x != nil {
+		return x.Endpoint
+	}
+	return nil
+}
+
+type UpdateNexusEndpointOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateNexusEndpointOutput) Reset() {
+	*x = UpdateNexusEndpointOutput{}
+	mi := &file_temporal_v1_admin_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateNexusEndpointOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateNexusEndpointOutput) ProtoMessage() {}
+
+func (x *UpdateNexusEndpointOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_temporal_v1_admin_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateNexusEndpointOutput.ProtoReflect.Descriptor instead.
+func (*UpdateNexusEndpointOutput) Descriptor() ([]byte, []int) {
+	return file_temporal_v1_admin_proto_rawDescGZIP(), []int{12}
+}
+
 var File_temporal_v1_admin_proto protoreflect.FileDescriptor
 
 const file_temporal_v1_admin_proto_rawDesc = "" +
@@ -392,17 +745,40 @@ const file_temporal_v1_admin_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"`\n" +
 	"\x17DescribeNamespaceOutput\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x121\n" +
-	"\x05state\x18\x02 \x01(\x0e2\x1b.temporal.v1.NamespaceStateR\x05state*A\n" +
+	"\x05state\x18\x02 \x01(\x0e2\x1b.temporal.v1.NamespaceStateR\x05state\"k\n" +
+	"\bEndpoint\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1c\n" +
+	"\tnamespace\x18\x03 \x01(\tR\tnamespace\x12\x1d\n" +
+	"\n" +
+	"task_queue\x18\x04 \x01(\tR\ttaskQueue\"k\n" +
+	"\x18CreateNexusEndpointInput\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1c\n" +
+	"\tnamespace\x18\x02 \x01(\tR\tnamespace\x12\x1d\n" +
+	"\n" +
+	"task_queue\x18\x03 \x01(\tR\ttaskQueue\"+\n" +
+	"\x19CreateNexusEndpointOutput\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\",\n" +
+	"\x1aDescribeNexusEndpointInput\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"P\n" +
+	"\x1bDescribeNexusEndpointOutput\x121\n" +
+	"\bendpoint\x18\x01 \x01(\v2\x15.temporal.v1.EndpointR\bendpoint\"M\n" +
+	"\x18UpdateNexusEndpointInput\x121\n" +
+	"\bendpoint\x18\x01 \x01(\v2\x15.temporal.v1.EndpointR\bendpoint\"\x1b\n" +
+	"\x19UpdateNexusEndpointOutput*A\n" +
 	"\x0eNamespaceState\x12\x0f\n" +
 	"\vUNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
 	"REGISTERED\x10\x01\x12\x0e\n" +
 	"\n" +
-	"DEPRECATED\x10\x022\xa8\x03\n" +
+	"DEPRECATED\x10\x022\xe8\x06\n" +
 	"\x05Admin\x12}\n" +
-	"\x0fCreateNamespace\x12!.temporal.v1.CreateNamespaceInput\x1a\".temporal.v1.CreateNamespaceOutput\"#\x8a\xc4\x03\x1f0\x04r\x1btemporal.v1.CreateNamespace\x12\x88\x01\n" +
+	"\x0fCreateNamespace\x12!.temporal.v1.CreateNamespaceInput\x1a\".temporal.v1.CreateNamespaceOutput\"#\x8a\xc4\x03\x1f0\x01r\x1btemporal.v1.CreateNamespace\x12\x88\x01\n" +
 	"\x11RegisterNamespace\x12#.temporal.v1.RegisterNamespaceInput\x1a$.temporal.v1.RegisterNamespaceOutput\"(\x92\xc4\x03$\x12\x03\b\xac\x02:\x1dtemporal.v1.RegisterNamespace\x12\x87\x01\n" +
-	"\x11DescribeNamespace\x12#.temporal.v1.DescribeNamespaceInput\x1a$.temporal.v1.DescribeNamespaceOutput\"'\x92\xc4\x03#\x12\x02\b<:\x1dtemporal.v1.DescribeNamespace\x1a\v\x8a\xc4\x03\a\n" +
+	"\x11DescribeNamespace\x12#.temporal.v1.DescribeNamespaceInput\x1a$.temporal.v1.DescribeNamespaceOutput\"'\x92\xc4\x03#\x12\x02\b<:\x1dtemporal.v1.DescribeNamespace\x12\x90\x01\n" +
+	"\x13CreateNexusEndpoint\x12%.temporal.v1.CreateNexusEndpointInput\x1a&.temporal.v1.CreateNexusEndpointOutput\"*\x92\xc4\x03&\x12\x03\b\xac\x02:\x1ftemporal.v1.CreateNexusEndpoint\x12\x97\x01\n" +
+	"\x15DescribeNexusEndpoint\x12'.temporal.v1.DescribeNexusEndpointInput\x1a(.temporal.v1.DescribeNexusEndpointOutput\"+\x92\xc4\x03'\x12\x02\b<:!temporal.v1.DescribeNexusEndpoint\x12\x90\x01\n" +
+	"\x13UpdateNexusEndpoint\x12%.temporal.v1.UpdateNexusEndpointInput\x1a&.temporal.v1.UpdateNexusEndpointOutput\"*\x92\xc4\x03&\x12\x03\b\xac\x02:\x1ftemporal.v1.UpdateNexusEndpoint\x1a\v\x8a\xc4\x03\a\n" +
 	"\x05infraB\xb5\x01\n" +
 	"\x0fcom.temporal.v1B\n" +
 	"AdminProtoP\x01ZIgithub.com/metacensus/infra/temporal/gen/workflows/temporal/v1;temporalv1\xa2\x02\x03TXX\xaa\x02\vTemporal.V1\xca\x02\vTemporal\\V1\xe2\x02\x17Temporal\\V1\\GPBMetadata\xea\x02\fTemporal::V1b\x06proto3"
@@ -420,32 +796,47 @@ func file_temporal_v1_admin_proto_rawDescGZIP() []byte {
 }
 
 var file_temporal_v1_admin_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_temporal_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_temporal_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_temporal_v1_admin_proto_goTypes = []any{
-	(NamespaceState)(0),             // 0: temporal.v1.NamespaceState
-	(*CreateNamespaceInput)(nil),    // 1: temporal.v1.CreateNamespaceInput
-	(*CreateNamespaceOutput)(nil),   // 2: temporal.v1.CreateNamespaceOutput
-	(*RegisterNamespaceInput)(nil),  // 3: temporal.v1.RegisterNamespaceInput
-	(*RegisterNamespaceOutput)(nil), // 4: temporal.v1.RegisterNamespaceOutput
-	(*DescribeNamespaceInput)(nil),  // 5: temporal.v1.DescribeNamespaceInput
-	(*DescribeNamespaceOutput)(nil), // 6: temporal.v1.DescribeNamespaceOutput
-	(*durationpb.Duration)(nil),     // 7: google.protobuf.Duration
+	(NamespaceState)(0),                 // 0: temporal.v1.NamespaceState
+	(*CreateNamespaceInput)(nil),        // 1: temporal.v1.CreateNamespaceInput
+	(*CreateNamespaceOutput)(nil),       // 2: temporal.v1.CreateNamespaceOutput
+	(*RegisterNamespaceInput)(nil),      // 3: temporal.v1.RegisterNamespaceInput
+	(*RegisterNamespaceOutput)(nil),     // 4: temporal.v1.RegisterNamespaceOutput
+	(*DescribeNamespaceInput)(nil),      // 5: temporal.v1.DescribeNamespaceInput
+	(*DescribeNamespaceOutput)(nil),     // 6: temporal.v1.DescribeNamespaceOutput
+	(*Endpoint)(nil),                    // 7: temporal.v1.Endpoint
+	(*CreateNexusEndpointInput)(nil),    // 8: temporal.v1.CreateNexusEndpointInput
+	(*CreateNexusEndpointOutput)(nil),   // 9: temporal.v1.CreateNexusEndpointOutput
+	(*DescribeNexusEndpointInput)(nil),  // 10: temporal.v1.DescribeNexusEndpointInput
+	(*DescribeNexusEndpointOutput)(nil), // 11: temporal.v1.DescribeNexusEndpointOutput
+	(*UpdateNexusEndpointInput)(nil),    // 12: temporal.v1.UpdateNexusEndpointInput
+	(*UpdateNexusEndpointOutput)(nil),   // 13: temporal.v1.UpdateNexusEndpointOutput
+	(*durationpb.Duration)(nil),         // 14: google.protobuf.Duration
 }
 var file_temporal_v1_admin_proto_depIdxs = []int32{
-	7, // 0: temporal.v1.CreateNamespaceInput.retention:type_name -> google.protobuf.Duration
-	7, // 1: temporal.v1.RegisterNamespaceInput.retention:type_name -> google.protobuf.Duration
-	0, // 2: temporal.v1.DescribeNamespaceOutput.state:type_name -> temporal.v1.NamespaceState
-	1, // 3: temporal.v1.Admin.CreateNamespace:input_type -> temporal.v1.CreateNamespaceInput
-	3, // 4: temporal.v1.Admin.RegisterNamespace:input_type -> temporal.v1.RegisterNamespaceInput
-	5, // 5: temporal.v1.Admin.DescribeNamespace:input_type -> temporal.v1.DescribeNamespaceInput
-	2, // 6: temporal.v1.Admin.CreateNamespace:output_type -> temporal.v1.CreateNamespaceOutput
-	4, // 7: temporal.v1.Admin.RegisterNamespace:output_type -> temporal.v1.RegisterNamespaceOutput
-	6, // 8: temporal.v1.Admin.DescribeNamespace:output_type -> temporal.v1.DescribeNamespaceOutput
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	14, // 0: temporal.v1.CreateNamespaceInput.retention:type_name -> google.protobuf.Duration
+	14, // 1: temporal.v1.RegisterNamespaceInput.retention:type_name -> google.protobuf.Duration
+	0,  // 2: temporal.v1.DescribeNamespaceOutput.state:type_name -> temporal.v1.NamespaceState
+	7,  // 3: temporal.v1.DescribeNexusEndpointOutput.endpoint:type_name -> temporal.v1.Endpoint
+	7,  // 4: temporal.v1.UpdateNexusEndpointInput.endpoint:type_name -> temporal.v1.Endpoint
+	1,  // 5: temporal.v1.Admin.CreateNamespace:input_type -> temporal.v1.CreateNamespaceInput
+	3,  // 6: temporal.v1.Admin.RegisterNamespace:input_type -> temporal.v1.RegisterNamespaceInput
+	5,  // 7: temporal.v1.Admin.DescribeNamespace:input_type -> temporal.v1.DescribeNamespaceInput
+	8,  // 8: temporal.v1.Admin.CreateNexusEndpoint:input_type -> temporal.v1.CreateNexusEndpointInput
+	10, // 9: temporal.v1.Admin.DescribeNexusEndpoint:input_type -> temporal.v1.DescribeNexusEndpointInput
+	12, // 10: temporal.v1.Admin.UpdateNexusEndpoint:input_type -> temporal.v1.UpdateNexusEndpointInput
+	2,  // 11: temporal.v1.Admin.CreateNamespace:output_type -> temporal.v1.CreateNamespaceOutput
+	4,  // 12: temporal.v1.Admin.RegisterNamespace:output_type -> temporal.v1.RegisterNamespaceOutput
+	6,  // 13: temporal.v1.Admin.DescribeNamespace:output_type -> temporal.v1.DescribeNamespaceOutput
+	9,  // 14: temporal.v1.Admin.CreateNexusEndpoint:output_type -> temporal.v1.CreateNexusEndpointOutput
+	11, // 15: temporal.v1.Admin.DescribeNexusEndpoint:output_type -> temporal.v1.DescribeNexusEndpointOutput
+	13, // 16: temporal.v1.Admin.UpdateNexusEndpoint:output_type -> temporal.v1.UpdateNexusEndpointOutput
+	11, // [11:17] is the sub-list for method output_type
+	5,  // [5:11] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_temporal_v1_admin_proto_init() }
@@ -461,7 +852,7 @@ func file_temporal_v1_admin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_temporal_v1_admin_proto_rawDesc), len(file_temporal_v1_admin_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

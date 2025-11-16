@@ -22,6 +22,65 @@ func (_m *MockAdminActivities) EXPECT() *MockAdminActivities_Expecter {
 	return &MockAdminActivities_Expecter{mock: &_m.Mock}
 }
 
+// CreateNexusEndpoint provides a mock function with given fields: ctx, req
+func (_m *MockAdminActivities) CreateNexusEndpoint(ctx context.Context, req *temporalv1.CreateNexusEndpointInput) (*temporalv1.CreateNexusEndpointOutput, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateNexusEndpoint")
+	}
+
+	var r0 *temporalv1.CreateNexusEndpointOutput
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *temporalv1.CreateNexusEndpointInput) (*temporalv1.CreateNexusEndpointOutput, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *temporalv1.CreateNexusEndpointInput) *temporalv1.CreateNexusEndpointOutput); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*temporalv1.CreateNexusEndpointOutput)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *temporalv1.CreateNexusEndpointInput) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockAdminActivities_CreateNexusEndpoint_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateNexusEndpoint'
+type MockAdminActivities_CreateNexusEndpoint_Call struct {
+	*mock.Call
+}
+
+// CreateNexusEndpoint is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *temporalv1.CreateNexusEndpointInput
+func (_e *MockAdminActivities_Expecter) CreateNexusEndpoint(ctx interface{}, req interface{}) *MockAdminActivities_CreateNexusEndpoint_Call {
+	return &MockAdminActivities_CreateNexusEndpoint_Call{Call: _e.mock.On("CreateNexusEndpoint", ctx, req)}
+}
+
+func (_c *MockAdminActivities_CreateNexusEndpoint_Call) Run(run func(ctx context.Context, req *temporalv1.CreateNexusEndpointInput)) *MockAdminActivities_CreateNexusEndpoint_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*temporalv1.CreateNexusEndpointInput))
+	})
+	return _c
+}
+
+func (_c *MockAdminActivities_CreateNexusEndpoint_Call) Return(_a0 *temporalv1.CreateNexusEndpointOutput, _a1 error) *MockAdminActivities_CreateNexusEndpoint_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAdminActivities_CreateNexusEndpoint_Call) RunAndReturn(run func(context.Context, *temporalv1.CreateNexusEndpointInput) (*temporalv1.CreateNexusEndpointOutput, error)) *MockAdminActivities_CreateNexusEndpoint_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DescribeNamespace provides a mock function with given fields: ctx, req
 func (_m *MockAdminActivities) DescribeNamespace(ctx context.Context, req *temporalv1.DescribeNamespaceInput) (*temporalv1.DescribeNamespaceOutput, error) {
 	ret := _m.Called(ctx, req)
@@ -81,6 +140,65 @@ func (_c *MockAdminActivities_DescribeNamespace_Call) RunAndReturn(run func(cont
 	return _c
 }
 
+// DescribeNexusEndpoint provides a mock function with given fields: ctx, req
+func (_m *MockAdminActivities) DescribeNexusEndpoint(ctx context.Context, req *temporalv1.DescribeNexusEndpointInput) (*temporalv1.DescribeNexusEndpointOutput, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DescribeNexusEndpoint")
+	}
+
+	var r0 *temporalv1.DescribeNexusEndpointOutput
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *temporalv1.DescribeNexusEndpointInput) (*temporalv1.DescribeNexusEndpointOutput, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *temporalv1.DescribeNexusEndpointInput) *temporalv1.DescribeNexusEndpointOutput); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*temporalv1.DescribeNexusEndpointOutput)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *temporalv1.DescribeNexusEndpointInput) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockAdminActivities_DescribeNexusEndpoint_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DescribeNexusEndpoint'
+type MockAdminActivities_DescribeNexusEndpoint_Call struct {
+	*mock.Call
+}
+
+// DescribeNexusEndpoint is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *temporalv1.DescribeNexusEndpointInput
+func (_e *MockAdminActivities_Expecter) DescribeNexusEndpoint(ctx interface{}, req interface{}) *MockAdminActivities_DescribeNexusEndpoint_Call {
+	return &MockAdminActivities_DescribeNexusEndpoint_Call{Call: _e.mock.On("DescribeNexusEndpoint", ctx, req)}
+}
+
+func (_c *MockAdminActivities_DescribeNexusEndpoint_Call) Run(run func(ctx context.Context, req *temporalv1.DescribeNexusEndpointInput)) *MockAdminActivities_DescribeNexusEndpoint_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*temporalv1.DescribeNexusEndpointInput))
+	})
+	return _c
+}
+
+func (_c *MockAdminActivities_DescribeNexusEndpoint_Call) Return(_a0 *temporalv1.DescribeNexusEndpointOutput, _a1 error) *MockAdminActivities_DescribeNexusEndpoint_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAdminActivities_DescribeNexusEndpoint_Call) RunAndReturn(run func(context.Context, *temporalv1.DescribeNexusEndpointInput) (*temporalv1.DescribeNexusEndpointOutput, error)) *MockAdminActivities_DescribeNexusEndpoint_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RegisterNamespace provides a mock function with given fields: ctx, req
 func (_m *MockAdminActivities) RegisterNamespace(ctx context.Context, req *temporalv1.RegisterNamespaceInput) (*temporalv1.RegisterNamespaceOutput, error) {
 	ret := _m.Called(ctx, req)
@@ -136,6 +254,65 @@ func (_c *MockAdminActivities_RegisterNamespace_Call) Return(_a0 *temporalv1.Reg
 }
 
 func (_c *MockAdminActivities_RegisterNamespace_Call) RunAndReturn(run func(context.Context, *temporalv1.RegisterNamespaceInput) (*temporalv1.RegisterNamespaceOutput, error)) *MockAdminActivities_RegisterNamespace_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateNexusEndpoint provides a mock function with given fields: ctx, req
+func (_m *MockAdminActivities) UpdateNexusEndpoint(ctx context.Context, req *temporalv1.UpdateNexusEndpointInput) (*temporalv1.UpdateNexusEndpointOutput, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateNexusEndpoint")
+	}
+
+	var r0 *temporalv1.UpdateNexusEndpointOutput
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *temporalv1.UpdateNexusEndpointInput) (*temporalv1.UpdateNexusEndpointOutput, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *temporalv1.UpdateNexusEndpointInput) *temporalv1.UpdateNexusEndpointOutput); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*temporalv1.UpdateNexusEndpointOutput)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *temporalv1.UpdateNexusEndpointInput) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockAdminActivities_UpdateNexusEndpoint_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateNexusEndpoint'
+type MockAdminActivities_UpdateNexusEndpoint_Call struct {
+	*mock.Call
+}
+
+// UpdateNexusEndpoint is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *temporalv1.UpdateNexusEndpointInput
+func (_e *MockAdminActivities_Expecter) UpdateNexusEndpoint(ctx interface{}, req interface{}) *MockAdminActivities_UpdateNexusEndpoint_Call {
+	return &MockAdminActivities_UpdateNexusEndpoint_Call{Call: _e.mock.On("UpdateNexusEndpoint", ctx, req)}
+}
+
+func (_c *MockAdminActivities_UpdateNexusEndpoint_Call) Run(run func(ctx context.Context, req *temporalv1.UpdateNexusEndpointInput)) *MockAdminActivities_UpdateNexusEndpoint_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*temporalv1.UpdateNexusEndpointInput))
+	})
+	return _c
+}
+
+func (_c *MockAdminActivities_UpdateNexusEndpoint_Call) Return(_a0 *temporalv1.UpdateNexusEndpointOutput, _a1 error) *MockAdminActivities_UpdateNexusEndpoint_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAdminActivities_UpdateNexusEndpoint_Call) RunAndReturn(run func(context.Context, *temporalv1.UpdateNexusEndpointInput) (*temporalv1.UpdateNexusEndpointOutput, error)) *MockAdminActivities_UpdateNexusEndpoint_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -37,8 +37,11 @@ const (
 
 // temporal.v1.Admin activity names
 const (
-	DescribeNamespaceActivityName = "temporal.v1.DescribeNamespace"
-	RegisterNamespaceActivityName = "temporal.v1.RegisterNamespace"
+	CreateNexusEndpointActivityName   = "temporal.v1.CreateNexusEndpoint"
+	DescribeNamespaceActivityName     = "temporal.v1.DescribeNamespace"
+	DescribeNexusEndpointActivityName = "temporal.v1.DescribeNexusEndpoint"
+	RegisterNamespaceActivityName     = "temporal.v1.RegisterNamespace"
+	UpdateNexusEndpointActivityName   = "temporal.v1.UpdateNexusEndpoint"
 )
 
 // AdminClient describes a client for a(n) temporal.v1.Admin worker
@@ -210,7 +213,7 @@ func (o *CreateNamespaceOptions) Build(req protoreflect.Message) (client.StartWo
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_TERMINATE_IF_RUNNING
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
 	}
 	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
 		opts.WorkflowIDConflictPolicy = v
@@ -514,7 +517,7 @@ func (o *CreateNamespaceChildOptions) Build(ctx workflow.Context, req protorefle
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_TERMINATE_IF_RUNNING
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -666,19 +669,309 @@ func (r *CreateNamespaceChildRun) WaitStart(ctx workflow.Context) (*workflow.Exe
 
 // AdminActivities describes available worker activities
 type AdminActivities interface {
+	// CreateNexusEndpoint creates a global Nexus endpoint for cross-namespace Workflow calls
+	// This endpoint acts as a reverse proxy, routing Nexus requests from caller namespaces
+	// to a target namespace and task queue (typically for CreateScopedIdentityAccess service).
+	// Idempotent: returns success if endpoint already exists with same configuration.
+	CreateNexusEndpoint(ctx context.Context, req *CreateNexusEndpointInput) (*CreateNexusEndpointOutput, error)
+
 	// DescribeNamespace retrieves the current state of a Temporal namespace
 	// Used by the workflow to poll until namespace is active
 	DescribeNamespace(ctx context.Context, req *DescribeNamespaceInput) (*DescribeNamespaceOutput, error)
 
+	// DescribeNexusEndpoint retrieves the current configuration of a Nexus endpoint
+	// Used to fetch existing ACL before updating (for ACL update workflows)
+	DescribeNexusEndpoint(ctx context.Context, req *DescribeNexusEndpointInput) (*DescribeNexusEndpointOutput, error)
+
 	// RegisterNamespace creates a new Temporal namespace with specified retention policy
 	// Idempotent: returns success if namespace already exists
 	RegisterNamespace(ctx context.Context, req *RegisterNamespaceInput) (*RegisterNamespaceOutput, error)
+
+	// UpdateNexusEndpoint updates an existing Nexus endpoint configuration
+	// NOTE: This REPLACES the entire endpoint configuration.
+	// Caller must provide the complete desired configuration.
+	UpdateNexusEndpoint(ctx context.Context, req *UpdateNexusEndpointInput) (*UpdateNexusEndpointOutput, error)
 }
 
 // RegisterAdminActivities registers activities with a worker
 func RegisterAdminActivities(r worker.ActivityRegistry, activities AdminActivities) {
+	RegisterCreateNexusEndpointActivity(r, activities.CreateNexusEndpoint)
 	RegisterDescribeNamespaceActivity(r, activities.DescribeNamespace)
+	RegisterDescribeNexusEndpointActivity(r, activities.DescribeNexusEndpoint)
 	RegisterRegisterNamespaceActivity(r, activities.RegisterNamespace)
+	RegisterUpdateNexusEndpointActivity(r, activities.UpdateNexusEndpoint)
+}
+
+// RegisterCreateNexusEndpointActivity registers a temporal.v1.CreateNexusEndpoint activity
+func RegisterCreateNexusEndpointActivity(r worker.ActivityRegistry, fn func(context.Context, *CreateNexusEndpointInput) (*CreateNexusEndpointOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: CreateNexusEndpointActivityName,
+	})
+}
+
+// CreateNexusEndpointFuture describes a(n) temporal.v1.CreateNexusEndpoint activity execution
+type CreateNexusEndpointFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *CreateNexusEndpointFuture) Get(ctx workflow.Context) (*CreateNexusEndpointOutput, error) {
+	var resp CreateNexusEndpointOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *CreateNexusEndpointFuture) Select(sel workflow.Selector, fn func(*CreateNexusEndpointFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// CreateNexusEndpoint creates a global Nexus endpoint for cross-namespace Workflow calls
+// This endpoint acts as a reverse proxy, routing Nexus requests from caller namespaces
+// to a target namespace and task queue (typically for CreateScopedIdentityAccess service).
+// Idempotent: returns success if endpoint already exists with same configuration.
+func CreateNexusEndpoint(ctx workflow.Context, req *CreateNexusEndpointInput, options ...*CreateNexusEndpointActivityOptions) (*CreateNexusEndpointOutput, error) {
+	return CreateNexusEndpointAsync(ctx, req, options...).Get(ctx)
+}
+
+// CreateNexusEndpoint creates a global Nexus endpoint for cross-namespace Workflow calls
+// This endpoint acts as a reverse proxy, routing Nexus requests from caller namespaces
+// to a target namespace and task queue (typically for CreateScopedIdentityAccess service).
+// Idempotent: returns success if endpoint already exists with same configuration.
+func CreateNexusEndpointAsync(ctx workflow.Context, req *CreateNexusEndpointInput, options ...*CreateNexusEndpointActivityOptions) *CreateNexusEndpointFuture {
+	var o *CreateNexusEndpointActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateNexusEndpointActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &CreateNexusEndpointFuture{Future: errF}
+	}
+	activity := CreateNexusEndpointActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &CreateNexusEndpointFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// CreateNexusEndpoint creates a global Nexus endpoint for cross-namespace Workflow calls
+// This endpoint acts as a reverse proxy, routing Nexus requests from caller namespaces
+// to a target namespace and task queue (typically for CreateScopedIdentityAccess service).
+// Idempotent: returns success if endpoint already exists with same configuration.
+func CreateNexusEndpointLocal(ctx workflow.Context, req *CreateNexusEndpointInput, options ...*CreateNexusEndpointLocalActivityOptions) (*CreateNexusEndpointOutput, error) {
+	return CreateNexusEndpointLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// CreateNexusEndpoint creates a global Nexus endpoint for cross-namespace Workflow calls
+// This endpoint acts as a reverse proxy, routing Nexus requests from caller namespaces
+// to a target namespace and task queue (typically for CreateScopedIdentityAccess service).
+// Idempotent: returns success if endpoint already exists with same configuration.
+func CreateNexusEndpointLocalAsync(ctx workflow.Context, req *CreateNexusEndpointInput, options ...*CreateNexusEndpointLocalActivityOptions) *CreateNexusEndpointFuture {
+	var o *CreateNexusEndpointLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateNexusEndpointLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &CreateNexusEndpointFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = CreateNexusEndpointActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &CreateNexusEndpointFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// CreateNexusEndpointActivityOptions provides configuration for a(n) temporal.v1.CreateNexusEndpoint activity
+type CreateNexusEndpointActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewCreateNexusEndpointActivityOptions initializes a new CreateNexusEndpointActivityOptions value
+func NewCreateNexusEndpointActivityOptions() *CreateNexusEndpointActivityOptions {
+	return &CreateNexusEndpointActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *CreateNexusEndpointActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = AdminTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *CreateNexusEndpointActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *CreateNexusEndpointActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *CreateNexusEndpointActivityOptions) WithDataConverter(dc converter.DataConverter) *CreateNexusEndpointActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *CreateNexusEndpointActivityOptions) WithHeartbeatTimeout(d time.Duration) *CreateNexusEndpointActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CreateNexusEndpointActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateNexusEndpointActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *CreateNexusEndpointActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *CreateNexusEndpointActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *CreateNexusEndpointActivityOptions) WithScheduleToStartTimeout(d time.Duration) *CreateNexusEndpointActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *CreateNexusEndpointActivityOptions) WithStartToCloseTimeout(d time.Duration) *CreateNexusEndpointActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *CreateNexusEndpointActivityOptions) WithTaskQueue(tq string) *CreateNexusEndpointActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *CreateNexusEndpointActivityOptions) WithWaitForCancellation(wait bool) *CreateNexusEndpointActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// CreateNexusEndpointLocalActivityOptions provides configuration for a(n) temporal.v1.CreateNexusEndpoint activity
+type CreateNexusEndpointLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *CreateNexusEndpointInput) (*CreateNexusEndpointOutput, error)
+}
+
+// NewCreateNexusEndpointLocalActivityOptions initializes a new CreateNexusEndpointLocalActivityOptions value
+func NewCreateNexusEndpointLocalActivityOptions() *CreateNexusEndpointLocalActivityOptions {
+	return &CreateNexusEndpointLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *CreateNexusEndpointLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom temporal.v1.CreateNexusEndpoint implementation
+func (o *CreateNexusEndpointLocalActivityOptions) Local(fn func(context.Context, *CreateNexusEndpointInput) (*CreateNexusEndpointOutput, error)) *CreateNexusEndpointLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *CreateNexusEndpointLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *CreateNexusEndpointLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *CreateNexusEndpointLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *CreateNexusEndpointLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CreateNexusEndpointLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateNexusEndpointLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *CreateNexusEndpointLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *CreateNexusEndpointLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *CreateNexusEndpointLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *CreateNexusEndpointLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
 }
 
 // RegisterDescribeNamespaceActivity registers a temporal.v1.DescribeNamespace activity
@@ -945,6 +1238,270 @@ func (o *DescribeNamespaceLocalActivityOptions) WithStartToCloseTimeout(d time.D
 	return o
 }
 
+// RegisterDescribeNexusEndpointActivity registers a temporal.v1.DescribeNexusEndpoint activity
+func RegisterDescribeNexusEndpointActivity(r worker.ActivityRegistry, fn func(context.Context, *DescribeNexusEndpointInput) (*DescribeNexusEndpointOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: DescribeNexusEndpointActivityName,
+	})
+}
+
+// DescribeNexusEndpointFuture describes a(n) temporal.v1.DescribeNexusEndpoint activity execution
+type DescribeNexusEndpointFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *DescribeNexusEndpointFuture) Get(ctx workflow.Context) (*DescribeNexusEndpointOutput, error) {
+	var resp DescribeNexusEndpointOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *DescribeNexusEndpointFuture) Select(sel workflow.Selector, fn func(*DescribeNexusEndpointFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// DescribeNexusEndpoint retrieves the current configuration of a Nexus endpoint
+// Used to fetch existing ACL before updating (for ACL update workflows)
+func DescribeNexusEndpoint(ctx workflow.Context, req *DescribeNexusEndpointInput, options ...*DescribeNexusEndpointActivityOptions) (*DescribeNexusEndpointOutput, error) {
+	return DescribeNexusEndpointAsync(ctx, req, options...).Get(ctx)
+}
+
+// DescribeNexusEndpoint retrieves the current configuration of a Nexus endpoint
+// Used to fetch existing ACL before updating (for ACL update workflows)
+func DescribeNexusEndpointAsync(ctx workflow.Context, req *DescribeNexusEndpointInput, options ...*DescribeNexusEndpointActivityOptions) *DescribeNexusEndpointFuture {
+	var o *DescribeNexusEndpointActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDescribeNexusEndpointActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &DescribeNexusEndpointFuture{Future: errF}
+	}
+	activity := DescribeNexusEndpointActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &DescribeNexusEndpointFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// DescribeNexusEndpoint retrieves the current configuration of a Nexus endpoint
+// Used to fetch existing ACL before updating (for ACL update workflows)
+func DescribeNexusEndpointLocal(ctx workflow.Context, req *DescribeNexusEndpointInput, options ...*DescribeNexusEndpointLocalActivityOptions) (*DescribeNexusEndpointOutput, error) {
+	return DescribeNexusEndpointLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// DescribeNexusEndpoint retrieves the current configuration of a Nexus endpoint
+// Used to fetch existing ACL before updating (for ACL update workflows)
+func DescribeNexusEndpointLocalAsync(ctx workflow.Context, req *DescribeNexusEndpointInput, options ...*DescribeNexusEndpointLocalActivityOptions) *DescribeNexusEndpointFuture {
+	var o *DescribeNexusEndpointLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDescribeNexusEndpointLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &DescribeNexusEndpointFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = DescribeNexusEndpointActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &DescribeNexusEndpointFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// DescribeNexusEndpointActivityOptions provides configuration for a(n) temporal.v1.DescribeNexusEndpoint activity
+type DescribeNexusEndpointActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewDescribeNexusEndpointActivityOptions initializes a new DescribeNexusEndpointActivityOptions value
+func NewDescribeNexusEndpointActivityOptions() *DescribeNexusEndpointActivityOptions {
+	return &DescribeNexusEndpointActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *DescribeNexusEndpointActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = AdminTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *DescribeNexusEndpointActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *DescribeNexusEndpointActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *DescribeNexusEndpointActivityOptions) WithDataConverter(dc converter.DataConverter) *DescribeNexusEndpointActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *DescribeNexusEndpointActivityOptions) WithHeartbeatTimeout(d time.Duration) *DescribeNexusEndpointActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DescribeNexusEndpointActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DescribeNexusEndpointActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *DescribeNexusEndpointActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *DescribeNexusEndpointActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *DescribeNexusEndpointActivityOptions) WithScheduleToStartTimeout(d time.Duration) *DescribeNexusEndpointActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *DescribeNexusEndpointActivityOptions) WithStartToCloseTimeout(d time.Duration) *DescribeNexusEndpointActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DescribeNexusEndpointActivityOptions) WithTaskQueue(tq string) *DescribeNexusEndpointActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *DescribeNexusEndpointActivityOptions) WithWaitForCancellation(wait bool) *DescribeNexusEndpointActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// DescribeNexusEndpointLocalActivityOptions provides configuration for a(n) temporal.v1.DescribeNexusEndpoint activity
+type DescribeNexusEndpointLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *DescribeNexusEndpointInput) (*DescribeNexusEndpointOutput, error)
+}
+
+// NewDescribeNexusEndpointLocalActivityOptions initializes a new DescribeNexusEndpointLocalActivityOptions value
+func NewDescribeNexusEndpointLocalActivityOptions() *DescribeNexusEndpointLocalActivityOptions {
+	return &DescribeNexusEndpointLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *DescribeNexusEndpointLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom temporal.v1.DescribeNexusEndpoint implementation
+func (o *DescribeNexusEndpointLocalActivityOptions) Local(fn func(context.Context, *DescribeNexusEndpointInput) (*DescribeNexusEndpointOutput, error)) *DescribeNexusEndpointLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *DescribeNexusEndpointLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *DescribeNexusEndpointLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *DescribeNexusEndpointLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *DescribeNexusEndpointLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DescribeNexusEndpointLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DescribeNexusEndpointLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *DescribeNexusEndpointLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *DescribeNexusEndpointLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *DescribeNexusEndpointLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *DescribeNexusEndpointLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
 // RegisterRegisterNamespaceActivity registers a temporal.v1.RegisterNamespace activity
 func RegisterRegisterNamespaceActivity(r worker.ActivityRegistry, fn func(context.Context, *RegisterNamespaceInput) (*RegisterNamespaceOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
@@ -1205,6 +1762,274 @@ func (o *RegisterNamespaceLocalActivityOptions) WithScheduleToCloseTimeout(d tim
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
 func (o *RegisterNamespaceLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *RegisterNamespaceLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterUpdateNexusEndpointActivity registers a temporal.v1.UpdateNexusEndpoint activity
+func RegisterUpdateNexusEndpointActivity(r worker.ActivityRegistry, fn func(context.Context, *UpdateNexusEndpointInput) (*UpdateNexusEndpointOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: UpdateNexusEndpointActivityName,
+	})
+}
+
+// UpdateNexusEndpointFuture describes a(n) temporal.v1.UpdateNexusEndpoint activity execution
+type UpdateNexusEndpointFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *UpdateNexusEndpointFuture) Get(ctx workflow.Context) (*UpdateNexusEndpointOutput, error) {
+	var resp UpdateNexusEndpointOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *UpdateNexusEndpointFuture) Select(sel workflow.Selector, fn func(*UpdateNexusEndpointFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// UpdateNexusEndpoint updates an existing Nexus endpoint configuration
+// NOTE: This REPLACES the entire endpoint configuration.
+// Caller must provide the complete desired configuration.
+func UpdateNexusEndpoint(ctx workflow.Context, req *UpdateNexusEndpointInput, options ...*UpdateNexusEndpointActivityOptions) (*UpdateNexusEndpointOutput, error) {
+	return UpdateNexusEndpointAsync(ctx, req, options...).Get(ctx)
+}
+
+// UpdateNexusEndpoint updates an existing Nexus endpoint configuration
+// NOTE: This REPLACES the entire endpoint configuration.
+// Caller must provide the complete desired configuration.
+func UpdateNexusEndpointAsync(ctx workflow.Context, req *UpdateNexusEndpointInput, options ...*UpdateNexusEndpointActivityOptions) *UpdateNexusEndpointFuture {
+	var o *UpdateNexusEndpointActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewUpdateNexusEndpointActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &UpdateNexusEndpointFuture{Future: errF}
+	}
+	activity := UpdateNexusEndpointActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &UpdateNexusEndpointFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// UpdateNexusEndpoint updates an existing Nexus endpoint configuration
+// NOTE: This REPLACES the entire endpoint configuration.
+// Caller must provide the complete desired configuration.
+func UpdateNexusEndpointLocal(ctx workflow.Context, req *UpdateNexusEndpointInput, options ...*UpdateNexusEndpointLocalActivityOptions) (*UpdateNexusEndpointOutput, error) {
+	return UpdateNexusEndpointLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// UpdateNexusEndpoint updates an existing Nexus endpoint configuration
+// NOTE: This REPLACES the entire endpoint configuration.
+// Caller must provide the complete desired configuration.
+func UpdateNexusEndpointLocalAsync(ctx workflow.Context, req *UpdateNexusEndpointInput, options ...*UpdateNexusEndpointLocalActivityOptions) *UpdateNexusEndpointFuture {
+	var o *UpdateNexusEndpointLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewUpdateNexusEndpointLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &UpdateNexusEndpointFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = UpdateNexusEndpointActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &UpdateNexusEndpointFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// UpdateNexusEndpointActivityOptions provides configuration for a(n) temporal.v1.UpdateNexusEndpoint activity
+type UpdateNexusEndpointActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewUpdateNexusEndpointActivityOptions initializes a new UpdateNexusEndpointActivityOptions value
+func NewUpdateNexusEndpointActivityOptions() *UpdateNexusEndpointActivityOptions {
+	return &UpdateNexusEndpointActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *UpdateNexusEndpointActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = AdminTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *UpdateNexusEndpointActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *UpdateNexusEndpointActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *UpdateNexusEndpointActivityOptions) WithDataConverter(dc converter.DataConverter) *UpdateNexusEndpointActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *UpdateNexusEndpointActivityOptions) WithHeartbeatTimeout(d time.Duration) *UpdateNexusEndpointActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *UpdateNexusEndpointActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *UpdateNexusEndpointActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *UpdateNexusEndpointActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *UpdateNexusEndpointActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *UpdateNexusEndpointActivityOptions) WithScheduleToStartTimeout(d time.Duration) *UpdateNexusEndpointActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *UpdateNexusEndpointActivityOptions) WithStartToCloseTimeout(d time.Duration) *UpdateNexusEndpointActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *UpdateNexusEndpointActivityOptions) WithTaskQueue(tq string) *UpdateNexusEndpointActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *UpdateNexusEndpointActivityOptions) WithWaitForCancellation(wait bool) *UpdateNexusEndpointActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// UpdateNexusEndpointLocalActivityOptions provides configuration for a(n) temporal.v1.UpdateNexusEndpoint activity
+type UpdateNexusEndpointLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *UpdateNexusEndpointInput) (*UpdateNexusEndpointOutput, error)
+}
+
+// NewUpdateNexusEndpointLocalActivityOptions initializes a new UpdateNexusEndpointLocalActivityOptions value
+func NewUpdateNexusEndpointLocalActivityOptions() *UpdateNexusEndpointLocalActivityOptions {
+	return &UpdateNexusEndpointLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *UpdateNexusEndpointLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom temporal.v1.UpdateNexusEndpoint implementation
+func (o *UpdateNexusEndpointLocalActivityOptions) Local(fn func(context.Context, *UpdateNexusEndpointInput) (*UpdateNexusEndpointOutput, error)) *UpdateNexusEndpointLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *UpdateNexusEndpointLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *UpdateNexusEndpointLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *UpdateNexusEndpointLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *UpdateNexusEndpointLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *UpdateNexusEndpointLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *UpdateNexusEndpointLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *UpdateNexusEndpointLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *UpdateNexusEndpointLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *UpdateNexusEndpointLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *UpdateNexusEndpointLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }

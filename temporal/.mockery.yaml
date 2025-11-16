@@ -108,13 +108,20 @@ packages:
     interfaces:
       RepoClient:
 
-  # Temporal v1 client
-  github.com/metacensus/infra/temporal/lib/workflows/temporal/v1:
+  # Temporal v1 clients - namespace and operator service
+  go.temporal.io/sdk/client:
     config:
       dir: "mocks/workflows/temporal/v1"
       outpkg: "temporalv1"
     interfaces:
-      TemporalAdminClient:
+      NamespaceClient:
+
+  go.temporal.io/api/operatorservice/v1:
+    config:
+      dir: "mocks/workflows/temporal/v1"
+      outpkg: "temporalv1"
+    interfaces:
+      OperatorServiceClient:
 
   # NOTE: Terraform and S3 client mocks will be added once implementations are created
 

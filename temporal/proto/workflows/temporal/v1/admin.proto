@@ -44,6 +44,39 @@ service Admin {
       schedule_to_close_timeout: {seconds: 60}  // 1 minute
     };
   }
+
+  // CreateNexusEndpoint creates a global Nexus endpoint for cross-namespace Workflow calls
+  // This endpoint acts as a reverse proxy, routing Nexus requests from caller namespaces
+  // to a target namespace and task queue (typically for CreateScopedIdentityAccess service).
+  // Idempotent: returns success if endpoint already exists with same configuration.
+  rpc CreateNexusEndpoint(CreateNexusEndpointInput) returns (CreateNexusEndpointOutput) {
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "temporal.v1.CreateNexusEndpoint"
+      schedule_to_close_timeout: {seconds: 300}  // 5 minutes
+    };
+  }
+
+  // DescribeNexusEndpoint retrieves the current configuration of a Nexus endpoint
+  // Used to fetch existing ACL before updating (for ACL update workflows)
+  rpc DescribeNexusEndpoint(DescribeNexusEndpointInput) returns (DescribeNexusEndpointOutput) {
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "temporal.v1.DescribeNexusEndpoint"
+      schedule_to_close_timeout: {seconds: 60}  // 1 minute
+    };
+  }
+
+  // UpdateNexusEndpoint updates an existing Nexus endpoint configuration
+  // NOTE: This REPLACES the entire endpoint configuration.
+  // Caller must provide the complete desired configuration.
+  rpc UpdateNexusEndpoint(UpdateNexusEndpointInput) returns (UpdateNexusEndpointOutput) {
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "temporal.v1.UpdateNexusEndpoint"
+      schedule_to_close_timeout: {seconds: 300}  // 5 minutes
+    };
+  }
 }
 
 // ==================== Namespace State Enum ====================
@@ -106,5 +139,64 @@ message DescribeNamespaceOutput {
 
   // state is the current lifecycle state of the namespace
   NamespaceState state = 2;
+}
+
+// ==================== Nexus Endpoint Configuration ====================
+
+// Endpoint defines a Nexus endpoint configuration
+message Endpoint {
+  // id: server-generated unique endpoint identifier
+  string id = 1;
+
+  // name: endpoint name (e.g., "CreateScopedIdentityAccess")
+  string name = 2;
+
+  // namespace: Temporal namespace to route requests to
+  string namespace = 3;
+
+  // task_queue: task queue within target namespace
+  string task_queue = 4;
+}
+
+// ==================== CreateNexusEndpoint Activity Messages ====================
+
+message CreateNexusEndpointInput {
+  // name: endpoint name
+  string name = 1;
+
+  // namespace: Temporal namespace to route to
+  string namespace = 2;
+
+  // task_queue: task queue within target namespace
+  string task_queue = 3;
+}
+
+message CreateNexusEndpointOutput {
+  // id: server-generated unique endpoint identifier
+  string id = 1;
+}
+
+// ==================== DescribeNexusEndpoint Activity Messages ====================
+
+message DescribeNexusEndpointInput {
+  // id: endpoint identifier to describe
+  string id = 1;
+}
+
+message DescribeNexusEndpointOutput {
+  Endpoint endpoint = 1;
+}
+
+// ==================== UpdateNexusEndpoint Activity Messages ====================
+
+// ⚠️ REPLACES entire endpoint configuration (caller provides complete desired state)
+message UpdateNexusEndpointInput {
+  // endpoint: complete endpoint configuration for update
+  // Must include id, namespace, and task_queue
+  Endpoint endpoint = 1;
+}
+
+message UpdateNexusEndpointOutput {
+  // Empty - successful completion indicated by absence of error
 }
 
