@@ -74,36 +74,36 @@ func (a *Activities) CreateAuthRole(ctx context.Context, req *pb.CreateAuthRoleI
 
 	logger.Info("Auth role created successfully", "role_name", roleName)
 	return &pb.CreateAuthRoleOutput{
-		RoleName: roleName,
+		Name: roleName,
 	}, nil
 }
 
 // DeleteAuthRole deletes a Kubernetes auth role from Vault
 func (a *Activities) DeleteAuthRole(ctx context.Context, req *pb.DeleteAuthRoleInput) (*pb.DeleteAuthRoleOutput, error) {
 	logger := activity.GetLogger(ctx)
-	logger.Info("Deleting auth role", "role_name", req.RoleName)
+	logger.Info("Deleting auth role", "role_name", req.Name)
 
-	path := buildAuthRolePath(req.RoleName)
+	path := buildAuthRolePath(req.Name)
 
 	if err := a.client.Delete(ctx, path); err != nil {
 		logger.Error("Failed to delete auth role", "error", err)
 		return nil, fmt.Errorf("delete auth role: %w", err)
 	}
 
-	logger.Info("Auth role deleted successfully", "role_name", req.RoleName)
+	logger.Info("Auth role deleted successfully", "role_name", req.Name)
 	return &pb.DeleteAuthRoleOutput{}, nil
 }
 
 // CreatePolicy creates a new Vault policy
 func (a *Activities) CreatePolicy(ctx context.Context, req *pb.CreatePolicyInput) (*pb.CreatePolicyOutput, error) {
 	logger := activity.GetLogger(ctx)
-	logger.Info("Creating policy", "policy_name", req.PolicyName)
+	logger.Info("Creating policy", "policy_name", req.Name)
 
-	path := buildPolicyPath(req.PolicyName)
+	path := buildPolicyPath(req.Name)
 
 	// Prepare request body for Vault policy
 	body := map[string]any{
-		vaultFieldPolicy: req.PolicyDocument,
+		vaultFieldPolicy: req.Document,
 	}
 
 	if err := a.client.Write(ctx, path, body); err != nil {
@@ -111,25 +111,25 @@ func (a *Activities) CreatePolicy(ctx context.Context, req *pb.CreatePolicyInput
 		return nil, fmt.Errorf("create policy: %w", err)
 	}
 
-	logger.Info("Policy created successfully", "policy_name", req.PolicyName)
+	logger.Info("Policy created successfully", "policy_name", req.Name)
 	return &pb.CreatePolicyOutput{
-		PolicyName: req.PolicyName,
+		Name: req.Name,
 	}, nil
 }
 
 // DeletePolicy deletes a Vault policy
 func (a *Activities) DeletePolicy(ctx context.Context, req *pb.DeletePolicyInput) (*pb.DeletePolicyOutput, error) {
 	logger := activity.GetLogger(ctx)
-	logger.Info("Deleting policy", "policy_name", req.PolicyName)
+	logger.Info("Deleting policy", "policy_name", req.Name)
 
-	path := buildPolicyPath(req.PolicyName)
+	path := buildPolicyPath(req.Name)
 
 	if err := a.client.Delete(ctx, path); err != nil {
 		logger.Error("Failed to delete policy", "error", err)
 		return nil, fmt.Errorf("delete policy: %w", err)
 	}
 
-	logger.Info("Policy deleted successfully", "policy_name", req.PolicyName)
+	logger.Info("Policy deleted successfully", "policy_name", req.Name)
 	return &pb.DeletePolicyOutput{}, nil
 }
 

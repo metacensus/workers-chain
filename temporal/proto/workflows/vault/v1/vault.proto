@@ -95,12 +95,14 @@ message CreateAuthRoleInput {
 
 // CreateAuthRoleOutput returns the created role name
 message CreateAuthRoleOutput {
-  string role_name = 1;
+  // name is the name of the created Kubernetes auth role
+  string name = 1;
 }
 
 // DeleteAuthRoleInput specifies which auth role to delete
 message DeleteAuthRoleInput {
-  string role_name = 1;
+  // name is the name of the Kubernetes auth role to delete
+  string name = 1;
 }
 
 // DeleteAuthRoleOutput confirms successful auth role deletion
@@ -112,21 +114,23 @@ message DeleteAuthRoleOutput {
 
 // CreatePolicyInput specifies parameters for creating a Vault policy
 message CreatePolicyInput {
-  // policy_name is the name of the policy (e.g., "fabric-foundational")
-  string policy_name = 1;
+  // name is the name of the policy (e.g., "fabric-foundational")
+  string name = 1;
   
-  // policy_document is the HCL policy content
-  string policy_document = 2;
+  // document is the HCL policy content
+  string document = 2;
 }
 
 // CreatePolicyOutput returns the created policy name
 message CreatePolicyOutput {
-  string policy_name = 1;
+  // name is the name of the created policy
+  string name = 1;
 }
 
 // DeletePolicyInput specifies which policy to delete
 message DeletePolicyInput {
-  string policy_name = 1;
+  // name is the name of the policy to delete
+  string name = 1;
 }
 
 // DeletePolicyOutput confirms successful policy deletion

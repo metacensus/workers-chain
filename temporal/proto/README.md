@@ -140,6 +140,22 @@
     - [kube.v1.UpdateOutput.ResultsEntry](#kube-v1-updateoutput-resultsentry)
     - [kube.v1.UpdateResult](#kube-v1-updateresult)
     - [kube.v1.UpdateSummary](#kube-v1-updatesummary)
+- [temporal.v1](#temporal-v1)
+  - Services
+    - [temporal.v1.Admin](#temporal-v1-admin)
+      - [Workflows](#temporal-v1-admin-workflows)
+        - [temporal.v1.CreateNamespace](#temporal-v1-createnamespace-workflow)
+      - [Activities](#temporal-v1-admin-activities)
+        - [temporal.v1.RegisterNamespace](#temporal-v1-registernamespace-activity)
+        - [temporal.v1.DescribeNamespace](#temporal-v1-describenamespace-activity)
+  - Messages
+    - [temporal.v1.CreateNamespaceInput](#temporal-v1-createnamespaceinput)
+    - [temporal.v1.CreateNamespaceOutput](#temporal-v1-createnamespaceoutput)
+    - [temporal.v1.DescribeNamespaceInput](#temporal-v1-describenamespaceinput)
+    - [temporal.v1.DescribeNamespaceOutput](#temporal-v1-describenamespaceoutput)
+    - [temporal.v1.NamespaceState](#temporal-v1-namespacestate)
+    - [temporal.v1.RegisterNamespaceInput](#temporal-v1-registernamespaceinput)
+    - [temporal.v1.RegisterNamespaceOutput](#temporal-v1-registernamespaceoutput)
 - [vault.v1](#vault-v1)
   - Services
     - [vault.v1.Vault](#vault-v1-vault)
@@ -171,6 +187,7 @@
     - [vault.v1.StoreSecretOutput](#vault-v1-storesecretoutput)
 - [google.protobuf](#google-protobuf)
   - Messages
+    - [google.protobuf.Duration](#google-protobuf-duration)
     - [google.protobuf.ListValue](#google-protobuf-listvalue)
     - [google.protobuf.NullValue](#google-protobuf-nullvalue)
     - [google.protobuf.Struct](#google-protobuf-struct)
@@ -1845,17 +1862,17 @@ DeployCA deploys the Fabric CA pod to the Kubernetes cluster
 <th>Description</th>
 </tr>
 <tr>
-<td>ca_admin_password</td>
+<td>admin_password</td>
 <td>string</td>
 <td><pre>
-json_name: caAdminPassword
-go_name: CaAdminPassword</pre></td>
+json_name: adminPassword
+go_name: AdminPassword</pre></td>
 </tr><tr>
-<td>ca_admin_username</td>
+<td>admin_username</td>
 <td>string</td>
 <td><pre>
-json_name: caAdminUsername
-go_name: CaAdminUsername</pre></td>
+json_name: adminUsername
+go_name: AdminUsername</pre></td>
 </tr><tr>
 <td>namespace</td>
 <td>string</td>
@@ -1880,17 +1897,17 @@ go_name: Organization</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>ca_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: caName
-go_name: CaName</pre></td>
+json_name: name
+go_name: Name</pre></td>
 </tr><tr>
-<td>service_name</td>
+<td>service</td>
 <td>string</td>
 <td><pre>
-json_name: serviceName
-go_name: ServiceName</pre></td>
+json_name: service
+go_name: Service</pre></td>
 </tr>
 </table>
 
@@ -1961,23 +1978,23 @@ go_name: PeerId</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>couchdb_name</td>
-<td>string</td>
-<td><pre>
-json_name: couchdbName
-go_name: CouchdbName</pre></td>
-</tr><tr>
 <td>credentials</td>
 <td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
 <td><pre>
 json_name: credentials
 go_name: Credentials</pre></td>
 </tr><tr>
-<td>service_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: serviceName
-go_name: ServiceName</pre></td>
+json_name: name
+go_name: Name</pre></td>
+</tr><tr>
+<td>service</td>
+<td>string</td>
+<td><pre>
+json_name: service
+go_name: Service</pre></td>
 </tr>
 </table>
 
@@ -2007,11 +2024,11 @@ Calls ProvisionPeerWorkflow to generate certs, then deploys the peer pod
 <th>Description</th>
 </tr>
 <tr>
-<td>couchdb_service_name</td>
+<td>couchdb_service</td>
 <td>string</td>
 <td><pre>
-json_name: couchdbServiceName
-go_name: CouchdbServiceName</pre></td>
+json_name: couchdbService
+go_name: CouchdbService</pre></td>
 </tr><tr>
 <td>hosts</td>
 <td>string</td>
@@ -2054,17 +2071,17 @@ go_name: PeerId</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>peer_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: peerName
-go_name: PeerName</pre></td>
+json_name: name
+go_name: Name</pre></td>
 </tr><tr>
-<td>service_name</td>
+<td>service</td>
 <td>string</td>
 <td><pre>
-json_name: serviceName
-go_name: ServiceName</pre></td>
+json_name: service
+go_name: Service</pre></td>
 </tr><tr>
 <td>signing_secret</td>
 <td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
@@ -2147,17 +2164,17 @@ go_name: Organization</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>orderer_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: ordererName
-go_name: OrdererName</pre></td>
+json_name: name
+go_name: Name</pre></td>
 </tr><tr>
-<td>service_name</td>
+<td>service</td>
 <td>string</td>
 <td><pre>
-json_name: serviceName
-go_name: ServiceName</pre></td>
+json_name: service
+go_name: Service</pre></td>
 </tr><tr>
 <td>signing_secret</td>
 <td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
@@ -2227,6 +2244,20 @@ Admin identity configuration (to be created via BootstrapAdmin)<br>
 json_name: admin
 go_name: Admin</pre></td>
 </tr><tr>
+<td>admin_password</td>
+<td>string</td>
+<td><pre>
+json_name: adminPassword
+go_name: AdminPassword</pre></td>
+</tr><tr>
+<td>admin_username</td>
+<td>string</td>
+<td><pre>
+CA configuration (bootstrap credentials for Fabric CA)<br>
+
+json_name: adminUsername
+go_name: AdminUsername</pre></td>
+</tr><tr>
 <td>affiliations</td>
 <td>string</td>
 <td><pre>
@@ -2235,20 +2266,6 @@ Examples: ["metacensus", "metacensus.engineering", "metacensus.operations"]<br>
 
 json_name: affiliations
 go_name: Affiliations</pre></td>
-</tr><tr>
-<td>ca_admin_password</td>
-<td>string</td>
-<td><pre>
-json_name: caAdminPassword
-go_name: CaAdminPassword</pre></td>
-</tr><tr>
-<td>ca_admin_username</td>
-<td>string</td>
-<td><pre>
-CA configuration (bootstrap credentials for Fabric CA)<br>
-
-json_name: caAdminUsername
-go_name: CaAdminUsername</pre></td>
 </tr><tr>
 <td>namespace</td>
 <td>string</td>
@@ -3048,17 +3065,17 @@ go_name: RoleName</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>ca_admin_password</td>
+<td>admin_password</td>
 <td>string</td>
 <td><pre>
-json_name: caAdminPassword
-go_name: CaAdminPassword</pre></td>
+json_name: adminPassword
+go_name: AdminPassword</pre></td>
 </tr><tr>
-<td>ca_admin_username</td>
+<td>admin_username</td>
 <td>string</td>
 <td><pre>
-json_name: caAdminUsername
-go_name: CaAdminUsername</pre></td>
+json_name: adminUsername
+go_name: AdminUsername</pre></td>
 </tr><tr>
 <td>namespace</td>
 <td>string</td>
@@ -3086,17 +3103,17 @@ go_name: Organization</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>ca_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: caName
-go_name: CaName</pre></td>
+json_name: name
+go_name: Name</pre></td>
 </tr><tr>
-<td>service_name</td>
+<td>service</td>
 <td>string</td>
 <td><pre>
-json_name: serviceName
-go_name: ServiceName</pre></td>
+json_name: service
+go_name: Service</pre></td>
 </tr>
 </table>
 
@@ -3156,23 +3173,23 @@ go_name: PeerId</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>couchdb_name</td>
-<td>string</td>
-<td><pre>
-json_name: couchdbName
-go_name: CouchdbName</pre></td>
-</tr><tr>
 <td>credentials</td>
 <td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
 <td><pre>
 json_name: credentials
 go_name: Credentials</pre></td>
 </tr><tr>
-<td>service_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: serviceName
-go_name: ServiceName</pre></td>
+json_name: name
+go_name: Name</pre></td>
+</tr><tr>
+<td>service</td>
+<td>string</td>
+<td><pre>
+json_name: service
+go_name: Service</pre></td>
 </tr>
 </table>
 
@@ -3232,17 +3249,17 @@ go_name: Organization</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>orderer_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: ordererName
-go_name: OrdererName</pre></td>
+json_name: name
+go_name: Name</pre></td>
 </tr><tr>
-<td>service_name</td>
+<td>service</td>
 <td>string</td>
 <td><pre>
-json_name: serviceName
-go_name: ServiceName</pre></td>
+json_name: service
+go_name: Service</pre></td>
 </tr><tr>
 <td>signing_secret</td>
 <td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
@@ -3287,6 +3304,20 @@ Admin identity configuration (to be created via BootstrapAdmin)<br>
 json_name: admin
 go_name: Admin</pre></td>
 </tr><tr>
+<td>admin_password</td>
+<td>string</td>
+<td><pre>
+json_name: adminPassword
+go_name: AdminPassword</pre></td>
+</tr><tr>
+<td>admin_username</td>
+<td>string</td>
+<td><pre>
+CA configuration (bootstrap credentials for Fabric CA)<br>
+
+json_name: adminUsername
+go_name: AdminUsername</pre></td>
+</tr><tr>
 <td>affiliations</td>
 <td>string</td>
 <td><pre>
@@ -3295,20 +3326,6 @@ Examples: ["metacensus", "metacensus.engineering", "metacensus.operations"]<br>
 
 json_name: affiliations
 go_name: Affiliations</pre></td>
-</tr><tr>
-<td>ca_admin_password</td>
-<td>string</td>
-<td><pre>
-json_name: caAdminPassword
-go_name: CaAdminPassword</pre></td>
-</tr><tr>
-<td>ca_admin_username</td>
-<td>string</td>
-<td><pre>
-CA configuration (bootstrap credentials for Fabric CA)<br>
-
-json_name: caAdminUsername
-go_name: CaAdminUsername</pre></td>
 </tr><tr>
 <td>namespace</td>
 <td>string</td>
@@ -3412,11 +3429,11 @@ go_name: Peers</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>couchdb_service_name</td>
+<td>couchdb_service</td>
 <td>string</td>
 <td><pre>
-json_name: couchdbServiceName
-go_name: CouchdbServiceName</pre></td>
+json_name: couchdbService
+go_name: CouchdbService</pre></td>
 </tr><tr>
 <td>hosts</td>
 <td>string</td>
@@ -3462,17 +3479,17 @@ go_name: PeerId</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>peer_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: peerName
-go_name: PeerName</pre></td>
+json_name: name
+go_name: Name</pre></td>
 </tr><tr>
-<td>service_name</td>
+<td>service</td>
 <td>string</td>
 <td><pre>
-json_name: serviceName
-go_name: ServiceName</pre></td>
+json_name: service
+go_name: Service</pre></td>
 </tr><tr>
 <td>signing_secret</td>
 <td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
@@ -5969,6 +5986,376 @@ go_name: Updated</pre></td>
 
 
 
+<a name="temporal-v1"></a>
+# temporal.v1
+
+<a name="temporal-v1-services"></a>
+## Services
+
+<a name="temporal-v1-admin"></a>
+## temporal.v1.Admin
+
+<pre>
+Admin service defines workflows and activities for Temporal namespace management
+</pre>
+
+<a name="temporal-v1-admin-workflows"></a>
+### Workflows
+
+---
+<a name="temporal-v1-createnamespace-workflow"></a>
+### temporal.v1.CreateNamespace
+
+<pre>
+CreateNamespace orchestrates the creation of a new Temporal namespace
+This is a workflow (not an activity) because namespace creation in Temporal is async
+and requires polling to verify the namespace is active before returning.
+</pre>
+
+**Input:** [temporal.v1.CreateNamespaceInput](#temporal-v1-createnamespaceinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the name of the namespace to create (e.g., "fabric-org1", "tenant-acme")
+This will be used as the workflow ID to ensure idempotency<br>
+
+json_name: name
+go_name: Name</pre></td>
+</tr><tr>
+<td>retention</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+retention is the duration to retain workflow history
+If not set, defaults to 30 days (2592000 seconds)<br>
+
+json_name: retention
+go_name: Retention</pre></td>
+</tr>
+</table>
+
+**Output:** [temporal.v1.CreateNamespaceOutput](#temporal-v1-createnamespaceoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name echoes back the created namespace name<br>
+
+json_name: name
+go_name: Name</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_TERMINATE_IF_RUNNING</code></pre></td></tr>
+</table>    
+
+<a name="temporal-v1-admin-activities"></a>
+### Activities
+
+---
+<a name="temporal-v1-registernamespace-activity"></a>
+### temporal.v1.RegisterNamespace
+
+<pre>
+RegisterNamespace creates a new Temporal namespace with specified retention policy
+Idempotent: returns success if namespace already exists
+</pre>
+
+**Input:** [temporal.v1.RegisterNamespaceInput](#temporal-v1-registernamespaceinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the name of the namespace to create<br>
+
+json_name: name
+go_name: Name</pre></td>
+</tr><tr>
+<td>retention</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+retention is the duration to retain workflow history
+If not set, defaults to 30 days (2592000 seconds)<br>
+
+json_name: retention
+go_name: Retention</pre></td>
+</tr>
+</table>
+
+**Output:** [temporal.v1.RegisterNamespaceOutput](#temporal-v1-registernamespaceoutput)
+
+ 
+
+---
+<a name="temporal-v1-describenamespace-activity"></a>
+### temporal.v1.DescribeNamespace
+
+<pre>
+DescribeNamespace retrieves the current state of a Temporal namespace
+Used by the workflow to poll until namespace is active
+</pre>
+
+**Input:** [temporal.v1.DescribeNamespaceInput](#temporal-v1-describenamespaceinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the name of the namespace to describe<br>
+
+json_name: name
+go_name: Name</pre></td>
+</tr>
+</table>
+
+**Output:** [temporal.v1.DescribeNamespaceOutput](#temporal-v1-describenamespaceoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the name of the described namespace<br>
+
+json_name: name
+go_name: Name</pre></td>
+</tr><tr>
+<td>state</td>
+<td><a href="#temporal-v1-namespacestate">temporal.v1.NamespaceState</a></td>
+<td><pre>
+state is the current lifecycle state of the namespace<br>
+
+json_name: state
+go_name: State</pre></td>
+</tr>
+</table>   
+
+<a name="temporal-v1-messages"></a>
+## Messages
+
+<a name="temporal-v1-createnamespaceinput"></a>
+### temporal.v1.CreateNamespaceInput
+
+<pre>
+CreateNamespaceInput specifies parameters for creating a Temporal namespace
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the name of the namespace to create (e.g., "fabric-org1", "tenant-acme")
+This will be used as the workflow ID to ensure idempotency<br>
+
+json_name: name
+go_name: Name</pre></td>
+</tr><tr>
+<td>retention</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+retention is the duration to retain workflow history
+If not set, defaults to 30 days (2592000 seconds)<br>
+
+json_name: retention
+go_name: Retention</pre></td>
+</tr>
+</table>
+
+
+
+<a name="temporal-v1-createnamespaceoutput"></a>
+### temporal.v1.CreateNamespaceOutput
+
+<pre>
+CreateNamespaceOutput indicates successful namespace creation
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name echoes back the created namespace name<br>
+
+json_name: name
+go_name: Name</pre></td>
+</tr>
+</table>
+
+
+
+<a name="temporal-v1-describenamespaceinput"></a>
+### temporal.v1.DescribeNamespaceInput
+
+<pre>
+DescribeNamespaceInput specifies which namespace to describe
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the name of the namespace to describe<br>
+
+json_name: name
+go_name: Name</pre></td>
+</tr>
+</table>
+
+
+
+<a name="temporal-v1-describenamespaceoutput"></a>
+### temporal.v1.DescribeNamespaceOutput
+
+<pre>
+DescribeNamespaceOutput returns the current state of a namespace
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the name of the described namespace<br>
+
+json_name: name
+go_name: Name</pre></td>
+</tr><tr>
+<td>state</td>
+<td><a href="#temporal-v1-namespacestate">temporal.v1.NamespaceState</a></td>
+<td><pre>
+state is the current lifecycle state of the namespace<br>
+
+json_name: state
+go_name: State</pre></td>
+</tr>
+</table>
+
+
+
+<a name="temporal-v1-namespacestate"></a>
+### temporal.v1.NamespaceState
+
+<pre>
+NamespaceState represents the lifecycle state of a Temporal namespace
+</pre>
+
+<table>
+<tr><th>Value</th><th>Description</th></tr>
+<tr>
+<td>UNSPECIFIED</td>
+<td></td>
+</tr><tr>
+<td>REGISTERED</td>
+<td></td>
+</tr><tr>
+<td>DEPRECATED</td>
+<td></td>
+</tr>
+</table>
+
+<a name="temporal-v1-registernamespaceinput"></a>
+### temporal.v1.RegisterNamespaceInput
+
+<pre>
+RegisterNamespaceInput specifies parameters for the RegisterNamespace activity
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the name of the namespace to create<br>
+
+json_name: name
+go_name: Name</pre></td>
+</tr><tr>
+<td>retention</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+retention is the duration to retain workflow history
+If not set, defaults to 30 days (2592000 seconds)<br>
+
+json_name: retention
+go_name: Retention</pre></td>
+</tr>
+</table>
+
+
+
+<a name="temporal-v1-registernamespaceoutput"></a>
+### temporal.v1.RegisterNamespaceOutput
+
+<pre>
+RegisterNamespaceOutput indicates successful namespace registration
+</pre>
+
+
+
 <a name="vault-v1"></a>
 # vault.v1
 
@@ -6047,11 +6434,13 @@ go_name: ServiceAccountName</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>role_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: roleName
-go_name: RoleName</pre></td>
+name is the name of the created Kubernetes auth role<br>
+
+json_name: name
+go_name: Name</pre></td>
 </tr>
 </table> 
 
@@ -6070,11 +6459,13 @@ go_name: RoleName</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>role_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: roleName
-go_name: RoleName</pre></td>
+name is the name of the Kubernetes auth role to delete<br>
+
+json_name: name
+go_name: Name</pre></td>
 </tr>
 </table>
 
@@ -6099,21 +6490,21 @@ Policy Management
 <th>Description</th>
 </tr>
 <tr>
-<td>policy_document</td>
+<td>document</td>
 <td>string</td>
 <td><pre>
-policy_document is the HCL policy content<br>
+document is the HCL policy content<br>
 
-json_name: policyDocument
-go_name: PolicyDocument</pre></td>
+json_name: document
+go_name: Document</pre></td>
 </tr><tr>
-<td>policy_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-policy_name is the name of the policy (e.g., "fabric-foundational")<br>
+name is the name of the policy (e.g., "fabric-foundational")<br>
 
-json_name: policyName
-go_name: PolicyName</pre></td>
+json_name: name
+go_name: Name</pre></td>
 </tr>
 </table>
 
@@ -6126,11 +6517,13 @@ go_name: PolicyName</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>policy_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: policyName
-go_name: PolicyName</pre></td>
+name is the name of the created policy<br>
+
+json_name: name
+go_name: Name</pre></td>
 </tr>
 </table> 
 
@@ -6149,11 +6542,13 @@ go_name: PolicyName</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>policy_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: policyName
-go_name: PolicyName</pre></td>
+name is the name of the policy to delete<br>
+
+json_name: name
+go_name: Name</pre></td>
 </tr>
 </table>
 
@@ -6357,11 +6752,13 @@ CreateAuthRoleOutput returns the created role name
 <th>Description</th>
 </tr>
 <tr>
-<td>role_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: roleName
-go_name: RoleName</pre></td>
+name is the name of the created Kubernetes auth role<br>
+
+json_name: name
+go_name: Name</pre></td>
 </tr>
 </table>
 
@@ -6381,21 +6778,21 @@ CreatePolicyInput specifies parameters for creating a Vault policy
 <th>Description</th>
 </tr>
 <tr>
-<td>policy_document</td>
+<td>document</td>
 <td>string</td>
 <td><pre>
-policy_document is the HCL policy content<br>
+document is the HCL policy content<br>
 
-json_name: policyDocument
-go_name: PolicyDocument</pre></td>
+json_name: document
+go_name: Document</pre></td>
 </tr><tr>
-<td>policy_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-policy_name is the name of the policy (e.g., "fabric-foundational")<br>
+name is the name of the policy (e.g., "fabric-foundational")<br>
 
-json_name: policyName
-go_name: PolicyName</pre></td>
+json_name: name
+go_name: Name</pre></td>
 </tr>
 </table>
 
@@ -6415,11 +6812,13 @@ CreatePolicyOutput returns the created policy name
 <th>Description</th>
 </tr>
 <tr>
-<td>policy_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: policyName
-go_name: PolicyName</pre></td>
+name is the name of the created policy<br>
+
+json_name: name
+go_name: Name</pre></td>
 </tr>
 </table>
 
@@ -6439,11 +6838,13 @@ DeleteAuthRoleInput specifies which auth role to delete
 <th>Description</th>
 </tr>
 <tr>
-<td>role_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: roleName
-go_name: RoleName</pre></td>
+name is the name of the Kubernetes auth role to delete<br>
+
+json_name: name
+go_name: Name</pre></td>
 </tr>
 </table>
 
@@ -6472,11 +6873,13 @@ DeletePolicyInput specifies which policy to delete
 <th>Description</th>
 </tr>
 <tr>
-<td>policy_name</td>
+<td>name</td>
 <td>string</td>
 <td><pre>
-json_name: policyName
-go_name: PolicyName</pre></td>
+name is the name of the policy to delete<br>
+
+json_name: name
+go_name: Name</pre></td>
 </tr>
 </table>
 
@@ -6728,6 +7131,104 @@ go_name: SecretRef</pre></td>
 
 <a name="google-protobuf-messages"></a>
 ## Messages
+
+<a name="google-protobuf-duration"></a>
+### google.protobuf.Duration
+
+<pre>
+A Duration represents a signed, fixed-length span of time represented
+as a count of seconds and fractions of seconds at nanosecond
+resolution. It is independent of any calendar and concepts like "day"
+or "month". It is related to Timestamp in that the difference between
+two Timestamp values is a Duration and it can be added or subtracted
+from a Timestamp. Range is approximately +-10,000 years.
+
+# Examples
+
+Example 1: Compute Duration from two Timestamps in pseudo code.
+
+    Timestamp start = ...;
+    Timestamp end = ...;
+    Duration duration = ...;
+
+    duration.seconds = end.seconds - start.seconds;
+    duration.nanos = end.nanos - start.nanos;
+
+    if (duration.seconds < 0 && duration.nanos > 0) {
+      duration.seconds += 1;
+      duration.nanos -= 1000000000;
+    } else if (duration.seconds > 0 && duration.nanos < 0) {
+      duration.seconds -= 1;
+      duration.nanos += 1000000000;
+    }
+
+Example 2: Compute Timestamp from Timestamp + Duration in pseudo code.
+
+    Timestamp start = ...;
+    Duration duration = ...;
+    Timestamp end = ...;
+
+    end.seconds = start.seconds + duration.seconds;
+    end.nanos = start.nanos + duration.nanos;
+
+    if (end.nanos < 0) {
+      end.seconds -= 1;
+      end.nanos += 1000000000;
+    } else if (end.nanos >= 1000000000) {
+      end.seconds += 1;
+      end.nanos -= 1000000000;
+    }
+
+Example 3: Compute Duration from datetime.timedelta in Python.
+
+    td = datetime.timedelta(days=3, minutes=10)
+    duration = Duration()
+    duration.FromTimedelta(td)
+
+# JSON Mapping
+
+In JSON format, the Duration type is encoded as a string rather than an
+object, where the string ends in the suffix "s" (indicating seconds) and
+is preceded by the number of seconds, with nanoseconds expressed as
+fractional seconds. For example, 3 seconds with 0 nanoseconds should be
+encoded in JSON format as "3s", while 3 seconds and 1 nanosecond should
+be expressed in JSON format as "3.000000001s", and 3 seconds and 1
+microsecond should be expressed in JSON format as "3.000001s".
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>nanos</td>
+<td>int32</td>
+<td><pre>
+Signed fractions of a second at nanosecond resolution of the span
+of time. Durations less than one second are represented with a 0
+`seconds` field and a positive or negative `nanos` field. For durations
+of one second or more, a non-zero value for the `nanos` field must be
+of the same sign as the `seconds` field. Must be from -999,999,999
+to +999,999,999 inclusive.<br>
+
+json_name: nanos
+go_name: Nanos</pre></td>
+</tr><tr>
+<td>seconds</td>
+<td>int64</td>
+<td><pre>
+Signed seconds of the span of time. Must be from -315,576,000,000
+to +315,576,000,000 inclusive. Note: these bounds are computed from:
+60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years<br>
+
+json_name: seconds
+go_name: Seconds</pre></td>
+</tr>
+</table>
+
+
 
 <a name="google-protobuf-listvalue"></a>
 ### google.protobuf.ListValue

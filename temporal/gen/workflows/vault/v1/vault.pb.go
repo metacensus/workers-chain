@@ -99,8 +99,9 @@ func (x *CreateAuthRoleInput) GetPolicyNames() []string {
 
 // CreateAuthRoleOutput returns the created role name
 type CreateAuthRoleOutput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RoleName      string                 `protobuf:"bytes,1,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// name is the name of the created Kubernetes auth role
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -135,17 +136,18 @@ func (*CreateAuthRoleOutput) Descriptor() ([]byte, []int) {
 	return file_vault_v1_vault_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *CreateAuthRoleOutput) GetRoleName() string {
+func (x *CreateAuthRoleOutput) GetName() string {
 	if x != nil {
-		return x.RoleName
+		return x.Name
 	}
 	return ""
 }
 
 // DeleteAuthRoleInput specifies which auth role to delete
 type DeleteAuthRoleInput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RoleName      string                 `protobuf:"bytes,1,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// name is the name of the Kubernetes auth role to delete
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -180,9 +182,9 @@ func (*DeleteAuthRoleInput) Descriptor() ([]byte, []int) {
 	return file_vault_v1_vault_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *DeleteAuthRoleInput) GetRoleName() string {
+func (x *DeleteAuthRoleInput) GetName() string {
 	if x != nil {
-		return x.RoleName
+		return x.Name
 	}
 	return ""
 }
@@ -227,12 +229,12 @@ func (*DeleteAuthRoleOutput) Descriptor() ([]byte, []int) {
 // CreatePolicyInput specifies parameters for creating a Vault policy
 type CreatePolicyInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// policy_name is the name of the policy (e.g., "fabric-foundational")
-	PolicyName string `protobuf:"bytes,1,opt,name=policy_name,json=policyName,proto3" json:"policy_name,omitempty"`
-	// policy_document is the HCL policy content
-	PolicyDocument string `protobuf:"bytes,2,opt,name=policy_document,json=policyDocument,proto3" json:"policy_document,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// name is the name of the policy (e.g., "fabric-foundational")
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// document is the HCL policy content
+	Document      string `protobuf:"bytes,2,opt,name=document,proto3" json:"document,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreatePolicyInput) Reset() {
@@ -265,24 +267,25 @@ func (*CreatePolicyInput) Descriptor() ([]byte, []int) {
 	return file_vault_v1_vault_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *CreatePolicyInput) GetPolicyName() string {
+func (x *CreatePolicyInput) GetName() string {
 	if x != nil {
-		return x.PolicyName
+		return x.Name
 	}
 	return ""
 }
 
-func (x *CreatePolicyInput) GetPolicyDocument() string {
+func (x *CreatePolicyInput) GetDocument() string {
 	if x != nil {
-		return x.PolicyDocument
+		return x.Document
 	}
 	return ""
 }
 
 // CreatePolicyOutput returns the created policy name
 type CreatePolicyOutput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PolicyName    string                 `protobuf:"bytes,1,opt,name=policy_name,json=policyName,proto3" json:"policy_name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// name is the name of the created policy
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -317,17 +320,18 @@ func (*CreatePolicyOutput) Descriptor() ([]byte, []int) {
 	return file_vault_v1_vault_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *CreatePolicyOutput) GetPolicyName() string {
+func (x *CreatePolicyOutput) GetName() string {
 	if x != nil {
-		return x.PolicyName
+		return x.Name
 	}
 	return ""
 }
 
 // DeletePolicyInput specifies which policy to delete
 type DeletePolicyInput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PolicyName    string                 `protobuf:"bytes,1,opt,name=policy_name,json=policyName,proto3" json:"policy_name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// name is the name of the policy to delete
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -362,9 +366,9 @@ func (*DeletePolicyInput) Descriptor() ([]byte, []int) {
 	return file_vault_v1_vault_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *DeletePolicyInput) GetPolicyName() string {
+func (x *DeletePolicyInput) GetName() string {
 	if x != nil {
-		return x.PolicyName
+		return x.Name
 	}
 	return ""
 }
@@ -755,22 +759,19 @@ const file_vault_v1_vault_proto_rawDesc = "" +
 	"\forganization\x18\x01 \x01(\tR\forganization\x120\n" +
 	"\x14service_account_name\x18\x02 \x01(\tR\x12serviceAccountName\x121\n" +
 	"\x14kubernetes_namespace\x18\x03 \x01(\tR\x13kubernetesNamespace\x12!\n" +
-	"\fpolicy_names\x18\x04 \x03(\tR\vpolicyNames\"3\n" +
-	"\x14CreateAuthRoleOutput\x12\x1b\n" +
-	"\trole_name\x18\x01 \x01(\tR\broleName\"2\n" +
-	"\x13DeleteAuthRoleInput\x12\x1b\n" +
-	"\trole_name\x18\x01 \x01(\tR\broleName\"\x16\n" +
-	"\x14DeleteAuthRoleOutput\"]\n" +
-	"\x11CreatePolicyInput\x12\x1f\n" +
-	"\vpolicy_name\x18\x01 \x01(\tR\n" +
-	"policyName\x12'\n" +
-	"\x0fpolicy_document\x18\x02 \x01(\tR\x0epolicyDocument\"5\n" +
-	"\x12CreatePolicyOutput\x12\x1f\n" +
-	"\vpolicy_name\x18\x01 \x01(\tR\n" +
-	"policyName\"4\n" +
-	"\x11DeletePolicyInput\x12\x1f\n" +
-	"\vpolicy_name\x18\x01 \x01(\tR\n" +
-	"policyName\"\x14\n" +
+	"\fpolicy_names\x18\x04 \x03(\tR\vpolicyNames\"*\n" +
+	"\x14CreateAuthRoleOutput\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\")\n" +
+	"\x13DeleteAuthRoleInput\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\x16\n" +
+	"\x14DeleteAuthRoleOutput\"C\n" +
+	"\x11CreatePolicyInput\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
+	"\bdocument\x18\x02 \x01(\tR\bdocument\"(\n" +
+	"\x12CreatePolicyOutput\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"'\n" +
+	"\x11DeletePolicyInput\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\x14\n" +
 	"\x12DeletePolicyOutput\"9\n" +
 	"\tSecretRef\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +

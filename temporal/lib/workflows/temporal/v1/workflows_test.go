@@ -1,0 +1,189 @@
+package temporal
+
+import (
+	"errors"
+	"testing"
+	"time"
+
+	pb "github.com/metacensus/infra/temporal/gen/workflows/temporal/v1"
+	temporalmocks "github.com/metacensus/infra/temporal/mocks/workflows/temporal/v1"
+	"github.com/stretchr/testify/mock"
+	"go.temporal.io/sdk/testsuite"
+	"google.golang.org/protobuf/types/known/durationpb"
+)
+
+func TestCreateNamespaceWorkflow(t *testing.T) {
+	tests := []struct {
+		name              string
+		input             *pb.CreateNamespaceInput
+		registerErr       error
+		describeResponses []*pb.DescribeNamespaceOutput
+		describeErrors    []error
+		expectSuccess     bool
+		expectedNamespace string
+	}{
+		{
+			name: "success - namespace becomes registered immediately",
+			input: &pb.CreateNamespaceInput{
+				Name:      "fabric-org1",
+				Retention: durationpb.New(30 * 24 * time.Hour),
+			},
+			registerErr: nil,
+			describeResponses: []*pb.DescribeNamespaceOutput{
+				{
+					Name:  "fabric-org1",
+					State: pb.NamespaceState_REGISTERED,
+				},
+			},
+			expectSuccess:     true,
+			expectedNamespace: "fabric-org1",
+		},
+		{
+			name: "success - namespace becomes registered after retries",
+			input: &pb.CreateNamespaceInput{
+				Name:      "fabric-org2",
+				Retention: nil, // Use default
+			},
+			registerErr: nil,
+			describeResponses: []*pb.DescribeNamespaceOutput{
+				{
+					Name:  "fabric-org2",
+					State: pb.NamespaceState_UNSPECIFIED,
+				},
+				{
+					Name:  "fabric-org2",
+					State: pb.NamespaceState_UNSPECIFIED,
+				},
+				{
+					Name:  "fabric-org2",
+					State: pb.NamespaceState_REGISTERED,
+				},
+			},
+			expectSuccess:     true,
+			expectedNamespace: "fabric-org2",
+		},
+		{
+			name: "failure - register namespace fails",
+			input: &pb.CreateNamespaceInput{
+				Name:      "fabric-error",
+				Retention: durationpb.New(7 * 24 * time.Hour),
+			},
+			registerErr:   errors.New("connection failed"),
+			expectSuccess: false,
+		},
+		{
+			name: "failure - describe never reaches registered (timeout)",
+			input: &pb.CreateNamespaceInput{
+				Name:      "fabric-timeout",
+				Retention: nil,
+			},
+			registerErr: nil,
+			describeResponses: []*pb.DescribeNamespaceOutput{
+				{
+					Name:  "fabric-timeout",
+					State: pb.NamespaceState_UNSPECIFIED,
+				},
+			},
+			expectSuccess: false,
+		},
+		{
+			name: "success - describe transient errors, then succeeds",
+			input: &pb.CreateNamespaceInput{
+				Name:      "fabric-retry",
+				Retention: durationpb.New(1 * 24 * time.Hour),
+			},
+			registerErr: nil,
+			describeErrors: []error{
+				errors.New("temporary failure"),
+				nil,
+			},
+			describeResponses: []*pb.DescribeNamespaceOutput{
+				nil, // Ignored due to error
+				{
+					Name:  "fabric-retry",
+					State: pb.NamespaceState_REGISTERED,
+				},
+			},
+			expectSuccess:     true,
+			expectedNamespace: "fabric-retry",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestWorkflowEnvironment()
+
+			mockActivities := temporalmocks.NewMockAdminActivities(t)
+
+			// Setup register namespace expectation
+			if tt.registerErr != nil {
+				mockActivities.EXPECT().
+					RegisterNamespace(mock.Anything, mock.MatchedBy(func(req *pb.RegisterNamespaceInput) bool {
+						return req.Name == tt.input.Name
+					})).
+					Return(nil, tt.registerErr).
+					Once()
+			} else {
+				mockActivities.EXPECT().
+					RegisterNamespace(mock.Anything, mock.MatchedBy(func(req *pb.RegisterNamespaceInput) bool {
+						return req.Name == tt.input.Name
+					})).
+					Return(&pb.RegisterNamespaceOutput{}, nil).
+					Once()
+
+				// Setup describe namespace expectations for polling
+				for i, respErr := range tt.describeErrors {
+					if respErr != nil {
+						mockActivities.EXPECT().
+							DescribeNamespace(mock.Anything, mock.MatchedBy(func(req *pb.DescribeNamespaceInput) bool {
+								return req.Name == tt.input.Name
+							})).
+							Return(nil, respErr).
+							Once()
+					} else {
+						mockActivities.EXPECT().
+							DescribeNamespace(mock.Anything, mock.MatchedBy(func(req *pb.DescribeNamespaceInput) bool {
+								return req.Name == tt.input.Name
+							})).
+							Return(tt.describeResponses[i], nil).
+							Once()
+					}
+				}
+			}
+
+			env.RegisterActivity(mockActivities.RegisterNamespace)
+			env.RegisterActivity(mockActivities.DescribeNamespace)
+
+			workflow := NewCreateNamespaceWorkflow(mockActivities)
+			env.ExecuteWorkflow(workflow.Execute, tt.input)
+
+			if tt.expectSuccess {
+				if !env.IsWorkflowCompleted() {
+					t.Fatal("workflow did not complete")
+				}
+				if err := env.GetWorkflowError(); err != nil {
+					t.Fatalf("unexpected workflow error: %v", err)
+				}
+
+				var result *pb.CreateNamespaceOutput
+				if err := env.GetWorkflowResult(&result); err != nil {
+					t.Fatalf("failed to get workflow result: %v", err)
+				}
+				if result == nil {
+					t.Fatal("result is nil")
+				}
+				if result.Name != tt.expectedNamespace {
+					t.Errorf("result.Name mismatch: got %s, want %s", result.Name, tt.expectedNamespace)
+				}
+			} else {
+				if !env.IsWorkflowCompleted() {
+					t.Fatal("workflow did not complete")
+				}
+				if err := env.GetWorkflowError(); err == nil {
+					t.Fatal("expected workflow error, got nil")
+				}
+			}
+		})
+	}
+}

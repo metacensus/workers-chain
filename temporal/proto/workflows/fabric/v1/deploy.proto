@@ -152,14 +152,14 @@ message CreateVaultRoleOutput {
 
 message DeployCaInput {
   string organization = 1;       // Organization name
-  string namespace = 2;           // Kubernetes namespace
-  string ca_admin_username = 3;  // Fabric CA admin username
-  string ca_admin_password = 4;  // Fabric CA admin password
+  string namespace = 2;          // Kubernetes namespace
+  string admin_username = 3;     // Fabric CA admin username
+  string admin_password = 4;     // Fabric CA admin password
 }
 
 message DeployCaOutput {
-  string ca_name = 1;       // CA pod name
-  string service_name = 2;  // CA Kubernetes service name (DNS entry)
+  string name = 1;               // CA pod name
+  string service = 2;            // CA Kubernetes service name (DNS entry)
 }
 
 // ==================== CouchDB Deployment ====================
@@ -173,8 +173,8 @@ message DeployCouchDbInput {
 }
 
 message DeployCouchDbOutput {
-  string couchdb_name = 1;        // CouchDB pod name
-  string service_name = 2;        // CouchDB Kubernetes service name (DNS entry)
+  string name = 1;               // CouchDB pod name
+  string service = 2;            // CouchDB Kubernetes service name (DNS entry)
   vault.v1.SecretRef credentials = 3;  // Reference to stored CouchDB credentials in Vault
 }
 
@@ -184,14 +184,14 @@ message DeployPeerInput {
   string organization = 1;           // Organization name
   string namespace = 2;              // Kubernetes namespace
   string peer_id = 3;                // Peer identifier (e.g., "peer0", "peer1")
-  string couchdb_service_name = 4;  // CouchDB service name (from DeployCouchDB)
+  string couchdb_service = 4;        // CouchDB service name (from DeployCouchDB)
   NodeOUConfig org_node_ous = 5;    // Node OU configuration for this org
   repeated string hosts = 6;         // Additional SAN hostnames for TLS cert
 }
 
 message DeployPeerOutput {
-  string peer_name = 1;          // Peer pod name
-  string service_name = 2;       // Peer Kubernetes service name (DNS entry)
+  string name = 1;                   // Peer pod name
+  string service = 2;                // Peer Kubernetes service name (DNS entry)
   vault.v1.SecretRef signing_secret = 3;  // Reference to signing cert/key in Vault
   vault.v1.SecretRef tls_secret = 4;      // Reference to TLS cert/key in Vault
 }
@@ -207,8 +207,8 @@ message DeployOrdererInput {
 }
 
 message DeployOrdererOutput {
-  string orderer_name = 1;        // Orderer pod name
-  string service_name = 2;        // Orderer Kubernetes service name (DNS entry)
+  string name = 1;                   // Orderer pod name
+  string service = 2;                // Orderer Kubernetes service name (DNS entry)
   vault.v1.SecretRef signing_secret = 3;  // Reference to signing cert/key in Vault
   vault.v1.SecretRef tls_secret = 4;      // Reference to TLS cert/key in Vault
 }
@@ -220,8 +220,8 @@ message DeployOrgInput {
   string namespace = 2;         // Kubernetes namespace for all resources
   
   // CA configuration (bootstrap credentials for Fabric CA)
-  string ca_admin_username = 3;  // Fabric CA admin user for bootstrap
-  string ca_admin_password = 4;  // Fabric CA admin password for bootstrap
+  string admin_username = 3;     // Fabric CA admin user for bootstrap
+  string admin_password = 4;     // Fabric CA admin password for bootstrap
   
   // Admin identity configuration (to be created via BootstrapAdmin)
   BootstrapAdminInput admin = 5;

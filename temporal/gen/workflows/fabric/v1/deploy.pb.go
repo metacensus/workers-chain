@@ -345,13 +345,13 @@ func (x *CreateVaultRoleOutput) GetRoleName() string {
 }
 
 type DeployCaInput struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Organization    string                 `protobuf:"bytes,1,opt,name=organization,proto3" json:"organization,omitempty"`                                // Organization name
-	Namespace       string                 `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`                                      // Kubernetes namespace
-	CaAdminUsername string                 `protobuf:"bytes,3,opt,name=ca_admin_username,json=caAdminUsername,proto3" json:"ca_admin_username,omitempty"` // Fabric CA admin username
-	CaAdminPassword string                 `protobuf:"bytes,4,opt,name=ca_admin_password,json=caAdminPassword,proto3" json:"ca_admin_password,omitempty"` // Fabric CA admin password
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Organization  string                 `protobuf:"bytes,1,opt,name=organization,proto3" json:"organization,omitempty"`                        // Organization name
+	Namespace     string                 `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`                              // Kubernetes namespace
+	AdminUsername string                 `protobuf:"bytes,3,opt,name=admin_username,json=adminUsername,proto3" json:"admin_username,omitempty"` // Fabric CA admin username
+	AdminPassword string                 `protobuf:"bytes,4,opt,name=admin_password,json=adminPassword,proto3" json:"admin_password,omitempty"` // Fabric CA admin password
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DeployCaInput) Reset() {
@@ -398,24 +398,24 @@ func (x *DeployCaInput) GetNamespace() string {
 	return ""
 }
 
-func (x *DeployCaInput) GetCaAdminUsername() string {
+func (x *DeployCaInput) GetAdminUsername() string {
 	if x != nil {
-		return x.CaAdminUsername
+		return x.AdminUsername
 	}
 	return ""
 }
 
-func (x *DeployCaInput) GetCaAdminPassword() string {
+func (x *DeployCaInput) GetAdminPassword() string {
 	if x != nil {
-		return x.CaAdminPassword
+		return x.AdminPassword
 	}
 	return ""
 }
 
 type DeployCaOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CaName        string                 `protobuf:"bytes,1,opt,name=ca_name,json=caName,proto3" json:"ca_name,omitempty"`                // CA pod name
-	ServiceName   string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"` // CA Kubernetes service name (DNS entry)
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`       // CA pod name
+	Service       string                 `protobuf:"bytes,2,opt,name=service,proto3" json:"service,omitempty"` // CA Kubernetes service name (DNS entry)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -450,16 +450,16 @@ func (*DeployCaOutput) Descriptor() ([]byte, []int) {
 	return file_fabric_v1_deploy_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *DeployCaOutput) GetCaName() string {
+func (x *DeployCaOutput) GetName() string {
 	if x != nil {
-		return x.CaName
+		return x.Name
 	}
 	return ""
 }
 
-func (x *DeployCaOutput) GetServiceName() string {
+func (x *DeployCaOutput) GetService() string {
 	if x != nil {
-		return x.ServiceName
+		return x.Service
 	}
 	return ""
 }
@@ -542,9 +542,9 @@ func (x *DeployCouchDbInput) GetAdminPassword() string {
 
 type DeployCouchDbOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CouchdbName   string                 `protobuf:"bytes,1,opt,name=couchdb_name,json=couchdbName,proto3" json:"couchdb_name,omitempty"` // CouchDB pod name
-	ServiceName   string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"` // CouchDB Kubernetes service name (DNS entry)
-	Credentials   *v1.SecretRef          `protobuf:"bytes,3,opt,name=credentials,proto3" json:"credentials,omitempty"`                    // Reference to stored CouchDB credentials in Vault
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`               // CouchDB pod name
+	Service       string                 `protobuf:"bytes,2,opt,name=service,proto3" json:"service,omitempty"`         // CouchDB Kubernetes service name (DNS entry)
+	Credentials   *v1.SecretRef          `protobuf:"bytes,3,opt,name=credentials,proto3" json:"credentials,omitempty"` // Reference to stored CouchDB credentials in Vault
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -579,16 +579,16 @@ func (*DeployCouchDbOutput) Descriptor() ([]byte, []int) {
 	return file_fabric_v1_deploy_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *DeployCouchDbOutput) GetCouchdbName() string {
+func (x *DeployCouchDbOutput) GetName() string {
 	if x != nil {
-		return x.CouchdbName
+		return x.Name
 	}
 	return ""
 }
 
-func (x *DeployCouchDbOutput) GetServiceName() string {
+func (x *DeployCouchDbOutput) GetService() string {
 	if x != nil {
-		return x.ServiceName
+		return x.Service
 	}
 	return ""
 }
@@ -601,15 +601,15 @@ func (x *DeployCouchDbOutput) GetCredentials() *v1.SecretRef {
 }
 
 type DeployPeerInput struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Organization       string                 `protobuf:"bytes,1,opt,name=organization,proto3" json:"organization,omitempty"`                                         // Organization name
-	Namespace          string                 `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`                                               // Kubernetes namespace
-	PeerId             string                 `protobuf:"bytes,3,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`                                       // Peer identifier (e.g., "peer0", "peer1")
-	CouchdbServiceName string                 `protobuf:"bytes,4,opt,name=couchdb_service_name,json=couchdbServiceName,proto3" json:"couchdb_service_name,omitempty"` // CouchDB service name (from DeployCouchDB)
-	OrgNodeOus         *v11.NodeOUConfig      `protobuf:"bytes,5,opt,name=org_node_ous,json=orgNodeOus,proto3" json:"org_node_ous,omitempty"`                         // Node OU configuration for this org
-	Hosts              []string               `protobuf:"bytes,6,rep,name=hosts,proto3" json:"hosts,omitempty"`                                                       // Additional SAN hostnames for TLS cert
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Organization   string                 `protobuf:"bytes,1,opt,name=organization,proto3" json:"organization,omitempty"`                           // Organization name
+	Namespace      string                 `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`                                 // Kubernetes namespace
+	PeerId         string                 `protobuf:"bytes,3,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`                         // Peer identifier (e.g., "peer0", "peer1")
+	CouchdbService string                 `protobuf:"bytes,4,opt,name=couchdb_service,json=couchdbService,proto3" json:"couchdb_service,omitempty"` // CouchDB service name (from DeployCouchDB)
+	OrgNodeOus     *v11.NodeOUConfig      `protobuf:"bytes,5,opt,name=org_node_ous,json=orgNodeOus,proto3" json:"org_node_ous,omitempty"`           // Node OU configuration for this org
+	Hosts          []string               `protobuf:"bytes,6,rep,name=hosts,proto3" json:"hosts,omitempty"`                                         // Additional SAN hostnames for TLS cert
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *DeployPeerInput) Reset() {
@@ -663,9 +663,9 @@ func (x *DeployPeerInput) GetPeerId() string {
 	return ""
 }
 
-func (x *DeployPeerInput) GetCouchdbServiceName() string {
+func (x *DeployPeerInput) GetCouchdbService() string {
 	if x != nil {
-		return x.CouchdbServiceName
+		return x.CouchdbService
 	}
 	return ""
 }
@@ -686,8 +686,8 @@ func (x *DeployPeerInput) GetHosts() []string {
 
 type DeployPeerOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	PeerName      string                 `protobuf:"bytes,1,opt,name=peer_name,json=peerName,proto3" json:"peer_name,omitempty"`                // Peer pod name
-	ServiceName   string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`       // Peer Kubernetes service name (DNS entry)
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`                                        // Peer pod name
+	Service       string                 `protobuf:"bytes,2,opt,name=service,proto3" json:"service,omitempty"`                                  // Peer Kubernetes service name (DNS entry)
 	SigningSecret *v1.SecretRef          `protobuf:"bytes,3,opt,name=signing_secret,json=signingSecret,proto3" json:"signing_secret,omitempty"` // Reference to signing cert/key in Vault
 	TlsSecret     *v1.SecretRef          `protobuf:"bytes,4,opt,name=tls_secret,json=tlsSecret,proto3" json:"tls_secret,omitempty"`             // Reference to TLS cert/key in Vault
 	unknownFields protoimpl.UnknownFields
@@ -724,16 +724,16 @@ func (*DeployPeerOutput) Descriptor() ([]byte, []int) {
 	return file_fabric_v1_deploy_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *DeployPeerOutput) GetPeerName() string {
+func (x *DeployPeerOutput) GetName() string {
 	if x != nil {
-		return x.PeerName
+		return x.Name
 	}
 	return ""
 }
 
-func (x *DeployPeerOutput) GetServiceName() string {
+func (x *DeployPeerOutput) GetService() string {
 	if x != nil {
-		return x.ServiceName
+		return x.Service
 	}
 	return ""
 }
@@ -830,8 +830,8 @@ func (x *DeployOrdererInput) GetHosts() []string {
 
 type DeployOrdererOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrdererName   string                 `protobuf:"bytes,1,opt,name=orderer_name,json=ordererName,proto3" json:"orderer_name,omitempty"`       // Orderer pod name
-	ServiceName   string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`       // Orderer Kubernetes service name (DNS entry)
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`                                        // Orderer pod name
+	Service       string                 `protobuf:"bytes,2,opt,name=service,proto3" json:"service,omitempty"`                                  // Orderer Kubernetes service name (DNS entry)
 	SigningSecret *v1.SecretRef          `protobuf:"bytes,3,opt,name=signing_secret,json=signingSecret,proto3" json:"signing_secret,omitempty"` // Reference to signing cert/key in Vault
 	TlsSecret     *v1.SecretRef          `protobuf:"bytes,4,opt,name=tls_secret,json=tlsSecret,proto3" json:"tls_secret,omitempty"`             // Reference to TLS cert/key in Vault
 	unknownFields protoimpl.UnknownFields
@@ -868,16 +868,16 @@ func (*DeployOrdererOutput) Descriptor() ([]byte, []int) {
 	return file_fabric_v1_deploy_proto_rawDescGZIP(), []int{13}
 }
 
-func (x *DeployOrdererOutput) GetOrdererName() string {
+func (x *DeployOrdererOutput) GetName() string {
 	if x != nil {
-		return x.OrdererName
+		return x.Name
 	}
 	return ""
 }
 
-func (x *DeployOrdererOutput) GetServiceName() string {
+func (x *DeployOrdererOutput) GetService() string {
 	if x != nil {
-		return x.ServiceName
+		return x.Service
 	}
 	return ""
 }
@@ -901,8 +901,8 @@ type DeployOrgInput struct {
 	Organization string                 `protobuf:"bytes,1,opt,name=organization,proto3" json:"organization,omitempty"` // Organization name (e.g., "metacensus")
 	Namespace    string                 `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`       // Kubernetes namespace for all resources
 	// CA configuration (bootstrap credentials for Fabric CA)
-	CaAdminUsername string `protobuf:"bytes,3,opt,name=ca_admin_username,json=caAdminUsername,proto3" json:"ca_admin_username,omitempty"` // Fabric CA admin user for bootstrap
-	CaAdminPassword string `protobuf:"bytes,4,opt,name=ca_admin_password,json=caAdminPassword,proto3" json:"ca_admin_password,omitempty"` // Fabric CA admin password for bootstrap
+	AdminUsername string `protobuf:"bytes,3,opt,name=admin_username,json=adminUsername,proto3" json:"admin_username,omitempty"` // Fabric CA admin user for bootstrap
+	AdminPassword string `protobuf:"bytes,4,opt,name=admin_password,json=adminPassword,proto3" json:"admin_password,omitempty"` // Fabric CA admin password for bootstrap
 	// Admin identity configuration (to be created via BootstrapAdmin)
 	Admin *v11.BootstrapAdminInput `protobuf:"bytes,5,opt,name=admin,proto3" json:"admin,omitempty"`
 	// Affiliations to create in the Fabric CA
@@ -967,16 +967,16 @@ func (x *DeployOrgInput) GetNamespace() string {
 	return ""
 }
 
-func (x *DeployOrgInput) GetCaAdminUsername() string {
+func (x *DeployOrgInput) GetAdminUsername() string {
 	if x != nil {
-		return x.CaAdminUsername
+		return x.AdminUsername
 	}
 	return ""
 }
 
-func (x *DeployOrgInput) GetCaAdminPassword() string {
+func (x *DeployOrgInput) GetAdminPassword() string {
 	if x != nil {
-		return x.CaAdminPassword
+		return x.AdminPassword
 	}
 	return ""
 }
@@ -1130,36 +1130,36 @@ const file_fabric_v1_deploy_proto_rawDesc = "" +
 	"\x14kubernetes_namespace\x18\x03 \x01(\tR\x13kubernetesNamespace\x12!\n" +
 	"\fpolicy_names\x18\x04 \x03(\tR\vpolicyNames\"4\n" +
 	"\x15CreateVaultRoleOutput\x12\x1b\n" +
-	"\trole_name\x18\x01 \x01(\tR\broleName\"\xa9\x01\n" +
+	"\trole_name\x18\x01 \x01(\tR\broleName\"\x9f\x01\n" +
 	"\rDeployCaInput\x12\"\n" +
 	"\forganization\x18\x01 \x01(\tR\forganization\x12\x1c\n" +
-	"\tnamespace\x18\x02 \x01(\tR\tnamespace\x12*\n" +
-	"\x11ca_admin_username\x18\x03 \x01(\tR\x0fcaAdminUsername\x12*\n" +
-	"\x11ca_admin_password\x18\x04 \x01(\tR\x0fcaAdminPassword\"L\n" +
-	"\x0eDeployCaOutput\x12\x17\n" +
-	"\aca_name\x18\x01 \x01(\tR\x06caName\x12!\n" +
-	"\fservice_name\x18\x02 \x01(\tR\vserviceName\"\xbd\x01\n" +
+	"\tnamespace\x18\x02 \x01(\tR\tnamespace\x12%\n" +
+	"\x0eadmin_username\x18\x03 \x01(\tR\radminUsername\x12%\n" +
+	"\x0eadmin_password\x18\x04 \x01(\tR\radminPassword\">\n" +
+	"\x0eDeployCaOutput\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\aservice\x18\x02 \x01(\tR\aservice\"\xbd\x01\n" +
 	"\x12DeployCouchDbInput\x12\"\n" +
 	"\forganization\x18\x01 \x01(\tR\forganization\x12\x1c\n" +
 	"\tnamespace\x18\x02 \x01(\tR\tnamespace\x12\x17\n" +
 	"\apeer_id\x18\x03 \x01(\tR\x06peerId\x12%\n" +
 	"\x0eadmin_username\x18\x04 \x01(\tR\radminUsername\x12%\n" +
-	"\x0eadmin_password\x18\x05 \x01(\tR\radminPassword\"\x92\x01\n" +
-	"\x13DeployCouchDbOutput\x12!\n" +
-	"\fcouchdb_name\x18\x01 \x01(\tR\vcouchdbName\x12!\n" +
-	"\fservice_name\x18\x02 \x01(\tR\vserviceName\x125\n" +
-	"\vcredentials\x18\x03 \x01(\v2\x13.vault.v1.SecretRefR\vcredentials\"\xf8\x01\n" +
+	"\x0eadmin_password\x18\x05 \x01(\tR\radminPassword\"z\n" +
+	"\x13DeployCouchDbOutput\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\aservice\x18\x02 \x01(\tR\aservice\x125\n" +
+	"\vcredentials\x18\x03 \x01(\v2\x13.vault.v1.SecretRefR\vcredentials\"\xef\x01\n" +
 	"\x0fDeployPeerInput\x12\"\n" +
 	"\forganization\x18\x01 \x01(\tR\forganization\x12\x1c\n" +
 	"\tnamespace\x18\x02 \x01(\tR\tnamespace\x12\x17\n" +
-	"\apeer_id\x18\x03 \x01(\tR\x06peerId\x120\n" +
-	"\x14couchdb_service_name\x18\x04 \x01(\tR\x12couchdbServiceName\x12B\n" +
+	"\apeer_id\x18\x03 \x01(\tR\x06peerId\x12'\n" +
+	"\x0fcouchdb_service\x18\x04 \x01(\tR\x0ecouchdbService\x12B\n" +
 	"\forg_node_ous\x18\x05 \x01(\v2 .fabric.identity.v1.NodeOUConfigR\n" +
 	"orgNodeOus\x12\x14\n" +
-	"\x05hosts\x18\x06 \x03(\tR\x05hosts\"\xc2\x01\n" +
-	"\x10DeployPeerOutput\x12\x1b\n" +
-	"\tpeer_name\x18\x01 \x01(\tR\bpeerName\x12!\n" +
-	"\fservice_name\x18\x02 \x01(\tR\vserviceName\x12:\n" +
+	"\x05hosts\x18\x06 \x03(\tR\x05hosts\"\xb0\x01\n" +
+	"\x10DeployPeerOutput\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\aservice\x18\x02 \x01(\tR\aservice\x12:\n" +
 	"\x0esigning_secret\x18\x03 \x01(\v2\x13.vault.v1.SecretRefR\rsigningSecret\x122\n" +
 	"\n" +
 	"tls_secret\x18\x04 \x01(\v2\x13.vault.v1.SecretRefR\ttlsSecret\"\xcf\x01\n" +
@@ -1170,18 +1170,18 @@ const file_fabric_v1_deploy_proto_rawDesc = "" +
 	"orderer_id\x18\x03 \x01(\tR\tordererId\x12B\n" +
 	"\forg_node_ous\x18\x04 \x01(\v2 .fabric.identity.v1.NodeOUConfigR\n" +
 	"orgNodeOus\x12\x14\n" +
-	"\x05hosts\x18\x05 \x03(\tR\x05hosts\"\xcb\x01\n" +
-	"\x13DeployOrdererOutput\x12!\n" +
-	"\forderer_name\x18\x01 \x01(\tR\vordererName\x12!\n" +
-	"\fservice_name\x18\x02 \x01(\tR\vserviceName\x12:\n" +
+	"\x05hosts\x18\x05 \x03(\tR\x05hosts\"\xb3\x01\n" +
+	"\x13DeployOrdererOutput\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\aservice\x18\x02 \x01(\tR\aservice\x12:\n" +
 	"\x0esigning_secret\x18\x03 \x01(\v2\x13.vault.v1.SecretRefR\rsigningSecret\x122\n" +
 	"\n" +
-	"tls_secret\x18\x04 \x01(\v2\x13.vault.v1.SecretRefR\ttlsSecret\"\xb8\x03\n" +
+	"tls_secret\x18\x04 \x01(\v2\x13.vault.v1.SecretRefR\ttlsSecret\"\xae\x03\n" +
 	"\x0eDeployOrgInput\x12\"\n" +
 	"\forganization\x18\x01 \x01(\tR\forganization\x12\x1c\n" +
-	"\tnamespace\x18\x02 \x01(\tR\tnamespace\x12*\n" +
-	"\x11ca_admin_username\x18\x03 \x01(\tR\x0fcaAdminUsername\x12*\n" +
-	"\x11ca_admin_password\x18\x04 \x01(\tR\x0fcaAdminPassword\x12=\n" +
+	"\tnamespace\x18\x02 \x01(\tR\tnamespace\x12%\n" +
+	"\x0eadmin_username\x18\x03 \x01(\tR\radminUsername\x12%\n" +
+	"\x0eadmin_password\x18\x04 \x01(\tR\radminPassword\x12=\n" +
 	"\x05admin\x18\x05 \x01(\v2'.fabric.identity.v1.BootstrapAdminInputR\x05admin\x12\"\n" +
 	"\faffiliations\x18\x06 \x03(\tR\faffiliations\x12\x19\n" +
 	"\bpeer_ids\x18\a \x03(\tR\apeerIds\x12\x1f\n" +
