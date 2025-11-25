@@ -1366,14 +1366,14 @@ const file_kube_v1_kube_proto_rawDesc = "" +
 	"\x06status\x18\x04 \x01(\tR\x06status\x12%\n" +
 	"\x0eready_replicas\x18\x05 \x01(\x05R\rreadyReplicas\x12)\n" +
 	"\x10desired_replicas\x18\x06 \x01(\x05R\x0fdesiredReplicas\x12\x18\n" +
-	"\amessage\x18\a \x01(\tR\amessage2\xc9\x03\n" +
+	"\amessage\x18\a \x01(\tR\amessage2\xba\x03\n" +
 	"\n" +
-	"Kubernetes\x12S\n" +
-	"\x06Create\x12\x14.kube.v1.CreateInput\x1a\x15.kube.v1.CreateOutput\"\x1c\x92\xc4\x03\x18\x12\x03\b\xd8\x04:\x11kubernetes.Create\x12S\n" +
-	"\x06Update\x12\x14.kube.v1.UpdateInput\x1a\x15.kube.v1.UpdateOutput\"\x1c\x92\xc4\x03\x18\x12\x03\b\xd8\x04:\x11kubernetes.Update\x12O\n" +
-	"\x05Apply\x12\x13.kube.v1.ApplyInput\x1a\x14.kube.v1.ApplyOutput\"\x1b\x92\xc4\x03\x17\x12\x03\b\xd8\x04:\x10kubernetes.Apply\x12S\n" +
-	"\x06Delete\x12\x14.kube.v1.DeleteInput\x1a\x15.kube.v1.DeleteOutput\"\x1c\x92\xc4\x03\x18\x12\x03\b\xac\x02:\x11kubernetes.Delete\x12^\n" +
-	"\tGetStatus\x12\x17.kube.v1.GetStatusInput\x1a\x18.kube.v1.GetStatusOutput\"\x1e\x92\xc4\x03\x1a\x12\x02\b<:\x14kubernetes.GetStatus\x1a\v\x8a\xc4\x03\a\n" +
+	"Kubernetes\x12P\n" +
+	"\x06Create\x12\x14.kube.v1.CreateInput\x1a\x15.kube.v1.CreateOutput\"\x19\x92\xc4\x03\x15\x12\x03\b\xd8\x04:\x0ekube.v1.Create\x12P\n" +
+	"\x06Update\x12\x14.kube.v1.UpdateInput\x1a\x15.kube.v1.UpdateOutput\"\x19\x92\xc4\x03\x15\x12\x03\b\xd8\x04:\x0ekube.v1.Update\x12L\n" +
+	"\x05Apply\x12\x13.kube.v1.ApplyInput\x1a\x14.kube.v1.ApplyOutput\"\x18\x92\xc4\x03\x14\x12\x03\b\xd8\x04:\rkube.v1.Apply\x12P\n" +
+	"\x06Delete\x12\x14.kube.v1.DeleteInput\x1a\x15.kube.v1.DeleteOutput\"\x19\x92\xc4\x03\x15\x12\x03\b\xac\x02:\x0ekube.v1.Delete\x12[\n" +
+	"\tGetStatus\x12\x17.kube.v1.GetStatusInput\x1a\x18.kube.v1.GetStatusOutput\"\x1b\x92\xc4\x03\x17\x12\x02\b<:\x11kube.v1.GetStatus\x1a\v\x8a\xc4\x03\a\n" +
 	"\x05infraB\x98\x01\n" +
 	"\vcom.kube.v1B\tKubeProtoP\x01ZAgithub.com/metacensus/infra/temporal/gen/workflows/kube/v1;kubev1\xa2\x02\x03KXX\xaa\x02\aKube.V1\xca\x02\aKube\\V1\xe2\x02\x13Kube\\V1\\GPBMetadata\xea\x02\bKube::V1b\x06proto3"
 

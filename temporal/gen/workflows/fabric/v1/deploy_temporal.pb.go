@@ -26,77 +26,77 @@ import (
 	"time"
 )
 
-// FabricDeployTaskQueue is the default task-queue for a fabric.identity.v1.FabricDeploy worker
+// FabricDeployTaskQueue is the default task-queue for a fabric.v1.FabricDeploy worker
 var FabricDeployTaskQueue = "infra"
 
-// fabric.identity.v1.FabricDeploy workflow names
+// fabric.v1.FabricDeploy workflow names
 const (
-	CreateNamespaceWorkflowName      = "fabric.identity.v1.CreateNamespace"
-	CreateServiceAccountWorkflowName = "fabric.identity.v1.CreateServiceAccount"
-	CreateVaultRoleWorkflowName      = "fabric.identity.v1.CreateVaultRole"
-	DeployCaworkflowName             = "fabric.identity.v1.DeployCA"
-	DeployCouchDbworkflowName        = "fabric.identity.v1.DeployCouchDB"
-	DeployOrdererWorkflowName        = "fabric.identity.v1.DeployOrderer"
-	DeployOrgWorkflowName            = "fabric.identity.v1.DeployOrg"
-	DeployPeerWorkflowName           = "fabric.identity.v1.DeployPeer"
+	CreateNamespaceWorkflowName      = "fabric.v1.CreateNamespace"
+	CreateServiceAccountWorkflowName = "fabric.v1.CreateServiceAccount"
+	CreateVaultRoleWorkflowName      = "fabric.v1.CreateVaultRole"
+	DeployCaworkflowName             = "fabric.v1.DeployCA"
+	DeployCouchDbworkflowName        = "fabric.v1.DeployCouchDB"
+	DeployOrdererWorkflowName        = "fabric.v1.DeployOrderer"
+	DeployOrgWorkflowName            = "fabric.v1.DeployOrg"
+	DeployPeerWorkflowName           = "fabric.v1.DeployPeer"
 )
 
-// FabricDeployClient describes a client for a(n) fabric.identity.v1.FabricDeploy worker
+// FabricDeployClient describes a client for a(n) fabric.v1.FabricDeploy worker
 type FabricDeployClient interface {
 	// CreateNamespace creates a new Kubernetes namespace for an organization
 	CreateNamespace(ctx context.Context, req *CreateNamespaceInput, opts ...*CreateNamespaceOptions) (*CreateNamespaceOutput, error)
 
-	// CreateNamespaceAsync starts a(n) fabric.identity.v1.CreateNamespace workflow and returns a handle to the workflow run
+	// CreateNamespaceAsync starts a(n) fabric.v1.CreateNamespace workflow and returns a handle to the workflow run
 	CreateNamespaceAsync(ctx context.Context, req *CreateNamespaceInput, opts ...*CreateNamespaceOptions) (CreateNamespaceRun, error)
 
-	// GetCreateNamespace retrieves a handle to an existing fabric.identity.v1.CreateNamespace workflow execution
+	// GetCreateNamespace retrieves a handle to an existing fabric.v1.CreateNamespace workflow execution
 	GetCreateNamespace(ctx context.Context, workflowID string, runID string) CreateNamespaceRun
 
 	// CreateServiceAccount creates a Kubernetes service account for Vault authentication
 	CreateServiceAccount(ctx context.Context, req *CreateServiceAccountInput, opts ...*CreateServiceAccountOptions) (*CreateServiceAccountOutput, error)
 
-	// CreateServiceAccountAsync starts a(n) fabric.identity.v1.CreateServiceAccount workflow and returns a handle to the workflow run
+	// CreateServiceAccountAsync starts a(n) fabric.v1.CreateServiceAccount workflow and returns a handle to the workflow run
 	CreateServiceAccountAsync(ctx context.Context, req *CreateServiceAccountInput, opts ...*CreateServiceAccountOptions) (CreateServiceAccountRun, error)
 
-	// GetCreateServiceAccount retrieves a handle to an existing fabric.identity.v1.CreateServiceAccount workflow execution
+	// GetCreateServiceAccount retrieves a handle to an existing fabric.v1.CreateServiceAccount workflow execution
 	GetCreateServiceAccount(ctx context.Context, workflowID string, runID string) CreateServiceAccountRun
 
 	// CreateVaultRole creates a Vault Kubernetes auth role for the service account
 	CreateVaultRole(ctx context.Context, req *CreateVaultRoleInput, opts ...*CreateVaultRoleOptions) (*CreateVaultRoleOutput, error)
 
-	// CreateVaultRoleAsync starts a(n) fabric.identity.v1.CreateVaultRole workflow and returns a handle to the workflow run
+	// CreateVaultRoleAsync starts a(n) fabric.v1.CreateVaultRole workflow and returns a handle to the workflow run
 	CreateVaultRoleAsync(ctx context.Context, req *CreateVaultRoleInput, opts ...*CreateVaultRoleOptions) (CreateVaultRoleRun, error)
 
-	// GetCreateVaultRole retrieves a handle to an existing fabric.identity.v1.CreateVaultRole workflow execution
+	// GetCreateVaultRole retrieves a handle to an existing fabric.v1.CreateVaultRole workflow execution
 	GetCreateVaultRole(ctx context.Context, workflowID string, runID string) CreateVaultRoleRun
 
 	// DeployCA deploys the Fabric CA pod to the Kubernetes cluster
 	DeployCa(ctx context.Context, req *DeployCaInput, opts ...*DeployCaoptions) (*DeployCaOutput, error)
 
-	// DeployCaasync starts a(n) fabric.identity.v1.DeployCA workflow and returns a handle to the workflow run
+	// DeployCaasync starts a(n) fabric.v1.DeployCA workflow and returns a handle to the workflow run
 	DeployCaasync(ctx context.Context, req *DeployCaInput, opts ...*DeployCaoptions) (DeployCarun, error)
 
-	// GetDeployCa retrieves a handle to an existing fabric.identity.v1.DeployCA workflow execution
+	// GetDeployCa retrieves a handle to an existing fabric.v1.DeployCA workflow execution
 	GetDeployCa(ctx context.Context, workflowID string, runID string) DeployCarun
 
 	// DeployCouchDB deploys a CouchDB instance for peer state storage
 	// Each peer gets its own CouchDB instance
 	DeployCouchDb(ctx context.Context, req *DeployCouchDbInput, opts ...*DeployCouchDboptions) (*DeployCouchDbOutput, error)
 
-	// DeployCouchDbasync starts a(n) fabric.identity.v1.DeployCouchDB workflow and returns a handle to the workflow run
+	// DeployCouchDbasync starts a(n) fabric.v1.DeployCouchDB workflow and returns a handle to the workflow run
 	DeployCouchDbasync(ctx context.Context, req *DeployCouchDbInput, opts ...*DeployCouchDboptions) (DeployCouchDbrun, error)
 
-	// GetDeployCouchDb retrieves a handle to an existing fabric.identity.v1.DeployCouchDB workflow execution
+	// GetDeployCouchDb retrieves a handle to an existing fabric.v1.DeployCouchDB workflow execution
 	GetDeployCouchDb(ctx context.Context, workflowID string, runID string) DeployCouchDbrun
 
 	// DeployOrderer deploys an orderer node with certificates and CSI volume mounts
 	// Calls ProvisionOrdererWorkflow to generate certs, then deploys the orderer pod
 	DeployOrderer(ctx context.Context, req *DeployOrdererInput, opts ...*DeployOrdererOptions) (*DeployOrdererOutput, error)
 
-	// DeployOrdererAsync starts a(n) fabric.identity.v1.DeployOrderer workflow and returns a handle to the workflow run
+	// DeployOrdererAsync starts a(n) fabric.v1.DeployOrderer workflow and returns a handle to the workflow run
 	DeployOrdererAsync(ctx context.Context, req *DeployOrdererInput, opts ...*DeployOrdererOptions) (DeployOrdererRun, error)
 
-	// GetDeployOrderer retrieves a handle to an existing fabric.identity.v1.DeployOrderer workflow execution
+	// GetDeployOrderer retrieves a handle to an existing fabric.v1.DeployOrderer workflow execution
 	GetDeployOrderer(ctx context.Context, workflowID string, runID string) DeployOrdererRun
 
 	// DeployOrg is the master workflow that orchestrates complete organization deployment
@@ -115,20 +115,20 @@ type FabricDeployClient interface {
 	//   - DeployOrderer (this orderer)
 	DeployOrg(ctx context.Context, req *DeployOrgInput, opts ...*DeployOrgOptions) (*DeployOrgOutput, error)
 
-	// DeployOrgAsync starts a(n) fabric.identity.v1.DeployOrg workflow and returns a handle to the workflow run
+	// DeployOrgAsync starts a(n) fabric.v1.DeployOrg workflow and returns a handle to the workflow run
 	DeployOrgAsync(ctx context.Context, req *DeployOrgInput, opts ...*DeployOrgOptions) (DeployOrgRun, error)
 
-	// GetDeployOrg retrieves a handle to an existing fabric.identity.v1.DeployOrg workflow execution
+	// GetDeployOrg retrieves a handle to an existing fabric.v1.DeployOrg workflow execution
 	GetDeployOrg(ctx context.Context, workflowID string, runID string) DeployOrgRun
 
 	// DeployPeer deploys a peer node with certificates and CSI volume mounts
 	// Calls ProvisionPeerWorkflow to generate certs, then deploys the peer pod
 	DeployPeer(ctx context.Context, req *DeployPeerInput, opts ...*DeployPeerOptions) (*DeployPeerOutput, error)
 
-	// DeployPeerAsync starts a(n) fabric.identity.v1.DeployPeer workflow and returns a handle to the workflow run
+	// DeployPeerAsync starts a(n) fabric.v1.DeployPeer workflow and returns a handle to the workflow run
 	DeployPeerAsync(ctx context.Context, req *DeployPeerInput, opts ...*DeployPeerOptions) (DeployPeerRun, error)
 
-	// GetDeployPeer retrieves a handle to an existing fabric.identity.v1.DeployPeer workflow execution
+	// GetDeployPeer retrieves a handle to an existing fabric.v1.DeployPeer workflow execution
 	GetDeployPeer(ctx context.Context, workflowID string, runID string) DeployPeerRun
 
 	// CancelWorkflow requests cancellation of an existing workflow execution
@@ -138,13 +138,13 @@ type FabricDeployClient interface {
 	TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error
 }
 
-// fabricDeployClient implements a temporal client for a fabric.identity.v1.FabricDeploy service
+// fabricDeployClient implements a temporal client for a fabric.v1.FabricDeploy service
 type fabricDeployClient struct {
 	client client.Client
 	log    *slog.Logger
 }
 
-// NewFabricDeployClient initializes a new fabric.identity.v1.FabricDeploy client
+// NewFabricDeployClient initializes a new fabric.v1.FabricDeploy client
 func NewFabricDeployClient(c client.Client, options ...*fabricDeployClientOptions) FabricDeployClient {
 	var cfg *fabricDeployClientOptions
 	if len(options) > 0 {
@@ -237,7 +237,7 @@ func (c *fabricDeployClient) CreateNamespaceAsync(ctx context.Context, req *Crea
 	}, nil
 }
 
-// GetCreateNamespace fetches an existing fabric.identity.v1.CreateNamespace execution
+// GetCreateNamespace fetches an existing fabric.v1.CreateNamespace execution
 func (c *fabricDeployClient) GetCreateNamespace(ctx context.Context, workflowID string, runID string) CreateNamespaceRun {
 	return &createNamespaceRun{
 		client: c,
@@ -279,7 +279,7 @@ func (c *fabricDeployClient) CreateServiceAccountAsync(ctx context.Context, req 
 	}, nil
 }
 
-// GetCreateServiceAccount fetches an existing fabric.identity.v1.CreateServiceAccount execution
+// GetCreateServiceAccount fetches an existing fabric.v1.CreateServiceAccount execution
 func (c *fabricDeployClient) GetCreateServiceAccount(ctx context.Context, workflowID string, runID string) CreateServiceAccountRun {
 	return &createServiceAccountRun{
 		client: c,
@@ -321,7 +321,7 @@ func (c *fabricDeployClient) CreateVaultRoleAsync(ctx context.Context, req *Crea
 	}, nil
 }
 
-// GetCreateVaultRole fetches an existing fabric.identity.v1.CreateVaultRole execution
+// GetCreateVaultRole fetches an existing fabric.v1.CreateVaultRole execution
 func (c *fabricDeployClient) GetCreateVaultRole(ctx context.Context, workflowID string, runID string) CreateVaultRoleRun {
 	return &createVaultRoleRun{
 		client: c,
@@ -363,7 +363,7 @@ func (c *fabricDeployClient) DeployCaasync(ctx context.Context, req *DeployCaInp
 	}, nil
 }
 
-// GetDeployCa fetches an existing fabric.identity.v1.DeployCA execution
+// GetDeployCa fetches an existing fabric.v1.DeployCA execution
 func (c *fabricDeployClient) GetDeployCa(ctx context.Context, workflowID string, runID string) DeployCarun {
 	return &deployCarun{
 		client: c,
@@ -407,7 +407,7 @@ func (c *fabricDeployClient) DeployCouchDbasync(ctx context.Context, req *Deploy
 	}, nil
 }
 
-// GetDeployCouchDb fetches an existing fabric.identity.v1.DeployCouchDB execution
+// GetDeployCouchDb fetches an existing fabric.v1.DeployCouchDB execution
 func (c *fabricDeployClient) GetDeployCouchDb(ctx context.Context, workflowID string, runID string) DeployCouchDbrun {
 	return &deployCouchDbrun{
 		client: c,
@@ -451,7 +451,7 @@ func (c *fabricDeployClient) DeployOrdererAsync(ctx context.Context, req *Deploy
 	}, nil
 }
 
-// GetDeployOrderer fetches an existing fabric.identity.v1.DeployOrderer execution
+// GetDeployOrderer fetches an existing fabric.v1.DeployOrderer execution
 func (c *fabricDeployClient) GetDeployOrderer(ctx context.Context, workflowID string, runID string) DeployOrdererRun {
 	return &deployOrdererRun{
 		client: c,
@@ -519,7 +519,7 @@ func (c *fabricDeployClient) DeployOrgAsync(ctx context.Context, req *DeployOrgI
 	}, nil
 }
 
-// GetDeployOrg fetches an existing fabric.identity.v1.DeployOrg execution
+// GetDeployOrg fetches an existing fabric.v1.DeployOrg execution
 func (c *fabricDeployClient) GetDeployOrg(ctx context.Context, workflowID string, runID string) DeployOrgRun {
 	return &deployOrgRun{
 		client: c,
@@ -563,7 +563,7 @@ func (c *fabricDeployClient) DeployPeerAsync(ctx context.Context, req *DeployPee
 	}, nil
 }
 
-// GetDeployPeer fetches an existing fabric.identity.v1.DeployPeer execution
+// GetDeployPeer fetches an existing fabric.v1.DeployPeer execution
 func (c *fabricDeployClient) GetDeployPeer(ctx context.Context, workflowID string, runID string) DeployPeerRun {
 	return &deployPeerRun{
 		client: c,
@@ -581,7 +581,7 @@ func (c *fabricDeployClient) TerminateWorkflow(ctx context.Context, workflowID s
 	return c.client.TerminateWorkflow(ctx, workflowID, runID, reason, details...)
 }
 
-// CreateNamespaceOptions provides configuration for a fabric.identity.v1.CreateNamespace workflow operation
+// CreateNamespaceOptions provides configuration for a fabric.v1.CreateNamespace workflow operation
 type CreateNamespaceOptions struct {
 	options                  client.StartWorkflowOptions
 	executionTimeout         *time.Duration
@@ -697,7 +697,7 @@ func (o *CreateNamespaceOptions) WithWorkflowIdConflictPolicy(policy enumsv1.Wor
 	return o
 }
 
-// CreateNamespaceRun describes a(n) fabric.identity.v1.CreateNamespace workflow run
+// CreateNamespaceRun describes a(n) fabric.v1.CreateNamespace workflow run
 type CreateNamespaceRun interface {
 	// ID returns the workflow ID
 	ID() string
@@ -758,7 +758,7 @@ func (r *createNamespaceRun) Terminate(ctx context.Context, reason string, detai
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-// CreateServiceAccountOptions provides configuration for a fabric.identity.v1.CreateServiceAccount workflow operation
+// CreateServiceAccountOptions provides configuration for a fabric.v1.CreateServiceAccount workflow operation
 type CreateServiceAccountOptions struct {
 	options                  client.StartWorkflowOptions
 	executionTimeout         *time.Duration
@@ -874,7 +874,7 @@ func (o *CreateServiceAccountOptions) WithWorkflowIdConflictPolicy(policy enumsv
 	return o
 }
 
-// CreateServiceAccountRun describes a(n) fabric.identity.v1.CreateServiceAccount workflow run
+// CreateServiceAccountRun describes a(n) fabric.v1.CreateServiceAccount workflow run
 type CreateServiceAccountRun interface {
 	// ID returns the workflow ID
 	ID() string
@@ -935,7 +935,7 @@ func (r *createServiceAccountRun) Terminate(ctx context.Context, reason string, 
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-// CreateVaultRoleOptions provides configuration for a fabric.identity.v1.CreateVaultRole workflow operation
+// CreateVaultRoleOptions provides configuration for a fabric.v1.CreateVaultRole workflow operation
 type CreateVaultRoleOptions struct {
 	options                  client.StartWorkflowOptions
 	executionTimeout         *time.Duration
@@ -1051,7 +1051,7 @@ func (o *CreateVaultRoleOptions) WithWorkflowIdConflictPolicy(policy enumsv1.Wor
 	return o
 }
 
-// CreateVaultRoleRun describes a(n) fabric.identity.v1.CreateVaultRole workflow run
+// CreateVaultRoleRun describes a(n) fabric.v1.CreateVaultRole workflow run
 type CreateVaultRoleRun interface {
 	// ID returns the workflow ID
 	ID() string
@@ -1112,7 +1112,7 @@ func (r *createVaultRoleRun) Terminate(ctx context.Context, reason string, detai
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-// DeployCaoptions provides configuration for a fabric.identity.v1.DeployCA workflow operation
+// DeployCaoptions provides configuration for a fabric.v1.DeployCA workflow operation
 type DeployCaoptions struct {
 	options                  client.StartWorkflowOptions
 	executionTimeout         *time.Duration
@@ -1228,7 +1228,7 @@ func (o *DeployCaoptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowId
 	return o
 }
 
-// DeployCarun describes a(n) fabric.identity.v1.DeployCA workflow run
+// DeployCarun describes a(n) fabric.v1.DeployCA workflow run
 type DeployCarun interface {
 	// ID returns the workflow ID
 	ID() string
@@ -1289,7 +1289,7 @@ func (r *deployCarun) Terminate(ctx context.Context, reason string, details ...i
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-// DeployCouchDboptions provides configuration for a fabric.identity.v1.DeployCouchDB workflow operation
+// DeployCouchDboptions provides configuration for a fabric.v1.DeployCouchDB workflow operation
 type DeployCouchDboptions struct {
 	options                  client.StartWorkflowOptions
 	executionTimeout         *time.Duration
@@ -1405,7 +1405,7 @@ func (o *DeployCouchDboptions) WithWorkflowIdConflictPolicy(policy enumsv1.Workf
 	return o
 }
 
-// DeployCouchDbrun describes a(n) fabric.identity.v1.DeployCouchDB workflow run
+// DeployCouchDbrun describes a(n) fabric.v1.DeployCouchDB workflow run
 type DeployCouchDbrun interface {
 	// ID returns the workflow ID
 	ID() string
@@ -1466,7 +1466,7 @@ func (r *deployCouchDbrun) Terminate(ctx context.Context, reason string, details
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-// DeployOrdererOptions provides configuration for a fabric.identity.v1.DeployOrderer workflow operation
+// DeployOrdererOptions provides configuration for a fabric.v1.DeployOrderer workflow operation
 type DeployOrdererOptions struct {
 	options                  client.StartWorkflowOptions
 	executionTimeout         *time.Duration
@@ -1582,7 +1582,7 @@ func (o *DeployOrdererOptions) WithWorkflowIdConflictPolicy(policy enumsv1.Workf
 	return o
 }
 
-// DeployOrdererRun describes a(n) fabric.identity.v1.DeployOrderer workflow run
+// DeployOrdererRun describes a(n) fabric.v1.DeployOrderer workflow run
 type DeployOrdererRun interface {
 	// ID returns the workflow ID
 	ID() string
@@ -1643,7 +1643,7 @@ func (r *deployOrdererRun) Terminate(ctx context.Context, reason string, details
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-// DeployOrgOptions provides configuration for a fabric.identity.v1.DeployOrg workflow operation
+// DeployOrgOptions provides configuration for a fabric.v1.DeployOrg workflow operation
 type DeployOrgOptions struct {
 	options                  client.StartWorkflowOptions
 	executionTimeout         *time.Duration
@@ -1759,7 +1759,7 @@ func (o *DeployOrgOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowI
 	return o
 }
 
-// DeployOrgRun describes a(n) fabric.identity.v1.DeployOrg workflow run
+// DeployOrgRun describes a(n) fabric.v1.DeployOrg workflow run
 type DeployOrgRun interface {
 	// ID returns the workflow ID
 	ID() string
@@ -1820,7 +1820,7 @@ func (r *deployOrgRun) Terminate(ctx context.Context, reason string, details ...
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-// DeployPeerOptions provides configuration for a fabric.identity.v1.DeployPeer workflow operation
+// DeployPeerOptions provides configuration for a fabric.v1.DeployPeer workflow operation
 type DeployPeerOptions struct {
 	options                  client.StartWorkflowOptions
 	executionTimeout         *time.Duration
@@ -1936,7 +1936,7 @@ func (o *DeployPeerOptions) WithWorkflowIdConflictPolicy(policy enumsv1.Workflow
 	return o
 }
 
-// DeployPeerRun describes a(n) fabric.identity.v1.DeployPeer workflow run
+// DeployPeerRun describes a(n) fabric.v1.DeployPeer workflow run
 type DeployPeerRun interface {
 	// ID returns the workflow ID
 	ID() string
@@ -1999,7 +1999,7 @@ func (r *deployPeerRun) Terminate(ctx context.Context, reason string, details ..
 
 // Reference to generated workflow functions
 var (
-	// fabricDeployRegistrationMutex is a mutex for registering fabric.identity.v1.FabricDeploy workflows
+	// fabricDeployRegistrationMutex is a mutex for registering fabric.v1.FabricDeploy workflows
 	fabricDeployRegistrationMutex sync.Mutex
 	// CreateNamespace creates a new Kubernetes namespace for an organization
 	CreateNamespaceFunction func(workflow.Context, *CreateNamespaceInput) (*CreateNamespaceOutput, error)
@@ -2160,7 +2160,7 @@ func (f *fabricDeployWorkflowFunctions) DeployPeer(ctx workflow.Context, req *De
 	return DeployPeerFunction(ctx, req)
 }
 
-// FabricDeployWorkflows provides methods for initializing new fabric.identity.v1.FabricDeploy workflow values
+// FabricDeployWorkflows provides methods for initializing new fabric.v1.FabricDeploy workflow values
 type FabricDeployWorkflows interface {
 	// CreateNamespace creates a new Kubernetes namespace for an organization
 	CreateNamespace(ctx workflow.Context, input *CreateNamespaceWorkflowInput) (CreateNamespaceWorkflow, error)
@@ -2203,7 +2203,7 @@ type FabricDeployWorkflows interface {
 	DeployPeer(ctx workflow.Context, input *DeployPeerWorkflowInput) (DeployPeerWorkflow, error)
 }
 
-// RegisterFabricDeployWorkflows registers fabric.identity.v1.FabricDeploy workflows with the given worker
+// RegisterFabricDeployWorkflows registers fabric.v1.FabricDeploy workflows with the given worker
 func RegisterFabricDeployWorkflows(r worker.WorkflowRegistry, workflows FabricDeployWorkflows) {
 	RegisterCreateNamespaceWorkflow(r, workflows.CreateNamespace)
 	RegisterCreateServiceAccountWorkflow(r, workflows.CreateServiceAccount)
@@ -2215,7 +2215,7 @@ func RegisterFabricDeployWorkflows(r worker.WorkflowRegistry, workflows FabricDe
 	RegisterDeployPeerWorkflow(r, workflows.DeployPeer)
 }
 
-// RegisterCreateNamespaceWorkflow registers a fabric.identity.v1.FabricDeploy.CreateNamespace workflow with the given worker
+// RegisterCreateNamespaceWorkflow registers a fabric.v1.FabricDeploy.CreateNamespace workflow with the given worker
 func RegisterCreateNamespaceWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *CreateNamespaceWorkflowInput) (CreateNamespaceWorkflow, error)) {
 	fabricDeployRegistrationMutex.Lock()
 	defer fabricDeployRegistrationMutex.Unlock()
@@ -2242,16 +2242,16 @@ func buildCreateNamespace(ctor func(workflow.Context, *CreateNamespaceWorkflowIn
 	}
 }
 
-// CreateNamespaceWorkflowInput describes the input to a(n) fabric.identity.v1.CreateNamespace workflow constructor
+// CreateNamespaceWorkflowInput describes the input to a(n) fabric.v1.CreateNamespace workflow constructor
 type CreateNamespaceWorkflowInput struct {
 	Req *CreateNamespaceInput
 }
 
 // CreateNamespace creates a new Kubernetes namespace for an organization
 //
-// workflow details: (name: "fabric.identity.v1.CreateNamespace")
+// workflow details: (name: "fabric.v1.CreateNamespace")
 type CreateNamespaceWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.identity.v1.CreateNamespace workflow
+	// Execute defines the entrypoint to a(n) fabric.v1.CreateNamespace workflow
 	Execute(ctx workflow.Context) (*CreateNamespaceOutput, error)
 }
 
@@ -2283,7 +2283,7 @@ func CreateNamespaceChildAsync(ctx workflow.Context, req *CreateNamespaceInput, 
 	return &CreateNamespaceChildRun{Future: workflow.ExecuteChildWorkflow(ctx, CreateNamespaceWorkflowName, req)}, nil
 }
 
-// CreateNamespaceChildOptions provides configuration for a child fabric.identity.v1.CreateNamespace workflow operation
+// CreateNamespaceChildOptions provides configuration for a child fabric.v1.CreateNamespace workflow operation
 type CreateNamespaceChildOptions struct {
 	options                  workflow.ChildWorkflowOptions
 	executionTimeout         *time.Duration
@@ -2466,7 +2466,7 @@ func (r *CreateNamespaceChildRun) WaitStart(ctx workflow.Context) (*workflow.Exe
 	return &exec, nil
 }
 
-// RegisterCreateServiceAccountWorkflow registers a fabric.identity.v1.FabricDeploy.CreateServiceAccount workflow with the given worker
+// RegisterCreateServiceAccountWorkflow registers a fabric.v1.FabricDeploy.CreateServiceAccount workflow with the given worker
 func RegisterCreateServiceAccountWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *CreateServiceAccountWorkflowInput) (CreateServiceAccountWorkflow, error)) {
 	fabricDeployRegistrationMutex.Lock()
 	defer fabricDeployRegistrationMutex.Unlock()
@@ -2493,16 +2493,16 @@ func buildCreateServiceAccount(ctor func(workflow.Context, *CreateServiceAccount
 	}
 }
 
-// CreateServiceAccountWorkflowInput describes the input to a(n) fabric.identity.v1.CreateServiceAccount workflow constructor
+// CreateServiceAccountWorkflowInput describes the input to a(n) fabric.v1.CreateServiceAccount workflow constructor
 type CreateServiceAccountWorkflowInput struct {
 	Req *CreateServiceAccountInput
 }
 
 // CreateServiceAccount creates a Kubernetes service account for Vault authentication
 //
-// workflow details: (name: "fabric.identity.v1.CreateServiceAccount")
+// workflow details: (name: "fabric.v1.CreateServiceAccount")
 type CreateServiceAccountWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.identity.v1.CreateServiceAccount workflow
+	// Execute defines the entrypoint to a(n) fabric.v1.CreateServiceAccount workflow
 	Execute(ctx workflow.Context) (*CreateServiceAccountOutput, error)
 }
 
@@ -2534,7 +2534,7 @@ func CreateServiceAccountChildAsync(ctx workflow.Context, req *CreateServiceAcco
 	return &CreateServiceAccountChildRun{Future: workflow.ExecuteChildWorkflow(ctx, CreateServiceAccountWorkflowName, req)}, nil
 }
 
-// CreateServiceAccountChildOptions provides configuration for a child fabric.identity.v1.CreateServiceAccount workflow operation
+// CreateServiceAccountChildOptions provides configuration for a child fabric.v1.CreateServiceAccount workflow operation
 type CreateServiceAccountChildOptions struct {
 	options                  workflow.ChildWorkflowOptions
 	executionTimeout         *time.Duration
@@ -2717,7 +2717,7 @@ func (r *CreateServiceAccountChildRun) WaitStart(ctx workflow.Context) (*workflo
 	return &exec, nil
 }
 
-// RegisterCreateVaultRoleWorkflow registers a fabric.identity.v1.FabricDeploy.CreateVaultRole workflow with the given worker
+// RegisterCreateVaultRoleWorkflow registers a fabric.v1.FabricDeploy.CreateVaultRole workflow with the given worker
 func RegisterCreateVaultRoleWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *CreateVaultRoleWorkflowInput) (CreateVaultRoleWorkflow, error)) {
 	fabricDeployRegistrationMutex.Lock()
 	defer fabricDeployRegistrationMutex.Unlock()
@@ -2744,16 +2744,16 @@ func buildCreateVaultRole(ctor func(workflow.Context, *CreateVaultRoleWorkflowIn
 	}
 }
 
-// CreateVaultRoleWorkflowInput describes the input to a(n) fabric.identity.v1.CreateVaultRole workflow constructor
+// CreateVaultRoleWorkflowInput describes the input to a(n) fabric.v1.CreateVaultRole workflow constructor
 type CreateVaultRoleWorkflowInput struct {
 	Req *CreateVaultRoleInput
 }
 
 // CreateVaultRole creates a Vault Kubernetes auth role for the service account
 //
-// workflow details: (name: "fabric.identity.v1.CreateVaultRole")
+// workflow details: (name: "fabric.v1.CreateVaultRole")
 type CreateVaultRoleWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.identity.v1.CreateVaultRole workflow
+	// Execute defines the entrypoint to a(n) fabric.v1.CreateVaultRole workflow
 	Execute(ctx workflow.Context) (*CreateVaultRoleOutput, error)
 }
 
@@ -2785,7 +2785,7 @@ func CreateVaultRoleChildAsync(ctx workflow.Context, req *CreateVaultRoleInput, 
 	return &CreateVaultRoleChildRun{Future: workflow.ExecuteChildWorkflow(ctx, CreateVaultRoleWorkflowName, req)}, nil
 }
 
-// CreateVaultRoleChildOptions provides configuration for a child fabric.identity.v1.CreateVaultRole workflow operation
+// CreateVaultRoleChildOptions provides configuration for a child fabric.v1.CreateVaultRole workflow operation
 type CreateVaultRoleChildOptions struct {
 	options                  workflow.ChildWorkflowOptions
 	executionTimeout         *time.Duration
@@ -2968,7 +2968,7 @@ func (r *CreateVaultRoleChildRun) WaitStart(ctx workflow.Context) (*workflow.Exe
 	return &exec, nil
 }
 
-// RegisterDeployCAWorkflow registers a fabric.identity.v1.FabricDeploy.DeployCA workflow with the given worker
+// RegisterDeployCAWorkflow registers a fabric.v1.FabricDeploy.DeployCA workflow with the given worker
 func RegisterDeployCaworkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployCaworkflowInput) (DeployCaworkflow, error)) {
 	fabricDeployRegistrationMutex.Lock()
 	defer fabricDeployRegistrationMutex.Unlock()
@@ -2995,16 +2995,16 @@ func buildDeployCA(ctor func(workflow.Context, *DeployCaworkflowInput) (DeployCa
 	}
 }
 
-// DeployCaworkflowInput describes the input to a(n) fabric.identity.v1.DeployCA workflow constructor
+// DeployCaworkflowInput describes the input to a(n) fabric.v1.DeployCA workflow constructor
 type DeployCaworkflowInput struct {
 	Req *DeployCaInput
 }
 
 // DeployCA deploys the Fabric CA pod to the Kubernetes cluster
 //
-// workflow details: (name: "fabric.identity.v1.DeployCA")
+// workflow details: (name: "fabric.v1.DeployCA")
 type DeployCaworkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.identity.v1.DeployCA workflow
+	// Execute defines the entrypoint to a(n) fabric.v1.DeployCA workflow
 	Execute(ctx workflow.Context) (*DeployCaOutput, error)
 }
 
@@ -3036,7 +3036,7 @@ func DeployCachildAsync(ctx workflow.Context, req *DeployCaInput, options ...*De
 	return &DeployCachildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployCaworkflowName, req)}, nil
 }
 
-// DeployCachildOptions provides configuration for a child fabric.identity.v1.DeployCA workflow operation
+// DeployCachildOptions provides configuration for a child fabric.v1.DeployCA workflow operation
 type DeployCachildOptions struct {
 	options                  workflow.ChildWorkflowOptions
 	executionTimeout         *time.Duration
@@ -3219,7 +3219,7 @@ func (r *DeployCachildRun) WaitStart(ctx workflow.Context) (*workflow.Execution,
 	return &exec, nil
 }
 
-// RegisterDeployCouchDBWorkflow registers a fabric.identity.v1.FabricDeploy.DeployCouchDB workflow with the given worker
+// RegisterDeployCouchDBWorkflow registers a fabric.v1.FabricDeploy.DeployCouchDB workflow with the given worker
 func RegisterDeployCouchDbworkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployCouchDbworkflowInput) (DeployCouchDbworkflow, error)) {
 	fabricDeployRegistrationMutex.Lock()
 	defer fabricDeployRegistrationMutex.Unlock()
@@ -3246,7 +3246,7 @@ func buildDeployCouchDB(ctor func(workflow.Context, *DeployCouchDbworkflowInput)
 	}
 }
 
-// DeployCouchDbworkflowInput describes the input to a(n) fabric.identity.v1.DeployCouchDB workflow constructor
+// DeployCouchDbworkflowInput describes the input to a(n) fabric.v1.DeployCouchDB workflow constructor
 type DeployCouchDbworkflowInput struct {
 	Req *DeployCouchDbInput
 }
@@ -3254,9 +3254,9 @@ type DeployCouchDbworkflowInput struct {
 // DeployCouchDB deploys a CouchDB instance for peer state storage
 // Each peer gets its own CouchDB instance
 //
-// workflow details: (name: "fabric.identity.v1.DeployCouchDB")
+// workflow details: (name: "fabric.v1.DeployCouchDB")
 type DeployCouchDbworkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.identity.v1.DeployCouchDB workflow
+	// Execute defines the entrypoint to a(n) fabric.v1.DeployCouchDB workflow
 	Execute(ctx workflow.Context) (*DeployCouchDbOutput, error)
 }
 
@@ -3290,7 +3290,7 @@ func DeployCouchDbchildAsync(ctx workflow.Context, req *DeployCouchDbInput, opti
 	return &DeployCouchDbchildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployCouchDbworkflowName, req)}, nil
 }
 
-// DeployCouchDbchildOptions provides configuration for a child fabric.identity.v1.DeployCouchDB workflow operation
+// DeployCouchDbchildOptions provides configuration for a child fabric.v1.DeployCouchDB workflow operation
 type DeployCouchDbchildOptions struct {
 	options                  workflow.ChildWorkflowOptions
 	executionTimeout         *time.Duration
@@ -3473,7 +3473,7 @@ func (r *DeployCouchDbchildRun) WaitStart(ctx workflow.Context) (*workflow.Execu
 	return &exec, nil
 }
 
-// RegisterDeployOrdererWorkflow registers a fabric.identity.v1.FabricDeploy.DeployOrderer workflow with the given worker
+// RegisterDeployOrdererWorkflow registers a fabric.v1.FabricDeploy.DeployOrderer workflow with the given worker
 func RegisterDeployOrdererWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployOrdererWorkflowInput) (DeployOrdererWorkflow, error)) {
 	fabricDeployRegistrationMutex.Lock()
 	defer fabricDeployRegistrationMutex.Unlock()
@@ -3500,7 +3500,7 @@ func buildDeployOrderer(ctor func(workflow.Context, *DeployOrdererWorkflowInput)
 	}
 }
 
-// DeployOrdererWorkflowInput describes the input to a(n) fabric.identity.v1.DeployOrderer workflow constructor
+// DeployOrdererWorkflowInput describes the input to a(n) fabric.v1.DeployOrderer workflow constructor
 type DeployOrdererWorkflowInput struct {
 	Req *DeployOrdererInput
 }
@@ -3508,9 +3508,9 @@ type DeployOrdererWorkflowInput struct {
 // DeployOrderer deploys an orderer node with certificates and CSI volume mounts
 // Calls ProvisionOrdererWorkflow to generate certs, then deploys the orderer pod
 //
-// workflow details: (name: "fabric.identity.v1.DeployOrderer")
+// workflow details: (name: "fabric.v1.DeployOrderer")
 type DeployOrdererWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.identity.v1.DeployOrderer workflow
+	// Execute defines the entrypoint to a(n) fabric.v1.DeployOrderer workflow
 	Execute(ctx workflow.Context) (*DeployOrdererOutput, error)
 }
 
@@ -3544,7 +3544,7 @@ func DeployOrdererChildAsync(ctx workflow.Context, req *DeployOrdererInput, opti
 	return &DeployOrdererChildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployOrdererWorkflowName, req)}, nil
 }
 
-// DeployOrdererChildOptions provides configuration for a child fabric.identity.v1.DeployOrderer workflow operation
+// DeployOrdererChildOptions provides configuration for a child fabric.v1.DeployOrderer workflow operation
 type DeployOrdererChildOptions struct {
 	options                  workflow.ChildWorkflowOptions
 	executionTimeout         *time.Duration
@@ -3727,7 +3727,7 @@ func (r *DeployOrdererChildRun) WaitStart(ctx workflow.Context) (*workflow.Execu
 	return &exec, nil
 }
 
-// RegisterDeployOrgWorkflow registers a fabric.identity.v1.FabricDeploy.DeployOrg workflow with the given worker
+// RegisterDeployOrgWorkflow registers a fabric.v1.FabricDeploy.DeployOrg workflow with the given worker
 func RegisterDeployOrgWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployOrgWorkflowInput) (DeployOrgWorkflow, error)) {
 	fabricDeployRegistrationMutex.Lock()
 	defer fabricDeployRegistrationMutex.Unlock()
@@ -3754,7 +3754,7 @@ func buildDeployOrg(ctor func(workflow.Context, *DeployOrgWorkflowInput) (Deploy
 	}
 }
 
-// DeployOrgWorkflowInput describes the input to a(n) fabric.identity.v1.DeployOrg workflow constructor
+// DeployOrgWorkflowInput describes the input to a(n) fabric.v1.DeployOrg workflow constructor
 type DeployOrgWorkflowInput struct {
 	Req *DeployOrgInput
 }
@@ -3774,9 +3774,9 @@ type DeployOrgWorkflowInput struct {
 // 8. For each orderer_id (sequential):
 //   - DeployOrderer (this orderer)
 //
-// workflow details: (name: "fabric.identity.v1.DeployOrg")
+// workflow details: (name: "fabric.v1.DeployOrg")
 type DeployOrgWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.identity.v1.DeployOrg workflow
+	// Execute defines the entrypoint to a(n) fabric.v1.DeployOrg workflow
 	Execute(ctx workflow.Context) (*DeployOrgOutput, error)
 }
 
@@ -3834,7 +3834,7 @@ func DeployOrgChildAsync(ctx workflow.Context, req *DeployOrgInput, options ...*
 	return &DeployOrgChildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployOrgWorkflowName, req)}, nil
 }
 
-// DeployOrgChildOptions provides configuration for a child fabric.identity.v1.DeployOrg workflow operation
+// DeployOrgChildOptions provides configuration for a child fabric.v1.DeployOrg workflow operation
 type DeployOrgChildOptions struct {
 	options                  workflow.ChildWorkflowOptions
 	executionTimeout         *time.Duration
@@ -4017,7 +4017,7 @@ func (r *DeployOrgChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution
 	return &exec, nil
 }
 
-// RegisterDeployPeerWorkflow registers a fabric.identity.v1.FabricDeploy.DeployPeer workflow with the given worker
+// RegisterDeployPeerWorkflow registers a fabric.v1.FabricDeploy.DeployPeer workflow with the given worker
 func RegisterDeployPeerWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployPeerWorkflowInput) (DeployPeerWorkflow, error)) {
 	fabricDeployRegistrationMutex.Lock()
 	defer fabricDeployRegistrationMutex.Unlock()
@@ -4044,7 +4044,7 @@ func buildDeployPeer(ctor func(workflow.Context, *DeployPeerWorkflowInput) (Depl
 	}
 }
 
-// DeployPeerWorkflowInput describes the input to a(n) fabric.identity.v1.DeployPeer workflow constructor
+// DeployPeerWorkflowInput describes the input to a(n) fabric.v1.DeployPeer workflow constructor
 type DeployPeerWorkflowInput struct {
 	Req *DeployPeerInput
 }
@@ -4052,9 +4052,9 @@ type DeployPeerWorkflowInput struct {
 // DeployPeer deploys a peer node with certificates and CSI volume mounts
 // Calls ProvisionPeerWorkflow to generate certs, then deploys the peer pod
 //
-// workflow details: (name: "fabric.identity.v1.DeployPeer")
+// workflow details: (name: "fabric.v1.DeployPeer")
 type DeployPeerWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.identity.v1.DeployPeer workflow
+	// Execute defines the entrypoint to a(n) fabric.v1.DeployPeer workflow
 	Execute(ctx workflow.Context) (*DeployPeerOutput, error)
 }
 
@@ -4088,7 +4088,7 @@ func DeployPeerChildAsync(ctx workflow.Context, req *DeployPeerInput, options ..
 	return &DeployPeerChildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployPeerWorkflowName, req)}, nil
 }
 
-// DeployPeerChildOptions provides configuration for a child fabric.identity.v1.DeployPeer workflow operation
+// DeployPeerChildOptions provides configuration for a child fabric.v1.DeployPeer workflow operation
 type DeployPeerChildOptions struct {
 	options                  workflow.ChildWorkflowOptions
 	executionTimeout         *time.Duration
@@ -4296,7 +4296,7 @@ func NewTestFabricDeployClient(env *testsuite.TestWorkflowEnvironment, workflows
 	return &TestFabricDeployClient{env, workflows}
 }
 
-// CreateNamespace executes a(n) fabric.identity.v1.CreateNamespace workflow in the test environment
+// CreateNamespace executes a(n) fabric.v1.CreateNamespace workflow in the test environment
 func (c *TestFabricDeployClient) CreateNamespace(ctx context.Context, req *CreateNamespaceInput, opts ...*CreateNamespaceOptions) (*CreateNamespaceOutput, error) {
 	run, err := c.CreateNamespaceAsync(ctx, req, opts...)
 	if err != nil {
@@ -4305,7 +4305,7 @@ func (c *TestFabricDeployClient) CreateNamespace(ctx context.Context, req *Creat
 	return run.Get(ctx)
 }
 
-// CreateNamespaceAsync executes a(n) fabric.identity.v1.CreateNamespace workflow in the test environment
+// CreateNamespaceAsync executes a(n) fabric.v1.CreateNamespace workflow in the test environment
 func (c *TestFabricDeployClient) CreateNamespaceAsync(ctx context.Context, req *CreateNamespaceInput, options ...*CreateNamespaceOptions) (CreateNamespaceRun, error) {
 	var o *CreateNamespaceOptions
 	if len(options) > 0 && options[0] != nil {
@@ -4325,7 +4325,7 @@ func (c *TestFabricDeployClient) GetCreateNamespace(ctx context.Context, workflo
 	return &testCreateNamespaceRun{env: c.env, workflows: c.workflows}
 }
 
-// CreateServiceAccount executes a(n) fabric.identity.v1.CreateServiceAccount workflow in the test environment
+// CreateServiceAccount executes a(n) fabric.v1.CreateServiceAccount workflow in the test environment
 func (c *TestFabricDeployClient) CreateServiceAccount(ctx context.Context, req *CreateServiceAccountInput, opts ...*CreateServiceAccountOptions) (*CreateServiceAccountOutput, error) {
 	run, err := c.CreateServiceAccountAsync(ctx, req, opts...)
 	if err != nil {
@@ -4334,7 +4334,7 @@ func (c *TestFabricDeployClient) CreateServiceAccount(ctx context.Context, req *
 	return run.Get(ctx)
 }
 
-// CreateServiceAccountAsync executes a(n) fabric.identity.v1.CreateServiceAccount workflow in the test environment
+// CreateServiceAccountAsync executes a(n) fabric.v1.CreateServiceAccount workflow in the test environment
 func (c *TestFabricDeployClient) CreateServiceAccountAsync(ctx context.Context, req *CreateServiceAccountInput, options ...*CreateServiceAccountOptions) (CreateServiceAccountRun, error) {
 	var o *CreateServiceAccountOptions
 	if len(options) > 0 && options[0] != nil {
@@ -4354,7 +4354,7 @@ func (c *TestFabricDeployClient) GetCreateServiceAccount(ctx context.Context, wo
 	return &testCreateServiceAccountRun{env: c.env, workflows: c.workflows}
 }
 
-// CreateVaultRole executes a(n) fabric.identity.v1.CreateVaultRole workflow in the test environment
+// CreateVaultRole executes a(n) fabric.v1.CreateVaultRole workflow in the test environment
 func (c *TestFabricDeployClient) CreateVaultRole(ctx context.Context, req *CreateVaultRoleInput, opts ...*CreateVaultRoleOptions) (*CreateVaultRoleOutput, error) {
 	run, err := c.CreateVaultRoleAsync(ctx, req, opts...)
 	if err != nil {
@@ -4363,7 +4363,7 @@ func (c *TestFabricDeployClient) CreateVaultRole(ctx context.Context, req *Creat
 	return run.Get(ctx)
 }
 
-// CreateVaultRoleAsync executes a(n) fabric.identity.v1.CreateVaultRole workflow in the test environment
+// CreateVaultRoleAsync executes a(n) fabric.v1.CreateVaultRole workflow in the test environment
 func (c *TestFabricDeployClient) CreateVaultRoleAsync(ctx context.Context, req *CreateVaultRoleInput, options ...*CreateVaultRoleOptions) (CreateVaultRoleRun, error) {
 	var o *CreateVaultRoleOptions
 	if len(options) > 0 && options[0] != nil {
@@ -4383,7 +4383,7 @@ func (c *TestFabricDeployClient) GetCreateVaultRole(ctx context.Context, workflo
 	return &testCreateVaultRoleRun{env: c.env, workflows: c.workflows}
 }
 
-// DeployCA executes a(n) fabric.identity.v1.DeployCA workflow in the test environment
+// DeployCA executes a(n) fabric.v1.DeployCA workflow in the test environment
 func (c *TestFabricDeployClient) DeployCA(ctx context.Context, req *DeployCaInput, opts ...*DeployCaoptions) (*DeployCaOutput, error) {
 	run, err := c.DeployCaasync(ctx, req, opts...)
 	if err != nil {
@@ -4392,7 +4392,7 @@ func (c *TestFabricDeployClient) DeployCA(ctx context.Context, req *DeployCaInpu
 	return run.Get(ctx)
 }
 
-// DeployCAAsync executes a(n) fabric.identity.v1.DeployCA workflow in the test environment
+// DeployCAAsync executes a(n) fabric.v1.DeployCA workflow in the test environment
 func (c *TestFabricDeployClient) DeployCaasync(ctx context.Context, req *DeployCaInput, options ...*DeployCaoptions) (DeployCarun, error) {
 	var o *DeployCaoptions
 	if len(options) > 0 && options[0] != nil {
@@ -4412,7 +4412,7 @@ func (c *TestFabricDeployClient) GetDeployCa(ctx context.Context, workflowID str
 	return &testDeployCarun{env: c.env, workflows: c.workflows}
 }
 
-// DeployCouchDB executes a(n) fabric.identity.v1.DeployCouchDB workflow in the test environment
+// DeployCouchDB executes a(n) fabric.v1.DeployCouchDB workflow in the test environment
 func (c *TestFabricDeployClient) DeployCouchDB(ctx context.Context, req *DeployCouchDbInput, opts ...*DeployCouchDboptions) (*DeployCouchDbOutput, error) {
 	run, err := c.DeployCouchDbasync(ctx, req, opts...)
 	if err != nil {
@@ -4421,7 +4421,7 @@ func (c *TestFabricDeployClient) DeployCouchDB(ctx context.Context, req *DeployC
 	return run.Get(ctx)
 }
 
-// DeployCouchDBAsync executes a(n) fabric.identity.v1.DeployCouchDB workflow in the test environment
+// DeployCouchDBAsync executes a(n) fabric.v1.DeployCouchDB workflow in the test environment
 func (c *TestFabricDeployClient) DeployCouchDbasync(ctx context.Context, req *DeployCouchDbInput, options ...*DeployCouchDboptions) (DeployCouchDbrun, error) {
 	var o *DeployCouchDboptions
 	if len(options) > 0 && options[0] != nil {
@@ -4441,7 +4441,7 @@ func (c *TestFabricDeployClient) GetDeployCouchDb(ctx context.Context, workflowI
 	return &testDeployCouchDbrun{env: c.env, workflows: c.workflows}
 }
 
-// DeployOrderer executes a(n) fabric.identity.v1.DeployOrderer workflow in the test environment
+// DeployOrderer executes a(n) fabric.v1.DeployOrderer workflow in the test environment
 func (c *TestFabricDeployClient) DeployOrderer(ctx context.Context, req *DeployOrdererInput, opts ...*DeployOrdererOptions) (*DeployOrdererOutput, error) {
 	run, err := c.DeployOrdererAsync(ctx, req, opts...)
 	if err != nil {
@@ -4450,7 +4450,7 @@ func (c *TestFabricDeployClient) DeployOrderer(ctx context.Context, req *DeployO
 	return run.Get(ctx)
 }
 
-// DeployOrdererAsync executes a(n) fabric.identity.v1.DeployOrderer workflow in the test environment
+// DeployOrdererAsync executes a(n) fabric.v1.DeployOrderer workflow in the test environment
 func (c *TestFabricDeployClient) DeployOrdererAsync(ctx context.Context, req *DeployOrdererInput, options ...*DeployOrdererOptions) (DeployOrdererRun, error) {
 	var o *DeployOrdererOptions
 	if len(options) > 0 && options[0] != nil {
@@ -4470,7 +4470,7 @@ func (c *TestFabricDeployClient) GetDeployOrderer(ctx context.Context, workflowI
 	return &testDeployOrdererRun{env: c.env, workflows: c.workflows}
 }
 
-// DeployOrg executes a(n) fabric.identity.v1.DeployOrg workflow in the test environment
+// DeployOrg executes a(n) fabric.v1.DeployOrg workflow in the test environment
 func (c *TestFabricDeployClient) DeployOrg(ctx context.Context, req *DeployOrgInput, opts ...*DeployOrgOptions) (*DeployOrgOutput, error) {
 	run, err := c.DeployOrgAsync(ctx, req, opts...)
 	if err != nil {
@@ -4479,7 +4479,7 @@ func (c *TestFabricDeployClient) DeployOrg(ctx context.Context, req *DeployOrgIn
 	return run.Get(ctx)
 }
 
-// DeployOrgAsync executes a(n) fabric.identity.v1.DeployOrg workflow in the test environment
+// DeployOrgAsync executes a(n) fabric.v1.DeployOrg workflow in the test environment
 func (c *TestFabricDeployClient) DeployOrgAsync(ctx context.Context, req *DeployOrgInput, options ...*DeployOrgOptions) (DeployOrgRun, error) {
 	var o *DeployOrgOptions
 	if len(options) > 0 && options[0] != nil {
@@ -4499,7 +4499,7 @@ func (c *TestFabricDeployClient) GetDeployOrg(ctx context.Context, workflowID st
 	return &testDeployOrgRun{env: c.env, workflows: c.workflows}
 }
 
-// DeployPeer executes a(n) fabric.identity.v1.DeployPeer workflow in the test environment
+// DeployPeer executes a(n) fabric.v1.DeployPeer workflow in the test environment
 func (c *TestFabricDeployClient) DeployPeer(ctx context.Context, req *DeployPeerInput, opts ...*DeployPeerOptions) (*DeployPeerOutput, error) {
 	run, err := c.DeployPeerAsync(ctx, req, opts...)
 	if err != nil {
@@ -4508,7 +4508,7 @@ func (c *TestFabricDeployClient) DeployPeer(ctx context.Context, req *DeployPeer
 	return run.Get(ctx)
 }
 
-// DeployPeerAsync executes a(n) fabric.identity.v1.DeployPeer workflow in the test environment
+// DeployPeerAsync executes a(n) fabric.v1.DeployPeer workflow in the test environment
 func (c *TestFabricDeployClient) DeployPeerAsync(ctx context.Context, req *DeployPeerInput, options ...*DeployPeerOptions) (DeployPeerRun, error) {
 	var o *DeployPeerOptions
 	if len(options) > 0 && options[0] != nil {
@@ -4541,7 +4541,7 @@ func (c *TestFabricDeployClient) TerminateWorkflow(ctx context.Context, workflow
 
 var _ CreateNamespaceRun = &testCreateNamespaceRun{}
 
-// testCreateNamespaceRun provides convenience methods for interacting with a(n) fabric.identity.v1.CreateNamespace workflow in the test environment
+// testCreateNamespaceRun provides convenience methods for interacting with a(n) fabric.v1.CreateNamespace workflow in the test environment
 type testCreateNamespaceRun struct {
 	client    *TestFabricDeployClient
 	env       *testsuite.TestWorkflowEnvironment
@@ -4556,7 +4556,7 @@ func (r *testCreateNamespaceRun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
-// Get retrieves a test fabric.identity.v1.CreateNamespace workflow result
+// Get retrieves a test fabric.v1.CreateNamespace workflow result
 func (r *testCreateNamespaceRun) Get(context.Context) (*CreateNamespaceOutput, error) {
 	if r.isStarted.CompareAndSwap(false, true) {
 		r.env.ExecuteWorkflow(CreateNamespaceWorkflowName, r.req)
@@ -4574,7 +4574,7 @@ func (r *testCreateNamespaceRun) Get(context.Context) (*CreateNamespaceOutput, e
 	return &result, nil
 }
 
-// ID returns a test fabric.identity.v1.CreateNamespace workflow run's workflow ID
+// ID returns a test fabric.v1.CreateNamespace workflow run's workflow ID
 func (r *testCreateNamespaceRun) ID() string {
 	if r.opts != nil {
 		return r.opts.ID
@@ -4599,7 +4599,7 @@ func (r *testCreateNamespaceRun) Terminate(ctx context.Context, reason string, d
 
 var _ CreateServiceAccountRun = &testCreateServiceAccountRun{}
 
-// testCreateServiceAccountRun provides convenience methods for interacting with a(n) fabric.identity.v1.CreateServiceAccount workflow in the test environment
+// testCreateServiceAccountRun provides convenience methods for interacting with a(n) fabric.v1.CreateServiceAccount workflow in the test environment
 type testCreateServiceAccountRun struct {
 	client    *TestFabricDeployClient
 	env       *testsuite.TestWorkflowEnvironment
@@ -4614,7 +4614,7 @@ func (r *testCreateServiceAccountRun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
-// Get retrieves a test fabric.identity.v1.CreateServiceAccount workflow result
+// Get retrieves a test fabric.v1.CreateServiceAccount workflow result
 func (r *testCreateServiceAccountRun) Get(context.Context) (*CreateServiceAccountOutput, error) {
 	if r.isStarted.CompareAndSwap(false, true) {
 		r.env.ExecuteWorkflow(CreateServiceAccountWorkflowName, r.req)
@@ -4632,7 +4632,7 @@ func (r *testCreateServiceAccountRun) Get(context.Context) (*CreateServiceAccoun
 	return &result, nil
 }
 
-// ID returns a test fabric.identity.v1.CreateServiceAccount workflow run's workflow ID
+// ID returns a test fabric.v1.CreateServiceAccount workflow run's workflow ID
 func (r *testCreateServiceAccountRun) ID() string {
 	if r.opts != nil {
 		return r.opts.ID
@@ -4657,7 +4657,7 @@ func (r *testCreateServiceAccountRun) Terminate(ctx context.Context, reason stri
 
 var _ CreateVaultRoleRun = &testCreateVaultRoleRun{}
 
-// testCreateVaultRoleRun provides convenience methods for interacting with a(n) fabric.identity.v1.CreateVaultRole workflow in the test environment
+// testCreateVaultRoleRun provides convenience methods for interacting with a(n) fabric.v1.CreateVaultRole workflow in the test environment
 type testCreateVaultRoleRun struct {
 	client    *TestFabricDeployClient
 	env       *testsuite.TestWorkflowEnvironment
@@ -4672,7 +4672,7 @@ func (r *testCreateVaultRoleRun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
-// Get retrieves a test fabric.identity.v1.CreateVaultRole workflow result
+// Get retrieves a test fabric.v1.CreateVaultRole workflow result
 func (r *testCreateVaultRoleRun) Get(context.Context) (*CreateVaultRoleOutput, error) {
 	if r.isStarted.CompareAndSwap(false, true) {
 		r.env.ExecuteWorkflow(CreateVaultRoleWorkflowName, r.req)
@@ -4690,7 +4690,7 @@ func (r *testCreateVaultRoleRun) Get(context.Context) (*CreateVaultRoleOutput, e
 	return &result, nil
 }
 
-// ID returns a test fabric.identity.v1.CreateVaultRole workflow run's workflow ID
+// ID returns a test fabric.v1.CreateVaultRole workflow run's workflow ID
 func (r *testCreateVaultRoleRun) ID() string {
 	if r.opts != nil {
 		return r.opts.ID
@@ -4715,7 +4715,7 @@ func (r *testCreateVaultRoleRun) Terminate(ctx context.Context, reason string, d
 
 var _ DeployCarun = &testDeployCarun{}
 
-// testDeployCarun provides convenience methods for interacting with a(n) fabric.identity.v1.DeployCA workflow in the test environment
+// testDeployCarun provides convenience methods for interacting with a(n) fabric.v1.DeployCA workflow in the test environment
 type testDeployCarun struct {
 	client    *TestFabricDeployClient
 	env       *testsuite.TestWorkflowEnvironment
@@ -4730,7 +4730,7 @@ func (r *testDeployCarun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
-// Get retrieves a test fabric.identity.v1.DeployCA workflow result
+// Get retrieves a test fabric.v1.DeployCA workflow result
 func (r *testDeployCarun) Get(context.Context) (*DeployCaOutput, error) {
 	if r.isStarted.CompareAndSwap(false, true) {
 		r.env.ExecuteWorkflow(DeployCaworkflowName, r.req)
@@ -4748,7 +4748,7 @@ func (r *testDeployCarun) Get(context.Context) (*DeployCaOutput, error) {
 	return &result, nil
 }
 
-// ID returns a test fabric.identity.v1.DeployCA workflow run's workflow ID
+// ID returns a test fabric.v1.DeployCA workflow run's workflow ID
 func (r *testDeployCarun) ID() string {
 	if r.opts != nil {
 		return r.opts.ID
@@ -4773,7 +4773,7 @@ func (r *testDeployCarun) Terminate(ctx context.Context, reason string, details 
 
 var _ DeployCouchDbrun = &testDeployCouchDbrun{}
 
-// testDeployCouchDbrun provides convenience methods for interacting with a(n) fabric.identity.v1.DeployCouchDB workflow in the test environment
+// testDeployCouchDbrun provides convenience methods for interacting with a(n) fabric.v1.DeployCouchDB workflow in the test environment
 type testDeployCouchDbrun struct {
 	client    *TestFabricDeployClient
 	env       *testsuite.TestWorkflowEnvironment
@@ -4788,7 +4788,7 @@ func (r *testDeployCouchDbrun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
-// Get retrieves a test fabric.identity.v1.DeployCouchDB workflow result
+// Get retrieves a test fabric.v1.DeployCouchDB workflow result
 func (r *testDeployCouchDbrun) Get(context.Context) (*DeployCouchDbOutput, error) {
 	if r.isStarted.CompareAndSwap(false, true) {
 		r.env.ExecuteWorkflow(DeployCouchDbworkflowName, r.req)
@@ -4806,7 +4806,7 @@ func (r *testDeployCouchDbrun) Get(context.Context) (*DeployCouchDbOutput, error
 	return &result, nil
 }
 
-// ID returns a test fabric.identity.v1.DeployCouchDB workflow run's workflow ID
+// ID returns a test fabric.v1.DeployCouchDB workflow run's workflow ID
 func (r *testDeployCouchDbrun) ID() string {
 	if r.opts != nil {
 		return r.opts.ID
@@ -4831,7 +4831,7 @@ func (r *testDeployCouchDbrun) Terminate(ctx context.Context, reason string, det
 
 var _ DeployOrdererRun = &testDeployOrdererRun{}
 
-// testDeployOrdererRun provides convenience methods for interacting with a(n) fabric.identity.v1.DeployOrderer workflow in the test environment
+// testDeployOrdererRun provides convenience methods for interacting with a(n) fabric.v1.DeployOrderer workflow in the test environment
 type testDeployOrdererRun struct {
 	client    *TestFabricDeployClient
 	env       *testsuite.TestWorkflowEnvironment
@@ -4846,7 +4846,7 @@ func (r *testDeployOrdererRun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
-// Get retrieves a test fabric.identity.v1.DeployOrderer workflow result
+// Get retrieves a test fabric.v1.DeployOrderer workflow result
 func (r *testDeployOrdererRun) Get(context.Context) (*DeployOrdererOutput, error) {
 	if r.isStarted.CompareAndSwap(false, true) {
 		r.env.ExecuteWorkflow(DeployOrdererWorkflowName, r.req)
@@ -4864,7 +4864,7 @@ func (r *testDeployOrdererRun) Get(context.Context) (*DeployOrdererOutput, error
 	return &result, nil
 }
 
-// ID returns a test fabric.identity.v1.DeployOrderer workflow run's workflow ID
+// ID returns a test fabric.v1.DeployOrderer workflow run's workflow ID
 func (r *testDeployOrdererRun) ID() string {
 	if r.opts != nil {
 		return r.opts.ID
@@ -4889,7 +4889,7 @@ func (r *testDeployOrdererRun) Terminate(ctx context.Context, reason string, det
 
 var _ DeployOrgRun = &testDeployOrgRun{}
 
-// testDeployOrgRun provides convenience methods for interacting with a(n) fabric.identity.v1.DeployOrg workflow in the test environment
+// testDeployOrgRun provides convenience methods for interacting with a(n) fabric.v1.DeployOrg workflow in the test environment
 type testDeployOrgRun struct {
 	client    *TestFabricDeployClient
 	env       *testsuite.TestWorkflowEnvironment
@@ -4904,7 +4904,7 @@ func (r *testDeployOrgRun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
-// Get retrieves a test fabric.identity.v1.DeployOrg workflow result
+// Get retrieves a test fabric.v1.DeployOrg workflow result
 func (r *testDeployOrgRun) Get(context.Context) (*DeployOrgOutput, error) {
 	if r.isStarted.CompareAndSwap(false, true) {
 		r.env.ExecuteWorkflow(DeployOrgWorkflowName, r.req)
@@ -4922,7 +4922,7 @@ func (r *testDeployOrgRun) Get(context.Context) (*DeployOrgOutput, error) {
 	return &result, nil
 }
 
-// ID returns a test fabric.identity.v1.DeployOrg workflow run's workflow ID
+// ID returns a test fabric.v1.DeployOrg workflow run's workflow ID
 func (r *testDeployOrgRun) ID() string {
 	if r.opts != nil {
 		return r.opts.ID
@@ -4947,7 +4947,7 @@ func (r *testDeployOrgRun) Terminate(ctx context.Context, reason string, details
 
 var _ DeployPeerRun = &testDeployPeerRun{}
 
-// testDeployPeerRun provides convenience methods for interacting with a(n) fabric.identity.v1.DeployPeer workflow in the test environment
+// testDeployPeerRun provides convenience methods for interacting with a(n) fabric.v1.DeployPeer workflow in the test environment
 type testDeployPeerRun struct {
 	client    *TestFabricDeployClient
 	env       *testsuite.TestWorkflowEnvironment
@@ -4962,7 +4962,7 @@ func (r *testDeployPeerRun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
-// Get retrieves a test fabric.identity.v1.DeployPeer workflow result
+// Get retrieves a test fabric.v1.DeployPeer workflow result
 func (r *testDeployPeerRun) Get(context.Context) (*DeployPeerOutput, error) {
 	if r.isStarted.CompareAndSwap(false, true) {
 		r.env.ExecuteWorkflow(DeployPeerWorkflowName, r.req)
@@ -4980,7 +4980,7 @@ func (r *testDeployPeerRun) Get(context.Context) (*DeployPeerOutput, error) {
 	return &result, nil
 }
 
-// ID returns a test fabric.identity.v1.DeployPeer workflow run's workflow ID
+// ID returns a test fabric.v1.DeployPeer workflow run's workflow ID
 func (r *testDeployPeerRun) ID() string {
 	if r.opts != nil {
 		return r.opts.ID

@@ -20,7 +20,7 @@ service Kubernetes {
   rpc Create(CreateInput) returns (CreateOutput) {
     // Activity execution metadata
     option (temporal.v1.activity) = {
-      name: "kubernetes.Create"
+      name: "kube.v1.Create"
       schedule_to_close_timeout: {seconds: 600}  // 10 minutes
     };
   }
@@ -29,7 +29,7 @@ service Kubernetes {
   rpc Update(UpdateInput) returns (UpdateOutput) {
     // Activity execution metadata
     option (temporal.v1.activity) = {
-      name: "kubernetes.Update"
+      name: "kube.v1.Update"
       schedule_to_close_timeout: {seconds: 600}  // 10 minutes
     };
   }
@@ -38,7 +38,7 @@ service Kubernetes {
   rpc Apply(ApplyInput) returns (ApplyOutput) {
     // Activity execution metadata
     option (temporal.v1.activity) = {
-      name: "kubernetes.Apply"
+      name: "kube.v1.Apply"
       schedule_to_close_timeout: {seconds: 600}  // 10 minutes
     };
   }
@@ -47,7 +47,7 @@ service Kubernetes {
   rpc Delete(DeleteInput) returns (DeleteOutput) {
     // Activity execution metadata
     option (temporal.v1.activity) = {
-      name: "kubernetes.Delete"
+      name: "kube.v1.Delete"
       schedule_to_close_timeout: {seconds: 300}  // 5 minutes
     };
   }
@@ -56,7 +56,7 @@ service Kubernetes {
   rpc GetStatus(GetStatusInput) returns (GetStatusOutput) {
     // Activity execution metadata
     option (temporal.v1.activity) = {
-      name: "kubernetes.GetStatus"
+      name: "kube.v1.GetStatus"
       schedule_to_close_timeout: {seconds: 60}
     };
   }

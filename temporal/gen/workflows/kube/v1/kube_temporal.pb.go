@@ -22,11 +22,11 @@ var KubernetesTaskQueue = "infra"
 
 // kube.v1.Kubernetes activity names
 const (
-	ApplyActivityName     = "kubernetes.Apply"
-	CreateActivityName    = "kubernetes.Create"
-	DeleteActivityName    = "kubernetes.Delete"
-	GetStatusActivityName = "kubernetes.GetStatus"
-	UpdateActivityName    = "kubernetes.Update"
+	ApplyActivityName     = "kube.v1.Apply"
+	CreateActivityName    = "kube.v1.Create"
+	DeleteActivityName    = "kube.v1.Delete"
+	GetStatusActivityName = "kube.v1.GetStatus"
+	UpdateActivityName    = "kube.v1.Update"
 )
 
 // KubernetesActivities describes available worker activities
@@ -56,14 +56,14 @@ func RegisterKubernetesActivities(r worker.ActivityRegistry, activities Kubernet
 	RegisterUpdateActivity(r, activities.Update)
 }
 
-// RegisterApplyActivity registers a kubernetes.Apply activity
+// RegisterApplyActivity registers a kube.v1.Apply activity
 func RegisterApplyActivity(r worker.ActivityRegistry, fn func(context.Context, *ApplyInput) (*ApplyOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: ApplyActivityName,
 	})
 }
 
-// ApplyFuture describes a(n) kubernetes.Apply activity execution
+// ApplyFuture describes a(n) kube.v1.Apply activity execution
 type ApplyFuture struct {
 	Future workflow.Future
 }
@@ -145,7 +145,7 @@ func ApplyLocalAsync(ctx workflow.Context, req *ApplyInput, options ...*ApplyLoc
 	return future
 }
 
-// ApplyActivityOptions provides configuration for a(n) kubernetes.Apply activity
+// ApplyActivityOptions provides configuration for a(n) kube.v1.Apply activity
 type ApplyActivityOptions struct {
 	options                workflow.ActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -248,7 +248,7 @@ func (o *ApplyActivityOptions) WithWaitForCancellation(wait bool) *ApplyActivity
 	return o
 }
 
-// ApplyLocalActivityOptions provides configuration for a(n) kubernetes.Apply activity
+// ApplyLocalActivityOptions provides configuration for a(n) kube.v1.Apply activity
 type ApplyLocalActivityOptions struct {
 	options                workflow.LocalActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -280,7 +280,7 @@ func (o *ApplyLocalActivityOptions) Build(ctx workflow.Context) (workflow.Contex
 	return workflow.WithLocalActivityOptions(ctx, opts), nil
 }
 
-// Local specifies a custom kubernetes.Apply implementation
+// Local specifies a custom kube.v1.Apply implementation
 func (o *ApplyLocalActivityOptions) Local(fn func(context.Context, *ApplyInput) (*ApplyOutput, error)) *ApplyLocalActivityOptions {
 	o.fn = fn
 	return o
@@ -316,14 +316,14 @@ func (o *ApplyLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *Ap
 	return o
 }
 
-// RegisterCreateActivity registers a kubernetes.Create activity
+// RegisterCreateActivity registers a kube.v1.Create activity
 func RegisterCreateActivity(r worker.ActivityRegistry, fn func(context.Context, *CreateInput) (*CreateOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: CreateActivityName,
 	})
 }
 
-// CreateFuture describes a(n) kubernetes.Create activity execution
+// CreateFuture describes a(n) kube.v1.Create activity execution
 type CreateFuture struct {
 	Future workflow.Future
 }
@@ -405,7 +405,7 @@ func CreateLocalAsync(ctx workflow.Context, req *CreateInput, options ...*Create
 	return future
 }
 
-// CreateActivityOptions provides configuration for a(n) kubernetes.Create activity
+// CreateActivityOptions provides configuration for a(n) kube.v1.Create activity
 type CreateActivityOptions struct {
 	options                workflow.ActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -508,7 +508,7 @@ func (o *CreateActivityOptions) WithWaitForCancellation(wait bool) *CreateActivi
 	return o
 }
 
-// CreateLocalActivityOptions provides configuration for a(n) kubernetes.Create activity
+// CreateLocalActivityOptions provides configuration for a(n) kube.v1.Create activity
 type CreateLocalActivityOptions struct {
 	options                workflow.LocalActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -540,7 +540,7 @@ func (o *CreateLocalActivityOptions) Build(ctx workflow.Context) (workflow.Conte
 	return workflow.WithLocalActivityOptions(ctx, opts), nil
 }
 
-// Local specifies a custom kubernetes.Create implementation
+// Local specifies a custom kube.v1.Create implementation
 func (o *CreateLocalActivityOptions) Local(fn func(context.Context, *CreateInput) (*CreateOutput, error)) *CreateLocalActivityOptions {
 	o.fn = fn
 	return o
@@ -576,14 +576,14 @@ func (o *CreateLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *C
 	return o
 }
 
-// RegisterDeleteActivity registers a kubernetes.Delete activity
+// RegisterDeleteActivity registers a kube.v1.Delete activity
 func RegisterDeleteActivity(r worker.ActivityRegistry, fn func(context.Context, *DeleteInput) (*DeleteOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: DeleteActivityName,
 	})
 }
 
-// DeleteFuture describes a(n) kubernetes.Delete activity execution
+// DeleteFuture describes a(n) kube.v1.Delete activity execution
 type DeleteFuture struct {
 	Future workflow.Future
 }
@@ -665,7 +665,7 @@ func DeleteLocalAsync(ctx workflow.Context, req *DeleteInput, options ...*Delete
 	return future
 }
 
-// DeleteActivityOptions provides configuration for a(n) kubernetes.Delete activity
+// DeleteActivityOptions provides configuration for a(n) kube.v1.Delete activity
 type DeleteActivityOptions struct {
 	options                workflow.ActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -768,7 +768,7 @@ func (o *DeleteActivityOptions) WithWaitForCancellation(wait bool) *DeleteActivi
 	return o
 }
 
-// DeleteLocalActivityOptions provides configuration for a(n) kubernetes.Delete activity
+// DeleteLocalActivityOptions provides configuration for a(n) kube.v1.Delete activity
 type DeleteLocalActivityOptions struct {
 	options                workflow.LocalActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -800,7 +800,7 @@ func (o *DeleteLocalActivityOptions) Build(ctx workflow.Context) (workflow.Conte
 	return workflow.WithLocalActivityOptions(ctx, opts), nil
 }
 
-// Local specifies a custom kubernetes.Delete implementation
+// Local specifies a custom kube.v1.Delete implementation
 func (o *DeleteLocalActivityOptions) Local(fn func(context.Context, *DeleteInput) (*DeleteOutput, error)) *DeleteLocalActivityOptions {
 	o.fn = fn
 	return o
@@ -836,14 +836,14 @@ func (o *DeleteLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *D
 	return o
 }
 
-// RegisterGetStatusActivity registers a kubernetes.GetStatus activity
+// RegisterGetStatusActivity registers a kube.v1.GetStatus activity
 func RegisterGetStatusActivity(r worker.ActivityRegistry, fn func(context.Context, *GetStatusInput) (*GetStatusOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: GetStatusActivityName,
 	})
 }
 
-// GetStatusFuture describes a(n) kubernetes.GetStatus activity execution
+// GetStatusFuture describes a(n) kube.v1.GetStatus activity execution
 type GetStatusFuture struct {
 	Future workflow.Future
 }
@@ -925,7 +925,7 @@ func GetStatusLocalAsync(ctx workflow.Context, req *GetStatusInput, options ...*
 	return future
 }
 
-// GetStatusActivityOptions provides configuration for a(n) kubernetes.GetStatus activity
+// GetStatusActivityOptions provides configuration for a(n) kube.v1.GetStatus activity
 type GetStatusActivityOptions struct {
 	options                workflow.ActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -1028,7 +1028,7 @@ func (o *GetStatusActivityOptions) WithWaitForCancellation(wait bool) *GetStatus
 	return o
 }
 
-// GetStatusLocalActivityOptions provides configuration for a(n) kubernetes.GetStatus activity
+// GetStatusLocalActivityOptions provides configuration for a(n) kube.v1.GetStatus activity
 type GetStatusLocalActivityOptions struct {
 	options                workflow.LocalActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -1060,7 +1060,7 @@ func (o *GetStatusLocalActivityOptions) Build(ctx workflow.Context) (workflow.Co
 	return workflow.WithLocalActivityOptions(ctx, opts), nil
 }
 
-// Local specifies a custom kubernetes.GetStatus implementation
+// Local specifies a custom kube.v1.GetStatus implementation
 func (o *GetStatusLocalActivityOptions) Local(fn func(context.Context, *GetStatusInput) (*GetStatusOutput, error)) *GetStatusLocalActivityOptions {
 	o.fn = fn
 	return o
@@ -1096,14 +1096,14 @@ func (o *GetStatusLocalActivityOptions) WithStartToCloseTimeout(d time.Duration)
 	return o
 }
 
-// RegisterUpdateActivity registers a kubernetes.Update activity
+// RegisterUpdateActivity registers a kube.v1.Update activity
 func RegisterUpdateActivity(r worker.ActivityRegistry, fn func(context.Context, *UpdateInput) (*UpdateOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: UpdateActivityName,
 	})
 }
 
-// UpdateFuture describes a(n) kubernetes.Update activity execution
+// UpdateFuture describes a(n) kube.v1.Update activity execution
 type UpdateFuture struct {
 	Future workflow.Future
 }
@@ -1185,7 +1185,7 @@ func UpdateLocalAsync(ctx workflow.Context, req *UpdateInput, options ...*Update
 	return future
 }
 
-// UpdateActivityOptions provides configuration for a(n) kubernetes.Update activity
+// UpdateActivityOptions provides configuration for a(n) kube.v1.Update activity
 type UpdateActivityOptions struct {
 	options                workflow.ActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -1288,7 +1288,7 @@ func (o *UpdateActivityOptions) WithWaitForCancellation(wait bool) *UpdateActivi
 	return o
 }
 
-// UpdateLocalActivityOptions provides configuration for a(n) kubernetes.Update activity
+// UpdateLocalActivityOptions provides configuration for a(n) kube.v1.Update activity
 type UpdateLocalActivityOptions struct {
 	options                workflow.LocalActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -1320,7 +1320,7 @@ func (o *UpdateLocalActivityOptions) Build(ctx workflow.Context) (workflow.Conte
 	return workflow.WithLocalActivityOptions(ctx, opts), nil
 }
 
-// Local specifies a custom kubernetes.Update implementation
+// Local specifies a custom kube.v1.Update implementation
 func (o *UpdateLocalActivityOptions) Local(fn func(context.Context, *UpdateInput) (*UpdateOutput, error)) *UpdateLocalActivityOptions {
 	o.fn = fn
 	return o

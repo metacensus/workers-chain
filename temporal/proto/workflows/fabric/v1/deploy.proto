@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package fabric.identity.v1;
+package fabric.v1;
 
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1";
 
@@ -22,7 +22,7 @@ service FabricDeploy {
   // CreateNamespace creates a new Kubernetes namespace for an organization
   rpc CreateNamespace(CreateNamespaceInput) returns (CreateNamespaceOutput) {
     option (temporal.v1.workflow) = {
-      name: "fabric.identity.v1.CreateNamespace"
+      name: "fabric.v1.CreateNamespace"
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
     };
@@ -31,7 +31,7 @@ service FabricDeploy {
   // CreateServiceAccount creates a Kubernetes service account for Vault authentication
   rpc CreateServiceAccount(CreateServiceAccountInput) returns (CreateServiceAccountOutput) {
     option (temporal.v1.workflow) = {
-      name: "fabric.identity.v1.CreateServiceAccount"
+      name: "fabric.v1.CreateServiceAccount"
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
     };
@@ -40,7 +40,7 @@ service FabricDeploy {
   // CreateVaultRole creates a Vault Kubernetes auth role for the service account
   rpc CreateVaultRole(CreateVaultRoleInput) returns (CreateVaultRoleOutput) {
     option (temporal.v1.workflow) = {
-      name: "fabric.identity.v1.CreateVaultRole"
+      name: "fabric.v1.CreateVaultRole"
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
     };
@@ -49,7 +49,7 @@ service FabricDeploy {
   // DeployCA deploys the Fabric CA pod to the Kubernetes cluster
   rpc DeployCA(DeployCaInput) returns (DeployCaOutput) {
     option (temporal.v1.workflow) = {
-      name: "fabric.identity.v1.DeployCA"
+      name: "fabric.v1.DeployCA"
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
     };
@@ -61,7 +61,7 @@ service FabricDeploy {
   // Each peer gets its own CouchDB instance
   rpc DeployCouchDB(DeployCouchDbInput) returns (DeployCouchDbOutput) {
     option (temporal.v1.workflow) = {
-      name: "fabric.identity.v1.DeployCouchDB"
+      name: "fabric.v1.DeployCouchDB"
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
     };
@@ -71,7 +71,7 @@ service FabricDeploy {
   // Calls ProvisionPeerWorkflow to generate certs, then deploys the peer pod
   rpc DeployPeer(DeployPeerInput) returns (DeployPeerOutput) {
     option (temporal.v1.workflow) = {
-      name: "fabric.identity.v1.DeployPeer"
+      name: "fabric.v1.DeployPeer"
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
     };
@@ -81,7 +81,7 @@ service FabricDeploy {
   // Calls ProvisionOrdererWorkflow to generate certs, then deploys the orderer pod
   rpc DeployOrderer(DeployOrdererInput) returns (DeployOrdererOutput) {
     option (temporal.v1.workflow) = {
-      name: "fabric.identity.v1.DeployOrderer"
+      name: "fabric.v1.DeployOrderer"
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
     };
@@ -104,7 +104,7 @@ service FabricDeploy {
   //    - DeployOrderer (this orderer)
   rpc DeployOrg(DeployOrgInput) returns (DeployOrgOutput) {
     option (temporal.v1.workflow) = {
-      name: "fabric.identity.v1.DeployOrg"
+      name: "fabric.v1.DeployOrg"
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
     };
@@ -185,7 +185,7 @@ message DeployPeerInput {
   string namespace = 2;              // Kubernetes namespace
   string peer_id = 3;                // Peer identifier (e.g., "peer0", "peer1")
   string couchdb_service = 4;        // CouchDB service name (from DeployCouchDB)
-  NodeOUConfig org_node_ous = 5;    // Node OU configuration for this org
+  fabric.identity.v1.NodeOUConfig org_node_ous = 5;    // Node OU configuration for this org
   repeated string hosts = 6;         // Additional SAN hostnames for TLS cert
 }
 
@@ -202,7 +202,7 @@ message DeployOrdererInput {
   string organization = 1;         // Organization name
   string namespace = 2;            // Kubernetes namespace
   string orderer_id = 3;           // Orderer identifier (e.g., "orderer0")
-  NodeOUConfig org_node_ous = 4;  // Node OU configuration for this org
+  fabric.identity.v1.NodeOUConfig org_node_ous = 4;  // Node OU configuration for this org
   repeated string hosts = 5;       // Additional SAN hostnames for TLS cert
 }
 
@@ -224,7 +224,7 @@ message DeployOrgInput {
   string admin_password = 4;     // Fabric CA admin password for bootstrap
   
   // Admin identity configuration (to be created via BootstrapAdmin)
-  BootstrapAdminInput admin = 5;
+  fabric.identity.v1.BootstrapAdminInput admin = 5;
   
   // Affiliations to create in the Fabric CA
   // Examples: ["metacensus", "metacensus.engineering", "metacensus.operations"]
@@ -239,7 +239,7 @@ message DeployOrgInput {
   repeated string orderer_ids = 8;
   
   // Node OU configuration (stored org-wide in Vault)
-  NodeOUConfig org_node_ous = 9;
+  fabric.identity.v1.NodeOUConfig org_node_ous = 9;
   
   // Additional SAN hostnames for TLS certificates (optional)
   // Useful for external DNS names or load balancer endpoints
