@@ -72,6 +72,17 @@ service Vault {
       schedule_to_close_timeout: {seconds: 300}  // 5 minutes
     };
   }
+
+  // Access Management
+  rpc CreateAccess(CreateAccessInput) returns (CreateAccessOutput) {
+    // Creates a Vault policy and Kubernetes auth role in a single workflow
+    // This workflow orchestrates CreatePolicy and CreateAuthRole activities
+    option (temporal.v1.workflow) = {
+      name: "vault.v1.CreateAccess"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+  }
 }
 
 // ==================== Auth Role Messages ====================
@@ -112,13 +123,43 @@ message DeleteAuthRoleOutput {
 
 // ==================== Policy Messages ====================
 
+// Capability enum for Vault policy permissions
+enum Capability {
+  CAPABILITY_UNSPECIFIED = 0;
+  CAPABILITY_CREATE = 1;
+  CAPABILITY_READ = 2;
+  CAPABILITY_UPDATE = 3;
+  CAPABILITY_PATCH = 4;
+  CAPABILITY_DELETE = 5;
+  CAPABILITY_LIST = 6;
+  CAPABILITY_SUDO = 7;
+  CAPABILITY_DENY = 8;
+  CAPABILITY_SUBSCRIBE = 9;
+  CAPABILITY_RECOVER = 10;
+}
+
+// PolicyRule defines a single path and its allowed capabilities
+message PolicyRule {
+  // path is the Vault path pattern (e.g., "secret/data/fabric/*")
+  string path = 1;
+  
+  // capabilities are the allowed capabilities for this path
+  repeated Capability capabilities = 2;
+}
+
+// PolicyDocument contains structured policy rules
+message PolicyDocument {
+  // rules is a list of path-capability mappings
+  repeated PolicyRule rules = 1;
+}
+
 // CreatePolicyInput specifies parameters for creating a Vault policy
 message CreatePolicyInput {
   // name is the name of the policy (e.g., "fabric-foundational")
   string name = 1;
   
-  // document is the HCL policy content
-  string document = 2;
+  // document contains the structured policy rules
+  PolicyDocument document = 2;
 }
 
 // CreatePolicyOutput returns the created policy name
@@ -178,4 +219,38 @@ message DeleteSecretInput {
 // DeleteSecretOutput confirms successful secret deletion
 message DeleteSecretOutput {
   // Empty - successful completion indicated by absence of error
+}
+
+// ==================== Access Management Messages ====================
+
+// CreateAccessInput specifies parameters for creating both a policy and auth role
+message CreateAccessInput {
+  // Policy configuration
+  // name is the name of the policy to create (e.g., "fabric-foundational")
+  string policy_name = 1;
+  
+  // document is the structured policy content
+  PolicyDocument policy_document = 2;
+
+  // Auth role configuration
+  // organization is the organization name (e.g., "metacensus", "acme-corp")
+  string organization = 3;
+  
+  // service_account_name is the Kubernetes service account that can authenticate
+  // (e.g., "fabric-org-sa")
+  string service_account_name = 4;
+  
+  // kubernetes_namespace is the Kubernetes namespace where the service account exists
+  string kubernetes_namespace = 5;
+  
+
+}
+
+// CreateAccessOutput returns the created policy and auth role names
+message CreateAccessOutput {
+  // policy_name is the name of the created policy
+  string policy_name = 1;
+  
+  // auth_role_name is the name of the created Kubernetes auth role
+  string auth_role_name = 2;
 } 

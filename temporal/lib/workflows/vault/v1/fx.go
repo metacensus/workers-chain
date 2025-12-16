@@ -6,13 +6,14 @@ import (
 	"go.uber.org/fx"
 )
 
-// Module provides vault v1 activities for dependency injection
+// Module provides vault v1 activities and workflows for dependency injection
 //
 // Dependency chain (VaultConfig must be provided by caller):
 //
 //	VaultConfig (provided by app config layer)
 //	NewVaultClient(VaultConfig) -> VaultClient
 //	NewActivities(VaultClient) -> pb.VaultActivities
+//	NewWorkflows() -> pb.VaultWorkflows
 //
 // Usage in your main fx.App:
 //
@@ -25,7 +26,7 @@ import (
 //	        }
 //	    }),
 //	    vaultv1.Module,
-//	    fx.Invoke(vaultv1.RegisterActivities),
+//	    fx.Invoke(vaultv1.RegisterActivities, vaultv1.RegisterWorkflows),
 //	)
 var Module = fx.Options(
 	// Provide Vault client (depends on VaultConfig from caller)
@@ -35,9 +36,19 @@ var Module = fx.Options(
 	fx.Provide(func(client VaultClient) pb.VaultActivities {
 		return NewActivities(client)
 	}),
+
+	// Provide Workflows implementing pb.VaultWorkflows interface
+	fx.Provide(func() pb.VaultWorkflows {
+		return NewWorkflows()
+	}),
 )
 
 // RegisterActivities registers vault activities with the worker
 func RegisterActivities(w worker.Worker, activities pb.VaultActivities) {
 	pb.RegisterVaultActivities(w, activities)
+}
+
+// RegisterWorkflows registers vault workflows with the worker
+func RegisterWorkflows(w worker.Worker, workflows pb.VaultWorkflows) {
+	pb.RegisterVaultWorkflows(w, workflows)
 }

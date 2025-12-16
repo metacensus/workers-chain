@@ -9,16 +9,31 @@ package vaultv1
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	helpers "github.com/cludden/protoc-gen-go-temporal/pkg/helpers"
+	enumsv1 "go.temporal.io/api/enums/v1"
 	activity "go.temporal.io/sdk/activity"
+	client "go.temporal.io/sdk/client"
 	converter "go.temporal.io/sdk/converter"
 	temporal "go.temporal.io/sdk/temporal"
+	testsuite "go.temporal.io/sdk/testsuite"
 	worker "go.temporal.io/sdk/worker"
 	workflow "go.temporal.io/sdk/workflow"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	"log/slog"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
 // VaultTaskQueue is the default task-queue for a vault.v1.Vault worker
 var VaultTaskQueue = "infra"
+
+// vault.v1.Vault workflow names
+const (
+	CreateAccessWorkflowName = "vault.v1.CreateAccess"
+)
 
 // vault.v1.Vault activity names
 const (
@@ -30,6 +45,611 @@ const (
 	FetchSecretActivityName    = "vault.v1.FetchSecret"
 	StoreSecretActivityName    = "vault.v1.StoreSecret"
 )
+
+// VaultClient describes a client for a(n) vault.v1.Vault worker
+type VaultClient interface {
+	// Access Management
+	CreateAccess(ctx context.Context, req *CreateAccessInput, opts ...*CreateAccessOptions) (*CreateAccessOutput, error)
+
+	// CreateAccessAsync starts a(n) vault.v1.CreateAccess workflow and returns a handle to the workflow run
+	CreateAccessAsync(ctx context.Context, req *CreateAccessInput, opts ...*CreateAccessOptions) (CreateAccessRun, error)
+
+	// GetCreateAccess retrieves a handle to an existing vault.v1.CreateAccess workflow execution
+	GetCreateAccess(ctx context.Context, workflowID string, runID string) CreateAccessRun
+
+	// CancelWorkflow requests cancellation of an existing workflow execution
+	CancelWorkflow(ctx context.Context, workflowID string, runID string) error
+
+	// TerminateWorkflow an existing workflow execution
+	TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error
+}
+
+// vaultClient implements a temporal client for a vault.v1.Vault service
+type vaultClient struct {
+	client client.Client
+	log    *slog.Logger
+}
+
+// NewVaultClient initializes a new vault.v1.Vault client
+func NewVaultClient(c client.Client, options ...*vaultClientOptions) VaultClient {
+	var cfg *vaultClientOptions
+	if len(options) > 0 {
+		cfg = options[0]
+	} else {
+		cfg = NewVaultClientOptions()
+	}
+	return &vaultClient{
+		client: c,
+		log:    cfg.getLogger(),
+	}
+}
+
+// NewVaultClientWithOptions initializes a new Vault client with the given options
+func NewVaultClientWithOptions(c client.Client, opts client.Options, options ...*vaultClientOptions) (VaultClient, error) {
+	var err error
+	c, err = client.NewClientFromExisting(c, opts)
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client with options: %w", err)
+	}
+	var cfg *vaultClientOptions
+	if len(options) > 0 {
+		cfg = options[0]
+	} else {
+		cfg = NewVaultClientOptions()
+	}
+	return &vaultClient{
+		client: c,
+		log:    cfg.getLogger(),
+	}, nil
+}
+
+// vaultClientOptions describes optional runtime configuration for a VaultClient
+type vaultClientOptions struct {
+	log *slog.Logger
+}
+
+// NewVaultClientOptions initializes a new vaultClientOptions value
+func NewVaultClientOptions() *vaultClientOptions {
+	return &vaultClientOptions{}
+}
+
+// WithLogger can be used to override the default logger
+func (opts *vaultClientOptions) WithLogger(l *slog.Logger) *vaultClientOptions {
+	if l != nil {
+		opts.log = l
+	}
+	return opts
+}
+
+// getLogger returns the configured logger, or the default logger
+func (opts *vaultClientOptions) getLogger() *slog.Logger {
+	if opts != nil && opts.log != nil {
+		return opts.log
+	}
+	return slog.Default()
+}
+
+// Access Management
+func (c *vaultClient) CreateAccess(ctx context.Context, req *CreateAccessInput, options ...*CreateAccessOptions) (*CreateAccessOutput, error) {
+	run, err := c.CreateAccessAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// Access Management
+func (c *vaultClient) CreateAccessAsync(ctx context.Context, req *CreateAccessInput, options ...*CreateAccessOptions) (CreateAccessRun, error) {
+	var o *CreateAccessOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateAccessOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, CreateAccessWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &createAccessRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetCreateAccess fetches an existing vault.v1.CreateAccess execution
+func (c *vaultClient) GetCreateAccess(ctx context.Context, workflowID string, runID string) CreateAccessRun {
+	return &createAccessRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// CancelWorkflow requests cancellation of an existing workflow execution
+func (c *vaultClient) CancelWorkflow(ctx context.Context, workflowID string, runID string) error {
+	return c.client.CancelWorkflow(ctx, workflowID, runID)
+}
+
+// TerminateWorkflow terminates an existing workflow execution
+func (c *vaultClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
+	return c.client.TerminateWorkflow(ctx, workflowID, runID, reason, details...)
+}
+
+// CreateAccessOptions provides configuration for a vault.v1.CreateAccess workflow operation
+type CreateAccessOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewCreateAccessOptions initializes a new CreateAccessOptions value
+func NewCreateAccessOptions() *CreateAccessOptions {
+	return &CreateAccessOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *CreateAccessOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = VaultTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *CreateAccessOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *CreateAccessOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *CreateAccessOptions) WithExecutionTimeout(d time.Duration) *CreateAccessOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *CreateAccessOptions) WithID(id string) *CreateAccessOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *CreateAccessOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *CreateAccessOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CreateAccessOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateAccessOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *CreateAccessOptions) WithRunTimeout(d time.Duration) *CreateAccessOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *CreateAccessOptions) WithSearchAttributes(sa map[string]any) *CreateAccessOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *CreateAccessOptions) WithTaskTimeout(d time.Duration) *CreateAccessOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *CreateAccessOptions) WithTaskQueue(tq string) *CreateAccessOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *CreateAccessOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *CreateAccessOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// CreateAccessRun describes a(n) vault.v1.CreateAccess workflow run
+type CreateAccessRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*CreateAccessOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// createAccessRun provides an internal implementation of a(n) CreateAccessRunRun
+type createAccessRun struct {
+	client *vaultClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *createAccessRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *createAccessRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *createAccessRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *createAccessRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *createAccessRun) Get(ctx context.Context) (*CreateAccessOutput, error) {
+	var resp CreateAccessOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *createAccessRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+// Reference to generated workflow functions
+var (
+	// vaultRegistrationMutex is a mutex for registering vault.v1.Vault workflows
+	vaultRegistrationMutex sync.Mutex
+	// Access Management
+	CreateAccessFunction func(workflow.Context, *CreateAccessInput) (*CreateAccessOutput, error)
+)
+
+// VaultWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
+type (
+	// VaultWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
+	VaultWorkflowFunctions interface {
+		// Access Management
+		CreateAccess(workflow.Context, *CreateAccessInput) (*CreateAccessOutput, error)
+	}
+	// vaultWorkflowFunctions provides an internal VaultWorkflowFunctions implementation
+	vaultWorkflowFunctions struct{}
+)
+
+func NewVaultWorkflowFunctions() VaultWorkflowFunctions {
+	return &vaultWorkflowFunctions{}
+}
+
+// Access Management
+func (f *vaultWorkflowFunctions) CreateAccess(ctx workflow.Context, req *CreateAccessInput) (*CreateAccessOutput, error) {
+	if CreateAccessFunction == nil {
+		return nil, errors.New("CreateAccess requires workflow registration via RegisterVaultWorkflows or RegisterCreateAccessWorkflow")
+	}
+	return CreateAccessFunction(ctx, req)
+}
+
+// VaultWorkflows provides methods for initializing new vault.v1.Vault workflow values
+type VaultWorkflows interface {
+	// Access Management
+	CreateAccess(ctx workflow.Context, input *CreateAccessWorkflowInput) (CreateAccessWorkflow, error)
+}
+
+// RegisterVaultWorkflows registers vault.v1.Vault workflows with the given worker
+func RegisterVaultWorkflows(r worker.WorkflowRegistry, workflows VaultWorkflows) {
+	RegisterCreateAccessWorkflow(r, workflows.CreateAccess)
+}
+
+// RegisterCreateAccessWorkflow registers a vault.v1.Vault.CreateAccess workflow with the given worker
+func RegisterCreateAccessWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *CreateAccessWorkflowInput) (CreateAccessWorkflow, error)) {
+	vaultRegistrationMutex.Lock()
+	defer vaultRegistrationMutex.Unlock()
+	CreateAccessFunction = buildCreateAccess(wf)
+	r.RegisterWorkflowWithOptions(CreateAccessFunction, workflow.RegisterOptions{Name: CreateAccessWorkflowName})
+}
+
+// buildCreateAccess converts a CreateAccess workflow struct into a valid workflow function
+func buildCreateAccess(ctor func(workflow.Context, *CreateAccessWorkflowInput) (CreateAccessWorkflow, error)) func(workflow.Context, *CreateAccessInput) (*CreateAccessOutput, error) {
+	return func(ctx workflow.Context, req *CreateAccessInput) (*CreateAccessOutput, error) {
+		input := &CreateAccessWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// CreateAccessWorkflowInput describes the input to a(n) vault.v1.CreateAccess workflow constructor
+type CreateAccessWorkflowInput struct {
+	Req *CreateAccessInput
+}
+
+// Access Management
+//
+// workflow details: (name: "vault.v1.CreateAccess")
+type CreateAccessWorkflow interface {
+	// Execute defines the entrypoint to a(n) vault.v1.CreateAccess workflow
+	Execute(ctx workflow.Context) (*CreateAccessOutput, error)
+}
+
+// Access Management
+func CreateAccessChild(ctx workflow.Context, req *CreateAccessInput, options ...*CreateAccessChildOptions) (*CreateAccessOutput, error) {
+	childRun, err := CreateAccessChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// Access Management
+func CreateAccessChildAsync(ctx workflow.Context, req *CreateAccessInput, options ...*CreateAccessChildOptions) (*CreateAccessChildRun, error) {
+	var o *CreateAccessChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateAccessChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &CreateAccessChildRun{Future: workflow.ExecuteChildWorkflow(ctx, CreateAccessWorkflowName, req)}, nil
+}
+
+// CreateAccessChildOptions provides configuration for a child vault.v1.CreateAccess workflow operation
+type CreateAccessChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewCreateAccessChildOptions initializes a new CreateAccessChildOptions value
+func NewCreateAccessChildOptions() *CreateAccessChildOptions {
+	return &CreateAccessChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *CreateAccessChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = VaultTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	} else if opts.ParentClosePolicy == enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = enumsv1.PARENT_CLOSE_POLICY_REQUEST_CANCEL
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *CreateAccessChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *CreateAccessChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *CreateAccessChildOptions) WithDataConverter(dc converter.DataConverter) *CreateAccessChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *CreateAccessChildOptions) WithExecutionTimeout(d time.Duration) *CreateAccessChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *CreateAccessChildOptions) WithID(id string) *CreateAccessChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *CreateAccessChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *CreateAccessChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *CreateAccessChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *CreateAccessChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CreateAccessChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateAccessChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *CreateAccessChildOptions) WithRunTimeout(d time.Duration) *CreateAccessChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *CreateAccessChildOptions) WithSearchAttributes(sa map[string]any) *CreateAccessChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *CreateAccessChildOptions) WithTaskTimeout(d time.Duration) *CreateAccessChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *CreateAccessChildOptions) WithTaskQueue(tq string) *CreateAccessChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *CreateAccessChildOptions) WithWaitForCancellation(wait bool) *CreateAccessChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *CreateAccessChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *CreateAccessChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// CreateAccessChildRun describes a child CreateAccess workflow run
+type CreateAccessChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *CreateAccessChildRun) Get(ctx workflow.Context) (*CreateAccessOutput, error) {
+	var resp CreateAccessOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *CreateAccessChildRun) Select(sel workflow.Selector, fn func(*CreateAccessChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *CreateAccessChildRun) SelectStart(sel workflow.Selector, fn func(*CreateAccessChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *CreateAccessChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
 
 // VaultActivities describes available worker activities
 type VaultActivities interface {
@@ -1884,4 +2504,121 @@ func (o *StoreSecretLocalActivityOptions) WithScheduleToCloseTimeout(d time.Dura
 func (o *StoreSecretLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *StoreSecretLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
+}
+
+// TestClient provides a testsuite-compatible Client
+type TestVaultClient struct {
+	env       *testsuite.TestWorkflowEnvironment
+	workflows VaultWorkflows
+}
+
+var _ VaultClient = &TestVaultClient{}
+
+// NewTestVaultClient initializes a new TestVaultClient value
+func NewTestVaultClient(env *testsuite.TestWorkflowEnvironment, workflows VaultWorkflows, activities VaultActivities) *TestVaultClient {
+	if workflows != nil {
+		RegisterVaultWorkflows(env, workflows)
+	}
+	if activities != nil {
+		RegisterVaultActivities(env, activities)
+	}
+	return &TestVaultClient{env, workflows}
+}
+
+// CreateAccess executes a(n) vault.v1.CreateAccess workflow in the test environment
+func (c *TestVaultClient) CreateAccess(ctx context.Context, req *CreateAccessInput, opts ...*CreateAccessOptions) (*CreateAccessOutput, error) {
+	run, err := c.CreateAccessAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// CreateAccessAsync executes a(n) vault.v1.CreateAccess workflow in the test environment
+func (c *TestVaultClient) CreateAccessAsync(ctx context.Context, req *CreateAccessInput, options ...*CreateAccessOptions) (CreateAccessRun, error) {
+	var o *CreateAccessOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateAccessOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testCreateAccessRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetCreateAccess is a noop
+func (c *TestVaultClient) GetCreateAccess(ctx context.Context, workflowID string, runID string) CreateAccessRun {
+	return &testCreateAccessRun{env: c.env, workflows: c.workflows}
+}
+
+// CancelWorkflow requests cancellation of an existing workflow execution
+func (c *TestVaultClient) CancelWorkflow(ctx context.Context, workflowID string, runID string) error {
+	c.env.CancelWorkflow()
+	return nil
+}
+
+// TerminateWorkflow terminates an existing workflow execution
+func (c *TestVaultClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
+	return c.CancelWorkflow(ctx, workflowID, runID)
+}
+
+var _ CreateAccessRun = &testCreateAccessRun{}
+
+// testCreateAccessRun provides convenience methods for interacting with a(n) vault.v1.CreateAccess workflow in the test environment
+type testCreateAccessRun struct {
+	client    *TestVaultClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *CreateAccessInput
+	workflows VaultWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testCreateAccessRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test vault.v1.CreateAccess workflow result
+func (r *testCreateAccessRun) Get(context.Context) (*CreateAccessOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(CreateAccessWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result CreateAccessOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test vault.v1.CreateAccess workflow run's workflow ID
+func (r *testCreateAccessRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testCreateAccessRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testCreateAccessRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testCreateAccessRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }

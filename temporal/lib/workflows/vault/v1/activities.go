@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	"go.temporal.io/sdk/activity"
@@ -36,6 +37,78 @@ func buildPolicyPath(policyName string) string {
 	return fmt.Sprintf("%s/%s", sysPoliciesACLPath, policyName)
 }
 
+// policyDocumentToHCL converts a structured PolicyDocument with rules and capabilities
+// into Vault HCL policy format suitable for the Vault API.
+//
+// Example output:
+//
+//	path "secret/data/fabric/*" {
+//	  capabilities = ["read", "list"]
+//	}
+//	path "auth/kubernetes/login" {
+//	  capabilities = ["create"]
+//	}
+func policyDocumentToHCL(doc *pb.PolicyDocument) (string, error) {
+	if doc == nil {
+		return "", errors.New("policy document is nil")
+	}
+	if len(doc.Rules) == 0 {
+		return "", errors.New("policy document must contain at least one rule")
+	}
+
+	// Map proto enum name to lowercase capability name (e.g., "CAPABILITY_READ" -> "read")
+	capabilityToVaultName := func(cap pb.Capability) (string, error) {
+		if cap == pb.Capability_CAPABILITY_UNSPECIFIED {
+			return "", errors.New("capability cannot be unspecified")
+		}
+		// Use generated proto name map, then lowercase and trim prefix
+		protoName, ok := pb.Capability_name[int32(cap)]
+		if !ok {
+			return "", fmt.Errorf("unknown capability: %d", cap)
+		}
+		// "CAPABILITY_READ" -> "read"
+		vaultName := strings.ToLower(strings.TrimPrefix(protoName, "CAPABILITY_"))
+		return vaultName, nil
+	}
+
+	var hcl strings.Builder
+
+	for i, rule := range doc.Rules {
+		if rule.Path == "" {
+			return "", fmt.Errorf("rule %d: path cannot be empty", i)
+		}
+		if len(rule.Capabilities) == 0 {
+			return "", fmt.Errorf("rule %d (%s): must have at least one capability", i, rule.Path)
+		}
+
+		// Write path block
+		hcl.WriteString(fmt.Sprintf(`path "%s" {`, rule.Path))
+		hcl.WriteString("\n")
+
+		// Write capabilities array
+		hcl.WriteString("  capabilities = [")
+		for j, cap := range rule.Capabilities {
+			vaultName, err := capabilityToVaultName(cap)
+			if err != nil {
+				return "", fmt.Errorf("rule %d (%s): %w", i, rule.Path, err)
+			}
+			hcl.WriteString(fmt.Sprintf(`"%s"`, vaultName))
+			if j < len(rule.Capabilities)-1 {
+				hcl.WriteString(", ")
+			}
+		}
+		hcl.WriteString("]\n")
+		hcl.WriteString("}\n")
+
+		// Add blank line between rules (except after last rule)
+		if i < len(doc.Rules)-1 {
+			hcl.WriteString("\n")
+		}
+	}
+
+	return hcl.String(), nil
+}
+
 // Activities implements the VaultActivities interface from generated code
 type Activities struct {
 	client VaultClient
@@ -56,6 +129,20 @@ func (a *Activities) CreateAuthRole(ctx context.Context, req *pb.CreateAuthRoleI
 		"service_account", req.ServiceAccountName,
 		"namespace", req.KubernetesNamespace,
 		"policies", req.PolicyNames)
+
+	// Validate required fields
+	if req.Organization == "" {
+		return nil, errors.New("organization cannot be empty")
+	}
+	if req.ServiceAccountName == "" {
+		return nil, errors.New("service account name cannot be empty")
+	}
+	if req.KubernetesNamespace == "" {
+		return nil, errors.New("kubernetes namespace cannot be empty")
+	}
+	if len(req.PolicyNames) == 0 {
+		return nil, errors.New("policy names list cannot be empty")
+	}
 
 	roleName := fmt.Sprintf("fabric-%s", req.Organization)
 	path := buildAuthRolePath(roleName)
@@ -83,6 +170,10 @@ func (a *Activities) DeleteAuthRole(ctx context.Context, req *pb.DeleteAuthRoleI
 	logger := activity.GetLogger(ctx)
 	logger.Info("Deleting auth role", "role_name", req.Name)
 
+	if req.Name == "" {
+		return nil, errors.New("role name cannot be empty")
+	}
+
 	path := buildAuthRolePath(req.Name)
 
 	if err := a.client.Delete(ctx, path); err != nil {
@@ -99,11 +190,22 @@ func (a *Activities) CreatePolicy(ctx context.Context, req *pb.CreatePolicyInput
 	logger := activity.GetLogger(ctx)
 	logger.Info("Creating policy", "policy_name", req.Name)
 
+	if req.Name == "" {
+		return nil, errors.New("policy name cannot be empty")
+	}
+
+	// Convert structured PolicyDocument to HCL format
+	hcl, err := policyDocumentToHCL(req.Document)
+	if err != nil {
+		logger.Error("Failed to convert policy document to HCL", "error", err)
+		return nil, fmt.Errorf("create policy: %w", err)
+	}
+
 	path := buildPolicyPath(req.Name)
 
 	// Prepare request body for Vault policy
 	body := map[string]any{
-		vaultFieldPolicy: req.Document,
+		vaultFieldPolicy: hcl,
 	}
 
 	if err := a.client.Write(ctx, path, body); err != nil {
@@ -121,6 +223,10 @@ func (a *Activities) CreatePolicy(ctx context.Context, req *pb.CreatePolicyInput
 func (a *Activities) DeletePolicy(ctx context.Context, req *pb.DeletePolicyInput) (*pb.DeletePolicyOutput, error) {
 	logger := activity.GetLogger(ctx)
 	logger.Info("Deleting policy", "policy_name", req.Name)
+
+	if req.Name == "" {
+		return nil, errors.New("policy name cannot be empty")
+	}
 
 	path := buildPolicyPath(req.Name)
 

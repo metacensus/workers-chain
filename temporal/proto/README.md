@@ -172,6 +172,8 @@
 - [vault.v1](#vault-v1)
   - Services
     - [vault.v1.Vault](#vault-v1-vault)
+      - [Workflows](#vault-v1-vault-workflows)
+        - [vault.v1.CreateAccess](#vault-v1-createaccess-workflow)
       - [Activities](#vault-v1-vault-activities)
         - [vault.v1.CreateAuthRole](#vault-v1-createauthrole-activity)
         - [vault.v1.DeleteAuthRole](#vault-v1-deleteauthrole-activity)
@@ -181,6 +183,9 @@
         - [vault.v1.FetchSecret](#vault-v1-fetchsecret-activity)
         - [vault.v1.DeleteSecret](#vault-v1-deletesecret-activity)
   - Messages
+    - [vault.v1.Capability](#vault-v1-capability)
+    - [vault.v1.CreateAccessInput](#vault-v1-createaccessinput)
+    - [vault.v1.CreateAccessOutput](#vault-v1-createaccessoutput)
     - [vault.v1.CreateAuthRoleInput](#vault-v1-createauthroleinput)
     - [vault.v1.CreateAuthRoleOutput](#vault-v1-createauthroleoutput)
     - [vault.v1.CreatePolicyInput](#vault-v1-createpolicyinput)
@@ -194,6 +199,8 @@
     - [vault.v1.FetchSecretInput](#vault-v1-fetchsecretinput)
     - [vault.v1.FetchSecretOutput](#vault-v1-fetchsecretoutput)
     - [vault.v1.FetchSecretOutput.DataEntry](#vault-v1-fetchsecretoutput-dataentry)
+    - [vault.v1.PolicyDocument](#vault-v1-policydocument)
+    - [vault.v1.PolicyRule](#vault-v1-policyrule)
     - [vault.v1.SecretRef](#vault-v1-secretref)
     - [vault.v1.StoreSecretInput](#vault-v1-storesecretinput)
     - [vault.v1.StoreSecretInput.DataEntry](#vault-v1-storesecretinput-dataentry)
@@ -6717,7 +6724,116 @@ go_name: Endpoint</pre></td>
 
 <pre>
 Vault service defines activities related to secret and auth management
-</pre>   
+</pre>
+
+<a name="vault-v1-vault-workflows"></a>
+### Workflows
+
+---
+<a name="vault-v1-createaccess-workflow"></a>
+### vault.v1.CreateAccess
+
+<pre>
+Access Management
+</pre>
+
+**Input:** [vault.v1.CreateAccessInput](#vault-v1-createaccessinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>additional_policy_names</td>
+<td>string</td>
+<td><pre>
+additional_policy_names is an optional list of additional Vault policy names to bind
+The policy created by this workflow (policy_name) will automatically be included<br>
+
+json_name: additionalPolicyNames
+go_name: AdditionalPolicyNames</pre></td>
+</tr><tr>
+<td>kubernetes_namespace</td>
+<td>string</td>
+<td><pre>
+kubernetes_namespace is the Kubernetes namespace where the service account exists<br>
+
+json_name: kubernetesNamespace
+go_name: KubernetesNamespace</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+Auth role configuration
+organization is the organization name (e.g., "metacensus", "acme-corp")<br>
+
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>policy_document</td>
+<td><a href="#vault-v1-policydocument">vault.v1.PolicyDocument</a></td>
+<td><pre>
+document is the structured policy content<br>
+
+json_name: policyDocument
+go_name: PolicyDocument</pre></td>
+</tr><tr>
+<td>policy_name</td>
+<td>string</td>
+<td><pre>
+Policy configuration
+name is the name of the policy to create (e.g., "fabric-foundational")<br>
+
+json_name: policyName
+go_name: PolicyName</pre></td>
+</tr><tr>
+<td>service_account_name</td>
+<td>string</td>
+<td><pre>
+service_account_name is the Kubernetes service account that can authenticate
+(e.g., "fabric-org-sa")<br>
+
+json_name: serviceAccountName
+go_name: ServiceAccountName</pre></td>
+</tr>
+</table>
+
+**Output:** [vault.v1.CreateAccessOutput](#vault-v1-createaccessoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>auth_role_name</td>
+<td>string</td>
+<td><pre>
+auth_role_name is the name of the created Kubernetes auth role<br>
+
+json_name: authRoleName
+go_name: AuthRoleName</pre></td>
+</tr><tr>
+<td>policy_name</td>
+<td>string</td>
+<td><pre>
+policy_name is the name of the created policy<br>
+
+json_name: policyName
+go_name: PolicyName</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
+</table>    
 
 <a name="vault-v1-vault-activities"></a>
 ### Activities
@@ -6841,9 +6957,9 @@ Policy Management
 </tr>
 <tr>
 <td>document</td>
-<td>string</td>
+<td><a href="#vault-v1-policydocument">vault.v1.PolicyDocument</a></td>
 <td><pre>
-document is the HCL policy content<br>
+document contains the structured policy rules<br>
 
 json_name: document
 go_name: Document</pre></td>
@@ -7036,6 +7152,155 @@ go_name: Path</pre></td>
 <a name="vault-v1-messages"></a>
 ## Messages
 
+<a name="vault-v1-capability"></a>
+### vault.v1.Capability
+
+<pre>
+Capability enum for Vault policy permissions
+</pre>
+
+<table>
+<tr><th>Value</th><th>Description</th></tr>
+<tr>
+<td>CAPABILITY_UNSPECIFIED</td>
+<td></td>
+</tr><tr>
+<td>CAPABILITY_CREATE</td>
+<td></td>
+</tr><tr>
+<td>CAPABILITY_READ</td>
+<td></td>
+</tr><tr>
+<td>CAPABILITY_UPDATE</td>
+<td></td>
+</tr><tr>
+<td>CAPABILITY_PATCH</td>
+<td></td>
+</tr><tr>
+<td>CAPABILITY_DELETE</td>
+<td></td>
+</tr><tr>
+<td>CAPABILITY_LIST</td>
+<td></td>
+</tr><tr>
+<td>CAPABILITY_SUDO</td>
+<td></td>
+</tr><tr>
+<td>CAPABILITY_DENY</td>
+<td></td>
+</tr><tr>
+<td>CAPABILITY_SUBSCRIBE</td>
+<td></td>
+</tr><tr>
+<td>CAPABILITY_RECOVER</td>
+<td></td>
+</tr>
+</table>
+
+<a name="vault-v1-createaccessinput"></a>
+### vault.v1.CreateAccessInput
+
+<pre>
+CreateAccessInput specifies parameters for creating both a policy and auth role
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>additional_policy_names</td>
+<td>string</td>
+<td><pre>
+additional_policy_names is an optional list of additional Vault policy names to bind
+The policy created by this workflow (policy_name) will automatically be included<br>
+
+json_name: additionalPolicyNames
+go_name: AdditionalPolicyNames</pre></td>
+</tr><tr>
+<td>kubernetes_namespace</td>
+<td>string</td>
+<td><pre>
+kubernetes_namespace is the Kubernetes namespace where the service account exists<br>
+
+json_name: kubernetesNamespace
+go_name: KubernetesNamespace</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+Auth role configuration
+organization is the organization name (e.g., "metacensus", "acme-corp")<br>
+
+json_name: organization
+go_name: Organization</pre></td>
+</tr><tr>
+<td>policy_document</td>
+<td><a href="#vault-v1-policydocument">vault.v1.PolicyDocument</a></td>
+<td><pre>
+document is the structured policy content<br>
+
+json_name: policyDocument
+go_name: PolicyDocument</pre></td>
+</tr><tr>
+<td>policy_name</td>
+<td>string</td>
+<td><pre>
+Policy configuration
+name is the name of the policy to create (e.g., "fabric-foundational")<br>
+
+json_name: policyName
+go_name: PolicyName</pre></td>
+</tr><tr>
+<td>service_account_name</td>
+<td>string</td>
+<td><pre>
+service_account_name is the Kubernetes service account that can authenticate
+(e.g., "fabric-org-sa")<br>
+
+json_name: serviceAccountName
+go_name: ServiceAccountName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="vault-v1-createaccessoutput"></a>
+### vault.v1.CreateAccessOutput
+
+<pre>
+CreateAccessOutput returns the created policy and auth role names
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>auth_role_name</td>
+<td>string</td>
+<td><pre>
+auth_role_name is the name of the created Kubernetes auth role<br>
+
+json_name: authRoleName
+go_name: AuthRoleName</pre></td>
+</tr><tr>
+<td>policy_name</td>
+<td>string</td>
+<td><pre>
+policy_name is the name of the created policy<br>
+
+json_name: policyName
+go_name: PolicyName</pre></td>
+</tr>
+</table>
+
+
+
 <a name="vault-v1-createauthroleinput"></a>
 ### vault.v1.CreateAuthRoleInput
 
@@ -7129,9 +7394,9 @@ CreatePolicyInput specifies parameters for creating a Vault policy
 </tr>
 <tr>
 <td>document</td>
-<td>string</td>
+<td><a href="#vault-v1-policydocument">vault.v1.PolicyDocument</a></td>
 <td><pre>
-document is the HCL policy content<br>
+document contains the structured policy rules<br>
 
 json_name: document
 go_name: Document</pre></td>
@@ -7358,6 +7623,66 @@ go_name: Key</pre></td>
 <td><pre>
 json_name: value
 go_name: Value</pre></td>
+</tr>
+</table>
+
+
+
+<a name="vault-v1-policydocument"></a>
+### vault.v1.PolicyDocument
+
+<pre>
+PolicyDocument contains structured policy rules
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>rules</td>
+<td><a href="#vault-v1-policyrule">vault.v1.PolicyRule</a></td>
+<td><pre>
+rules is a list of path-capability mappings<br>
+
+json_name: rules
+go_name: Rules</pre></td>
+</tr>
+</table>
+
+
+
+<a name="vault-v1-policyrule"></a>
+### vault.v1.PolicyRule
+
+<pre>
+PolicyRule defines a single path and its allowed capabilities
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>capabilities</td>
+<td><a href="#vault-v1-capability">vault.v1.Capability</a></td>
+<td><pre>
+capabilities are the allowed capabilities for this path<br>
+
+json_name: capabilities
+go_name: Capabilities</pre></td>
+</tr><tr>
+<td>path</td>
+<td>string</td>
+<td><pre>
+path is the Vault path pattern (e.g., "secret/data/fabric/*")<br>
+
+json_name: path
+go_name: Path</pre></td>
 </tr>
 </table>
 
