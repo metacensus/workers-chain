@@ -31,14 +31,14 @@ var FabricDeployTaskQueue = "infra"
 
 // fabric.v1.FabricDeploy workflow names
 const (
-	CreateNamespaceWorkflowName      = "fabric.v1.CreateNamespace"
-	CreateServiceAccountWorkflowName = "fabric.v1.CreateServiceAccount"
-	CreateVaultRoleWorkflowName      = "fabric.v1.CreateVaultRole"
-	DeployCaworkflowName             = "fabric.v1.DeployCA"
-	DeployCouchDbworkflowName        = "fabric.v1.DeployCouchDB"
-	DeployOrdererWorkflowName        = "fabric.v1.DeployOrderer"
-	DeployOrgWorkflowName            = "fabric.v1.DeployOrg"
-	DeployPeerWorkflowName           = "fabric.v1.DeployPeer"
+	CreateNamespaceWorkflowName            = "fabric.v1.CreateNamespace"
+	CreateServiceAccountWorkflowName       = "fabric.v1.CreateServiceAccount"
+	CreateVaultRoleWorkflowName            = "fabric.v1.CreateVaultRole"
+	DeployCertificateAuthorityWorkflowName = "fabric.v1.DeployCertificateAuthority"
+	DeployCouchDbworkflowName              = "fabric.v1.DeployCouchDB"
+	DeployOrdererWorkflowName              = "fabric.v1.DeployOrderer"
+	DeployOrgWorkflowName                  = "fabric.v1.DeployOrg"
+	DeployPeerWorkflowName                 = "fabric.v1.DeployPeer"
 )
 
 // FabricDeployClient describes a client for a(n) fabric.v1.FabricDeploy worker
@@ -70,14 +70,14 @@ type FabricDeployClient interface {
 	// GetCreateVaultRole retrieves a handle to an existing fabric.v1.CreateVaultRole workflow execution
 	GetCreateVaultRole(ctx context.Context, workflowID string, runID string) CreateVaultRoleRun
 
-	// DeployCA deploys the Fabric CA pod to the Kubernetes cluster
-	DeployCa(ctx context.Context, req *DeployCaInput, opts ...*DeployCaoptions) (*DeployCaOutput, error)
+	// DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
+	DeployCertificateAuthority(ctx context.Context, req *DeployCaInput, opts ...*DeployCertificateAuthorityOptions) (*DeployCaOutput, error)
 
-	// DeployCaasync starts a(n) fabric.v1.DeployCA workflow and returns a handle to the workflow run
-	DeployCaasync(ctx context.Context, req *DeployCaInput, opts ...*DeployCaoptions) (DeployCarun, error)
+	// DeployCertificateAuthorityAsync starts a(n) fabric.v1.DeployCertificateAuthority workflow and returns a handle to the workflow run
+	DeployCertificateAuthorityAsync(ctx context.Context, req *DeployCaInput, opts ...*DeployCertificateAuthorityOptions) (DeployCertificateAuthorityRun, error)
 
-	// GetDeployCa retrieves a handle to an existing fabric.v1.DeployCA workflow execution
-	GetDeployCa(ctx context.Context, workflowID string, runID string) DeployCarun
+	// GetDeployCertificateAuthority retrieves a handle to an existing fabric.v1.DeployCertificateAuthority workflow execution
+	GetDeployCertificateAuthority(ctx context.Context, workflowID string, runID string) DeployCertificateAuthorityRun
 
 	// DeployCouchDB deploys a CouchDB instance for peer state storage
 	// Each peer gets its own CouchDB instance
@@ -104,7 +104,7 @@ type FabricDeployClient interface {
 	// 1. CreateNamespace
 	// 2. CreateServiceAccount
 	// 3. CreateVaultRole
-	// 4. DeployCA
+	// 4. DeployCertificateAuthority
 	// 5. CreateAffiliations (activity - for CA identity organization)
 	// 6. BootstrapAdmin (workflow - create initial admin identity)
 	// 7. For each peer_id (sequential):
@@ -329,43 +329,43 @@ func (c *fabricDeployClient) GetCreateVaultRole(ctx context.Context, workflowID 
 	}
 }
 
-// DeployCA deploys the Fabric CA pod to the Kubernetes cluster
-func (c *fabricDeployClient) DeployCa(ctx context.Context, req *DeployCaInput, options ...*DeployCaoptions) (*DeployCaOutput, error) {
-	run, err := c.DeployCaasync(ctx, req, options...)
+// DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
+func (c *fabricDeployClient) DeployCertificateAuthority(ctx context.Context, req *DeployCaInput, options ...*DeployCertificateAuthorityOptions) (*DeployCaOutput, error) {
+	run, err := c.DeployCertificateAuthorityAsync(ctx, req, options...)
 	if err != nil {
 		return nil, err
 	}
 	return run.Get(ctx)
 }
 
-// DeployCA deploys the Fabric CA pod to the Kubernetes cluster
-func (c *fabricDeployClient) DeployCaasync(ctx context.Context, req *DeployCaInput, options ...*DeployCaoptions) (DeployCarun, error) {
-	var o *DeployCaoptions
+// DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
+func (c *fabricDeployClient) DeployCertificateAuthorityAsync(ctx context.Context, req *DeployCaInput, options ...*DeployCertificateAuthorityOptions) (DeployCertificateAuthorityRun, error) {
+	var o *DeployCertificateAuthorityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
 	} else {
-		o = NewDeployCaoptions()
+		o = NewDeployCertificateAuthorityOptions()
 	}
 	opts, err := o.Build(req.ProtoReflect())
 	if err != nil {
 		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
 	}
-	run, err := c.client.ExecuteWorkflow(ctx, opts, DeployCaworkflowName, req)
+	run, err := c.client.ExecuteWorkflow(ctx, opts, DeployCertificateAuthorityWorkflowName, req)
 	if err != nil {
 		return nil, err
 	}
 	if run == nil {
 		return nil, errors.New("execute workflow returned nil run")
 	}
-	return &deployCarun{
+	return &deployCertificateAuthorityRun{
 		client: c,
 		run:    run,
 	}, nil
 }
 
-// GetDeployCa fetches an existing fabric.v1.DeployCA execution
-func (c *fabricDeployClient) GetDeployCa(ctx context.Context, workflowID string, runID string) DeployCarun {
-	return &deployCarun{
+// GetDeployCertificateAuthority fetches an existing fabric.v1.DeployCertificateAuthority execution
+func (c *fabricDeployClient) GetDeployCertificateAuthority(ctx context.Context, workflowID string, runID string) DeployCertificateAuthorityRun {
+	return &deployCertificateAuthorityRun{
 		client: c,
 		run:    c.client.GetWorkflow(ctx, workflowID, runID),
 	}
@@ -464,7 +464,7 @@ func (c *fabricDeployClient) GetDeployOrderer(ctx context.Context, workflowID st
 // 1. CreateNamespace
 // 2. CreateServiceAccount
 // 3. CreateVaultRole
-// 4. DeployCA
+// 4. DeployCertificateAuthority
 // 5. CreateAffiliations (activity - for CA identity organization)
 // 6. BootstrapAdmin (workflow - create initial admin identity)
 // 7. For each peer_id (sequential):
@@ -486,7 +486,7 @@ func (c *fabricDeployClient) DeployOrg(ctx context.Context, req *DeployOrgInput,
 // 1. CreateNamespace
 // 2. CreateServiceAccount
 // 3. CreateVaultRole
-// 4. DeployCA
+// 4. DeployCertificateAuthority
 // 5. CreateAffiliations (activity - for CA identity organization)
 // 6. BootstrapAdmin (workflow - create initial admin identity)
 // 7. For each peer_id (sequential):
@@ -1112,8 +1112,8 @@ func (r *createVaultRoleRun) Terminate(ctx context.Context, reason string, detai
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-// DeployCaoptions provides configuration for a fabric.v1.DeployCA workflow operation
-type DeployCaoptions struct {
+// DeployCertificateAuthorityOptions provides configuration for a fabric.v1.DeployCertificateAuthority workflow operation
+type DeployCertificateAuthorityOptions struct {
 	options                  client.StartWorkflowOptions
 	executionTimeout         *time.Duration
 	id                       *string
@@ -1126,13 +1126,13 @@ type DeployCaoptions struct {
 	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
 }
 
-// NewDeployCaoptions initializes a new DeployCaoptions value
-func NewDeployCaoptions() *DeployCaoptions {
-	return &DeployCaoptions{}
+// NewDeployCertificateAuthorityOptions initializes a new DeployCertificateAuthorityOptions value
+func NewDeployCertificateAuthorityOptions() *DeployCertificateAuthorityOptions {
+	return &DeployCertificateAuthorityOptions{}
 }
 
 // Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
-func (o *DeployCaoptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+func (o *DeployCertificateAuthorityOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.ID = *v
@@ -1169,67 +1169,67 @@ func (o *DeployCaoptions) Build(req protoreflect.Message) (client.StartWorkflowO
 }
 
 // WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
-func (o *DeployCaoptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *DeployCaoptions {
+func (o *DeployCertificateAuthorityOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *DeployCertificateAuthorityOptions {
 	o.options = options
 	return o
 }
 
 // WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *DeployCaoptions) WithExecutionTimeout(d time.Duration) *DeployCaoptions {
+func (o *DeployCertificateAuthorityOptions) WithExecutionTimeout(d time.Duration) *DeployCertificateAuthorityOptions {
 	o.executionTimeout = &d
 	return o
 }
 
 // WithID sets the ID value
-func (o *DeployCaoptions) WithID(id string) *DeployCaoptions {
+func (o *DeployCertificateAuthorityOptions) WithID(id string) *DeployCertificateAuthorityOptions {
 	o.id = &id
 	return o
 }
 
 // WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *DeployCaoptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployCaoptions {
+func (o *DeployCertificateAuthorityOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployCertificateAuthorityOptions {
 	o.idReusePolicy = policy
 	return o
 }
 
 // WithRetryPolicy sets the RetryPolicy value
-func (o *DeployCaoptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployCaoptions {
+func (o *DeployCertificateAuthorityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployCertificateAuthorityOptions {
 	o.retryPolicy = policy
 	return o
 }
 
 // WithRunTimeout sets the WorkflowRunTimeout value
-func (o *DeployCaoptions) WithRunTimeout(d time.Duration) *DeployCaoptions {
+func (o *DeployCertificateAuthorityOptions) WithRunTimeout(d time.Duration) *DeployCertificateAuthorityOptions {
 	o.runTimeout = &d
 	return o
 }
 
 // WithSearchAttributes sets the SearchAttributes value
-func (o *DeployCaoptions) WithSearchAttributes(sa map[string]any) *DeployCaoptions {
+func (o *DeployCertificateAuthorityOptions) WithSearchAttributes(sa map[string]any) *DeployCertificateAuthorityOptions {
 	o.searchAttributes = sa
 	return o
 }
 
 // WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *DeployCaoptions) WithTaskTimeout(d time.Duration) *DeployCaoptions {
+func (o *DeployCertificateAuthorityOptions) WithTaskTimeout(d time.Duration) *DeployCertificateAuthorityOptions {
 	o.taskTimeout = &d
 	return o
 }
 
 // WithTaskQueue sets the TaskQueue value
-func (o *DeployCaoptions) WithTaskQueue(tq string) *DeployCaoptions {
+func (o *DeployCertificateAuthorityOptions) WithTaskQueue(tq string) *DeployCertificateAuthorityOptions {
 	o.taskQueue = &tq
 	return o
 }
 
 // WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *DeployCaoptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployCaoptions {
+func (o *DeployCertificateAuthorityOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployCertificateAuthorityOptions {
 	o.workflowIdConflictPolicy = policy
 	return o
 }
 
-// DeployCarun describes a(n) fabric.v1.DeployCA workflow run
-type DeployCarun interface {
+// DeployCertificateAuthorityRun describes a(n) fabric.v1.DeployCertificateAuthority workflow run
+type DeployCertificateAuthorityRun interface {
 	// ID returns the workflow ID
 	ID() string
 
@@ -1249,34 +1249,34 @@ type DeployCarun interface {
 	Terminate(ctx context.Context, reason string, details ...interface{}) error
 }
 
-// deployCarun provides an internal implementation of a(n) DeployCarunRun
-type deployCarun struct {
+// deployCertificateAuthorityRun provides an internal implementation of a(n) DeployCertificateAuthorityRunRun
+type deployCertificateAuthorityRun struct {
 	client *fabricDeployClient
 	run    client.WorkflowRun
 }
 
 // ID returns the workflow ID
-func (r *deployCarun) ID() string {
+func (r *deployCertificateAuthorityRun) ID() string {
 	return r.run.GetID()
 }
 
 // Run returns the inner client.WorkflowRun
-func (r *deployCarun) Run() client.WorkflowRun {
+func (r *deployCertificateAuthorityRun) Run() client.WorkflowRun {
 	return r.run
 }
 
 // RunID returns the execution ID
-func (r *deployCarun) RunID() string {
+func (r *deployCertificateAuthorityRun) RunID() string {
 	return r.run.GetRunID()
 }
 
 // Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *deployCarun) Cancel(ctx context.Context) error {
+func (r *deployCertificateAuthorityRun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
 // Get blocks until the workflow is complete, returning the result if applicable
-func (r *deployCarun) Get(ctx context.Context) (*DeployCaOutput, error) {
+func (r *deployCertificateAuthorityRun) Get(ctx context.Context) (*DeployCaOutput, error) {
 	var resp DeployCaOutput
 	if err := r.run.Get(ctx, &resp); err != nil {
 		return nil, err
@@ -1285,7 +1285,7 @@ func (r *deployCarun) Get(ctx context.Context) (*DeployCaOutput, error) {
 }
 
 // Terminate terminates a workflow in execution, returning an error if applicable
-func (r *deployCarun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+func (r *deployCertificateAuthorityRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
@@ -2007,8 +2007,8 @@ var (
 	CreateServiceAccountFunction func(workflow.Context, *CreateServiceAccountInput) (*CreateServiceAccountOutput, error)
 	// CreateVaultRole creates a Vault Kubernetes auth role for the service account
 	CreateVaultRoleFunction func(workflow.Context, *CreateVaultRoleInput) (*CreateVaultRoleOutput, error)
-	// DeployCA deploys the Fabric CA pod to the Kubernetes cluster
-	DeployCafunction func(workflow.Context, *DeployCaInput) (*DeployCaOutput, error)
+	// DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
+	DeployCertificateAuthorityFunction func(workflow.Context, *DeployCaInput) (*DeployCaOutput, error)
 	// DeployCouchDB deploys a CouchDB instance for peer state storage
 	// Each peer gets its own CouchDB instance
 	DeployCouchDbfunction func(workflow.Context, *DeployCouchDbInput) (*DeployCouchDbOutput, error)
@@ -2020,7 +2020,7 @@ var (
 	// 1. CreateNamespace
 	// 2. CreateServiceAccount
 	// 3. CreateVaultRole
-	// 4. DeployCA
+	// 4. DeployCertificateAuthority
 	// 5. CreateAffiliations (activity - for CA identity organization)
 	// 6. BootstrapAdmin (workflow - create initial admin identity)
 	// 7. For each peer_id (sequential):
@@ -2045,8 +2045,8 @@ type (
 		CreateServiceAccount(workflow.Context, *CreateServiceAccountInput) (*CreateServiceAccountOutput, error)
 		// CreateVaultRole creates a Vault Kubernetes auth role for the service account
 		CreateVaultRole(workflow.Context, *CreateVaultRoleInput) (*CreateVaultRoleOutput, error)
-		// DeployCA deploys the Fabric CA pod to the Kubernetes cluster
-		DeployCa(workflow.Context, *DeployCaInput) (*DeployCaOutput, error)
+		// DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
+		DeployCertificateAuthority(workflow.Context, *DeployCaInput) (*DeployCaOutput, error)
 		// DeployCouchDB deploys a CouchDB instance for peer state storage
 		// Each peer gets its own CouchDB instance
 		DeployCouchDb(workflow.Context, *DeployCouchDbInput) (*DeployCouchDbOutput, error)
@@ -2058,7 +2058,7 @@ type (
 		// 1. CreateNamespace
 		// 2. CreateServiceAccount
 		// 3. CreateVaultRole
-		// 4. DeployCA
+		// 4. DeployCertificateAuthority
 		// 5. CreateAffiliations (activity - for CA identity organization)
 		// 6. BootstrapAdmin (workflow - create initial admin identity)
 		// 7. For each peer_id (sequential):
@@ -2104,12 +2104,12 @@ func (f *fabricDeployWorkflowFunctions) CreateVaultRole(ctx workflow.Context, re
 	return CreateVaultRoleFunction(ctx, req)
 }
 
-// DeployCA deploys the Fabric CA pod to the Kubernetes cluster
-func (f *fabricDeployWorkflowFunctions) DeployCa(ctx workflow.Context, req *DeployCaInput) (*DeployCaOutput, error) {
-	if DeployCafunction == nil {
-		return nil, errors.New("DeployCa requires workflow registration via RegisterFabricDeployWorkflows or RegisterDeployCaworkflow")
+// DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
+func (f *fabricDeployWorkflowFunctions) DeployCertificateAuthority(ctx workflow.Context, req *DeployCaInput) (*DeployCaOutput, error) {
+	if DeployCertificateAuthorityFunction == nil {
+		return nil, errors.New("DeployCertificateAuthority requires workflow registration via RegisterFabricDeployWorkflows or RegisterDeployCertificateAuthorityWorkflow")
 	}
-	return DeployCafunction(ctx, req)
+	return DeployCertificateAuthorityFunction(ctx, req)
 }
 
 // DeployCouchDB deploys a CouchDB instance for peer state storage
@@ -2135,7 +2135,7 @@ func (f *fabricDeployWorkflowFunctions) DeployOrderer(ctx workflow.Context, req 
 // 1. CreateNamespace
 // 2. CreateServiceAccount
 // 3. CreateVaultRole
-// 4. DeployCA
+// 4. DeployCertificateAuthority
 // 5. CreateAffiliations (activity - for CA identity organization)
 // 6. BootstrapAdmin (workflow - create initial admin identity)
 // 7. For each peer_id (sequential):
@@ -2171,8 +2171,8 @@ type FabricDeployWorkflows interface {
 	// CreateVaultRole creates a Vault Kubernetes auth role for the service account
 	CreateVaultRole(ctx workflow.Context, input *CreateVaultRoleWorkflowInput) (CreateVaultRoleWorkflow, error)
 
-	// DeployCA deploys the Fabric CA pod to the Kubernetes cluster
-	DeployCA(ctx workflow.Context, input *DeployCaworkflowInput) (DeployCaworkflow, error)
+	// DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
+	DeployCertificateAuthority(ctx workflow.Context, input *DeployCertificateAuthorityWorkflowInput) (DeployCertificateAuthorityWorkflow, error)
 
 	// DeployCouchDB deploys a CouchDB instance for peer state storage
 	// Each peer gets its own CouchDB instance
@@ -2187,7 +2187,7 @@ type FabricDeployWorkflows interface {
 	// 1. CreateNamespace
 	// 2. CreateServiceAccount
 	// 3. CreateVaultRole
-	// 4. DeployCA
+	// 4. DeployCertificateAuthority
 	// 5. CreateAffiliations (activity - for CA identity organization)
 	// 6. BootstrapAdmin (workflow - create initial admin identity)
 	// 7. For each peer_id (sequential):
@@ -2208,7 +2208,7 @@ func RegisterFabricDeployWorkflows(r worker.WorkflowRegistry, workflows FabricDe
 	RegisterCreateNamespaceWorkflow(r, workflows.CreateNamespace)
 	RegisterCreateServiceAccountWorkflow(r, workflows.CreateServiceAccount)
 	RegisterCreateVaultRoleWorkflow(r, workflows.CreateVaultRole)
-	RegisterDeployCaworkflow(r, workflows.DeployCA)
+	RegisterDeployCertificateAuthorityWorkflow(r, workflows.DeployCertificateAuthority)
 	RegisterDeployCouchDbworkflow(r, workflows.DeployCouchDB)
 	RegisterDeployOrdererWorkflow(r, workflows.DeployOrderer)
 	RegisterDeployOrgWorkflow(r, workflows.DeployOrg)
@@ -2968,18 +2968,18 @@ func (r *CreateVaultRoleChildRun) WaitStart(ctx workflow.Context) (*workflow.Exe
 	return &exec, nil
 }
 
-// RegisterDeployCAWorkflow registers a fabric.v1.FabricDeploy.DeployCA workflow with the given worker
-func RegisterDeployCaworkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployCaworkflowInput) (DeployCaworkflow, error)) {
+// RegisterDeployCertificateAuthorityWorkflow registers a fabric.v1.FabricDeploy.DeployCertificateAuthority workflow with the given worker
+func RegisterDeployCertificateAuthorityWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployCertificateAuthorityWorkflowInput) (DeployCertificateAuthorityWorkflow, error)) {
 	fabricDeployRegistrationMutex.Lock()
 	defer fabricDeployRegistrationMutex.Unlock()
-	DeployCafunction = buildDeployCA(wf)
-	r.RegisterWorkflowWithOptions(DeployCafunction, workflow.RegisterOptions{Name: DeployCaworkflowName})
+	DeployCertificateAuthorityFunction = buildDeployCertificateAuthority(wf)
+	r.RegisterWorkflowWithOptions(DeployCertificateAuthorityFunction, workflow.RegisterOptions{Name: DeployCertificateAuthorityWorkflowName})
 }
 
-// buildDeployCA converts a DeployCA workflow struct into a valid workflow function
-func buildDeployCA(ctor func(workflow.Context, *DeployCaworkflowInput) (DeployCaworkflow, error)) func(workflow.Context, *DeployCaInput) (*DeployCaOutput, error) {
+// buildDeployCertificateAuthority converts a DeployCertificateAuthority workflow struct into a valid workflow function
+func buildDeployCertificateAuthority(ctor func(workflow.Context, *DeployCertificateAuthorityWorkflowInput) (DeployCertificateAuthorityWorkflow, error)) func(workflow.Context, *DeployCaInput) (*DeployCaOutput, error) {
 	return func(ctx workflow.Context, req *DeployCaInput) (*DeployCaOutput, error) {
-		input := &DeployCaworkflowInput{
+		input := &DeployCertificateAuthorityWorkflowInput{
 			Req: req,
 		}
 		wf, err := ctor(ctx, input)
@@ -2995,35 +2995,35 @@ func buildDeployCA(ctor func(workflow.Context, *DeployCaworkflowInput) (DeployCa
 	}
 }
 
-// DeployCaworkflowInput describes the input to a(n) fabric.v1.DeployCA workflow constructor
-type DeployCaworkflowInput struct {
+// DeployCertificateAuthorityWorkflowInput describes the input to a(n) fabric.v1.DeployCertificateAuthority workflow constructor
+type DeployCertificateAuthorityWorkflowInput struct {
 	Req *DeployCaInput
 }
 
-// DeployCA deploys the Fabric CA pod to the Kubernetes cluster
+// DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
 //
-// workflow details: (name: "fabric.v1.DeployCA")
-type DeployCaworkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.v1.DeployCA workflow
+// workflow details: (name: "fabric.v1.DeployCertificateAuthority")
+type DeployCertificateAuthorityWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.DeployCertificateAuthority workflow
 	Execute(ctx workflow.Context) (*DeployCaOutput, error)
 }
 
-// DeployCA deploys the Fabric CA pod to the Kubernetes cluster
-func DeployCachild(ctx workflow.Context, req *DeployCaInput, options ...*DeployCachildOptions) (*DeployCaOutput, error) {
-	childRun, err := DeployCachildAsync(ctx, req, options...)
+// DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
+func DeployCertificateAuthorityChild(ctx workflow.Context, req *DeployCaInput, options ...*DeployCertificateAuthorityChildOptions) (*DeployCaOutput, error) {
+	childRun, err := DeployCertificateAuthorityChildAsync(ctx, req, options...)
 	if err != nil {
 		return nil, err
 	}
 	return childRun.Get(ctx)
 }
 
-// DeployCA deploys the Fabric CA pod to the Kubernetes cluster
-func DeployCachildAsync(ctx workflow.Context, req *DeployCaInput, options ...*DeployCachildOptions) (*DeployCachildRun, error) {
-	var o *DeployCachildOptions
+// DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
+func DeployCertificateAuthorityChildAsync(ctx workflow.Context, req *DeployCaInput, options ...*DeployCertificateAuthorityChildOptions) (*DeployCertificateAuthorityChildRun, error) {
+	var o *DeployCertificateAuthorityChildOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
 	} else {
-		o = NewDeployCachildOptions()
+		o = NewDeployCertificateAuthorityChildOptions()
 	}
 	opts, err := o.Build(ctx, req.ProtoReflect())
 	if err != nil {
@@ -3033,11 +3033,11 @@ func DeployCachildAsync(ctx workflow.Context, req *DeployCaInput, options ...*De
 	if o.dc != nil {
 		ctx = workflow.WithDataConverter(ctx, o.dc)
 	}
-	return &DeployCachildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployCaworkflowName, req)}, nil
+	return &DeployCertificateAuthorityChildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployCertificateAuthorityWorkflowName, req)}, nil
 }
 
-// DeployCachildOptions provides configuration for a child fabric.v1.DeployCA workflow operation
-type DeployCachildOptions struct {
+// DeployCertificateAuthorityChildOptions provides configuration for a child fabric.v1.DeployCertificateAuthority workflow operation
+type DeployCertificateAuthorityChildOptions struct {
 	options                  workflow.ChildWorkflowOptions
 	executionTimeout         *time.Duration
 	id                       *string
@@ -3053,13 +3053,13 @@ type DeployCachildOptions struct {
 	waitForCancellation      *bool
 }
 
-// NewDeployCachildOptions initializes a new DeployCachildOptions value
-func NewDeployCachildOptions() *DeployCachildOptions {
-	return &DeployCachildOptions{}
+// NewDeployCertificateAuthorityChildOptions initializes a new DeployCertificateAuthorityChildOptions value
+func NewDeployCertificateAuthorityChildOptions() *DeployCertificateAuthorityChildOptions {
+	return &DeployCertificateAuthorityChildOptions{}
 }
 
 // Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
-func (o *DeployCachildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+func (o *DeployCertificateAuthorityChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.WorkflowID = *v
@@ -3101,90 +3101,90 @@ func (o *DeployCachildOptions) Build(ctx workflow.Context, req protoreflect.Mess
 }
 
 // WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
-func (o *DeployCachildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *DeployCachildOptions {
+func (o *DeployCertificateAuthorityChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *DeployCertificateAuthorityChildOptions {
 	o.options = options
 	return o
 }
 
 // WithDataConverter registers a DataConverter for the child workflow
-func (o *DeployCachildOptions) WithDataConverter(dc converter.DataConverter) *DeployCachildOptions {
+func (o *DeployCertificateAuthorityChildOptions) WithDataConverter(dc converter.DataConverter) *DeployCertificateAuthorityChildOptions {
 	o.dc = dc
 	return o
 }
 
 // WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *DeployCachildOptions) WithExecutionTimeout(d time.Duration) *DeployCachildOptions {
+func (o *DeployCertificateAuthorityChildOptions) WithExecutionTimeout(d time.Duration) *DeployCertificateAuthorityChildOptions {
 	o.executionTimeout = &d
 	return o
 }
 
 // WithID sets the WorkflowID value
-func (o *DeployCachildOptions) WithID(id string) *DeployCachildOptions {
+func (o *DeployCertificateAuthorityChildOptions) WithID(id string) *DeployCertificateAuthorityChildOptions {
 	o.id = &id
 	return o
 }
 
 // WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *DeployCachildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployCachildOptions {
+func (o *DeployCertificateAuthorityChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployCertificateAuthorityChildOptions {
 	o.idReusePolicy = policy
 	return o
 }
 
 // WithParentClosePolicy sets the WorkflowIDReusePolicy value
-func (o *DeployCachildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *DeployCachildOptions {
+func (o *DeployCertificateAuthorityChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *DeployCertificateAuthorityChildOptions {
 	o.parentClosePolicy = policy
 	return o
 }
 
 // WithRetryPolicy sets the RetryPolicy value
-func (o *DeployCachildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployCachildOptions {
+func (o *DeployCertificateAuthorityChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployCertificateAuthorityChildOptions {
 	o.retryPolicy = policy
 	return o
 }
 
 // WithRunTimeout sets the WorkflowRunTimeout value
-func (o *DeployCachildOptions) WithRunTimeout(d time.Duration) *DeployCachildOptions {
+func (o *DeployCertificateAuthorityChildOptions) WithRunTimeout(d time.Duration) *DeployCertificateAuthorityChildOptions {
 	o.runTimeout = &d
 	return o
 }
 
 // WithSearchAttributes sets the SearchAttributes value
-func (o *DeployCachildOptions) WithSearchAttributes(sa map[string]any) *DeployCachildOptions {
+func (o *DeployCertificateAuthorityChildOptions) WithSearchAttributes(sa map[string]any) *DeployCertificateAuthorityChildOptions {
 	o.searchAttributes = sa
 	return o
 }
 
 // WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *DeployCachildOptions) WithTaskTimeout(d time.Duration) *DeployCachildOptions {
+func (o *DeployCertificateAuthorityChildOptions) WithTaskTimeout(d time.Duration) *DeployCertificateAuthorityChildOptions {
 	o.taskTimeout = &d
 	return o
 }
 
 // WithTaskQueue sets the TaskQueue value
-func (o *DeployCachildOptions) WithTaskQueue(tq string) *DeployCachildOptions {
+func (o *DeployCertificateAuthorityChildOptions) WithTaskQueue(tq string) *DeployCertificateAuthorityChildOptions {
 	o.taskQueue = &tq
 	return o
 }
 
 // WithWaitForCancellation sets the WaitForCancellation value
-func (o *DeployCachildOptions) WithWaitForCancellation(wait bool) *DeployCachildOptions {
+func (o *DeployCertificateAuthorityChildOptions) WithWaitForCancellation(wait bool) *DeployCertificateAuthorityChildOptions {
 	o.waitForCancellation = &wait
 	return o
 }
 
 // WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *DeployCachildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployCachildOptions {
+func (o *DeployCertificateAuthorityChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployCertificateAuthorityChildOptions {
 	o.workflowIdConflictPolicy = policy
 	return o
 }
 
-// DeployCachildRun describes a child DeployCA workflow run
-type DeployCachildRun struct {
+// DeployCertificateAuthorityChildRun describes a child DeployCertificateAuthority workflow run
+type DeployCertificateAuthorityChildRun struct {
 	Future workflow.ChildWorkflowFuture
 }
 
 // Get blocks until the workflow is completed, returning the response value
-func (r *DeployCachildRun) Get(ctx workflow.Context) (*DeployCaOutput, error) {
+func (r *DeployCertificateAuthorityChildRun) Get(ctx workflow.Context) (*DeployCaOutput, error) {
 	var resp DeployCaOutput
 	if err := r.Future.Get(ctx, &resp); err != nil {
 		return nil, err
@@ -3193,7 +3193,7 @@ func (r *DeployCachildRun) Get(ctx workflow.Context) (*DeployCaOutput, error) {
 }
 
 // Select adds this completion to the selector. Callback can be nil.
-func (r *DeployCachildRun) Select(sel workflow.Selector, fn func(*DeployCachildRun)) workflow.Selector {
+func (r *DeployCertificateAuthorityChildRun) Select(sel workflow.Selector, fn func(*DeployCertificateAuthorityChildRun)) workflow.Selector {
 	return sel.AddFuture(r.Future, func(workflow.Future) {
 		if fn != nil {
 			fn(r)
@@ -3202,7 +3202,7 @@ func (r *DeployCachildRun) Select(sel workflow.Selector, fn func(*DeployCachildR
 }
 
 // SelectStart adds waiting for start to the selector. Callback can be nil.
-func (r *DeployCachildRun) SelectStart(sel workflow.Selector, fn func(*DeployCachildRun)) workflow.Selector {
+func (r *DeployCertificateAuthorityChildRun) SelectStart(sel workflow.Selector, fn func(*DeployCertificateAuthorityChildRun)) workflow.Selector {
 	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
 		if fn != nil {
 			fn(r)
@@ -3211,7 +3211,7 @@ func (r *DeployCachildRun) SelectStart(sel workflow.Selector, fn func(*DeployCac
 }
 
 // WaitStart waits for the child workflow to start
-func (r *DeployCachildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+func (r *DeployCertificateAuthorityChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
 	var exec workflow.Execution
 	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
 		return nil, err
@@ -3764,7 +3764,7 @@ type DeployOrgWorkflowInput struct {
 // 1. CreateNamespace
 // 2. CreateServiceAccount
 // 3. CreateVaultRole
-// 4. DeployCA
+// 4. DeployCertificateAuthority
 // 5. CreateAffiliations (activity - for CA identity organization)
 // 6. BootstrapAdmin (workflow - create initial admin identity)
 // 7. For each peer_id (sequential):
@@ -3785,7 +3785,7 @@ type DeployOrgWorkflow interface {
 // 1. CreateNamespace
 // 2. CreateServiceAccount
 // 3. CreateVaultRole
-// 4. DeployCA
+// 4. DeployCertificateAuthority
 // 5. CreateAffiliations (activity - for CA identity organization)
 // 6. BootstrapAdmin (workflow - create initial admin identity)
 // 7. For each peer_id (sequential):
@@ -3807,7 +3807,7 @@ func DeployOrgChild(ctx workflow.Context, req *DeployOrgInput, options ...*Deplo
 // 1. CreateNamespace
 // 2. CreateServiceAccount
 // 3. CreateVaultRole
-// 4. DeployCA
+// 4. DeployCertificateAuthority
 // 5. CreateAffiliations (activity - for CA identity organization)
 // 6. BootstrapAdmin (workflow - create initial admin identity)
 // 7. For each peer_id (sequential):
@@ -4383,33 +4383,33 @@ func (c *TestFabricDeployClient) GetCreateVaultRole(ctx context.Context, workflo
 	return &testCreateVaultRoleRun{env: c.env, workflows: c.workflows}
 }
 
-// DeployCA executes a(n) fabric.v1.DeployCA workflow in the test environment
-func (c *TestFabricDeployClient) DeployCA(ctx context.Context, req *DeployCaInput, opts ...*DeployCaoptions) (*DeployCaOutput, error) {
-	run, err := c.DeployCaasync(ctx, req, opts...)
+// DeployCertificateAuthority executes a(n) fabric.v1.DeployCertificateAuthority workflow in the test environment
+func (c *TestFabricDeployClient) DeployCertificateAuthority(ctx context.Context, req *DeployCaInput, opts ...*DeployCertificateAuthorityOptions) (*DeployCaOutput, error) {
+	run, err := c.DeployCertificateAuthorityAsync(ctx, req, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return run.Get(ctx)
 }
 
-// DeployCAAsync executes a(n) fabric.v1.DeployCA workflow in the test environment
-func (c *TestFabricDeployClient) DeployCaasync(ctx context.Context, req *DeployCaInput, options ...*DeployCaoptions) (DeployCarun, error) {
-	var o *DeployCaoptions
+// DeployCertificateAuthorityAsync executes a(n) fabric.v1.DeployCertificateAuthority workflow in the test environment
+func (c *TestFabricDeployClient) DeployCertificateAuthorityAsync(ctx context.Context, req *DeployCaInput, options ...*DeployCertificateAuthorityOptions) (DeployCertificateAuthorityRun, error) {
+	var o *DeployCertificateAuthorityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
 	} else {
-		o = NewDeployCaoptions()
+		o = NewDeployCertificateAuthorityOptions()
 	}
 	opts, err := o.Build(req.ProtoReflect())
 	if err != nil {
 		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
 	}
-	return &testDeployCarun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+	return &testDeployCertificateAuthorityRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
 }
 
-// GetDeployCa is a noop
-func (c *TestFabricDeployClient) GetDeployCa(ctx context.Context, workflowID string, runID string) DeployCarun {
-	return &testDeployCarun{env: c.env, workflows: c.workflows}
+// GetDeployCertificateAuthority is a noop
+func (c *TestFabricDeployClient) GetDeployCertificateAuthority(ctx context.Context, workflowID string, runID string) DeployCertificateAuthorityRun {
+	return &testDeployCertificateAuthorityRun{env: c.env, workflows: c.workflows}
 }
 
 // DeployCouchDB executes a(n) fabric.v1.DeployCouchDB workflow in the test environment
@@ -4713,10 +4713,10 @@ func (r *testCreateVaultRoleRun) Terminate(ctx context.Context, reason string, d
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-var _ DeployCarun = &testDeployCarun{}
+var _ DeployCertificateAuthorityRun = &testDeployCertificateAuthorityRun{}
 
-// testDeployCarun provides convenience methods for interacting with a(n) fabric.v1.DeployCA workflow in the test environment
-type testDeployCarun struct {
+// testDeployCertificateAuthorityRun provides convenience methods for interacting with a(n) fabric.v1.DeployCertificateAuthority workflow in the test environment
+type testDeployCertificateAuthorityRun struct {
 	client    *TestFabricDeployClient
 	env       *testsuite.TestWorkflowEnvironment
 	isStarted atomic.Bool
@@ -4726,14 +4726,14 @@ type testDeployCarun struct {
 }
 
 // Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *testDeployCarun) Cancel(ctx context.Context) error {
+func (r *testDeployCertificateAuthorityRun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
-// Get retrieves a test fabric.v1.DeployCA workflow result
-func (r *testDeployCarun) Get(context.Context) (*DeployCaOutput, error) {
+// Get retrieves a test fabric.v1.DeployCertificateAuthority workflow result
+func (r *testDeployCertificateAuthorityRun) Get(context.Context) (*DeployCaOutput, error) {
 	if r.isStarted.CompareAndSwap(false, true) {
-		r.env.ExecuteWorkflow(DeployCaworkflowName, r.req)
+		r.env.ExecuteWorkflow(DeployCertificateAuthorityWorkflowName, r.req)
 	}
 	if !r.env.IsWorkflowCompleted() {
 		return nil, errors.New("workflow in progress")
@@ -4748,8 +4748,8 @@ func (r *testDeployCarun) Get(context.Context) (*DeployCaOutput, error) {
 	return &result, nil
 }
 
-// ID returns a test fabric.v1.DeployCA workflow run's workflow ID
-func (r *testDeployCarun) ID() string {
+// ID returns a test fabric.v1.DeployCertificateAuthority workflow run's workflow ID
+func (r *testDeployCertificateAuthorityRun) ID() string {
 	if r.opts != nil {
 		return r.opts.ID
 	}
@@ -4757,17 +4757,17 @@ func (r *testDeployCarun) ID() string {
 }
 
 // Run noop implementation
-func (r *testDeployCarun) Run() client.WorkflowRun {
+func (r *testDeployCertificateAuthorityRun) Run() client.WorkflowRun {
 	return nil
 }
 
 // RunID noop implementation
-func (r *testDeployCarun) RunID() string {
+func (r *testDeployCertificateAuthorityRun) RunID() string {
 	return ""
 }
 
 // Terminate terminates a workflow in execution, returning an error if applicable
-func (r *testDeployCarun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+func (r *testDeployCertificateAuthorityRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 

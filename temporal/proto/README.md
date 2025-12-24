@@ -68,7 +68,7 @@
         - [fabric.v1.CreateNamespace](#fabric-v1-createnamespace-workflow)
         - [fabric.v1.CreateServiceAccount](#fabric-v1-createserviceaccount-workflow)
         - [fabric.v1.CreateVaultRole](#fabric-v1-createvaultrole-workflow)
-        - [fabric.v1.DeployCA](#fabric-v1-deployca-workflow)
+        - [fabric.v1.DeployCertificateAuthority](#fabric-v1-deploycertificateauthority-workflow)
         - [fabric.v1.DeployCouchDB](#fabric-v1-deploycouchdb-workflow)
         - [fabric.v1.DeployPeer](#fabric-v1-deploypeer-workflow)
         - [fabric.v1.DeployOrderer](#fabric-v1-deployorderer-workflow)
@@ -3222,11 +3222,11 @@ go_name: RoleName</pre></td>
 </table>
 
 ---
-<a name="fabric-v1-deployca-workflow"></a>
-### fabric.v1.DeployCA
+<a name="fabric-v1-deploycertificateauthority-workflow"></a>
+### fabric.v1.DeployCertificateAuthority
 
 <pre>
-DeployCA deploys the Fabric CA pod to the Kubernetes cluster
+DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
 </pre>
 
 **Input:** [fabric.v1.DeployCaInput](#fabric-v1-deploycainput)
@@ -3584,7 +3584,7 @@ Execution flow:
 1. CreateNamespace
 2. CreateServiceAccount
 3. CreateVaultRole
-4. DeployCA
+4. DeployCertificateAuthority
 5. CreateAffiliations (activity - for CA identity organization)
 6. BootstrapAdmin (workflow - create initial admin identity)
 7. For each peer_id (sequential):
@@ -6746,15 +6746,6 @@ Access Management
 <th>Description</th>
 </tr>
 <tr>
-<td>additional_policy_names</td>
-<td>string</td>
-<td><pre>
-additional_policy_names is an optional list of additional Vault policy names to bind
-The policy created by this workflow (policy_name) will automatically be included<br>
-
-json_name: additionalPolicyNames
-go_name: AdditionalPolicyNames</pre></td>
-</tr><tr>
 <td>kubernetes_namespace</td>
 <td>string</td>
 <td><pre>
@@ -7211,15 +7202,6 @@ CreateAccessInput specifies parameters for creating both a policy and auth role
 <th>Description</th>
 </tr>
 <tr>
-<td>additional_policy_names</td>
-<td>string</td>
-<td><pre>
-additional_policy_names is an optional list of additional Vault policy names to bind
-The policy created by this workflow (policy_name) will automatically be included<br>
-
-json_name: additionalPolicyNames
-go_name: AdditionalPolicyNames</pre></td>
-</tr><tr>
 <td>kubernetes_namespace</td>
 <td>string</td>
 <td><pre>

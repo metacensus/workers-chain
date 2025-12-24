@@ -1197,12 +1197,12 @@ const file_fabric_v1_deploy_proto_rawDesc = "" +
 	"\fadmin_secret\x18\x03 \x01(\v2\x13.vault.v1.SecretRefR\vadminSecret\x12<\n" +
 	"\x0fca_certificates\x18\x04 \x01(\v2\x13.vault.v1.SecretRefR\x0ecaCertificates\x121\n" +
 	"\x05peers\x18\x05 \x03(\v2\x1b.fabric.v1.DeployPeerOutputR\x05peers\x12:\n" +
-	"\borderers\x18\x06 \x03(\v2\x1e.fabric.v1.DeployOrdererOutputR\borderers2\xb0\a\n" +
+	"\borderers\x18\x06 \x03(\v2\x1e.fabric.v1.DeployOrdererOutputR\borderers2\xd5\a\n" +
 	"\fFabricDeploy\x12y\n" +
 	"\x0fCreateNamespace\x12\x1f.fabric.v1.CreateNamespaceInput\x1a .fabric.v1.CreateNamespaceOutput\"#\x8a\xc4\x03\x1f0\x01@\x03r\x19fabric.v1.CreateNamespace\x12\x8d\x01\n" +
 	"\x14CreateServiceAccount\x12$.fabric.v1.CreateServiceAccountInput\x1a%.fabric.v1.CreateServiceAccountOutput\"(\x8a\xc4\x03$0\x01@\x03r\x1efabric.v1.CreateServiceAccount\x12y\n" +
-	"\x0fCreateVaultRole\x12\x1f.fabric.v1.CreateVaultRoleInput\x1a .fabric.v1.CreateVaultRoleOutput\"#\x8a\xc4\x03\x1f0\x01@\x03r\x19fabric.v1.CreateVaultRole\x12]\n" +
-	"\bDeployCA\x12\x18.fabric.v1.DeployCaInput\x1a\x19.fabric.v1.DeployCaOutput\"\x1c\x8a\xc4\x03\x180\x01@\x03r\x12fabric.v1.DeployCA\x12q\n" +
+	"\x0fCreateVaultRole\x12\x1f.fabric.v1.CreateVaultRoleInput\x1a .fabric.v1.CreateVaultRoleOutput\"#\x8a\xc4\x03\x1f0\x01@\x03r\x19fabric.v1.CreateVaultRole\x12\x81\x01\n" +
+	"\x1aDeployCertificateAuthority\x12\x18.fabric.v1.DeployCaInput\x1a\x19.fabric.v1.DeployCaOutput\".\x8a\xc4\x03*0\x01@\x03r$fabric.v1.DeployCertificateAuthority\x12q\n" +
 	"\rDeployCouchDB\x12\x1d.fabric.v1.DeployCouchDbInput\x1a\x1e.fabric.v1.DeployCouchDbOutput\"!\x8a\xc4\x03\x1d0\x01@\x03r\x17fabric.v1.DeployCouchDB\x12e\n" +
 	"\n" +
 	"DeployPeer\x12\x1a.fabric.v1.DeployPeerInput\x1a\x1b.fabric.v1.DeployPeerOutput\"\x1e\x8a\xc4\x03\x1a0\x01@\x03r\x14fabric.v1.DeployPeer\x12q\n" +
@@ -1263,7 +1263,7 @@ var file_fabric_v1_deploy_proto_depIdxs = []int32{
 	0,  // 13: fabric.v1.FabricDeploy.CreateNamespace:input_type -> fabric.v1.CreateNamespaceInput
 	2,  // 14: fabric.v1.FabricDeploy.CreateServiceAccount:input_type -> fabric.v1.CreateServiceAccountInput
 	4,  // 15: fabric.v1.FabricDeploy.CreateVaultRole:input_type -> fabric.v1.CreateVaultRoleInput
-	6,  // 16: fabric.v1.FabricDeploy.DeployCA:input_type -> fabric.v1.DeployCaInput
+	6,  // 16: fabric.v1.FabricDeploy.DeployCertificateAuthority:input_type -> fabric.v1.DeployCaInput
 	8,  // 17: fabric.v1.FabricDeploy.DeployCouchDB:input_type -> fabric.v1.DeployCouchDbInput
 	10, // 18: fabric.v1.FabricDeploy.DeployPeer:input_type -> fabric.v1.DeployPeerInput
 	12, // 19: fabric.v1.FabricDeploy.DeployOrderer:input_type -> fabric.v1.DeployOrdererInput
@@ -1271,7 +1271,7 @@ var file_fabric_v1_deploy_proto_depIdxs = []int32{
 	1,  // 21: fabric.v1.FabricDeploy.CreateNamespace:output_type -> fabric.v1.CreateNamespaceOutput
 	3,  // 22: fabric.v1.FabricDeploy.CreateServiceAccount:output_type -> fabric.v1.CreateServiceAccountOutput
 	5,  // 23: fabric.v1.FabricDeploy.CreateVaultRole:output_type -> fabric.v1.CreateVaultRoleOutput
-	7,  // 24: fabric.v1.FabricDeploy.DeployCA:output_type -> fabric.v1.DeployCaOutput
+	7,  // 24: fabric.v1.FabricDeploy.DeployCertificateAuthority:output_type -> fabric.v1.DeployCaOutput
 	9,  // 25: fabric.v1.FabricDeploy.DeployCouchDB:output_type -> fabric.v1.DeployCouchDbOutput
 	11, // 26: fabric.v1.FabricDeploy.DeployPeer:output_type -> fabric.v1.DeployPeerOutput
 	13, // 27: fabric.v1.FabricDeploy.DeployOrderer:output_type -> fabric.v1.DeployOrdererOutput

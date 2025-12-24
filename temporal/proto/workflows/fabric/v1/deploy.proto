@@ -46,10 +46,10 @@ service FabricDeploy {
     };
   }
 
-  // DeployCA deploys the Fabric CA pod to the Kubernetes cluster
-  rpc DeployCA(DeployCaInput) returns (DeployCaOutput) {
+  // DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
+  rpc DeployCertificateAuthority(DeployCaInput) returns (DeployCaOutput) {
     option (temporal.v1.workflow) = {
-      name: "fabric.v1.DeployCA"
+      name: "fabric.v1.DeployCertificateAuthority"
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
     };
@@ -94,7 +94,7 @@ service FabricDeploy {
   // 1. CreateNamespace
   // 2. CreateServiceAccount
   // 3. CreateVaultRole
-  // 4. DeployCA
+  // 4. DeployCertificateAuthority
   // 5. CreateAffiliations (activity - for CA identity organization)
   // 6. BootstrapAdmin (workflow - create initial admin identity)
   // 7. For each peer_id (sequential):

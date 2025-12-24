@@ -941,11 +941,8 @@ type CreateAccessInput struct {
 	ServiceAccountName string `protobuf:"bytes,4,opt,name=service_account_name,json=serviceAccountName,proto3" json:"service_account_name,omitempty"`
 	// kubernetes_namespace is the Kubernetes namespace where the service account exists
 	KubernetesNamespace string `protobuf:"bytes,5,opt,name=kubernetes_namespace,json=kubernetesNamespace,proto3" json:"kubernetes_namespace,omitempty"`
-	// additional_policy_names is an optional list of additional Vault policy names to bind
-	// The policy created by this workflow (policy_name) will automatically be included
-	AdditionalPolicyNames []string `protobuf:"bytes,6,rep,name=additional_policy_names,json=additionalPolicyNames,proto3" json:"additional_policy_names,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *CreateAccessInput) Reset() {
@@ -1011,13 +1008,6 @@ func (x *CreateAccessInput) GetKubernetesNamespace() string {
 		return x.KubernetesNamespace
 	}
 	return ""
-}
-
-func (x *CreateAccessInput) GetAdditionalPolicyNames() []string {
-	if x != nil {
-		return x.AdditionalPolicyNames
-	}
-	return nil
 }
 
 // CreateAccessOutput returns the created policy and auth role names
@@ -1128,15 +1118,14 @@ const file_vault_v1_vault_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\"'\n" +
 	"\x11DeleteSecretInput\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\"\x14\n" +
-	"\x12DeleteSecretOutput\"\xb8\x02\n" +
+	"\x12DeleteSecretOutput\"\x80\x02\n" +
 	"\x11CreateAccessInput\x12\x1f\n" +
 	"\vpolicy_name\x18\x01 \x01(\tR\n" +
 	"policyName\x12A\n" +
 	"\x0fpolicy_document\x18\x02 \x01(\v2\x18.vault.v1.PolicyDocumentR\x0epolicyDocument\x12\"\n" +
 	"\forganization\x18\x03 \x01(\tR\forganization\x120\n" +
 	"\x14service_account_name\x18\x04 \x01(\tR\x12serviceAccountName\x121\n" +
-	"\x14kubernetes_namespace\x18\x05 \x01(\tR\x13kubernetesNamespace\x126\n" +
-	"\x17additional_policy_names\x18\x06 \x03(\tR\x15additionalPolicyNames\"[\n" +
+	"\x14kubernetes_namespace\x18\x05 \x01(\tR\x13kubernetesNamespace\"[\n" +
 	"\x12CreateAccessOutput\x12\x1f\n" +
 	"\vpolicy_name\x18\x01 \x01(\tR\n" +
 	"policyName\x12$\n" +
