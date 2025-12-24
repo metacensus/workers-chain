@@ -11,7 +11,7 @@ RUN ls -la
 
 RUN go mod download
 
-RUN go build -o /bin/fabric-worker ./cmd/workers/fabric/main.go
+RUN go build -o /bin/fabric-worker ./temporal/cmd/workers/fabric/main.go
 
 
 # Deploy Stage
@@ -22,7 +22,7 @@ WORKDIR /
 
 COPY --from=buildstage /bin/fabric-worker /bin/fabric-worker
 # Copy Helm charts for deployment activities
-COPY --from=buildstage /src/../helm /helm
+COPY --from=buildstage /src/helm /helm
 
 ENTRYPOINT ["/bin/fabric-worker"]
 

@@ -1,38 +1,11 @@
-package workflows
+package workers
 
 import (
 	"github.com/metacensus/infra/temporal/lib/env"
-	kube "github.com/metacensus/infra/temporal/lib/workflows/kube/v1"
+	"github.com/metacensus/infra/temporal/lib/workflows/kube/v1"
 	"github.com/metacensus/infra/temporal/lib/workflows/vault/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
-	"go.uber.org/fx"
-)
-
-// Module provides all workflow infrastructure including Temporal client, worker,
-// and all workflow/activity modules
-var Module = fx.Options(
-	// Provide Temporal client from environment
-	fx.Provide(NewTemporalClient),
-
-	// Provide worker with dependencies
-	fx.Provide(NewWorker),
-
-	// Provide Vault configuration from environment
-	fx.Provide(NewVaultConfig),
-
-	// Provide Kubernetes configuration from environment
-	fx.Provide(NewKubeConfig),
-
-	// Include vault workflows and activities module
-	vault.Module,
-
-	// Include kube activities module
-	kube.Module,
-
-	// Register all workflows and activities independently
-	fx.Invoke(vault.RegisterActivities),
-	fx.Invoke(kube.RegisterActivities),
 )
 
 // NewTemporalClient creates a Temporal client from environment configuration
@@ -44,7 +17,7 @@ func NewTemporalClient() (client.Client, error) {
 
 // NewWorker creates a Temporal worker from the client and environment configuration
 func NewWorker(c client.Client) worker.Worker {
-	return worker.New(c, env.InfraTaskQueue(), worker.Options{})
+	return worker.New(c, env.TaskQueue(), worker.Options{})
 }
 
 // NewVaultConfig creates VaultConfig from environment variables

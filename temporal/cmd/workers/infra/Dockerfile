@@ -11,7 +11,7 @@ RUN ls -la
 
 RUN go mod download
 
-RUN go build -o /bin/worker ./cmd/worker/main.go
+RUN go build -o /bin/infra-worker ./temporal/cmd/workers/infra/main.go
 
 
 # Deploy Stage
@@ -20,8 +20,8 @@ FROM alpine:latest
 
 WORKDIR /
 
-COPY --from=buildstage /bin/worker /bin/worker
+COPY --from=buildstage /bin/infra-worker /bin/infra-worker
 # Copy Helm charts for deployment activities
-COPY --from=buildstage /src/../helm /helm
+COPY --from=buildstage /src/helm /helm
 
-ENTRYPOINT ["/bin/worker"]
+ENTRYPOINT ["/bin/infra-worker"]

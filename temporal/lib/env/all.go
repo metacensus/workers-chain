@@ -5,7 +5,7 @@ import "github.com/spf13/viper"
 const (
 	temporalAddressName    = "TEMPORAL_ADDRESS"
 	healthCheckAddressName = "HEALTH_CHECK_ADDRESS"
-	infraTaskQueueName     = "INFRA_TASK_QUEUE"
+	taskQueueName          = "TASK_QUEUE"
 
 	githubRepoName      = "GITHUB_REPO"
 	githubDeployKeyName = "GITHUB_DEPLOY_KEY"
@@ -43,8 +43,8 @@ func HealthCheckAddress() string {
 	return viper.GetString(healthCheckAddressName)
 }
 
-func InfraTaskQueue() string {
-	return viper.GetString(infraTaskQueueName)
+func TaskQueue() string {
+	return viper.GetString(taskQueueName)
 }
 
 func GithubRepo() string {
