@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package cluster.v1;
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/cluster/v1;clusterv1";
+
+import "temporal/v1/temporal.proto";
+
+// Cluster defines workflows for infrastructure provisioning on Kubernetes
+// These workflows orchestrate the creation and management of cluster resources
+// by composing Helm (for templating) and Kubernetes (for deployment) activities
+service Cluster {
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {
+    task_queue: "infra"
+  };
+
+  // CreateNamespace orchestrates the creation of a Kubernetes namespace
+  // This workflow combines Helm chart rendering with Kubernetes resource application
+  rpc CreateNamespace(CreateNamespaceInput) returns (CreateNamespaceOutput) {
+    // Workflow execution metadata
+    option (temporal.v1.workflow) = {
+      name: "cluster.v1.CreateNamespace"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // CreateServiceAccount orchestrates the creation of a Kubernetes service account
+  // This workflow renders a Helm chart template for service account configuration,
+  // then applies the resulting resources to the cluster
+  rpc CreateServiceAccount(CreateServiceAccountInput) returns (CreateServiceAccountOutput) {
+    // Workflow execution metadata
+    option (temporal.v1.workflow) = {
+      name: "cluster.v1.CreateServiceAccount"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // CreateDeployment orchestrates the deployment of a single resource to Kubernetes
+  // This workflow renders a Helm chart with provided values and applies it to the cluster
+  rpc CreateDeployment(CreateDeploymentInput) returns (CreateDeploymentOutput) {
+    // Workflow execution metadata
+    option (temporal.v1.workflow) = {
+      name: "cluster.v1.CreateDeployment"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+}
+
+// ==================== CreateNamespace Workflow Messages ====================
+
+message CreateNamespaceInput {}
+
+message CreateNamespaceOutput {}
+
+// ==================== CreateServiceAccount Workflow Messages ====================
+
+message CreateServiceAccountInput {}
+
+message CreateServiceAccountOutput {}
+
+// ==================== CreateDeployment Workflow Messages ====================
+
+message CreateDeploymentInput {}
+
+message CreateDeploymentOutput {}
+

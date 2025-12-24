@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package cell.v1;
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/cell/v1;cellv1";
+
+import "temporal/v1/temporal.proto";
+
+// Cell service defines the root workflow for initializing a Fabric shard (cluster/cell)
+// This is the entry point for multi-tenant infrastructure provisioning
+service Cell {
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {
+    task_queue: "infra"
+  };
+
+  // InitFabricShard orchestrates the complete initialization of a Fabric shard
+  // This root workflow executes in the central "infra" namespace and coordinates:
+  // 1. Creation of a Temporal namespace for the shard (temporal.v1.CreateNamespace)
+  // 2. Creation of a Kubernetes namespace for the shard (cluster.v1.CreateNamespace)
+  // 3. Creation of a service account for the fabric worker (cluster.v1.CreateServiceAccount)
+  // 4. Creation of Vault access policies for the shard (vault.v1.CreateAccess)
+  // 5. Deployment of the fabric worker pod (cluster.v1.CreateDeployment)
+  // 6. Registration of the Nexus endpoint for fabric.v1.BootstrapShard service
+  // 7. Cross-namespace Nexus call to BootstrapShard workflow in fabric namespace
+  //
+  // This workflow is the "hub" that orchestrates the multi-phase bootstrap process.
+  // Phase 1 (central): Sets up infrastructure prerequisites
+  // Phase 2 (fabric worker): Initiated via Nexus, deploys Fabric components (CAs, peers, orderers)
+  rpc InitFabricShard(InitFabricShardInput) returns (InitFabricShardOutput) {
+    // Workflow execution metadata
+    option (temporal.v1.workflow) = {
+      name: "cell.v1.InitFabricShard"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+}
+
+// ==================== InitFabricShard Workflow Messages ====================
+
+// InitFabricShardInput specifies the parameters for initializing a Fabric shard
+message InitFabricShardInput {
+  // TODO: Define shard configuration and bootstrap parameters as we progress
+}
+
+// InitFabricShardOutput indicates the result of shard initialization
+message InitFabricShardOutput {
+  // TODO: Define output structure as implementation progresses
+}
+

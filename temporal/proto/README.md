@@ -11,6 +11,28 @@
     - [aws.s3.v1.S3DeleteOutput](#aws-s3-v1-s3deleteoutput)
     - [aws.s3.v1.S3Object](#aws-s3-v1-s3object)
     - [aws.s3.v1.S3ObjectRef](#aws-s3-v1-s3objectref)
+- [cell.v1](#cell-v1)
+  - Services
+    - [cell.v1.Cell](#cell-v1-cell)
+      - [Workflows](#cell-v1-cell-workflows)
+        - [cell.v1.InitFabricShard](#cell-v1-initfabricshard-workflow)
+  - Messages
+    - [cell.v1.InitFabricShardInput](#cell-v1-initfabricshardinput)
+    - [cell.v1.InitFabricShardOutput](#cell-v1-initfabricshardoutput)
+- [cluster.v1](#cluster-v1)
+  - Services
+    - [cluster.v1.Cluster](#cluster-v1-cluster)
+      - [Workflows](#cluster-v1-cluster-workflows)
+        - [cluster.v1.CreateNamespace](#cluster-v1-createnamespace-workflow)
+        - [cluster.v1.CreateServiceAccount](#cluster-v1-createserviceaccount-workflow)
+        - [cluster.v1.CreateDeployment](#cluster-v1-createdeployment-workflow)
+  - Messages
+    - [cluster.v1.CreateDeploymentInput](#cluster-v1-createdeploymentinput)
+    - [cluster.v1.CreateDeploymentOutput](#cluster-v1-createdeploymentoutput)
+    - [cluster.v1.CreateNamespaceInput](#cluster-v1-createnamespaceinput)
+    - [cluster.v1.CreateNamespaceOutput](#cluster-v1-createnamespaceoutput)
+    - [cluster.v1.CreateServiceAccountInput](#cluster-v1-createserviceaccountinput)
+    - [cluster.v1.CreateServiceAccountOutput](#cluster-v1-createserviceaccountoutput)
 - [helm.v1](#helm-v1)
   - Services
     - [helm.v1.Helm](#helm-v1-helm)
@@ -568,6 +590,203 @@ json_name: key
 go_name: Key</pre></td>
 </tr>
 </table>
+
+
+
+<a name="cell-v1"></a>
+# cell.v1
+
+<a name="cell-v1-services"></a>
+## Services
+
+<a name="cell-v1-cell"></a>
+## cell.v1.Cell
+
+<pre>
+Cell service defines the root workflow for initializing a Fabric shard (cluster/cell)
+This is the entry point for multi-tenant infrastructure provisioning
+</pre>
+
+<a name="cell-v1-cell-workflows"></a>
+### Workflows
+
+---
+<a name="cell-v1-initfabricshard-workflow"></a>
+### cell.v1.InitFabricShard
+
+<pre>
+InitFabricShard orchestrates the complete initialization of a Fabric shard
+This root workflow executes in the central "infra" namespace and coordinates:
+1. Creation of a Temporal namespace for the shard (temporal.v1.CreateNamespace)
+2. Creation of a Kubernetes namespace for the shard (cluster.v1.CreateNamespace)
+3. Creation of a service account for the fabric worker (cluster.v1.CreateServiceAccount)
+4. Creation of Vault access policies for the shard (vault.v1.CreateAccess)
+5. Deployment of the fabric worker pod (cluster.v1.CreateDeployment)
+6. Registration of the Nexus endpoint for fabric.v1.BootstrapShard service
+7. Cross-namespace Nexus call to BootstrapShard workflow in fabric namespace
+
+This workflow is the "hub" that orchestrates the multi-phase bootstrap process.
+Phase 1 (central): Sets up infrastructure prerequisites
+Phase 2 (fabric worker): Initiated via Nexus, deploys Fabric components (CAs, peers, orderers)
+</pre>
+
+**Input:** [cell.v1.InitFabricShardInput](#cell-v1-initfabricshardinput)
+
+
+
+**Output:** [cell.v1.InitFabricShardOutput](#cell-v1-initfabricshardoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>     
+
+<a name="cell-v1-messages"></a>
+## Messages
+
+<a name="cell-v1-initfabricshardinput"></a>
+### cell.v1.InitFabricShardInput
+
+<pre>
+InitFabricShardInput specifies the parameters for initializing a Fabric shard
+</pre>
+
+
+
+<a name="cell-v1-initfabricshardoutput"></a>
+### cell.v1.InitFabricShardOutput
+
+<pre>
+InitFabricShardOutput indicates the result of shard initialization
+</pre>
+
+
+
+<a name="cluster-v1"></a>
+# cluster.v1
+
+<a name="cluster-v1-services"></a>
+## Services
+
+<a name="cluster-v1-cluster"></a>
+## cluster.v1.Cluster
+
+<pre>
+Cluster defines workflows for infrastructure provisioning on Kubernetes
+These workflows orchestrate the creation and management of cluster resources
+by composing Helm (for templating) and Kubernetes (for deployment) activities
+</pre>
+
+<a name="cluster-v1-cluster-workflows"></a>
+### Workflows
+
+---
+<a name="cluster-v1-createnamespace-workflow"></a>
+### cluster.v1.CreateNamespace
+
+<pre>
+CreateNamespace orchestrates the creation of a Kubernetes namespace
+This workflow combines Helm chart rendering with Kubernetes resource application
+</pre>
+
+**Input:** [cluster.v1.CreateNamespaceInput](#cluster-v1-createnamespaceinput)
+
+
+
+**Output:** [cluster.v1.CreateNamespaceOutput](#cluster-v1-createnamespaceoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="cluster-v1-createserviceaccount-workflow"></a>
+### cluster.v1.CreateServiceAccount
+
+<pre>
+CreateServiceAccount orchestrates the creation of a Kubernetes service account
+This workflow renders a Helm chart template for service account configuration,
+then applies the resulting resources to the cluster
+</pre>
+
+**Input:** [cluster.v1.CreateServiceAccountInput](#cluster-v1-createserviceaccountinput)
+
+
+
+**Output:** [cluster.v1.CreateServiceAccountOutput](#cluster-v1-createserviceaccountoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="cluster-v1-createdeployment-workflow"></a>
+### cluster.v1.CreateDeployment
+
+<pre>
+CreateDeployment orchestrates the deployment of a single resource to Kubernetes
+This workflow renders a Helm chart with provided values and applies it to the cluster
+</pre>
+
+**Input:** [cluster.v1.CreateDeploymentInput](#cluster-v1-createdeploymentinput)
+
+
+
+**Output:** [cluster.v1.CreateDeploymentOutput](#cluster-v1-createdeploymentoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>     
+
+<a name="cluster-v1-messages"></a>
+## Messages
+
+<a name="cluster-v1-createdeploymentinput"></a>
+### cluster.v1.CreateDeploymentInput
+
+
+
+<a name="cluster-v1-createdeploymentoutput"></a>
+### cluster.v1.CreateDeploymentOutput
+
+
+
+<a name="cluster-v1-createnamespaceinput"></a>
+### cluster.v1.CreateNamespaceInput
+
+
+
+<a name="cluster-v1-createnamespaceoutput"></a>
+### cluster.v1.CreateNamespaceOutput
+
+
+
+<a name="cluster-v1-createserviceaccountinput"></a>
+### cluster.v1.CreateServiceAccountInput
+
+
+
+<a name="cluster-v1-createserviceaccountoutput"></a>
+### cluster.v1.CreateServiceAccountOutput
 
 
 
