@@ -2,7 +2,6 @@ package workflows
 
 import (
 	"github.com/metacensus/infra/temporal/lib/env"
-	"github.com/metacensus/infra/temporal/lib/workflows/fabric/identity/v1"
 	kube "github.com/metacensus/infra/temporal/lib/workflows/kube/v1"
 	"github.com/metacensus/infra/temporal/lib/workflows/vault/v1"
 	"go.temporal.io/sdk/client"
@@ -22,25 +21,17 @@ var Module = fx.Options(
 	// Provide Vault configuration from environment
 	fx.Provide(NewVaultConfig),
 
-	// Provide Fabric CA configuration from environment
-	fx.Provide(NewFabricCAConfig),
-
 	// Provide Kubernetes configuration from environment
 	fx.Provide(NewKubeConfig),
 
 	// Include vault workflows and activities module
 	vault.Module,
 
-	// Include fabric identity workflows and activities module
-	identity.Module,
-
 	// Include kube activities module
 	kube.Module,
 
 	// Register all workflows and activities independently
 	fx.Invoke(vault.RegisterActivities),
-	fx.Invoke(identity.RegisterWorkflows),
-	fx.Invoke(identity.RegisterActivities),
 	fx.Invoke(kube.RegisterActivities),
 )
 
@@ -61,15 +52,6 @@ func NewVaultConfig() vault.VaultConfig {
 	return vault.VaultConfig{
 		Address: env.VaultAddress(),
 		Token:   env.VaultToken(),
-	}
-}
-
-// NewFabricCAConfig creates FabricCAConfig from environment variables
-func NewFabricCAConfig() identity.FabricCAConfig {
-	return identity.FabricCAConfig{
-		URL:     env.FabricCAURL(),
-		CAName:  env.FabricCAName(),
-		HomeDir: env.FabricCAHomeDir(),
 	}
 }
 
