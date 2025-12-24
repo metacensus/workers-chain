@@ -19,20 +19,20 @@
   - Messages
     - [cell.v1.InitFabricShardInput](#cell-v1-initfabricshardinput)
     - [cell.v1.InitFabricShardOutput](#cell-v1-initfabricshardoutput)
-- [cluster.v1](#cluster-v1)
+- [cluster.fabric.v1](#cluster-fabric-v1)
   - Services
-    - [cluster.v1.Cluster](#cluster-v1-cluster)
-      - [Workflows](#cluster-v1-cluster-workflows)
-        - [cluster.v1.CreateNamespace](#cluster-v1-createnamespace-workflow)
-        - [cluster.v1.CreateServiceAccount](#cluster-v1-createserviceaccount-workflow)
-        - [cluster.v1.CreateDeployment](#cluster-v1-createdeployment-workflow)
+    - [cluster.fabric.v1.Cluster](#cluster-fabric-v1-cluster)
+      - [Workflows](#cluster-fabric-v1-cluster-workflows)
+        - [cluster.fabric.v1.CreateNamespace](#cluster-fabric-v1-createnamespace-workflow)
+        - [cluster.fabric.v1.CreateServiceAccount](#cluster-fabric-v1-createserviceaccount-workflow)
+        - [cluster.fabric.v1.CreateDeployment](#cluster-fabric-v1-createdeployment-workflow)
   - Messages
-    - [cluster.v1.CreateDeploymentInput](#cluster-v1-createdeploymentinput)
-    - [cluster.v1.CreateDeploymentOutput](#cluster-v1-createdeploymentoutput)
-    - [cluster.v1.CreateNamespaceInput](#cluster-v1-createnamespaceinput)
-    - [cluster.v1.CreateNamespaceOutput](#cluster-v1-createnamespaceoutput)
-    - [cluster.v1.CreateServiceAccountInput](#cluster-v1-createserviceaccountinput)
-    - [cluster.v1.CreateServiceAccountOutput](#cluster-v1-createserviceaccountoutput)
+    - [cluster.fabric.v1.CreateDeploymentInput](#cluster-fabric-v1-createdeploymentinput)
+    - [cluster.fabric.v1.CreateDeploymentOutput](#cluster-fabric-v1-createdeploymentoutput)
+    - [cluster.fabric.v1.CreateNamespaceInput](#cluster-fabric-v1-createnamespaceinput)
+    - [cluster.fabric.v1.CreateNamespaceOutput](#cluster-fabric-v1-createnamespaceoutput)
+    - [cluster.fabric.v1.CreateServiceAccountInput](#cluster-fabric-v1-createserviceaccountinput)
+    - [cluster.fabric.v1.CreateServiceAccountOutput](#cluster-fabric-v1-createserviceaccountoutput)
 - [helm.v1](#helm-v1)
   - Services
     - [helm.v1.Helm](#helm-v1-helm)
@@ -632,7 +632,23 @@ Phase 2 (fabric worker): Initiated via Nexus, deploys Fabric components (CAs, pe
 
 **Input:** [cell.v1.InitFabricShardInput](#cell-v1-initfabricshardinput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the organization identifier (e.g., "org1", "acme-corp")
+Used to derive namespace names: Temporal namespace "fabric-{org}", K8s namespace "fabric-{org}"<br>
 
+json_name: org
+go_name: Org</pre></td>
+</tr>
+</table>
 
 **Output:** [cell.v1.InitFabricShardOutput](#cell-v1-initfabricshardoutput)
 
@@ -655,6 +671,24 @@ Phase 2 (fabric worker): Initiated via Nexus, deploys Fabric components (CAs, pe
 InitFabricShardInput specifies the parameters for initializing a Fabric shard
 </pre>
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the organization identifier (e.g., "org1", "acme-corp")
+Used to derive namespace names: Temporal namespace "fabric-{org}", K8s namespace "fabric-{org}"<br>
+
+json_name: org
+go_name: Org</pre></td>
+</tr>
+</table>
+
 
 
 <a name="cell-v1-initfabricshardoutput"></a>
@@ -666,14 +700,14 @@ InitFabricShardOutput indicates the result of shard initialization
 
 
 
-<a name="cluster-v1"></a>
-# cluster.v1
+<a name="cluster-fabric-v1"></a>
+# cluster.fabric.v1
 
-<a name="cluster-v1-services"></a>
+<a name="cluster-fabric-v1-services"></a>
 ## Services
 
-<a name="cluster-v1-cluster"></a>
-## cluster.v1.Cluster
+<a name="cluster-fabric-v1-cluster"></a>
+## cluster.fabric.v1.Cluster
 
 <pre>
 Cluster defines workflows for infrastructure provisioning on Kubernetes
@@ -681,25 +715,56 @@ These workflows orchestrate the creation and management of cluster resources
 by composing Helm (for templating) and Kubernetes (for deployment) activities
 </pre>
 
-<a name="cluster-v1-cluster-workflows"></a>
+<a name="cluster-fabric-v1-cluster-workflows"></a>
 ### Workflows
 
 ---
-<a name="cluster-v1-createnamespace-workflow"></a>
-### cluster.v1.CreateNamespace
+<a name="cluster-fabric-v1-createnamespace-workflow"></a>
+### cluster.fabric.v1.CreateNamespace
 
 <pre>
 CreateNamespace orchestrates the creation of a Kubernetes namespace
 This workflow combines Helm chart rendering with Kubernetes resource application
 </pre>
 
-**Input:** [cluster.v1.CreateNamespaceInput](#cluster-v1-createnamespaceinput)
+**Input:** [cluster.fabric.v1.CreateNamespaceInput](#cluster-fabric-v1-createnamespaceinput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the organization identifier (e.g., "org1")
+The namespace will be named "fabric-{org}"<br>
 
+json_name: org
+go_name: Org</pre></td>
+</tr>
+</table>
 
-**Output:** [cluster.v1.CreateNamespaceOutput](#cluster-v1-createnamespaceoutput)
+**Output:** [cluster.fabric.v1.CreateNamespaceOutput](#cluster-fabric-v1-createnamespaceoutput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>namespace_name</td>
+<td>string</td>
+<td><pre>
+namespace_name is the created namespace (e.g., "fabric-org1")<br>
 
+json_name: namespaceName
+go_name: NamespaceName</pre></td>
+</tr>
+</table>
 
 **Defaults:**
 
@@ -709,8 +774,8 @@ This workflow combines Helm chart rendering with Kubernetes resource application
 </table>
 
 ---
-<a name="cluster-v1-createserviceaccount-workflow"></a>
-### cluster.v1.CreateServiceAccount
+<a name="cluster-fabric-v1-createserviceaccount-workflow"></a>
+### cluster.fabric.v1.CreateServiceAccount
 
 <pre>
 CreateServiceAccount orchestrates the creation of a Kubernetes service account
@@ -718,11 +783,11 @@ This workflow renders a Helm chart template for service account configuration,
 then applies the resulting resources to the cluster
 </pre>
 
-**Input:** [cluster.v1.CreateServiceAccountInput](#cluster-v1-createserviceaccountinput)
+**Input:** [cluster.fabric.v1.CreateServiceAccountInput](#cluster-fabric-v1-createserviceaccountinput)
 
 
 
-**Output:** [cluster.v1.CreateServiceAccountOutput](#cluster-v1-createserviceaccountoutput)
+**Output:** [cluster.fabric.v1.CreateServiceAccountOutput](#cluster-fabric-v1-createserviceaccountoutput)
 
 
 
@@ -734,19 +799,19 @@ then applies the resulting resources to the cluster
 </table>
 
 ---
-<a name="cluster-v1-createdeployment-workflow"></a>
-### cluster.v1.CreateDeployment
+<a name="cluster-fabric-v1-createdeployment-workflow"></a>
+### cluster.fabric.v1.CreateDeployment
 
 <pre>
 CreateDeployment orchestrates the deployment of a single resource to Kubernetes
 This workflow renders a Helm chart with provided values and applies it to the cluster
 </pre>
 
-**Input:** [cluster.v1.CreateDeploymentInput](#cluster-v1-createdeploymentinput)
+**Input:** [cluster.fabric.v1.CreateDeploymentInput](#cluster-fabric-v1-createdeploymentinput)
 
 
 
-**Output:** [cluster.v1.CreateDeploymentOutput](#cluster-v1-createdeploymentoutput)
+**Output:** [cluster.fabric.v1.CreateDeploymentOutput](#cluster-fabric-v1-createdeploymentoutput)
 
 
 
@@ -757,36 +822,71 @@ This workflow renders a Helm chart with provided values and applies it to the cl
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>     
 
-<a name="cluster-v1-messages"></a>
+<a name="cluster-fabric-v1-messages"></a>
 ## Messages
 
-<a name="cluster-v1-createdeploymentinput"></a>
-### cluster.v1.CreateDeploymentInput
+<a name="cluster-fabric-v1-createdeploymentinput"></a>
+### cluster.fabric.v1.CreateDeploymentInput
 
 
 
-<a name="cluster-v1-createdeploymentoutput"></a>
-### cluster.v1.CreateDeploymentOutput
+<a name="cluster-fabric-v1-createdeploymentoutput"></a>
+### cluster.fabric.v1.CreateDeploymentOutput
 
 
 
-<a name="cluster-v1-createnamespaceinput"></a>
-### cluster.v1.CreateNamespaceInput
+<a name="cluster-fabric-v1-createnamespaceinput"></a>
+### cluster.fabric.v1.CreateNamespaceInput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the organization identifier (e.g., "org1")
+The namespace will be named "fabric-{org}"<br>
+
+json_name: org
+go_name: Org</pre></td>
+</tr>
+</table>
 
 
 
-<a name="cluster-v1-createnamespaceoutput"></a>
-### cluster.v1.CreateNamespaceOutput
+<a name="cluster-fabric-v1-createnamespaceoutput"></a>
+### cluster.fabric.v1.CreateNamespaceOutput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>namespace_name</td>
+<td>string</td>
+<td><pre>
+namespace_name is the created namespace (e.g., "fabric-org1")<br>
+
+json_name: namespaceName
+go_name: NamespaceName</pre></td>
+</tr>
+</table>
 
 
 
-<a name="cluster-v1-createserviceaccountinput"></a>
-### cluster.v1.CreateServiceAccountInput
+<a name="cluster-fabric-v1-createserviceaccountinput"></a>
+### cluster.fabric.v1.CreateServiceAccountInput
 
 
 
-<a name="cluster-v1-createserviceaccountoutput"></a>
-### cluster.v1.CreateServiceAccountOutput
+<a name="cluster-fabric-v1-createserviceaccountoutput"></a>
+### cluster.fabric.v1.CreateServiceAccountOutput
 
 
 

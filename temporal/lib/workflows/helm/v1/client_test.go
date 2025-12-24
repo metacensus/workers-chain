@@ -219,15 +219,15 @@ version: 1.0.0
 }
 
 func TestLocalRepoClient_GetValuesTemplate(t *testing.T) {
-	// Create a temporary directory for test templates
+	// Create a temporary directory for test charts
 	tmpDir := t.TempDir()
-	templatesDir := filepath.Join(tmpDir, "templates")
-	if err := os.MkdirAll(templatesDir, 0755); err != nil {
-		t.Fatalf("failed to create templates directory: %v", err)
-	}
 
-	// Create template files
-	peerTemplate := filepath.Join(templatesDir, "peer-values.yaml.tpl")
+	// Create chart directories with values.yaml.tpl inside each
+	peerChartDir := filepath.Join(tmpDir, "fabric", "peer")
+	if err := os.MkdirAll(peerChartDir, 0755); err != nil {
+		t.Fatalf("failed to create peer chart directory: %v", err)
+	}
+	peerTemplate := filepath.Join(peerChartDir, "values.yaml.tpl")
 	peerContent := []byte(`image:
   repository: {{.ImageRepository}}
   tag: "{{.ImageTag}}"
@@ -237,7 +237,11 @@ organization: "{{.Organization}}"
 		t.Fatalf("failed to write peer template: %v", err)
 	}
 
-	ordererTemplate := filepath.Join(templatesDir, "orderer-values.yaml.tpl")
+	ordererChartDir := filepath.Join(tmpDir, "fabric", "orderer")
+	if err := os.MkdirAll(ordererChartDir, 0755); err != nil {
+		t.Fatalf("failed to create orderer chart directory: %v", err)
+	}
+	ordererTemplate := filepath.Join(ordererChartDir, "values.yaml.tpl")
 	ordererContent := []byte(`image:
   repository: {{.ImageRepository}}
 mspId: "{{.MSPID}}"
@@ -248,25 +252,25 @@ mspId: "{{.MSPID}}"
 
 	tests := []struct {
 		name          string
-		component     string
+		chartName     string
 		expectErr     bool
 		expectContent string
 	}{
 		{
 			name:          "success - load peer template",
-			component:     "peer",
+			chartName:     "fabric/peer",
 			expectErr:     false,
 			expectContent: "ImageRepository",
 		},
 		{
 			name:          "success - load orderer template",
-			component:     "orderer",
+			chartName:     "fabric/orderer",
 			expectErr:     false,
 			expectContent: "MSPID",
 		},
 		{
 			name:      "error - template not found",
-			component: "nonexistent",
+			chartName: "fabric/nonexistent",
 			expectErr: true,
 		},
 	}
@@ -279,7 +283,7 @@ mspId: "{{.MSPID}}"
 			}
 
 			ctx := context.Background()
-			template, err := client.GetValuesTemplate(ctx, tt.component)
+			template, err := client.GetValuesTemplate(ctx, tt.chartName)
 
 			if tt.expectErr {
 				if err == nil {

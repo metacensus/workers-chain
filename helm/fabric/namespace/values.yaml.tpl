@@ -1,9 +1,7 @@
 # Fabric namespace configuration
-namespace:
-  name: {{.NamespaceName}}
+name: {{.Name}}
 
-# Common labels to apply to all resources
 commonLabels:
-  app.kubernetes.io/managed-by: {{.CommonLabelsAppManagedBy}}
-  app.kubernetes.io/part-of: {{.CommonLabelsAppPartOf}}
+  managedBy: {{.CommonLabels.ManagedBy}}
+  partOf: {{.CommonLabels.PartOf}}
 

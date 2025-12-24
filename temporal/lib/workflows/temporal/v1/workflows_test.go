@@ -1,4 +1,4 @@
-package temporal
+package temporal_test
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/temporal/v1"
+	temporalv1 "github.com/metacensus/infra/temporal/lib/workflows/temporal/v1"
 	temporalmocks "github.com/metacensus/infra/temporal/mocks/workflows/temporal/v1"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/testsuite"
@@ -114,6 +115,11 @@ func TestCreateNamespaceWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
+			// Register the actual workflows (stateless, no dependencies)
+			realWorkflows := temporalv1.NewWorkflows()
+			pb.RegisterAdminWorkflows(env, realWorkflows)
+
+			// Mock activities
 			mockActivities := temporalmocks.NewMockAdminActivities(t)
 
 			// Setup register namespace expectation
@@ -185,11 +191,11 @@ func TestCreateNamespaceWorkflow(t *testing.T) {
 				}
 			}
 
-			env.RegisterActivity(mockActivities.RegisterNamespace)
-			env.RegisterActivity(mockActivities.DescribeNamespace)
+			// Register mock activities - resolved by name at runtime
+			pb.RegisterAdminActivities(env, mockActivities)
 
-			workflow := NewCreateNamespaceWorkflow(mockActivities)
-			env.ExecuteWorkflow(workflow.Execute, tt.input)
+			// Execute workflow by name
+			env.ExecuteWorkflow(pb.CreateNamespaceWorkflowName, tt.input)
 
 			if tt.expectSuccess {
 				if !env.IsWorkflowCompleted() {

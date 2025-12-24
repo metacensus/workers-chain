@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package cluster.v1;
+package cluster.fabric.v1;
 
-option go_package = "github.com/metacensus/infra/temporal/gen/workflows/cluster/v1;clusterv1";
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/cluster/v1;clusterfabricv1";
 
 import "temporal/v1/temporal.proto";
 
@@ -20,7 +20,7 @@ service Cluster {
   rpc CreateNamespace(CreateNamespaceInput) returns (CreateNamespaceOutput) {
     // Workflow execution metadata
     option (temporal.v1.workflow) = {
-      name: "cluster.v1.CreateNamespace"
+      name: "cluster.fabric.v1.CreateNamespace"
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -31,7 +31,7 @@ service Cluster {
   rpc CreateServiceAccount(CreateServiceAccountInput) returns (CreateServiceAccountOutput) {
     // Workflow execution metadata
     option (temporal.v1.workflow) = {
-      name: "cluster.v1.CreateServiceAccount"
+      name: "cluster.fabric.v1.CreateServiceAccount"
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -41,7 +41,7 @@ service Cluster {
   rpc CreateDeployment(CreateDeploymentInput) returns (CreateDeploymentOutput) {
     // Workflow execution metadata
     option (temporal.v1.workflow) = {
-      name: "cluster.v1.CreateDeployment"
+      name: "cluster.fabric.v1.CreateDeployment"
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -49,9 +49,16 @@ service Cluster {
 
 // ==================== CreateNamespace Workflow Messages ====================
 
-message CreateNamespaceInput {}
+message CreateNamespaceInput {
+  // org is the organization identifier (e.g., "org1")
+  // The namespace will be named "fabric-{org}"
+  string org = 1;
+}
 
-message CreateNamespaceOutput {}
+message CreateNamespaceOutput {
+  // namespace_name is the created namespace (e.g., "fabric-org1")
+  string namespace_name = 1;
+}
 
 // ==================== CreateServiceAccount Workflow Messages ====================
 

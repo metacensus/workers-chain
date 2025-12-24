@@ -9,24 +9,33 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-// CreateNamespaceWorkflow orchestrates async namespace creation via RegisterNamespace
-// then polls DescribeNamespace until the namespace reaches REGISTERED state
-type CreateNamespaceWorkflow struct {
-	activities pb.AdminActivities
+// Workflows implements the AdminWorkflows interface from generated code
+type Workflows struct{}
+
+// NewWorkflows creates a new Workflows instance
+func NewWorkflows() *Workflows {
+	return &Workflows{}
 }
 
-// NewCreateNamespaceWorkflow creates a new workflow instance
-func NewCreateNamespaceWorkflow(activities pb.AdminActivities) *CreateNamespaceWorkflow {
-	return &CreateNamespaceWorkflow{
-		activities: activities,
-	}
+// CreateNamespace implements the AdminWorkflows.CreateNamespace method
+// Returns a workflow instance that will be executed by Temporal
+func (w *Workflows) CreateNamespace(ctx workflow.Context, input *pb.CreateNamespaceWorkflowInput) (pb.CreateNamespaceWorkflow, error) {
+	return &createNamespaceWorkflow{
+		input: input,
+	}, nil
+}
+
+// createNamespaceWorkflow implements pb.CreateNamespaceWorkflow
+type createNamespaceWorkflow struct {
+	input *pb.CreateNamespaceWorkflowInput
 }
 
 // Execute calls RegisterNamespace, then polls DescribeNamespace until REGISTERED
-func (w *CreateNamespaceWorkflow) Execute(ctx workflow.Context, input *pb.CreateNamespaceInput) (*pb.CreateNamespaceOutput, error) {
+func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNamespaceOutput, error) {
 	logger := workflow.GetLogger(ctx)
+	req := w.input.Req
 	logger.Info("CreateNamespace workflow started",
-		"namespace", input.Name)
+		"namespace", req.Name)
 
 	// Register namespace with activity options
 	activityOptions := workflow.ActivityOptions{
@@ -40,10 +49,10 @@ func (w *CreateNamespaceWorkflow) Execute(ctx workflow.Context, input *pb.Create
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
 
-	logger.Info("Registering namespace", "namespace", input.Name)
-	if err := workflow.ExecuteActivity(ctx, w.activities.RegisterNamespace, &pb.RegisterNamespaceInput{
-		Name:      input.Name,
-		Retention: input.Retention,
+	logger.Info("Registering namespace", "namespace", req.Name)
+	if err := workflow.ExecuteActivity(ctx, pb.RegisterNamespaceActivityName, &pb.RegisterNamespaceInput{
+		Name:      req.Name,
+		Retention: req.Retention,
 	}).Get(ctx, nil); err != nil {
 		logger.Error("Failed to register namespace", "error", err)
 		return nil, fmt.Errorf("register namespace: %w", err)
@@ -55,20 +64,20 @@ func (w *CreateNamespaceWorkflow) Execute(ctx workflow.Context, input *pb.Create
 	}
 	pollCtx := workflow.WithActivityOptions(ctx, pollOptions)
 	pollDeadline := workflow.Now(ctx).Add(2 * time.Minute)
-	pollInput := &pb.DescribeNamespaceInput{Name: input.Name}
+	pollInput := &pb.DescribeNamespaceInput{Name: req.Name}
 
 	for workflow.Now(ctx).Before(pollDeadline) {
 		var describeOutput *pb.DescribeNamespaceOutput
 
-		if err := workflow.ExecuteActivity(pollCtx, w.activities.DescribeNamespace, pollInput).Get(pollCtx, &describeOutput); err != nil {
+		if err := workflow.ExecuteActivity(pollCtx, pb.DescribeNamespaceActivityName, pollInput).Get(pollCtx, &describeOutput); err != nil {
 			logger.Warn("Describe namespace failed, retrying",
-				"namespace", input.Name,
+				"namespace", req.Name,
 				"error", err)
 		} else if describeOutput != nil && describeOutput.State == pb.NamespaceState_REGISTERED {
 			logger.Info("Namespace active and ready",
-				"namespace", input.Name)
+				"namespace", req.Name)
 			return &pb.CreateNamespaceOutput{
-				Name: input.Name,
+				Name: req.Name,
 			}, nil
 		}
 
@@ -78,7 +87,7 @@ func (w *CreateNamespaceWorkflow) Execute(ctx workflow.Context, input *pb.Create
 	}
 
 	logger.Error("Timeout waiting for namespace to activate",
-		"namespace", input.Name)
+		"namespace", req.Name)
 
-	return nil, fmt.Errorf("namespace %s did not reach REGISTERED state within timeout", input.Name)
+	return nil, fmt.Errorf("namespace %s did not reach REGISTERED state within timeout", req.Name)
 }

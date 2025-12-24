@@ -472,12 +472,12 @@ func TestRenderChartWithTemplateActivity(t *testing.T) {
 			if tt.input.ChartName != "" && tt.input.Component != "" && tt.input.Values != nil {
 				if tt.templateErr != nil {
 					mockClient.EXPECT().
-						GetValuesTemplate(mock.Anything, tt.input.Component).
+						GetValuesTemplate(mock.Anything, tt.input.ChartName).
 						Return("", tt.templateErr).
 						Once()
 				} else if tt.clientErr != nil {
 					mockClient.EXPECT().
-						GetValuesTemplate(mock.Anything, tt.input.Component).
+						GetValuesTemplate(mock.Anything, tt.input.ChartName).
 						Return(tt.templateStr, nil).
 						Once()
 					mockClient.EXPECT().
@@ -486,7 +486,7 @@ func TestRenderChartWithTemplateActivity(t *testing.T) {
 						Once()
 				} else {
 					mockClient.EXPECT().
-						GetValuesTemplate(mock.Anything, tt.input.Component).
+						GetValuesTemplate(mock.Anything, tt.input.ChartName).
 						Return(tt.templateStr, nil).
 						Once()
 					mockClient.EXPECT().

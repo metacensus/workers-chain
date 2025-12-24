@@ -15,6 +15,13 @@ func NewTemporalClient() (client.Client, error) {
 	})
 }
 
+// NewNamespaceClient creates a Temporal namespace client for namespace management operations
+func NewNamespaceClient() (client.NamespaceClient, error) {
+	return client.NewNamespaceClient(client.Options{
+		HostPort: env.TemporalAddress(),
+	})
+}
+
 // NewWorker creates a Temporal worker from the client and environment configuration
 func NewWorker(c client.Client) worker.Worker {
 	return worker.New(c, env.TaskQueue(), worker.Options{})

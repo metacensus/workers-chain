@@ -24,7 +24,10 @@ const (
 
 // InitFabricShardInput specifies the parameters for initializing a Fabric shard
 type InitFabricShardInput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// org is the organization identifier (e.g., "org1", "acme-corp")
+	// Used to derive namespace names: Temporal namespace "fabric-{org}", K8s namespace "fabric-{org}"
+	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -57,6 +60,13 @@ func (x *InitFabricShardInput) ProtoReflect() protoreflect.Message {
 // Deprecated: Use InitFabricShardInput.ProtoReflect.Descriptor instead.
 func (*InitFabricShardInput) Descriptor() ([]byte, []int) {
 	return file_cell_v1_cell_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *InitFabricShardInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
 }
 
 // InitFabricShardOutput indicates the result of shard initialization
@@ -100,8 +110,9 @@ var File_cell_v1_cell_proto protoreflect.FileDescriptor
 
 const file_cell_v1_cell_proto_rawDesc = "" +
 	"\n" +
-	"\x12cell/v1/cell.proto\x12\acell.v1\x1a\x1atemporal/v1/temporal.proto\"\x16\n" +
-	"\x14InitFabricShardInput\"\x17\n" +
+	"\x12cell/v1/cell.proto\x12\acell.v1\x1a\x1atemporal/v1/temporal.proto\"(\n" +
+	"\x14InitFabricShardInput\x12\x10\n" +
+	"\x03org\x18\x01 \x01(\tR\x03org\"\x17\n" +
 	"\x15InitFabricShardOutput2\x86\x01\n" +
 	"\x04Cell\x12q\n" +
 	"\x0fInitFabricShard\x12\x1d.cell.v1.InitFabricShardInput\x1a\x1e.cell.v1.InitFabricShardOutput\"\x1f\x8a\xc4\x03\x1b0\x01r\x17cell.v1.InitFabricShard\x1a\v\x8a\xc4\x03\a\n" +

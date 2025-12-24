@@ -6,10 +6,10 @@ package helm
 
 // ImageConfig represents container image configuration
 type ImageConfig struct {
-	Repository   string        `yaml:"repository"`
-	Tag          string        `yaml:"tag"`
-	PullPolicy   string        `yaml:"pullPolicy"`
-	PullSecrets  []interface{} `yaml:"pullSecrets"`
+	Repository  string        `yaml:"repository"`
+	Tag         string        `yaml:"tag"`
+	PullPolicy  string        `yaml:"pullPolicy"`
+	PullSecrets []interface{} `yaml:"pullSecrets"`
 }
 
 // ServiceConfig represents Kubernetes service configuration
@@ -48,8 +48,8 @@ type MSPConfig struct {
 		Cacerts   string `yaml:"cacerts"`
 	} `yaml:"paths"`
 	CSI struct {
-		Enabled                  bool   `yaml:"enabled"`
-		SecretProviderClassName  string `yaml:"secretProviderClassName"`
+		Enabled                 bool   `yaml:"enabled"`
+		SecretProviderClassName string `yaml:"secretProviderClassName"`
 	} `yaml:"csi"`
 }
 
@@ -61,8 +61,8 @@ type NamespaceConfig struct {
 
 // CommonLabels represents common Kubernetes labels
 type CommonLabels struct {
-	AppManagedBy string `yaml:"app.kubernetes.io/managed-by"`
-	AppPartOf    string `yaml:"app.kubernetes.io/part-of"`
+	ManagedBy string `yaml:"managedBy"`
+	PartOf    string `yaml:"partOf"`
 }
 
 // ============================================================================
@@ -124,34 +124,34 @@ func DefaultServiceConfig(component string) ServiceConfig {
 // DefaultResourceConfig returns sensible defaults for Fabric component resources
 func DefaultResourceConfig(component string) ResourceConfig {
 	resourceLimits := map[string]struct {
-		requestsCPU    string
-		requestsMem    string
-		limitsCPU      string
-		limitsMem      string
+		requestsCPU string
+		requestsMem string
+		limitsCPU   string
+		limitsMem   string
 	}{
 		"peer": {
-			requestsCPU:   "250m",
-			requestsMem:   "512Mi",
-			limitsCPU:     "1000m",
-			limitsMem:     "2Gi",
+			requestsCPU: "250m",
+			requestsMem: "512Mi",
+			limitsCPU:   "1000m",
+			limitsMem:   "2Gi",
 		},
 		"orderer": {
-			requestsCPU:   "250m",
-			requestsMem:   "512Mi",
-			limitsCPU:     "1000m",
-			limitsMem:     "2Gi",
+			requestsCPU: "250m",
+			requestsMem: "512Mi",
+			limitsCPU:   "1000m",
+			limitsMem:   "2Gi",
 		},
 		"ca": {
-			requestsCPU:   "100m",
-			requestsMem:   "128Mi",
-			limitsCPU:     "500m",
-			limitsMem:     "512Mi",
+			requestsCPU: "100m",
+			requestsMem: "128Mi",
+			limitsCPU:   "500m",
+			limitsMem:   "512Mi",
 		},
 		"couchdb": {
-			requestsCPU:   "100m",
-			requestsMem:   "256Mi",
-			limitsCPU:     "500m",
-			limitsMem:     "1Gi",
+			requestsCPU: "100m",
+			requestsMem: "256Mi",
+			limitsCPU:   "500m",
+			limitsMem:   "1Gi",
 		},
 	}
 
@@ -205,8 +205,7 @@ func DefaultMSPConfig() MSPConfig {
 // DefaultCommonLabels returns sensible defaults for common Kubernetes labels
 func DefaultCommonLabels() CommonLabels {
 	return CommonLabels{
-		AppManagedBy: "helm",
-		AppPartOf:    "fabric",
+		ManagedBy: "temporal",
+		PartOf:    "fabric",
 	}
 }
-

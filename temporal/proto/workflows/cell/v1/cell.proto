@@ -40,11 +40,13 @@ service Cell {
 
 // InitFabricShardInput specifies the parameters for initializing a Fabric shard
 message InitFabricShardInput {
-  // TODO: Define shard configuration and bootstrap parameters as we progress
+  // org is the organization identifier (e.g., "org1", "acme-corp")
+  // Used to derive namespace names: Temporal namespace "fabric-{org}", K8s namespace "fabric-{org}"
+  string org = 1;
 }
 
 // InitFabricShardOutput indicates the result of shard initialization
 message InitFabricShardOutput {
-  // TODO: Define output structure as implementation progresses
+  // Empty for now - output structure to be defined as implementation progresses
 }
 

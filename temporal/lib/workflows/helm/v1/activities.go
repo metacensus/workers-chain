@@ -12,8 +12,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 // Activities implements the HelmServiceActivities interface from generated code
@@ -64,11 +63,11 @@ func (a *Activities) RenderChartWithTemplate(ctx context.Context, req *pb.Render
 		"component", req.GetComponent(),
 		"namespace", req.GetNamespace())
 
-	// Step 1: Load values template for the component
-	templateStr, err := a.repo.GetValuesTemplate(ctx, req.GetComponent())
+	// Step 1: Load values template from the chart directory
+	templateStr, err := a.repo.GetValuesTemplate(ctx, req.GetChartName())
 	if err != nil {
 		logger.Error("Failed to get values template", "error", err)
-		return nil, fmt.Errorf("failed to get values template for component %s: %w", req.GetComponent(), err)
+		return nil, fmt.Errorf("failed to get values template for chart %s: %w", req.GetChartName(), err)
 	}
 
 	// Step 2: Convert proto Struct to map[string]interface{}
@@ -103,8 +102,11 @@ func (a *Activities) renderChartWithValues(ctx context.Context, chartName, value
 		return nil, fmt.Errorf("failed to parse values: %w", err)
 	}
 
+	// Convert chart name to valid Helm release name (e.g., "fabric/namespace" → "fabric-namespace")
+	releaseName := strings.ReplaceAll(chartName, "/", "-")
+
 	// Render the chart
-	release, err := renderHelmChart(ch, namespace, chartName, vals)
+	release, err := renderHelmChart(ch, namespace, releaseName, vals)
 	if err != nil {
 		logger.Error("Failed to render chart", "error", err)
 		return nil, fmt.Errorf("failed to render chart: %w", err)
@@ -162,7 +164,7 @@ func renderHelmChart(ch *chart.Chart, namespace, releaseName string, vals map[st
 	install.ClientOnly = true  // No Kubernetes API calls
 	install.IncludeCRDs = true // Include CRD manifests
 	install.Namespace = namespace
-	install.ReleaseName = releaseName // Use release name for deterministic output
+	install.ReleaseName = releaseName
 
 	return install.Run(ch, vals)
 }
@@ -177,22 +179,27 @@ func skipDocument(doc string) bool {
 // Returns the resource ID, manifest bytes, and any parse error
 func parseManifestDocument(doc string, index int) (string, []byte, error) {
 	// Parse the document to extract resource metadata
-	obj := &unstructured.Unstructured{}
-	_, gvk, err := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).
-		Decode([]byte(doc), nil, obj)
+	obj := make(map[string]interface{})
+	err := yaml.Unmarshal([]byte(doc), &obj)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to parse resource: %w", err)
 	}
 
-	// Generate resource ID: "{kind}-{name}"
-	kind := gvk.Kind
-	if kind == "" {
-		kind = "Unknown"
+	// Extract Kind and Name from the parsed object
+	kind := "Unknown"
+	if k, ok := obj["kind"]; ok {
+		if kindStr, ok := k.(string); ok {
+			kind = kindStr
+		}
 	}
-	name := obj.GetName()
-	if name == "" {
-		name = fmt.Sprintf("resource-%d", index)
+
+	name := fmt.Sprintf("resource-%d", index)
+	if metadata, ok := obj["metadata"].(map[string]interface{}); ok {
+		if n, ok := metadata["name"].(string); ok && n != "" {
+			name = n
+		}
 	}
+
 	resourceID := fmt.Sprintf("%s-%s", strings.ToLower(kind), name)
 
 	return resourceID, []byte(doc), nil
@@ -213,19 +220,23 @@ func renderTemplate(templateStr string, values interface{}) (string, error) {
 	return buf.String(), nil
 }
 
-// parseValues parses Helm values from a YAML string
+// parseValues parses Helm values from a YAML string into a map
 func parseValues(valuesYAML string) (map[string]interface{}, error) {
 	if valuesYAML == "" {
 		return make(map[string]interface{}), nil
 	}
 
-	// Decode YAML to unstructured object
-	obj := &unstructured.Unstructured{}
-	_, _, err := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).
-		Decode([]byte(valuesYAML), nil, obj)
+	// Decode YAML to a plain map (not a Kubernetes resource)
+	var values map[string]interface{}
+	err := yaml.Unmarshal([]byte(valuesYAML), &values)
 	if err != nil {
 		return nil, fmt.Errorf("invalid values YAML: %w", err)
 	}
 
-	return obj.Object, nil
+	// Handle case where YAML is empty or null
+	if values == nil {
+		values = make(map[string]interface{})
+	}
+
+	return values, nil
 }

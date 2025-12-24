@@ -82,9 +82,9 @@ func (_c *MockRepoClient_GetChart_Call) RunAndReturn(run func(context.Context, s
 	return _c
 }
 
-// GetValuesTemplate provides a mock function with given fields: ctx, component
-func (_m *MockRepoClient) GetValuesTemplate(ctx context.Context, component string) (string, error) {
-	ret := _m.Called(ctx, component)
+// GetValuesTemplate provides a mock function with given fields: ctx, chartName
+func (_m *MockRepoClient) GetValuesTemplate(ctx context.Context, chartName string) (string, error) {
+	ret := _m.Called(ctx, chartName)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetValuesTemplate")
@@ -93,16 +93,16 @@ func (_m *MockRepoClient) GetValuesTemplate(ctx context.Context, component strin
 	var r0 string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
-		return rf(ctx, component)
+		return rf(ctx, chartName)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
-		r0 = rf(ctx, component)
+		r0 = rf(ctx, chartName)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, component)
+		r1 = rf(ctx, chartName)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -117,12 +117,12 @@ type MockRepoClient_GetValuesTemplate_Call struct {
 
 // GetValuesTemplate is a helper method to define mock.On call
 //   - ctx context.Context
-//   - component string
-func (_e *MockRepoClient_Expecter) GetValuesTemplate(ctx interface{}, component interface{}) *MockRepoClient_GetValuesTemplate_Call {
-	return &MockRepoClient_GetValuesTemplate_Call{Call: _e.mock.On("GetValuesTemplate", ctx, component)}
+//   - chartName string
+func (_e *MockRepoClient_Expecter) GetValuesTemplate(ctx interface{}, chartName interface{}) *MockRepoClient_GetValuesTemplate_Call {
+	return &MockRepoClient_GetValuesTemplate_Call{Call: _e.mock.On("GetValuesTemplate", ctx, chartName)}
 }
 
-func (_c *MockRepoClient_GetValuesTemplate_Call) Run(run func(ctx context.Context, component string)) *MockRepoClient_GetValuesTemplate_Call {
+func (_c *MockRepoClient_GetValuesTemplate_Call) Run(run func(ctx context.Context, chartName string)) *MockRepoClient_GetValuesTemplate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string))
 	})

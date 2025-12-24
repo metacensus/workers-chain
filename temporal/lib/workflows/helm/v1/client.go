@@ -17,9 +17,9 @@ type RepoClient interface {
 	// Returns the loaded chart or an error if not found
 	GetChart(ctx context.Context, chartName string) (*chart.Chart, error)
 
-	// GetValuesTemplate retrieves a values template for a component
+	// GetValuesTemplate retrieves the values.yaml.tpl template from a chart directory
 	// Returns the template string or an error if not found
-	GetValuesTemplate(ctx context.Context, component string) (string, error)
+	GetValuesTemplate(ctx context.Context, chartName string) (string, error)
 }
 
 // NewLocalRepoClient creates a RepoClient that reads charts from the local filesystem
@@ -63,15 +63,15 @@ func (lrc *localRepoClient) GetChart(ctx context.Context, chartName string) (*ch
 }
 
 // GetValuesTemplate loads a values template from the local filesystem repository
-// Looks for files named "{component}-values.yaml.tpl" in a templates subdirectory
-func (lrc *localRepoClient) GetValuesTemplate(ctx context.Context, component string) (string, error) {
-	// Construct template path: chartDir/templates/{component}-values.yaml.tpl
-	templatePath := filepath.Join(lrc.chartDir, "templates", fmt.Sprintf("%s-values.yaml.tpl", component))
+// Looks for values.yaml.tpl inside the chart directory
+func (lrc *localRepoClient) GetValuesTemplate(ctx context.Context, chartName string) (string, error) {
+	// Construct template path: chartDir/{chartName}/values.yaml.tpl
+	templatePath := filepath.Join(lrc.chartDir, chartName, "values.yaml.tpl")
 
 	// Read the template file
 	templateBytes, err := os.ReadFile(templatePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to load template for component %s: %w", component, err)
+		return "", fmt.Errorf("failed to load template for chart %s: %w", chartName, err)
 	}
 
 	return string(templateBytes), nil
