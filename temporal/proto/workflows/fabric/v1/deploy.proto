@@ -57,9 +57,9 @@ service FabricDeploy {
 
   // ==================== Component Deployment Workflows ====================
 
-  // DeployCouchDB deploys a CouchDB instance for peer state storage
+  // DeployCouchDb deploys a CouchDB instance for peer state storage
   // Each peer gets its own CouchDB instance
-  rpc DeployCouchDB(DeployCouchDbInput) returns (DeployCouchDbOutput) {
+  rpc DeployCouchDb(DeployCouchDbInput) returns (DeployCouchDbOutput) {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.DeployCouchDB"
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE

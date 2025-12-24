@@ -118,12 +118,13 @@ func TestCreateNamespaceWorkflow(t *testing.T) {
 
 			// Setup register namespace expectation
 			if tt.registerErr != nil {
+				// Activity may be retried, so allow multiple calls
 				mockActivities.EXPECT().
 					RegisterNamespace(mock.Anything, mock.MatchedBy(func(req *pb.RegisterNamespaceInput) bool {
 						return req.Name == tt.input.Name
 					})).
 					Return(nil, tt.registerErr).
-					Once()
+					Maybe()
 			} else {
 				mockActivities.EXPECT().
 					RegisterNamespace(mock.Anything, mock.MatchedBy(func(req *pb.RegisterNamespaceInput) bool {
@@ -133,7 +134,26 @@ func TestCreateNamespaceWorkflow(t *testing.T) {
 					Once()
 
 				// Setup describe namespace expectations for polling
-				for i, respErr := range tt.describeErrors {
+				// Handle the case where we have both errors and responses (transient failure case)
+				numCalls := len(tt.describeErrors)
+				if numCalls < len(tt.describeResponses) {
+					numCalls = len(tt.describeResponses)
+				}
+
+				for i := 0; i < numCalls; i++ {
+					// Determine error and response for this call
+					var respErr error
+					var resp *pb.DescribeNamespaceOutput
+
+					if i < len(tt.describeErrors) {
+						respErr = tt.describeErrors[i]
+					}
+
+					if respErr == nil && i < len(tt.describeResponses) {
+						resp = tt.describeResponses[i]
+					}
+
+					// Set up the mock for this specific call
 					if respErr != nil {
 						mockActivities.EXPECT().
 							DescribeNamespace(mock.Anything, mock.MatchedBy(func(req *pb.DescribeNamespaceInput) bool {
@@ -146,9 +166,22 @@ func TestCreateNamespaceWorkflow(t *testing.T) {
 							DescribeNamespace(mock.Anything, mock.MatchedBy(func(req *pb.DescribeNamespaceInput) bool {
 								return req.Name == tt.input.Name
 							})).
-							Return(tt.describeResponses[i], nil).
+							Return(resp, nil).
 							Once()
 					}
+				}
+
+				// For all cases, allow unlimited additional calls with a reasonable response
+				// This handles polling retries beyond what we've explicitly mocked
+				if len(tt.describeResponses) > 0 {
+					// Use the last response configured for unlimited retries
+					lastResponse := tt.describeResponses[len(tt.describeResponses)-1]
+					mockActivities.EXPECT().
+						DescribeNamespace(mock.Anything, mock.MatchedBy(func(req *pb.DescribeNamespaceInput) bool {
+							return req.Name == tt.input.Name
+						})).
+						Return(lastResponse, nil).
+						Maybe()
 				}
 			}
 

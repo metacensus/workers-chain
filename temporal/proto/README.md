@@ -3300,7 +3300,7 @@ go_name: Service</pre></td>
 ### fabric.v1.DeployCouchDB
 
 <pre>
-DeployCouchDB deploys a CouchDB instance for peer state storage
+DeployCouchDb deploys a CouchDB instance for peer state storage
 Each peer gets its own CouchDB instance
 </pre>
 

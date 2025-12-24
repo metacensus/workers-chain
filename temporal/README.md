@@ -17,7 +17,7 @@ temporal/
 │   ├── *.pb.go                  # Generated messages
 │   └── *_temporal.pb.go         # Generated framework
 │
-└── workflows/<service>/<version>/
+└── lib/workflows/<service>/<version>/
     ├── workflows.go             # Workflow implementations
     ├── activities.go            # Activity implementations  
     ├── client.go                # External system client (may be different or unnecessary)
@@ -27,7 +27,7 @@ temporal/
     └── client_test.go           # Integration (real system, build tag)
 ```
 
-**Reference:** `workflows/vault/v1/` package implements this pattern.
+**Reference:** `lib/workflows/vault/v1/` package implements this pattern.
 
 ## Testing Commands
 

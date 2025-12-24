@@ -35,7 +35,7 @@ const (
 	CreateServiceAccountWorkflowName       = "fabric.v1.CreateServiceAccount"
 	CreateVaultRoleWorkflowName            = "fabric.v1.CreateVaultRole"
 	DeployCertificateAuthorityWorkflowName = "fabric.v1.DeployCertificateAuthority"
-	DeployCouchDbworkflowName              = "fabric.v1.DeployCouchDB"
+	DeployCouchDbWorkflowName              = "fabric.v1.DeployCouchDB"
 	DeployOrdererWorkflowName              = "fabric.v1.DeployOrderer"
 	DeployOrgWorkflowName                  = "fabric.v1.DeployOrg"
 	DeployPeerWorkflowName                 = "fabric.v1.DeployPeer"
@@ -79,15 +79,15 @@ type FabricDeployClient interface {
 	// GetDeployCertificateAuthority retrieves a handle to an existing fabric.v1.DeployCertificateAuthority workflow execution
 	GetDeployCertificateAuthority(ctx context.Context, workflowID string, runID string) DeployCertificateAuthorityRun
 
-	// DeployCouchDB deploys a CouchDB instance for peer state storage
+	// DeployCouchDb deploys a CouchDB instance for peer state storage
 	// Each peer gets its own CouchDB instance
-	DeployCouchDb(ctx context.Context, req *DeployCouchDbInput, opts ...*DeployCouchDboptions) (*DeployCouchDbOutput, error)
+	DeployCouchDb(ctx context.Context, req *DeployCouchDbInput, opts ...*DeployCouchDbOptions) (*DeployCouchDbOutput, error)
 
-	// DeployCouchDbasync starts a(n) fabric.v1.DeployCouchDB workflow and returns a handle to the workflow run
-	DeployCouchDbasync(ctx context.Context, req *DeployCouchDbInput, opts ...*DeployCouchDboptions) (DeployCouchDbrun, error)
+	// DeployCouchDbAsync starts a(n) fabric.v1.DeployCouchDB workflow and returns a handle to the workflow run
+	DeployCouchDbAsync(ctx context.Context, req *DeployCouchDbInput, opts ...*DeployCouchDbOptions) (DeployCouchDbRun, error)
 
 	// GetDeployCouchDb retrieves a handle to an existing fabric.v1.DeployCouchDB workflow execution
-	GetDeployCouchDb(ctx context.Context, workflowID string, runID string) DeployCouchDbrun
+	GetDeployCouchDb(ctx context.Context, workflowID string, runID string) DeployCouchDbRun
 
 	// DeployOrderer deploys an orderer node with certificates and CSI volume mounts
 	// Calls ProvisionOrdererWorkflow to generate certs, then deploys the orderer pod
@@ -371,45 +371,45 @@ func (c *fabricDeployClient) GetDeployCertificateAuthority(ctx context.Context, 
 	}
 }
 
-// DeployCouchDB deploys a CouchDB instance for peer state storage
+// DeployCouchDb deploys a CouchDB instance for peer state storage
 // Each peer gets its own CouchDB instance
-func (c *fabricDeployClient) DeployCouchDb(ctx context.Context, req *DeployCouchDbInput, options ...*DeployCouchDboptions) (*DeployCouchDbOutput, error) {
-	run, err := c.DeployCouchDbasync(ctx, req, options...)
+func (c *fabricDeployClient) DeployCouchDb(ctx context.Context, req *DeployCouchDbInput, options ...*DeployCouchDbOptions) (*DeployCouchDbOutput, error) {
+	run, err := c.DeployCouchDbAsync(ctx, req, options...)
 	if err != nil {
 		return nil, err
 	}
 	return run.Get(ctx)
 }
 
-// DeployCouchDB deploys a CouchDB instance for peer state storage
+// DeployCouchDb deploys a CouchDB instance for peer state storage
 // Each peer gets its own CouchDB instance
-func (c *fabricDeployClient) DeployCouchDbasync(ctx context.Context, req *DeployCouchDbInput, options ...*DeployCouchDboptions) (DeployCouchDbrun, error) {
-	var o *DeployCouchDboptions
+func (c *fabricDeployClient) DeployCouchDbAsync(ctx context.Context, req *DeployCouchDbInput, options ...*DeployCouchDbOptions) (DeployCouchDbRun, error) {
+	var o *DeployCouchDbOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
 	} else {
-		o = NewDeployCouchDboptions()
+		o = NewDeployCouchDbOptions()
 	}
 	opts, err := o.Build(req.ProtoReflect())
 	if err != nil {
 		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
 	}
-	run, err := c.client.ExecuteWorkflow(ctx, opts, DeployCouchDbworkflowName, req)
+	run, err := c.client.ExecuteWorkflow(ctx, opts, DeployCouchDbWorkflowName, req)
 	if err != nil {
 		return nil, err
 	}
 	if run == nil {
 		return nil, errors.New("execute workflow returned nil run")
 	}
-	return &deployCouchDbrun{
+	return &deployCouchDbRun{
 		client: c,
 		run:    run,
 	}, nil
 }
 
 // GetDeployCouchDb fetches an existing fabric.v1.DeployCouchDB execution
-func (c *fabricDeployClient) GetDeployCouchDb(ctx context.Context, workflowID string, runID string) DeployCouchDbrun {
-	return &deployCouchDbrun{
+func (c *fabricDeployClient) GetDeployCouchDb(ctx context.Context, workflowID string, runID string) DeployCouchDbRun {
+	return &deployCouchDbRun{
 		client: c,
 		run:    c.client.GetWorkflow(ctx, workflowID, runID),
 	}
@@ -1289,8 +1289,8 @@ func (r *deployCertificateAuthorityRun) Terminate(ctx context.Context, reason st
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-// DeployCouchDboptions provides configuration for a fabric.v1.DeployCouchDB workflow operation
-type DeployCouchDboptions struct {
+// DeployCouchDbOptions provides configuration for a fabric.v1.DeployCouchDB workflow operation
+type DeployCouchDbOptions struct {
 	options                  client.StartWorkflowOptions
 	executionTimeout         *time.Duration
 	id                       *string
@@ -1303,13 +1303,13 @@ type DeployCouchDboptions struct {
 	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
 }
 
-// NewDeployCouchDboptions initializes a new DeployCouchDboptions value
-func NewDeployCouchDboptions() *DeployCouchDboptions {
-	return &DeployCouchDboptions{}
+// NewDeployCouchDbOptions initializes a new DeployCouchDbOptions value
+func NewDeployCouchDbOptions() *DeployCouchDbOptions {
+	return &DeployCouchDbOptions{}
 }
 
 // Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
-func (o *DeployCouchDboptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+func (o *DeployCouchDbOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.ID = *v
@@ -1346,67 +1346,67 @@ func (o *DeployCouchDboptions) Build(req protoreflect.Message) (client.StartWork
 }
 
 // WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
-func (o *DeployCouchDboptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *DeployCouchDboptions {
+func (o *DeployCouchDbOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *DeployCouchDbOptions {
 	o.options = options
 	return o
 }
 
 // WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *DeployCouchDboptions) WithExecutionTimeout(d time.Duration) *DeployCouchDboptions {
+func (o *DeployCouchDbOptions) WithExecutionTimeout(d time.Duration) *DeployCouchDbOptions {
 	o.executionTimeout = &d
 	return o
 }
 
 // WithID sets the ID value
-func (o *DeployCouchDboptions) WithID(id string) *DeployCouchDboptions {
+func (o *DeployCouchDbOptions) WithID(id string) *DeployCouchDbOptions {
 	o.id = &id
 	return o
 }
 
 // WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *DeployCouchDboptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployCouchDboptions {
+func (o *DeployCouchDbOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployCouchDbOptions {
 	o.idReusePolicy = policy
 	return o
 }
 
 // WithRetryPolicy sets the RetryPolicy value
-func (o *DeployCouchDboptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployCouchDboptions {
+func (o *DeployCouchDbOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployCouchDbOptions {
 	o.retryPolicy = policy
 	return o
 }
 
 // WithRunTimeout sets the WorkflowRunTimeout value
-func (o *DeployCouchDboptions) WithRunTimeout(d time.Duration) *DeployCouchDboptions {
+func (o *DeployCouchDbOptions) WithRunTimeout(d time.Duration) *DeployCouchDbOptions {
 	o.runTimeout = &d
 	return o
 }
 
 // WithSearchAttributes sets the SearchAttributes value
-func (o *DeployCouchDboptions) WithSearchAttributes(sa map[string]any) *DeployCouchDboptions {
+func (o *DeployCouchDbOptions) WithSearchAttributes(sa map[string]any) *DeployCouchDbOptions {
 	o.searchAttributes = sa
 	return o
 }
 
 // WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *DeployCouchDboptions) WithTaskTimeout(d time.Duration) *DeployCouchDboptions {
+func (o *DeployCouchDbOptions) WithTaskTimeout(d time.Duration) *DeployCouchDbOptions {
 	o.taskTimeout = &d
 	return o
 }
 
 // WithTaskQueue sets the TaskQueue value
-func (o *DeployCouchDboptions) WithTaskQueue(tq string) *DeployCouchDboptions {
+func (o *DeployCouchDbOptions) WithTaskQueue(tq string) *DeployCouchDbOptions {
 	o.taskQueue = &tq
 	return o
 }
 
 // WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *DeployCouchDboptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployCouchDboptions {
+func (o *DeployCouchDbOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployCouchDbOptions {
 	o.workflowIdConflictPolicy = policy
 	return o
 }
 
-// DeployCouchDbrun describes a(n) fabric.v1.DeployCouchDB workflow run
-type DeployCouchDbrun interface {
+// DeployCouchDbRun describes a(n) fabric.v1.DeployCouchDB workflow run
+type DeployCouchDbRun interface {
 	// ID returns the workflow ID
 	ID() string
 
@@ -1426,34 +1426,34 @@ type DeployCouchDbrun interface {
 	Terminate(ctx context.Context, reason string, details ...interface{}) error
 }
 
-// deployCouchDbrun provides an internal implementation of a(n) DeployCouchDbrunRun
-type deployCouchDbrun struct {
+// deployCouchDbRun provides an internal implementation of a(n) DeployCouchDbRunRun
+type deployCouchDbRun struct {
 	client *fabricDeployClient
 	run    client.WorkflowRun
 }
 
 // ID returns the workflow ID
-func (r *deployCouchDbrun) ID() string {
+func (r *deployCouchDbRun) ID() string {
 	return r.run.GetID()
 }
 
 // Run returns the inner client.WorkflowRun
-func (r *deployCouchDbrun) Run() client.WorkflowRun {
+func (r *deployCouchDbRun) Run() client.WorkflowRun {
 	return r.run
 }
 
 // RunID returns the execution ID
-func (r *deployCouchDbrun) RunID() string {
+func (r *deployCouchDbRun) RunID() string {
 	return r.run.GetRunID()
 }
 
 // Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *deployCouchDbrun) Cancel(ctx context.Context) error {
+func (r *deployCouchDbRun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
 // Get blocks until the workflow is complete, returning the result if applicable
-func (r *deployCouchDbrun) Get(ctx context.Context) (*DeployCouchDbOutput, error) {
+func (r *deployCouchDbRun) Get(ctx context.Context) (*DeployCouchDbOutput, error) {
 	var resp DeployCouchDbOutput
 	if err := r.run.Get(ctx, &resp); err != nil {
 		return nil, err
@@ -1462,7 +1462,7 @@ func (r *deployCouchDbrun) Get(ctx context.Context) (*DeployCouchDbOutput, error
 }
 
 // Terminate terminates a workflow in execution, returning an error if applicable
-func (r *deployCouchDbrun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+func (r *deployCouchDbRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
@@ -2009,9 +2009,9 @@ var (
 	CreateVaultRoleFunction func(workflow.Context, *CreateVaultRoleInput) (*CreateVaultRoleOutput, error)
 	// DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
 	DeployCertificateAuthorityFunction func(workflow.Context, *DeployCaInput) (*DeployCaOutput, error)
-	// DeployCouchDB deploys a CouchDB instance for peer state storage
+	// DeployCouchDb deploys a CouchDB instance for peer state storage
 	// Each peer gets its own CouchDB instance
-	DeployCouchDbfunction func(workflow.Context, *DeployCouchDbInput) (*DeployCouchDbOutput, error)
+	DeployCouchDbFunction func(workflow.Context, *DeployCouchDbInput) (*DeployCouchDbOutput, error)
 	// DeployOrderer deploys an orderer node with certificates and CSI volume mounts
 	// Calls ProvisionOrdererWorkflow to generate certs, then deploys the orderer pod
 	DeployOrdererFunction func(workflow.Context, *DeployOrdererInput) (*DeployOrdererOutput, error)
@@ -2047,7 +2047,7 @@ type (
 		CreateVaultRole(workflow.Context, *CreateVaultRoleInput) (*CreateVaultRoleOutput, error)
 		// DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
 		DeployCertificateAuthority(workflow.Context, *DeployCaInput) (*DeployCaOutput, error)
-		// DeployCouchDB deploys a CouchDB instance for peer state storage
+		// DeployCouchDb deploys a CouchDB instance for peer state storage
 		// Each peer gets its own CouchDB instance
 		DeployCouchDb(workflow.Context, *DeployCouchDbInput) (*DeployCouchDbOutput, error)
 		// DeployOrderer deploys an orderer node with certificates and CSI volume mounts
@@ -2112,13 +2112,13 @@ func (f *fabricDeployWorkflowFunctions) DeployCertificateAuthority(ctx workflow.
 	return DeployCertificateAuthorityFunction(ctx, req)
 }
 
-// DeployCouchDB deploys a CouchDB instance for peer state storage
+// DeployCouchDb deploys a CouchDB instance for peer state storage
 // Each peer gets its own CouchDB instance
 func (f *fabricDeployWorkflowFunctions) DeployCouchDb(ctx workflow.Context, req *DeployCouchDbInput) (*DeployCouchDbOutput, error) {
-	if DeployCouchDbfunction == nil {
-		return nil, errors.New("DeployCouchDb requires workflow registration via RegisterFabricDeployWorkflows or RegisterDeployCouchDbworkflow")
+	if DeployCouchDbFunction == nil {
+		return nil, errors.New("DeployCouchDb requires workflow registration via RegisterFabricDeployWorkflows or RegisterDeployCouchDbWorkflow")
 	}
-	return DeployCouchDbfunction(ctx, req)
+	return DeployCouchDbFunction(ctx, req)
 }
 
 // DeployOrderer deploys an orderer node with certificates and CSI volume mounts
@@ -2174,9 +2174,9 @@ type FabricDeployWorkflows interface {
 	// DeployCertificateAuthority deploys the Fabric CA pod to the Kubernetes cluster
 	DeployCertificateAuthority(ctx workflow.Context, input *DeployCertificateAuthorityWorkflowInput) (DeployCertificateAuthorityWorkflow, error)
 
-	// DeployCouchDB deploys a CouchDB instance for peer state storage
+	// DeployCouchDb deploys a CouchDB instance for peer state storage
 	// Each peer gets its own CouchDB instance
-	DeployCouchDB(ctx workflow.Context, input *DeployCouchDbworkflowInput) (DeployCouchDbworkflow, error)
+	DeployCouchDb(ctx workflow.Context, input *DeployCouchDbWorkflowInput) (DeployCouchDbWorkflow, error)
 
 	// DeployOrderer deploys an orderer node with certificates and CSI volume mounts
 	// Calls ProvisionOrdererWorkflow to generate certs, then deploys the orderer pod
@@ -2209,7 +2209,7 @@ func RegisterFabricDeployWorkflows(r worker.WorkflowRegistry, workflows FabricDe
 	RegisterCreateServiceAccountWorkflow(r, workflows.CreateServiceAccount)
 	RegisterCreateVaultRoleWorkflow(r, workflows.CreateVaultRole)
 	RegisterDeployCertificateAuthorityWorkflow(r, workflows.DeployCertificateAuthority)
-	RegisterDeployCouchDbworkflow(r, workflows.DeployCouchDB)
+	RegisterDeployCouchDbWorkflow(r, workflows.DeployCouchDb)
 	RegisterDeployOrdererWorkflow(r, workflows.DeployOrderer)
 	RegisterDeployOrgWorkflow(r, workflows.DeployOrg)
 	RegisterDeployPeerWorkflow(r, workflows.DeployPeer)
@@ -3219,18 +3219,18 @@ func (r *DeployCertificateAuthorityChildRun) WaitStart(ctx workflow.Context) (*w
 	return &exec, nil
 }
 
-// RegisterDeployCouchDBWorkflow registers a fabric.v1.FabricDeploy.DeployCouchDB workflow with the given worker
-func RegisterDeployCouchDbworkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployCouchDbworkflowInput) (DeployCouchDbworkflow, error)) {
+// RegisterDeployCouchDbWorkflow registers a fabric.v1.FabricDeploy.DeployCouchDb workflow with the given worker
+func RegisterDeployCouchDbWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployCouchDbWorkflowInput) (DeployCouchDbWorkflow, error)) {
 	fabricDeployRegistrationMutex.Lock()
 	defer fabricDeployRegistrationMutex.Unlock()
-	DeployCouchDbfunction = buildDeployCouchDB(wf)
-	r.RegisterWorkflowWithOptions(DeployCouchDbfunction, workflow.RegisterOptions{Name: DeployCouchDbworkflowName})
+	DeployCouchDbFunction = buildDeployCouchDb(wf)
+	r.RegisterWorkflowWithOptions(DeployCouchDbFunction, workflow.RegisterOptions{Name: DeployCouchDbWorkflowName})
 }
 
-// buildDeployCouchDB converts a DeployCouchDB workflow struct into a valid workflow function
-func buildDeployCouchDB(ctor func(workflow.Context, *DeployCouchDbworkflowInput) (DeployCouchDbworkflow, error)) func(workflow.Context, *DeployCouchDbInput) (*DeployCouchDbOutput, error) {
+// buildDeployCouchDb converts a DeployCouchDb workflow struct into a valid workflow function
+func buildDeployCouchDb(ctor func(workflow.Context, *DeployCouchDbWorkflowInput) (DeployCouchDbWorkflow, error)) func(workflow.Context, *DeployCouchDbInput) (*DeployCouchDbOutput, error) {
 	return func(ctx workflow.Context, req *DeployCouchDbInput) (*DeployCouchDbOutput, error) {
-		input := &DeployCouchDbworkflowInput{
+		input := &DeployCouchDbWorkflowInput{
 			Req: req,
 		}
 		wf, err := ctor(ctx, input)
@@ -3246,38 +3246,38 @@ func buildDeployCouchDB(ctor func(workflow.Context, *DeployCouchDbworkflowInput)
 	}
 }
 
-// DeployCouchDbworkflowInput describes the input to a(n) fabric.v1.DeployCouchDB workflow constructor
-type DeployCouchDbworkflowInput struct {
+// DeployCouchDbWorkflowInput describes the input to a(n) fabric.v1.DeployCouchDB workflow constructor
+type DeployCouchDbWorkflowInput struct {
 	Req *DeployCouchDbInput
 }
 
-// DeployCouchDB deploys a CouchDB instance for peer state storage
+// DeployCouchDb deploys a CouchDB instance for peer state storage
 // Each peer gets its own CouchDB instance
 //
 // workflow details: (name: "fabric.v1.DeployCouchDB")
-type DeployCouchDbworkflow interface {
+type DeployCouchDbWorkflow interface {
 	// Execute defines the entrypoint to a(n) fabric.v1.DeployCouchDB workflow
 	Execute(ctx workflow.Context) (*DeployCouchDbOutput, error)
 }
 
-// DeployCouchDB deploys a CouchDB instance for peer state storage
+// DeployCouchDb deploys a CouchDB instance for peer state storage
 // Each peer gets its own CouchDB instance
-func DeployCouchDbchild(ctx workflow.Context, req *DeployCouchDbInput, options ...*DeployCouchDbchildOptions) (*DeployCouchDbOutput, error) {
-	childRun, err := DeployCouchDbchildAsync(ctx, req, options...)
+func DeployCouchDbChild(ctx workflow.Context, req *DeployCouchDbInput, options ...*DeployCouchDbChildOptions) (*DeployCouchDbOutput, error) {
+	childRun, err := DeployCouchDbChildAsync(ctx, req, options...)
 	if err != nil {
 		return nil, err
 	}
 	return childRun.Get(ctx)
 }
 
-// DeployCouchDB deploys a CouchDB instance for peer state storage
+// DeployCouchDb deploys a CouchDB instance for peer state storage
 // Each peer gets its own CouchDB instance
-func DeployCouchDbchildAsync(ctx workflow.Context, req *DeployCouchDbInput, options ...*DeployCouchDbchildOptions) (*DeployCouchDbchildRun, error) {
-	var o *DeployCouchDbchildOptions
+func DeployCouchDbChildAsync(ctx workflow.Context, req *DeployCouchDbInput, options ...*DeployCouchDbChildOptions) (*DeployCouchDbChildRun, error) {
+	var o *DeployCouchDbChildOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
 	} else {
-		o = NewDeployCouchDbchildOptions()
+		o = NewDeployCouchDbChildOptions()
 	}
 	opts, err := o.Build(ctx, req.ProtoReflect())
 	if err != nil {
@@ -3287,11 +3287,11 @@ func DeployCouchDbchildAsync(ctx workflow.Context, req *DeployCouchDbInput, opti
 	if o.dc != nil {
 		ctx = workflow.WithDataConverter(ctx, o.dc)
 	}
-	return &DeployCouchDbchildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployCouchDbworkflowName, req)}, nil
+	return &DeployCouchDbChildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployCouchDbWorkflowName, req)}, nil
 }
 
-// DeployCouchDbchildOptions provides configuration for a child fabric.v1.DeployCouchDB workflow operation
-type DeployCouchDbchildOptions struct {
+// DeployCouchDbChildOptions provides configuration for a child fabric.v1.DeployCouchDB workflow operation
+type DeployCouchDbChildOptions struct {
 	options                  workflow.ChildWorkflowOptions
 	executionTimeout         *time.Duration
 	id                       *string
@@ -3307,13 +3307,13 @@ type DeployCouchDbchildOptions struct {
 	waitForCancellation      *bool
 }
 
-// NewDeployCouchDbchildOptions initializes a new DeployCouchDbchildOptions value
-func NewDeployCouchDbchildOptions() *DeployCouchDbchildOptions {
-	return &DeployCouchDbchildOptions{}
+// NewDeployCouchDbChildOptions initializes a new DeployCouchDbChildOptions value
+func NewDeployCouchDbChildOptions() *DeployCouchDbChildOptions {
+	return &DeployCouchDbChildOptions{}
 }
 
 // Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
-func (o *DeployCouchDbchildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+func (o *DeployCouchDbChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.WorkflowID = *v
@@ -3355,90 +3355,90 @@ func (o *DeployCouchDbchildOptions) Build(ctx workflow.Context, req protoreflect
 }
 
 // WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
-func (o *DeployCouchDbchildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *DeployCouchDbchildOptions {
+func (o *DeployCouchDbChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *DeployCouchDbChildOptions {
 	o.options = options
 	return o
 }
 
 // WithDataConverter registers a DataConverter for the child workflow
-func (o *DeployCouchDbchildOptions) WithDataConverter(dc converter.DataConverter) *DeployCouchDbchildOptions {
+func (o *DeployCouchDbChildOptions) WithDataConverter(dc converter.DataConverter) *DeployCouchDbChildOptions {
 	o.dc = dc
 	return o
 }
 
 // WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *DeployCouchDbchildOptions) WithExecutionTimeout(d time.Duration) *DeployCouchDbchildOptions {
+func (o *DeployCouchDbChildOptions) WithExecutionTimeout(d time.Duration) *DeployCouchDbChildOptions {
 	o.executionTimeout = &d
 	return o
 }
 
 // WithID sets the WorkflowID value
-func (o *DeployCouchDbchildOptions) WithID(id string) *DeployCouchDbchildOptions {
+func (o *DeployCouchDbChildOptions) WithID(id string) *DeployCouchDbChildOptions {
 	o.id = &id
 	return o
 }
 
 // WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *DeployCouchDbchildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployCouchDbchildOptions {
+func (o *DeployCouchDbChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployCouchDbChildOptions {
 	o.idReusePolicy = policy
 	return o
 }
 
 // WithParentClosePolicy sets the WorkflowIDReusePolicy value
-func (o *DeployCouchDbchildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *DeployCouchDbchildOptions {
+func (o *DeployCouchDbChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *DeployCouchDbChildOptions {
 	o.parentClosePolicy = policy
 	return o
 }
 
 // WithRetryPolicy sets the RetryPolicy value
-func (o *DeployCouchDbchildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployCouchDbchildOptions {
+func (o *DeployCouchDbChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployCouchDbChildOptions {
 	o.retryPolicy = policy
 	return o
 }
 
 // WithRunTimeout sets the WorkflowRunTimeout value
-func (o *DeployCouchDbchildOptions) WithRunTimeout(d time.Duration) *DeployCouchDbchildOptions {
+func (o *DeployCouchDbChildOptions) WithRunTimeout(d time.Duration) *DeployCouchDbChildOptions {
 	o.runTimeout = &d
 	return o
 }
 
 // WithSearchAttributes sets the SearchAttributes value
-func (o *DeployCouchDbchildOptions) WithSearchAttributes(sa map[string]any) *DeployCouchDbchildOptions {
+func (o *DeployCouchDbChildOptions) WithSearchAttributes(sa map[string]any) *DeployCouchDbChildOptions {
 	o.searchAttributes = sa
 	return o
 }
 
 // WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *DeployCouchDbchildOptions) WithTaskTimeout(d time.Duration) *DeployCouchDbchildOptions {
+func (o *DeployCouchDbChildOptions) WithTaskTimeout(d time.Duration) *DeployCouchDbChildOptions {
 	o.taskTimeout = &d
 	return o
 }
 
 // WithTaskQueue sets the TaskQueue value
-func (o *DeployCouchDbchildOptions) WithTaskQueue(tq string) *DeployCouchDbchildOptions {
+func (o *DeployCouchDbChildOptions) WithTaskQueue(tq string) *DeployCouchDbChildOptions {
 	o.taskQueue = &tq
 	return o
 }
 
 // WithWaitForCancellation sets the WaitForCancellation value
-func (o *DeployCouchDbchildOptions) WithWaitForCancellation(wait bool) *DeployCouchDbchildOptions {
+func (o *DeployCouchDbChildOptions) WithWaitForCancellation(wait bool) *DeployCouchDbChildOptions {
 	o.waitForCancellation = &wait
 	return o
 }
 
 // WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *DeployCouchDbchildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployCouchDbchildOptions {
+func (o *DeployCouchDbChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployCouchDbChildOptions {
 	o.workflowIdConflictPolicy = policy
 	return o
 }
 
-// DeployCouchDbchildRun describes a child DeployCouchDB workflow run
-type DeployCouchDbchildRun struct {
+// DeployCouchDbChildRun describes a child DeployCouchDb workflow run
+type DeployCouchDbChildRun struct {
 	Future workflow.ChildWorkflowFuture
 }
 
 // Get blocks until the workflow is completed, returning the response value
-func (r *DeployCouchDbchildRun) Get(ctx workflow.Context) (*DeployCouchDbOutput, error) {
+func (r *DeployCouchDbChildRun) Get(ctx workflow.Context) (*DeployCouchDbOutput, error) {
 	var resp DeployCouchDbOutput
 	if err := r.Future.Get(ctx, &resp); err != nil {
 		return nil, err
@@ -3447,7 +3447,7 @@ func (r *DeployCouchDbchildRun) Get(ctx workflow.Context) (*DeployCouchDbOutput,
 }
 
 // Select adds this completion to the selector. Callback can be nil.
-func (r *DeployCouchDbchildRun) Select(sel workflow.Selector, fn func(*DeployCouchDbchildRun)) workflow.Selector {
+func (r *DeployCouchDbChildRun) Select(sel workflow.Selector, fn func(*DeployCouchDbChildRun)) workflow.Selector {
 	return sel.AddFuture(r.Future, func(workflow.Future) {
 		if fn != nil {
 			fn(r)
@@ -3456,7 +3456,7 @@ func (r *DeployCouchDbchildRun) Select(sel workflow.Selector, fn func(*DeployCou
 }
 
 // SelectStart adds waiting for start to the selector. Callback can be nil.
-func (r *DeployCouchDbchildRun) SelectStart(sel workflow.Selector, fn func(*DeployCouchDbchildRun)) workflow.Selector {
+func (r *DeployCouchDbChildRun) SelectStart(sel workflow.Selector, fn func(*DeployCouchDbChildRun)) workflow.Selector {
 	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
 		if fn != nil {
 			fn(r)
@@ -3465,7 +3465,7 @@ func (r *DeployCouchDbchildRun) SelectStart(sel workflow.Selector, fn func(*Depl
 }
 
 // WaitStart waits for the child workflow to start
-func (r *DeployCouchDbchildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+func (r *DeployCouchDbChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
 	var exec workflow.Execution
 	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
 		return nil, err
@@ -4412,33 +4412,33 @@ func (c *TestFabricDeployClient) GetDeployCertificateAuthority(ctx context.Conte
 	return &testDeployCertificateAuthorityRun{env: c.env, workflows: c.workflows}
 }
 
-// DeployCouchDB executes a(n) fabric.v1.DeployCouchDB workflow in the test environment
-func (c *TestFabricDeployClient) DeployCouchDB(ctx context.Context, req *DeployCouchDbInput, opts ...*DeployCouchDboptions) (*DeployCouchDbOutput, error) {
-	run, err := c.DeployCouchDbasync(ctx, req, opts...)
+// DeployCouchDb executes a(n) fabric.v1.DeployCouchDB workflow in the test environment
+func (c *TestFabricDeployClient) DeployCouchDb(ctx context.Context, req *DeployCouchDbInput, opts ...*DeployCouchDbOptions) (*DeployCouchDbOutput, error) {
+	run, err := c.DeployCouchDbAsync(ctx, req, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return run.Get(ctx)
 }
 
-// DeployCouchDBAsync executes a(n) fabric.v1.DeployCouchDB workflow in the test environment
-func (c *TestFabricDeployClient) DeployCouchDbasync(ctx context.Context, req *DeployCouchDbInput, options ...*DeployCouchDboptions) (DeployCouchDbrun, error) {
-	var o *DeployCouchDboptions
+// DeployCouchDbAsync executes a(n) fabric.v1.DeployCouchDB workflow in the test environment
+func (c *TestFabricDeployClient) DeployCouchDbAsync(ctx context.Context, req *DeployCouchDbInput, options ...*DeployCouchDbOptions) (DeployCouchDbRun, error) {
+	var o *DeployCouchDbOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
 	} else {
-		o = NewDeployCouchDboptions()
+		o = NewDeployCouchDbOptions()
 	}
 	opts, err := o.Build(req.ProtoReflect())
 	if err != nil {
 		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
 	}
-	return &testDeployCouchDbrun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+	return &testDeployCouchDbRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
 }
 
 // GetDeployCouchDb is a noop
-func (c *TestFabricDeployClient) GetDeployCouchDb(ctx context.Context, workflowID string, runID string) DeployCouchDbrun {
-	return &testDeployCouchDbrun{env: c.env, workflows: c.workflows}
+func (c *TestFabricDeployClient) GetDeployCouchDb(ctx context.Context, workflowID string, runID string) DeployCouchDbRun {
+	return &testDeployCouchDbRun{env: c.env, workflows: c.workflows}
 }
 
 // DeployOrderer executes a(n) fabric.v1.DeployOrderer workflow in the test environment
@@ -4771,10 +4771,10 @@ func (r *testDeployCertificateAuthorityRun) Terminate(ctx context.Context, reaso
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-var _ DeployCouchDbrun = &testDeployCouchDbrun{}
+var _ DeployCouchDbRun = &testDeployCouchDbRun{}
 
-// testDeployCouchDbrun provides convenience methods for interacting with a(n) fabric.v1.DeployCouchDB workflow in the test environment
-type testDeployCouchDbrun struct {
+// testDeployCouchDbRun provides convenience methods for interacting with a(n) fabric.v1.DeployCouchDB workflow in the test environment
+type testDeployCouchDbRun struct {
 	client    *TestFabricDeployClient
 	env       *testsuite.TestWorkflowEnvironment
 	isStarted atomic.Bool
@@ -4784,14 +4784,14 @@ type testDeployCouchDbrun struct {
 }
 
 // Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *testDeployCouchDbrun) Cancel(ctx context.Context) error {
+func (r *testDeployCouchDbRun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
 // Get retrieves a test fabric.v1.DeployCouchDB workflow result
-func (r *testDeployCouchDbrun) Get(context.Context) (*DeployCouchDbOutput, error) {
+func (r *testDeployCouchDbRun) Get(context.Context) (*DeployCouchDbOutput, error) {
 	if r.isStarted.CompareAndSwap(false, true) {
-		r.env.ExecuteWorkflow(DeployCouchDbworkflowName, r.req)
+		r.env.ExecuteWorkflow(DeployCouchDbWorkflowName, r.req)
 	}
 	if !r.env.IsWorkflowCompleted() {
 		return nil, errors.New("workflow in progress")
@@ -4807,7 +4807,7 @@ func (r *testDeployCouchDbrun) Get(context.Context) (*DeployCouchDbOutput, error
 }
 
 // ID returns a test fabric.v1.DeployCouchDB workflow run's workflow ID
-func (r *testDeployCouchDbrun) ID() string {
+func (r *testDeployCouchDbRun) ID() string {
 	if r.opts != nil {
 		return r.opts.ID
 	}
@@ -4815,17 +4815,17 @@ func (r *testDeployCouchDbrun) ID() string {
 }
 
 // Run noop implementation
-func (r *testDeployCouchDbrun) Run() client.WorkflowRun {
+func (r *testDeployCouchDbRun) Run() client.WorkflowRun {
 	return nil
 }
 
 // RunID noop implementation
-func (r *testDeployCouchDbrun) RunID() string {
+func (r *testDeployCouchDbRun) RunID() string {
 	return ""
 }
 
 // Terminate terminates a workflow in execution, returning an error if applicable
-func (r *testDeployCouchDbrun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+func (r *testDeployCouchDbRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 

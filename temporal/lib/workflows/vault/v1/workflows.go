@@ -62,10 +62,6 @@ func (w *createAccessWorkflow) Execute(ctx workflow.Context) (*pb.CreateAccessOu
 
 	// Step 2: Create the auth role using the policy name from step 1
 	logger.Info("Creating Kubernetes auth role", "policy_name", policyOutput.GetName())
-	
-	// Build the list of policy names: include the created policy plus any additional ones
-	policyNames := []string{policyOutput.GetName()}
-	policyNames = append(policyNames, w.input.Req.GetAdditionalPolicyNames()...)
 
 	var authRoleOutput *pb.CreateAuthRoleOutput
 	err = workflow.ExecuteActivity(activityCtx, pb.CreateAuthRoleActivityName,
@@ -73,7 +69,7 @@ func (w *createAccessWorkflow) Execute(ctx workflow.Context) (*pb.CreateAccessOu
 			Organization:        w.input.Req.GetOrganization(),
 			ServiceAccountName:  w.input.Req.GetServiceAccountName(),
 			KubernetesNamespace: w.input.Req.GetKubernetesNamespace(),
-			PolicyNames:         policyNames,
+			PolicyNames:         []string{policyOutput.GetName()},
 		}).Get(ctx, &authRoleOutput)
 	if err != nil {
 		logger.Error("Failed to create auth role", "error", err)

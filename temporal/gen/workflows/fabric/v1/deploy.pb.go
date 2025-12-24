@@ -1203,7 +1203,7 @@ const file_fabric_v1_deploy_proto_rawDesc = "" +
 	"\x14CreateServiceAccount\x12$.fabric.v1.CreateServiceAccountInput\x1a%.fabric.v1.CreateServiceAccountOutput\"(\x8a\xc4\x03$0\x01@\x03r\x1efabric.v1.CreateServiceAccount\x12y\n" +
 	"\x0fCreateVaultRole\x12\x1f.fabric.v1.CreateVaultRoleInput\x1a .fabric.v1.CreateVaultRoleOutput\"#\x8a\xc4\x03\x1f0\x01@\x03r\x19fabric.v1.CreateVaultRole\x12\x81\x01\n" +
 	"\x1aDeployCertificateAuthority\x12\x18.fabric.v1.DeployCaInput\x1a\x19.fabric.v1.DeployCaOutput\".\x8a\xc4\x03*0\x01@\x03r$fabric.v1.DeployCertificateAuthority\x12q\n" +
-	"\rDeployCouchDB\x12\x1d.fabric.v1.DeployCouchDbInput\x1a\x1e.fabric.v1.DeployCouchDbOutput\"!\x8a\xc4\x03\x1d0\x01@\x03r\x17fabric.v1.DeployCouchDB\x12e\n" +
+	"\rDeployCouchDb\x12\x1d.fabric.v1.DeployCouchDbInput\x1a\x1e.fabric.v1.DeployCouchDbOutput\"!\x8a\xc4\x03\x1d0\x01@\x03r\x17fabric.v1.DeployCouchDB\x12e\n" +
 	"\n" +
 	"DeployPeer\x12\x1a.fabric.v1.DeployPeerInput\x1a\x1b.fabric.v1.DeployPeerOutput\"\x1e\x8a\xc4\x03\x1a0\x01@\x03r\x14fabric.v1.DeployPeer\x12q\n" +
 	"\rDeployOrderer\x12\x1d.fabric.v1.DeployOrdererInput\x1a\x1e.fabric.v1.DeployOrdererOutput\"!\x8a\xc4\x03\x1d0\x01@\x03r\x17fabric.v1.DeployOrderer\x12a\n" +
@@ -1264,7 +1264,7 @@ var file_fabric_v1_deploy_proto_depIdxs = []int32{
 	2,  // 14: fabric.v1.FabricDeploy.CreateServiceAccount:input_type -> fabric.v1.CreateServiceAccountInput
 	4,  // 15: fabric.v1.FabricDeploy.CreateVaultRole:input_type -> fabric.v1.CreateVaultRoleInput
 	6,  // 16: fabric.v1.FabricDeploy.DeployCertificateAuthority:input_type -> fabric.v1.DeployCaInput
-	8,  // 17: fabric.v1.FabricDeploy.DeployCouchDB:input_type -> fabric.v1.DeployCouchDbInput
+	8,  // 17: fabric.v1.FabricDeploy.DeployCouchDb:input_type -> fabric.v1.DeployCouchDbInput
 	10, // 18: fabric.v1.FabricDeploy.DeployPeer:input_type -> fabric.v1.DeployPeerInput
 	12, // 19: fabric.v1.FabricDeploy.DeployOrderer:input_type -> fabric.v1.DeployOrdererInput
 	14, // 20: fabric.v1.FabricDeploy.DeployOrg:input_type -> fabric.v1.DeployOrgInput
@@ -1272,7 +1272,7 @@ var file_fabric_v1_deploy_proto_depIdxs = []int32{
 	3,  // 22: fabric.v1.FabricDeploy.CreateServiceAccount:output_type -> fabric.v1.CreateServiceAccountOutput
 	5,  // 23: fabric.v1.FabricDeploy.CreateVaultRole:output_type -> fabric.v1.CreateVaultRoleOutput
 	7,  // 24: fabric.v1.FabricDeploy.DeployCertificateAuthority:output_type -> fabric.v1.DeployCaOutput
-	9,  // 25: fabric.v1.FabricDeploy.DeployCouchDB:output_type -> fabric.v1.DeployCouchDbOutput
+	9,  // 25: fabric.v1.FabricDeploy.DeployCouchDb:output_type -> fabric.v1.DeployCouchDbOutput
 	11, // 26: fabric.v1.FabricDeploy.DeployPeer:output_type -> fabric.v1.DeployPeerOutput
 	13, // 27: fabric.v1.FabricDeploy.DeployOrderer:output_type -> fabric.v1.DeployOrdererOutput
 	15, // 28: fabric.v1.FabricDeploy.DeployOrg:output_type -> fabric.v1.DeployOrgOutput

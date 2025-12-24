@@ -39,7 +39,6 @@ func TestCreateAccessWorkflow(t *testing.T) {
 					Organization:       "org1",
 					ServiceAccountName: "test-sa",
 					KubernetesNamespace: "default",
-					AdditionalPolicyNames: []string{"existing-policy"},
 				},
 			},
 			createPolicyRes: &pb.CreatePolicyOutput{
@@ -118,30 +117,29 @@ func TestCreateAccessWorkflow(t *testing.T) {
 			Return(tt.createPolicyRes, tt.createPolicyErr).
 			Maybe()
 
-			// Mock CreateAuthRole activity - only called if CreatePolicy succeeds
-			if tt.createPolicyErr == nil {
-				mockActivities.EXPECT().
-					CreateAuthRole(mock.Anything, mock.MatchedBy(func(input *pb.CreateAuthRoleInput) bool {
-						// Verify the policy name from CreatePolicy is included
-						expectedPolicyNames := []string{tt.createPolicyRes.GetName()}
-						expectedPolicyNames = append(expectedPolicyNames, tt.input.Req.GetAdditionalPolicyNames()...)
-						
-						if len(input.GetPolicyNames()) != len(expectedPolicyNames) {
+		// Mock CreateAuthRole activity - only called if CreatePolicy succeeds
+		if tt.createPolicyErr == nil {
+			mockActivities.EXPECT().
+				CreateAuthRole(mock.Anything, mock.MatchedBy(func(input *pb.CreateAuthRoleInput) bool {
+					// Verify the policy name from CreatePolicy is included
+					expectedPolicyNames := []string{tt.createPolicyRes.GetName()}
+					
+					if len(input.GetPolicyNames()) != len(expectedPolicyNames) {
+						return false
+					}
+					for i, expected := range expectedPolicyNames {
+						if i >= len(input.GetPolicyNames()) || input.GetPolicyNames()[i] != expected {
 							return false
 						}
-						for i, expected := range expectedPolicyNames {
-							if i >= len(input.GetPolicyNames()) || input.GetPolicyNames()[i] != expected {
-								return false
-							}
-						}
-						
-						return input.GetOrganization() == tt.input.Req.GetOrganization() &&
-							input.GetServiceAccountName() == tt.input.Req.GetServiceAccountName() &&
-							input.GetKubernetesNamespace() == tt.input.Req.GetKubernetesNamespace()
-					})).
-					Return(tt.createAuthRoleRes, tt.createAuthRoleErr).
-					Maybe()
-			}
+					}
+					
+					return input.GetOrganization() == tt.input.Req.GetOrganization() &&
+						input.GetServiceAccountName() == tt.input.Req.GetServiceAccountName() &&
+						input.GetKubernetesNamespace() == tt.input.Req.GetKubernetesNamespace()
+				})).
+				Return(tt.createAuthRoleRes, tt.createAuthRoleErr).
+				Maybe()
+		}
 
 			pb.RegisterVaultActivities(env, mockActivities)
 
