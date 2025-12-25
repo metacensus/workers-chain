@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -62,11 +63,8 @@ func TestVaultClient_GenericOperations(t *testing.T) {
 
 	vaultAddr := fmt.Sprintf("http://%s:%s", host, port.Port())
 
-	// Create generic client
-	client := NewVaultClient(VaultConfig{
-		Address: vaultAddr,
-		Token:   "root",
-	})
+	// Create generic client using token (test helper for dev mode vault)
+	client := newVaultClientWithToken(vaultAddr, "root")
 
 	t.Run("write and read secret data", func(t *testing.T) {
 		// Write secret data using generic Write
@@ -242,10 +240,7 @@ func TestVaultClient_ErrorHandling(t *testing.T) {
 	vaultAddr := fmt.Sprintf("http://%s:%s", host, port.Port())
 
 	t.Run("unauthorized token returns error", func(t *testing.T) {
-		client := NewVaultClient(VaultConfig{
-			Address: vaultAddr,
-			Token:   "invalid-token",
-		})
+		client := newVaultClientWithToken(vaultAddr, "invalid-token")
 
 		path := "secret/data/test/secret"
 		data := map[string]any{
@@ -262,10 +257,7 @@ func TestVaultClient_ErrorHandling(t *testing.T) {
 	})
 
 	t.Run("read nonexistent path returns not found", func(t *testing.T) {
-		client := NewVaultClient(VaultConfig{
-			Address: vaultAddr,
-			Token:   "root",
-		})
+		client := newVaultClientWithToken(vaultAddr, "root")
 
 		_, err := client.Read(ctx, "secret/data/nonexistent/secret")
 		if err == nil {
@@ -275,4 +267,18 @@ func TestVaultClient_ErrorHandling(t *testing.T) {
 			t.Errorf("expected ErrNotFound, got: %v", err)
 		}
 	})
+}
+
+// newVaultClientWithToken creates a Vault client with a pre-configured token.
+// This is for testing only - production code should use NewVaultClient with k8s auth.
+func newVaultClientWithToken(address, token string) VaultClient {
+	return &vaultClient{
+		config: VaultConfig{
+			Address: address,
+		},
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+		token: token,
+	}
 }

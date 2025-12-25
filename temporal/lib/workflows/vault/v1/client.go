@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -21,7 +22,7 @@ var (
 // VaultConfig represents Vault connection configuration
 type VaultConfig struct {
 	Address string // Vault server address (e.g., "https://vault.example.com")
-	Token   string // Authentication token
+	Role    string // Kubernetes auth role name
 }
 
 // VaultClient defines generic path-based operations for Vault
@@ -40,16 +41,27 @@ type VaultClient interface {
 type vaultClient struct {
 	config     VaultConfig
 	httpClient *http.Client
+	token      string // Actual auth token (from config or k8s auth)
 }
 
 // NewVaultClient creates a new Vault client with the given configuration
-func NewVaultClient(config VaultConfig) VaultClient {
-	return &vaultClient{
+// It authenticates using Kubernetes service account auth method.
+func NewVaultClient(config VaultConfig) (VaultClient, error) {
+	client := &vaultClient{
 		config: config,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
 	}
+
+	// Authenticate using Kubernetes service account
+	token, err := client.authenticateKubernetes(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("kubernetes auth failed: %w", err)
+	}
+	client.token = token
+
+	return client, nil
 }
 
 // Write performs a PUT request to the given path with data
@@ -137,9 +149,66 @@ func (vc *vaultClient) buildURL(path string) string {
 	return fmt.Sprintf("%s/v1/%s", baseURL, path)
 }
 
+// authenticateKubernetes performs Kubernetes auth method login
+func (vc *vaultClient) authenticateKubernetes(ctx context.Context) (string, error) {
+	// Read service account JWT token
+	jwtPath := "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	jwtBytes, err := os.ReadFile(jwtPath)
+	if err != nil {
+		return "", fmt.Errorf("read service account token: %w", err)
+	}
+	jwt := string(jwtBytes)
+
+	// Prepare login request
+	loginData := map[string]any{
+		"role": vc.config.Role,
+		"jwt":  jwt,
+	}
+
+	bodyBytes, err := json.Marshal(loginData)
+	if err != nil {
+		return "", fmt.Errorf("marshal login request: %w", err)
+	}
+
+	// Send login request
+	url := vc.buildURL("auth/kubernetes/login")
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(string(bodyBytes)))
+	if err != nil {
+		return "", fmt.Errorf("create login request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := vc.httpClient.Do(httpReq)
+	if err != nil {
+		return "", fmt.Errorf("send login request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("login failed (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response to get client token
+	var loginResp struct {
+		Auth struct {
+			ClientToken string `json:"client_token"`
+		} `json:"auth"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&loginResp); err != nil {
+		return "", fmt.Errorf("decode login response: %w", err)
+	}
+
+	if loginResp.Auth.ClientToken == "" {
+		return "", errors.New("login response missing client_token")
+	}
+
+	return loginResp.Auth.ClientToken, nil
+}
+
 // setHeaders sets authentication and content-type headers on the request
 func (vc *vaultClient) setHeaders(req *http.Request) {
-	req.Header.Set("X-Vault-Token", vc.config.Token)
+	req.Header.Set("X-Vault-Token", vc.token)
 	req.Header.Set("Content-Type", "application/json")
 }
 

@@ -31,7 +31,7 @@ func NewWorker(c client.Client) worker.Worker {
 func NewVaultConfig() vault.VaultConfig {
 	return vault.VaultConfig{
 		Address: env.VaultAddress(),
-		Token:   env.VaultToken(),
+		Role:    env.VaultRole(),
 	}
 }
 

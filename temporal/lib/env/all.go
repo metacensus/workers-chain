@@ -12,7 +12,7 @@ const (
 
 	// Vault configuration
 	vaultAddressName   = "VAULT_ADDR"
-	vaultTokenName     = "VAULT_TOKEN"
+	vaultRoleName      = "VAULT_ROLE"
 	vaultMountPathName = "VAULT_MOUNT_PATH"
 	vaultEngineType    = "VAULT_ENGINE_TYPE"
 
@@ -30,6 +30,7 @@ func init() {
 	viper.SetEnvPrefix("") // or set a prefix if needed
 
 	// Set defaults
+	viper.SetDefault(vaultRoleName, "infra-worker")
 	viper.SetDefault(vaultMountPathName, "secret")
 	viper.SetDefault(vaultEngineType, "kv")
 	viper.SetDefault(fabricCAHomeDirName, "/tmp/fabric-ca-client")
@@ -60,8 +61,8 @@ func VaultAddress() string {
 	return viper.GetString(vaultAddressName)
 }
 
-func VaultToken() string {
-	return viper.GetString(vaultTokenName)
+func VaultRole() string {
+	return viper.GetString(vaultRoleName)
 }
 
 func VaultMountPath() string {
