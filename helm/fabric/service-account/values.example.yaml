@@ -1,0 +1,11 @@
+namespace: fabric-org1
+
+serviceAccountName: fabric-worker-org1
+
+roleName: fabric-worker-org1
+
+commonLabels:
+  app.kubernetes.io/managed-by: helm
+  app.kubernetes.io/part-of: fabric
+
+

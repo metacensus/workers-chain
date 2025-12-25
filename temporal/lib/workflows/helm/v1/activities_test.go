@@ -240,7 +240,7 @@ func TestRenderChartActivity(t *testing.T) {
 			},
 			mockChart:      minimumValidChart(),
 			expectErr:      false,
-			expectResCount: 0, // Helm rendering may return 0 resources in test environment
+			expectResCount: 1, // minimumValidChart has 1 Service resource
 			expectFailures: false,
 		},
 	}
@@ -384,14 +384,37 @@ func TestRenderChartWithTemplateActivity(t *testing.T) {
   tag: "{{.Tag}}"
 `
 
+	// Realistic namespace template matching helm/fabric/namespace/values.yaml.tpl
+	namespaceTemplate := `name: {{.Name}}
+
+commonLabels:
+  managedBy: {{.CommonLabels.ManagedBy}}
+  partOf: {{.CommonLabels.PartOf}}
+`
+
+	// Realistic peer template with image and resource settings
+	peerTemplate := `image:
+  repository: {{.ImageRepository}}
+  tag: "{{.ImageTag}}"
+organization: "{{.Organization}}"
+resources:
+  requests:
+    cpu: "{{.Resources.Requests.CPU}}"
+    memory: "{{.Resources.Requests.Memory}}"
+  limits:
+    cpu: "{{.Resources.Limits.CPU}}"
+    memory: "{{.Resources.Limits.Memory}}"
+`
+
 	tests := []struct {
-		name        string
-		input       *pb.RenderChartWithTemplateInput
-		templateStr string
-		mockChart   *chart.Chart
-		clientErr   error
-		templateErr error
-		expectErr   bool
+		name           string
+		input          *pb.RenderChartWithTemplateInput
+		templateStr    string
+		mockChart      *chart.Chart
+		clientErr      error
+		templateErr    error
+		expectErr      bool
+		expectResCount int // Expected minimum resource count on success
 	}{
 		{
 			name: "error - chart name is empty",
@@ -439,7 +462,10 @@ func TestRenderChartWithTemplateActivity(t *testing.T) {
 			input: &pb.RenderChartWithTemplateInput{
 				ChartName: "peer",
 				Component: "peer",
-				Values:    &structpb.Struct{},
+				Values: structpbMapToStruct(map[string]interface{}{
+					"ImageRepository": "myrepo",
+					"ImageTag":        "latest",
+				}),
 				Namespace: &defaultNS,
 			},
 			templateStr: simpleTemplate,
@@ -447,17 +473,81 @@ func TestRenderChartWithTemplateActivity(t *testing.T) {
 			expectErr:   true,
 		},
 		{
-			name: "success - template renders and chart loads",
+			name: "error - template syntax error",
 			input: &pb.RenderChartWithTemplateInput{
 				ChartName: "peer",
 				Component: "peer",
-				Values:    structpbMapToStruct(map[string]interface{}{"Repo": "myrepo"}),
+				Values: structpbMapToStruct(map[string]interface{}{
+					"Repo": "myrepo",
+					"Tag":  "latest",
+				}),
 				Namespace: &defaultNS,
 			},
-			// Template that renders to empty YAML (which parseValues will accept)
-			templateStr: "",
-			mockChart:   minimumValidChart(),
-			expectErr:   false,
+			templateStr: `image: {{.UndefinedField | mustHave}}`, // Invalid template syntax
+			mockChart:   nil,                                     // Should fail before loading chart
+			expectErr:   true,
+		},
+		{
+			name: "success - simple template renders and chart loads",
+			input: &pb.RenderChartWithTemplateInput{
+				ChartName: "peer",
+				Component: "peer",
+				Values: structpbMapToStruct(map[string]interface{}{
+					"Repo": "hyperledger/fabric-peer",
+					"Tag":  "2.5.0",
+				}),
+				Namespace: &defaultNS,
+			},
+			templateStr:    simpleTemplate,
+			mockChart:      minimumValidChart(),
+			expectErr:      false,
+			expectResCount: 1, // minimumValidChart has 1 Service resource
+		},
+		{
+			name: "success - namespace template with proper values",
+			input: &pb.RenderChartWithTemplateInput{
+				ChartName: "fabric/namespace",
+				Component: "namespace",
+				Values: structpbMapToStruct(map[string]interface{}{
+					"Name": "fabric-org1",
+					"CommonLabels": map[string]interface{}{
+						"ManagedBy": "temporal",
+						"PartOf":    "fabric",
+					},
+				}),
+				Namespace: &defaultNS,
+			},
+			templateStr:    namespaceTemplate,
+			mockChart:      minimumValidChart(),
+			expectErr:      false,
+			expectResCount: 1, // minimumValidChart has 1 Service resource
+		},
+		{
+			name: "success - complex peer template with nested values",
+			input: &pb.RenderChartWithTemplateInput{
+				ChartName: "fabric/peer",
+				Component: "peer",
+				Values: structpbMapToStruct(map[string]interface{}{
+					"ImageRepository": "hyperledger/fabric-peer",
+					"ImageTag":        "2.5.0",
+					"Organization":    "fabric-org1",
+					"Resources": map[string]interface{}{
+						"Requests": map[string]interface{}{
+							"CPU":    "250m",
+							"Memory": "512Mi",
+						},
+						"Limits": map[string]interface{}{
+							"CPU":    "1000m",
+							"Memory": "2Gi",
+						},
+					},
+				}),
+				Namespace: &defaultNS,
+			},
+			templateStr:    peerTemplate,
+			mockChart:      minimumValidChart(),
+			expectErr:      false,
+			expectResCount: 1, // minimumValidChart has 1 Service resource
 		},
 	}
 
@@ -471,11 +561,19 @@ func TestRenderChartWithTemplateActivity(t *testing.T) {
 			// Setup mock expectations only for tests that pass validation
 			if tt.input.ChartName != "" && tt.input.Component != "" && tt.input.Values != nil {
 				if tt.templateErr != nil {
+					// Template loading fails - GetChart shouldn't be called
 					mockClient.EXPECT().
 						GetValuesTemplate(mock.Anything, tt.input.ChartName).
 						Return("", tt.templateErr).
 						Once()
+				} else if tt.templateStr == `image: {{.UndefinedField | mustHave}}` {
+					// Template syntax error during rendering - GetChart shouldn't be called
+					mockClient.EXPECT().
+						GetValuesTemplate(mock.Anything, tt.input.ChartName).
+						Return(tt.templateStr, nil).
+						Once()
 				} else if tt.clientErr != nil {
+					// Chart loading fails
 					mockClient.EXPECT().
 						GetValuesTemplate(mock.Anything, tt.input.ChartName).
 						Return(tt.templateStr, nil).
@@ -485,6 +583,7 @@ func TestRenderChartWithTemplateActivity(t *testing.T) {
 						Return(nil, tt.clientErr).
 						Once()
 				} else {
+					// Success case - both methods should be called
 					mockClient.EXPECT().
 						GetValuesTemplate(mock.Anything, tt.input.ChartName).
 						Return(tt.templateStr, nil).
@@ -518,6 +617,23 @@ func TestRenderChartWithTemplateActivity(t *testing.T) {
 				// Verify output is valid
 				if result == nil {
 					t.Fatal("result is nil")
+				}
+
+				// Verify template rendering produced expected resource count
+				if len(result.Resources) < tt.expectResCount {
+					t.Errorf("expected at least %d resources, got %d", tt.expectResCount, len(result.Resources))
+				}
+
+				// Verify no unexpected failures
+				if len(result.Failures) > 0 {
+					t.Errorf("expected no failures, but got: %v", result.Failures)
+				}
+
+				// Verify all resources have non-empty manifest YAML
+				for resourceID, resource := range result.Resources {
+					if len(resource.ManifestYaml) == 0 {
+						t.Errorf("resource %s has empty ManifestYaml", resourceID)
+					}
 				}
 			}
 		})

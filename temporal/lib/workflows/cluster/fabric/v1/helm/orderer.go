@@ -6,30 +6,30 @@ package helm
 
 type OrdererValues struct {
 	Organization struct {
-		ID    string `yaml:"id"`
-		MSPId string `yaml:"mspId"`
-	} `yaml:"organization"`
+		ID    string
+		MSPId string
+	}
 
-	Component string `yaml:"component"`
-	Number    int    `yaml:"number"`
+	Component string
+	Number    int
 
-	Image     ImageConfig     `yaml:"image"`
-	Service   ServiceConfig   `yaml:"service"`
-	Resources ResourceConfig  `yaml:"resources"`
+	Image     ImageConfig
+	Service   ServiceConfig
+	Resources ResourceConfig
 
-	OrdererMSPID string `yaml:"mspId"`
-	LoggingSpec  string `yaml:"loggingSpec"`
+	OrdererMSPID string
+	LoggingSpec  string
 
 	TLS struct {
-		Enabled            bool `yaml:"enabled"`
-		ClientAuthRequired bool `yaml:"clientAuthRequired"`
-	} `yaml:"tls"`
+		Enabled            bool
+		ClientAuthRequired bool
+	}
 
-	ReadinessProbe ReadinessProbeConfig `yaml:"readinessProbe"`
+	ReadinessProbe ReadinessProbeConfig
 
-	MSP           MSPConfig       `yaml:"msp"`
-	Namespace     NamespaceConfig `yaml:"namespace"`
-	CommonLabels  CommonLabels    `yaml:"commonLabels"`
+	MSP          MSPConfig
+	Namespace    NamespaceConfig
+	CommonLabels CommonLabels
 }
 
 // ============================================================================

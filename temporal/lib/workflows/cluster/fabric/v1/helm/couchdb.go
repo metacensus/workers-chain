@@ -6,25 +6,25 @@ package helm
 
 type CouchDBValues struct {
 	Organization struct {
-		ID string `yaml:"id"`
-	} `yaml:"organization"`
+		ID string
+	}
 
-	Component string `yaml:"component"`
-	Number    int    `yaml:"number"`
+	Component string
+	Number    int
 
-	Image     ImageConfig     `yaml:"image"`
-	Service   ServiceConfig   `yaml:"service"`
-	Resources ResourceConfig  `yaml:"resources"`
+	Image     ImageConfig
+	Service   ServiceConfig
+	Resources ResourceConfig
 
 	Credentials struct {
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
-	} `yaml:"credentials"`
+		Username string
+		Password string
+	}
 
-	ReadinessProbe ReadinessProbeConfig `yaml:"readinessProbe"`
+	ReadinessProbe ReadinessProbeConfig
 
-	Namespace    NamespaceConfig `yaml:"namespace"`
-	CommonLabels CommonLabels    `yaml:"commonLabels"`
+	Namespace    NamespaceConfig
+	CommonLabels CommonLabels
 }
 
 // ============================================================================

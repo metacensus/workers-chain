@@ -6,63 +6,63 @@ package helm
 
 // ImageConfig represents container image configuration
 type ImageConfig struct {
-	Repository  string        `yaml:"repository"`
-	Tag         string        `yaml:"tag"`
-	PullPolicy  string        `yaml:"pullPolicy"`
-	PullSecrets []interface{} `yaml:"pullSecrets"`
+	Repository  string
+	Tag         string
+	PullPolicy  string
+	PullSecrets []interface{}
 }
 
 // ServiceConfig represents Kubernetes service configuration
 type ServiceConfig struct {
-	Type string `yaml:"type"`
-	Port int    `yaml:"port"`
+	Type string
+	Port int
 }
 
 // ResourceRequirements represents CPU and memory requests/limits
 type ResourceRequirements struct {
-	CPU    string `yaml:"cpu"`
-	Memory string `yaml:"memory"`
+	CPU    string
+	Memory string
 }
 
 type ResourceConfig struct {
-	Requests ResourceRequirements `yaml:"requests"`
-	Limits   ResourceRequirements `yaml:"limits"`
+	Requests ResourceRequirements
+	Limits   ResourceRequirements
 }
 
 // ReadinessProbeConfig represents Kubernetes readiness probe configuration
 type ReadinessProbeConfig struct {
 	HTTPGet struct {
-		Path string `yaml:"path"`
-		Port int    `yaml:"port"`
-	} `yaml:"httpGet"`
-	InitialDelaySeconds int `yaml:"initialDelaySeconds"`
-	PeriodSeconds       int `yaml:"periodSeconds"`
+		Path string
+		Port int
+	}
+	InitialDelaySeconds int
+	PeriodSeconds       int
 }
 
 // MSPConfig represents MSP (Membership Service Provider) configuration
 type MSPConfig struct {
-	BasePath string `yaml:"basePath"`
+	BasePath string
 	Paths    struct {
-		Signcerts string `yaml:"signcerts"`
-		Keystore  string `yaml:"keystore"`
-		Cacerts   string `yaml:"cacerts"`
-	} `yaml:"paths"`
+		Signcerts string
+		Keystore  string
+		Cacerts   string
+	}
 	CSI struct {
-		Enabled                 bool   `yaml:"enabled"`
-		SecretProviderClassName string `yaml:"secretProviderClassName"`
-	} `yaml:"csi"`
+		Enabled                 bool
+		SecretProviderClassName string
+	}
 }
 
 // NamespaceConfig represents namespace configuration
 type NamespaceConfig struct {
-	Create bool   `yaml:"create"`
-	Name   string `yaml:"name"`
+	Create bool
+	Name   string
 }
 
 // CommonLabels represents common Kubernetes labels
 type CommonLabels struct {
-	ManagedBy string `yaml:"managedBy"`
-	PartOf    string `yaml:"partOf"`
+	ManagedBy string
+	PartOf    string
 }
 
 // ============================================================================

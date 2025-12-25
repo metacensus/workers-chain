@@ -3,96 +3,96 @@
 
 # Organization context
 organization:
-  id: "{{.OrgID}}"
-  mspId: "{{.MSPMID}}"
+  id: "{{.Organization.ID}}"
+  mspId: "{{.Organization.MSPId}}"
 
 # Peer component and instance number
 # Used to construct unique identity: peer-{number}
 # Examples: peer-0, peer-1, peer-2
-component: "peer"
+component: "{{.Component}}"
 number: {{.Number}}
 
 # Peer container image
 image:
-  repository: {{.ImageRepository}}
-  tag: "{{.ImageTag}}"
-  pullPolicy: {{.ImagePullPolicy}}
-  pullSecrets: {{.ImagePullSecretsYAML}}
+  repository: {{.Image.Repository}}
+  tag: "{{.Image.Tag}}"
+  pullPolicy: {{.Image.PullPolicy}}
+  pullSecrets: []
 
 # Peer service configuration
 service:
-  type: {{.ServiceType}}
-  port: {{.ServicePort}}
+  type: {{.Service.Type}}
+  port: {{.Service.Port}}
 
 # Peer resource requests and limits
 resources:
   requests:
-    cpu: {{.ResourcesRequestsCPU}}
-    memory: {{.ResourcesRequestsMemory}}
+    cpu: {{.Resources.Requests.CPU}}
+    memory: {{.Resources.Requests.Memory}}
   limits:
-    cpu: {{.ResourcesLimitsCPU}}
-    memory: {{.ResourcesLimitsMemory}}
+    cpu: {{.Resources.Limits.CPU}}
+    memory: {{.Resources.Limits.Memory}}
 
 # Peer-specific configuration
 loggingSpec: "{{.LoggingSpec}}"
 tls:
-  enabled: {{.TLSEnabled}}
-  clientAuthRequired: {{.TLSClientAuthRequired}}
+  enabled: {{.TLS.Enabled}}
+  clientAuthRequired: {{.TLS.ClientAuthRequired}}
 readinessProbe:
   httpGet:
-    path: {{.ReadinessProbeHTTPGetPath}}
-    port: {{.ReadinessProbeHTTPGetPort}}
-  initialDelaySeconds: {{.ReadinessProbeInitialDelaySeconds}}
-  periodSeconds: {{.ReadinessProbePeriodSeconds}}
+    path: {{.ReadinessProbe.HTTPGet.Path}}
+    port: {{.ReadinessProbe.HTTPGet.Port}}
+  initialDelaySeconds: {{.ReadinessProbe.InitialDelaySeconds}}
+  periodSeconds: {{.ReadinessProbe.PeriodSeconds}}
 
 # CouchDB state database (paired with this peer)
 couchdb:
-  enabled: {{.CouchdbEnabled}}
+  enabled: {{.CouchDB.Enabled}}
   image:
-    repository: {{.CouchdbImageRepository}}
-    tag: "{{.CouchdbImageTag}}"
+    repository: {{.CouchDB.Image.Repository}}
+    tag: "{{.CouchDB.Image.Tag}}"
   service:
-    type: {{.CouchdbServiceType}}
-    port: {{.CouchdbServicePort}}
+    type: {{.CouchDB.Service.Type}}
+    port: {{.CouchDB.Service.Port}}
   # NOTE: Credentials MUST be generated and stored in Vault
   # These are fetched from Vault at runtime, do NOT set here
   credentials:
-    username: "{{.CouchdbUsername}}"
-    password: "{{.CouchdbPassword}}"
+    username: "{{.CouchDB.Credentials.Username}}"
+    password: "{{.CouchDB.Credentials.Password}}"
   resources:
     requests:
-      cpu: {{.CouchdbResourcesRequestsCPU}}
-      memory: {{.CouchdbResourcesRequestsMemory}}
+      cpu: {{.CouchDB.Resources.Requests.CPU}}
+      memory: {{.CouchDB.Resources.Requests.Memory}}
     limits:
-      cpu: {{.CouchdbResourcesLimitsCPU}}
-      memory: {{.CouchdbResourcesLimitsMemory}}
+      cpu: {{.CouchDB.Resources.Limits.CPU}}
+      memory: {{.CouchDB.Resources.Limits.Memory}}
   readinessProbe:
     httpGet:
-      path: {{.CouchdbReadinessProbeHTTPGetPath}}
-      port: {{.CouchdbReadinessProbeHTTPGetPort}}
-    initialDelaySeconds: {{.CouchdbReadinessProbeInitialDelaySeconds}}
-    periodSeconds: {{.CouchdbReadinessProbePeriodSeconds}}
+      path: {{.CouchDB.ReadinessProbe.HTTPGet.Path}}
+      port: {{.CouchDB.ReadinessProbe.HTTPGet.Port}}
+    initialDelaySeconds: {{.CouchDB.ReadinessProbe.InitialDelaySeconds}}
+    periodSeconds: {{.CouchDB.ReadinessProbe.PeriodSeconds}}
 
 # MSP (Membership Service Provider) configuration
 msp:
-  basePath: {{.MSPBasePath}}
+  basePath: {{.MSP.BasePath}}
   paths:
-    signcerts: {{.MSPPathsSigncerts}}
-    keystore: {{.MSPPathsKeystore}}
-    cacerts: {{.MSPPathsCacerts}}
+    signcerts: {{.MSP.Paths.Signcerts}}
+    keystore: {{.MSP.Paths.Keystore}}
+    cacerts: {{.MSP.Paths.Cacerts}}
   
   # CSI (Vault) volume mounting for certificates
   csi:
-    enabled: {{.MSPCSIEnabled}}
-    secretProviderClassName: "{{.MSPCSISecretProviderClassName}}"
+    enabled: {{.MSP.CSI.Enabled}}
+    secretProviderClassName: "{{.MSP.CSI.SecretProviderClassName}}"
 
 # Namespace configuration
 namespace:
-  create: {{.NamespaceCreate}}
-  name: "{{.NamespaceName}}"
+  create: {{.Namespace.Create}}
+  name: "{{.Namespace.Name}}"
 
 # Common labels applied to all resources
 commonLabels:
-  app.kubernetes.io/managed-by: {{.CommonLabelsAppManagedBy}}
-  app.kubernetes.io/part-of: {{.CommonLabelsAppPartOf}}
+  managedBy: {{.CommonLabels.ManagedBy}}
+  partOf: {{.CommonLabels.PartOf}}
 

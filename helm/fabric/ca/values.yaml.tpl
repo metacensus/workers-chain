@@ -3,65 +3,65 @@
 
 # Organization context
 organization:
-  id: "{{.OrgID}}"
-  mspId: "{{.MSPMID}}"
+  id: "{{.Organization.ID}}"
+  mspId: "{{.Organization.MSPId}}"
 
 # CA component and instance number
 # Used to construct unique identity: ca-{number}
 # Examples: ca-0, ca-1
-component: "ca"
+component: "{{.Component}}"
 number: {{.Number}}
 
 # CA container image
 image:
-  repository: {{.ImageRepository}}
-  tag: "{{.ImageTag}}"
-  pullPolicy: {{.ImagePullPolicy}}
-  pullSecrets: {{.ImagePullSecretsYAML}}
+  repository: {{.Image.Repository}}
+  tag: "{{.Image.Tag}}"
+  pullPolicy: {{.Image.PullPolicy}}
+  pullSecrets: []
 
 # CA service configuration
 service:
-  type: {{.ServiceType}}
-  port: {{.ServicePort}}
+  type: {{.Service.Type}}
+  port: {{.Service.Port}}
 
 # CA resource requests and limits
 resources:
   requests:
-    cpu: {{.ResourcesRequestsCPU}}
-    memory: {{.ResourcesRequestsMemory}}
+    cpu: {{.Resources.Requests.CPU}}
+    memory: {{.Resources.Requests.Memory}}
   limits:
-    cpu: {{.ResourcesLimitsCPU}}
-    memory: {{.ResourcesLimitsMemory}}
+    cpu: {{.Resources.Limits.CPU}}
+    memory: {{.Resources.Limits.Memory}}
 
 # CA-specific configuration
 loggingSpec: "{{.LoggingSpec}}"
 readinessProbe:
   httpGet:
-    path: {{.ReadinessProbeHTTPGetPath}}
-    port: {{.ReadinessProbeHTTPGetPort}}
-  initialDelaySeconds: {{.ReadinessProbeInitialDelaySeconds}}
-  periodSeconds: {{.ReadinessProbePeriodSeconds}}
+    path: {{.ReadinessProbe.HTTPGet.Path}}
+    port: {{.ReadinessProbe.HTTPGet.Port}}
+  initialDelaySeconds: {{.ReadinessProbe.InitialDelaySeconds}}
+  periodSeconds: {{.ReadinessProbe.PeriodSeconds}}
 
 # MSP (Membership Service Provider) configuration
 msp:
-  basePath: {{.MSPBasePath}}
+  basePath: {{.MSP.BasePath}}
   paths:
-    signcerts: {{.MSPPathsSigncerts}}
-    keystore: {{.MSPPathsKeystore}}
-    cacerts: {{.MSPPathsCacerts}}
+    signcerts: {{.MSP.Paths.Signcerts}}
+    keystore: {{.MSP.Paths.Keystore}}
+    cacerts: {{.MSP.Paths.Cacerts}}
   
   # CSI (Vault) volume mounting for certificates
   csi:
-    enabled: {{.MSPCSIEnabled}}
-    secretProviderClassName: "{{.MSPCSISecretProviderClassName}}"
+    enabled: {{.MSP.CSI.Enabled}}
+    secretProviderClassName: "{{.MSP.CSI.SecretProviderClassName}}"
 
 # Namespace configuration
 namespace:
-  create: {{.NamespaceCreate}}
-  name: "{{.NamespaceName}}"
+  create: {{.Namespace.Create}}
+  name: "{{.Namespace.Name}}"
 
 # Common labels applied to all resources
 commonLabels:
-  app.kubernetes.io/managed-by: {{.CommonLabelsAppManagedBy}}
-  app.kubernetes.io/part-of: {{.CommonLabelsAppPartOf}}
+  managedBy: {{.CommonLabels.ManagedBy}}
+  partOf: {{.CommonLabels.PartOf}}
 

@@ -119,8 +119,8 @@ func (a *Activities) renderChartWithValues(ctx context.Context, chartName, value
 	docs := strings.Split(release.Manifest, "---")
 
 	for i, doc := range docs {
-		// Skip empty documents and comments
-		if skipDocument(doc) {
+		// Skip empty documents
+		if strings.TrimSpace(doc) == "" {
 			continue
 		}
 
@@ -167,12 +167,6 @@ func renderHelmChart(ch *chart.Chart, namespace, releaseName string, vals map[st
 	install.ReleaseName = releaseName
 
 	return install.Run(ch, vals)
-}
-
-// skipDocument checks if a document should be skipped (empty or comment-only)
-func skipDocument(doc string) bool {
-	doc = strings.TrimSpace(doc)
-	return doc == "" || strings.HasPrefix(doc, "#")
 }
 
 // parseManifestDocument parses a single YAML document and extracts resource metadata

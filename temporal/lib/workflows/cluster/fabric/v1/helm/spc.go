@@ -6,15 +6,15 @@ package helm
 
 type SPCValues struct {
 	Vault struct {
-		Address string `yaml:"address"`
-	} `yaml:"vault"`
+		Address string
+	}
 
-	Organization string `yaml:"organization"`
-	Identity     string `yaml:"identity"`
-	Namespace    string `yaml:"namespace"`
-	ResourceName string `yaml:"resourceName"`
+	Organization string
+	Identity     string
+	Namespace    string
+	ResourceName string
 
-	CommonLabels CommonLabels `yaml:"commonLabels"`
+	CommonLabels CommonLabels
 }
 
 // ============================================================================

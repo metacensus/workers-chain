@@ -13,8 +13,11 @@ import (
 )
 
 const (
-	chartNamespace     = "fabric/namespace"
-	componentNamespace = "namespace"
+	chartNamespace      = "fabric/namespace"
+	chartServiceAccount = "fabric/service-account"
+
+	componentNamespace      = "namespace"
+	componentServiceAccount = "service-account"
 )
 
 // Workflows implements the ClusterWorkflows interface from generated code
@@ -119,10 +122,69 @@ type createServiceAccountWorkflow struct {
 // Execute creates a Kubernetes service account
 func (w *createServiceAccountWorkflow) Execute(ctx workflow.Context) (*pb.CreateServiceAccountOutput, error) {
 	logger := workflow.GetLogger(ctx)
-	logger.Info("CreateServiceAccount workflow started")
+	logger.Info("CreateServiceAccount workflow started", "org", w.input.Org)
 
-	// TODO: Implementation
+	// Build values for Helm chart
+	values := helm.NewServiceAccountValues(w.input.Org)
+	namespaceName := values.Namespace
 
+	// Convert Go struct to protobuf Struct
+	valuesStruct, err := ToProtoStruct(values)
+	if err != nil {
+		return nil, fmt.Errorf("convert values: %w", err)
+	}
+
+	// Activity options
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    1 * time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    5,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
+
+	// Step 1: Render Helm chart
+	logger.Info("Rendering Helm chart", "chart", chartServiceAccount, "namespace", namespaceName)
+	var renderOutput *helmpb.RenderChartOutput
+	err = workflow.ExecuteActivity(activityCtx, helmpb.RenderChartWithTemplateActivityName, &helmpb.RenderChartWithTemplateInput{
+		ChartName: chartServiceAccount,
+		Component: componentServiceAccount,
+		Values:    valuesStruct,
+		Namespace: &namespaceName,
+	}).Get(ctx, &renderOutput)
+	if err != nil {
+		return nil, fmt.Errorf("render chart: %w", err)
+	}
+
+	if len(renderOutput.Failures) > 0 {
+		return nil, fmt.Errorf("chart rendering failed: %v", renderOutput.Failures)
+	}
+
+	// Step 2: Apply resources to Kubernetes
+	logger.Info("Applying resources", "resource_count", len(renderOutput.Resources))
+	kubeResources := make(map[string]*kubepb.Resource)
+	for id, res := range renderOutput.Resources {
+		kubeResources[id] = &kubepb.Resource{
+			ManifestYaml: res.ManifestYaml,
+		}
+	}
+
+	var applyOutput *kubepb.ApplyOutput
+	err = workflow.ExecuteActivity(activityCtx, kubepb.ApplyActivityName, &kubepb.ApplyInput{
+		Resources: kubeResources,
+	}).Get(ctx, &applyOutput)
+	if err != nil {
+		return nil, fmt.Errorf("apply resources: %w", err)
+	}
+
+	if applyOutput.Summary.Failed > 0 {
+		return nil, fmt.Errorf("failed to apply %d resources", applyOutput.Summary.Failed)
+	}
+
+	logger.Info("ServiceAccount created successfully", "org", w.input.Org)
 	return &pb.CreateServiceAccountOutput{}, nil
 }
 

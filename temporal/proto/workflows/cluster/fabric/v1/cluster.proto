@@ -62,7 +62,9 @@ message CreateNamespaceOutput {
 
 // ==================== CreateServiceAccount Workflow Messages ====================
 
-message CreateServiceAccountInput {}
+message CreateServiceAccountInput {
+  string org = 1;
+}
 
 message CreateServiceAccountOutput {}
 

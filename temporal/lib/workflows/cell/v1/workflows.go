@@ -31,7 +31,7 @@ type initFabricShardWorkflow struct {
 // This root workflow executes in the central "infra" namespace and coordinates:
 // 1. ✅ Creation of a Temporal namespace for the shard (temporal.v1.CreateNamespace)
 // 2. ✅ Creation of a Kubernetes namespace for the shard (cluster.fabric.v1.CreateNamespace)
-// 3. Creation of a service account for the fabric worker (cluster.fabric.v1.CreateServiceAccount) - TODO
+// 3. ✅ Creation of a service account for the fabric worker (cluster.fabric.v1.CreateServiceAccount)
 // 4. Creation of Vault access policies for the shard (vault.v1.CreateAccess) - TODO
 // 5. Deployment of the fabric worker pod (cluster.fabric.v1.CreateDeployment) - TODO
 // 6. Registration of the Nexus endpoint for fabric.v1.BootstrapShard service - TODO
@@ -70,12 +70,23 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 	}
 	logger.Info("Kubernetes namespace created", "namespace", kubeOutput.NamespaceName)
 
-	// TODO: Steps 3-7 unimplemented
-	// 3. Create service account for fabric worker
+	// Step 3: Create service account for fabric worker
+	logger.Info("Step 3: Creating ServiceAccount for fabric worker", "org", w.input.Req.Org)
+	saOutput, err := clusterpb.CreateServiceAccountChild(ctx, &clusterpb.CreateServiceAccountInput{
+		Org: w.input.Req.Org,
+	})
+	if err != nil {
+		logger.Error("Failed to create ServiceAccount", "error", err)
+		return nil, fmt.Errorf("create service account: %w", err)
+	}
+	logger.Info("ServiceAccount created successfully", "org", w.input.Req.Org)
+
+	// TODO: Steps 4-7 unimplemented
 	// 4. Create Vault access policies for the shard
 	// 5. Deploy fabric worker pod
 	// 6. Register Nexus endpoint for BootstrapShard service
 	// 7. Call BootstrapShard workflow via Nexus
+	_ = saOutput
 
 	logger.Info("InitFabricShard workflow completed", "org", w.input.Req.Org)
 	return &pb.InitFabricShardOutput{}, nil

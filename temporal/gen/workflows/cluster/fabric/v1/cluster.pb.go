@@ -115,6 +115,7 @@ func (x *CreateNamespaceOutput) GetNamespaceName() string {
 
 type CreateServiceAccountInput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Org           string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -147,6 +148,13 @@ func (x *CreateServiceAccountInput) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CreateServiceAccountInput.ProtoReflect.Descriptor instead.
 func (*CreateServiceAccountInput) Descriptor() ([]byte, []int) {
 	return file_cluster_fabric_v1_cluster_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CreateServiceAccountInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
 }
 
 type CreateServiceAccountOutput struct {
@@ -265,8 +273,9 @@ const file_cluster_fabric_v1_cluster_proto_rawDesc = "" +
 	"\x14CreateNamespaceInput\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\">\n" +
 	"\x15CreateNamespaceOutput\x12%\n" +
-	"\x0enamespace_name\x18\x01 \x01(\tR\rnamespaceName\"\x1b\n" +
-	"\x19CreateServiceAccountInput\"\x1c\n" +
+	"\x0enamespace_name\x18\x01 \x01(\tR\rnamespaceName\"-\n" +
+	"\x19CreateServiceAccountInput\x12\x10\n" +
+	"\x03org\x18\x01 \x01(\tR\x03org\"\x1c\n" +
 	"\x1aCreateServiceAccountOutput\"\x17\n" +
 	"\x15CreateDeploymentInput\"\x18\n" +
 	"\x16CreateDeploymentOutput2\xe4\x03\n" +

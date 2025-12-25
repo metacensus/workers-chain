@@ -785,7 +785,20 @@ then applies the resulting resources to the cluster
 
 **Input:** [cluster.fabric.v1.CreateServiceAccountInput](#cluster-fabric-v1-createserviceaccountinput)
 
-
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+json_name: org
+go_name: Org</pre></td>
+</tr>
+</table>
 
 **Output:** [cluster.fabric.v1.CreateServiceAccountOutput](#cluster-fabric-v1-createserviceaccountoutput)
 
@@ -882,6 +895,21 @@ go_name: NamespaceName</pre></td>
 
 <a name="cluster-fabric-v1-createserviceaccountinput"></a>
 ### cluster.fabric.v1.CreateServiceAccountInput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+json_name: org
+go_name: Org</pre></td>
+</tr>
+</table>
 
 
 

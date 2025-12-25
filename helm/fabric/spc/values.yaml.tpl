@@ -4,7 +4,7 @@
 
 # Vault server address (must be accessible from inside the cluster)
 vault:
-  address: "{{.VaultAddress}}"
+  address: "{{.Vault.Address}}"
 
 # Organization name (e.g., "org1", "metacensus")
 # Used in Vault path construction: secret/fabric/{organization}/msp/{identity}
@@ -25,6 +25,6 @@ resourceName: "{{.ResourceName}}"
 
 # Common labels applied to all resources
 commonLabels:
-  app.kubernetes.io/managed-by: {{.CommonLabelsAppManagedBy}}
-  app.kubernetes.io/part-of: {{.CommonLabelsAppPartOf}}
+  managedBy: {{.CommonLabels.ManagedBy}}
+  partOf: {{.CommonLabels.PartOf}}
 

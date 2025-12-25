@@ -5,57 +5,57 @@
 
 # Organization context
 organization:
-  id: "{{.OrgID}}"
+  id: "{{.Organization.ID}}"
 
 # CouchDB component and instance number
 # Used to construct unique identity: couchdb-{number}
 # Examples: couchdb-0, couchdb-1
-component: "couchdb"
+component: "{{.Component}}"
 number: {{.Number}}
 
 # CouchDB container image
 image:
-  repository: {{.ImageRepository}}
-  tag: "{{.ImageTag}}"
-  pullPolicy: {{.ImagePullPolicy}}
-  pullSecrets: {{.ImagePullSecretsYAML}}
+  repository: {{.Image.Repository}}
+  tag: "{{.Image.Tag}}"
+  pullPolicy: {{.Image.PullPolicy}}
+  pullSecrets: []
 
 # CouchDB service configuration
 service:
-  type: {{.ServiceType}}
-  port: {{.ServicePort}}
+  type: {{.Service.Type}}
+  port: {{.Service.Port}}
 
 # CouchDB credentials (for initial setup)
 # NOTE: Credentials MUST be generated and stored in Vault
 # These are fetched from Vault at runtime, do NOT set here
 credentials:
-  username: "{{.Username}}"
-  password: "{{.Password}}"
+  username: "{{.Credentials.Username}}"
+  password: "{{.Credentials.Password}}"
 
 # CouchDB resource requests and limits
 resources:
   requests:
-    cpu: {{.ResourcesRequestsCPU}}
-    memory: {{.ResourcesRequestsMemory}}
+    cpu: {{.Resources.Requests.CPU}}
+    memory: {{.Resources.Requests.Memory}}
   limits:
-    cpu: {{.ResourcesLimitsCPU}}
-    memory: {{.ResourcesLimitsMemory}}
+    cpu: {{.Resources.Limits.CPU}}
+    memory: {{.Resources.Limits.Memory}}
 
 # CouchDB health check configuration
 readinessProbe:
   httpGet:
-    path: {{.ReadinessProbeHTTPGetPath}}
-    port: {{.ReadinessProbeHTTPGetPort}}
-  initialDelaySeconds: {{.ReadinessProbeInitialDelaySeconds}}
-  periodSeconds: {{.ReadinessProbePeriodSeconds}}
+    path: {{.ReadinessProbe.HTTPGet.Path}}
+    port: {{.ReadinessProbe.HTTPGet.Port}}
+  initialDelaySeconds: {{.ReadinessProbe.InitialDelaySeconds}}
+  periodSeconds: {{.ReadinessProbe.PeriodSeconds}}
 
 # Namespace configuration
 namespace:
-  create: {{.NamespaceCreate}}
-  name: "{{.NamespaceName}}"
+  create: {{.Namespace.Create}}
+  name: "{{.Namespace.Name}}"
 
 # Common labels applied to all resources
 commonLabels:
-  app.kubernetes.io/managed-by: {{.CommonLabelsAppManagedBy}}
-  app.kubernetes.io/part-of: {{.CommonLabelsAppPartOf}}
+  managedBy: {{.CommonLabels.ManagedBy}}
+  partOf: {{.CommonLabels.PartOf}}
 

@@ -2,8 +2,8 @@ package helm
 
 // NamespaceValues represents Helm values for the fabric/namespace chart
 type NamespaceValues struct {
-	Name         string       `yaml:"name"`
-	CommonLabels CommonLabels `yaml:"commonLabels"`
+	Name         string
+	CommonLabels CommonLabels
 }
 
 // NewNamespaceValues creates values for a fabric namespace

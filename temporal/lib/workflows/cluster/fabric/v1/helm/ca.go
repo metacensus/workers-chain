@@ -6,23 +6,23 @@ package helm
 
 type CAValues struct {
 	Organization struct {
-		ID    string `yaml:"id"`
-		MSPId string `yaml:"mspId"`
-	} `yaml:"organization"`
+		ID    string
+		MSPId string
+	}
 
-	Component string `yaml:"component"`
-	Number    int    `yaml:"number"`
+	Component string
+	Number    int
 
-	Image     ImageConfig     `yaml:"image"`
-	Service   ServiceConfig   `yaml:"service"`
-	Resources ResourceConfig  `yaml:"resources"`
+	Image     ImageConfig
+	Service   ServiceConfig
+	Resources ResourceConfig
 
-	LoggingSpec    string                   `yaml:"loggingSpec"`
-	ReadinessProbe ReadinessProbeConfig     `yaml:"readinessProbe"`
+	LoggingSpec    string
+	ReadinessProbe ReadinessProbeConfig
 
-	MSP           MSPConfig       `yaml:"msp"`
-	Namespace     NamespaceConfig `yaml:"namespace"`
-	CommonLabels  CommonLabels    `yaml:"commonLabels"`
+	MSP          MSPConfig
+	Namespace    NamespaceConfig
+	CommonLabels CommonLabels
 }
 
 // ============================================================================
