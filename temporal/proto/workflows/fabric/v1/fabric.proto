@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package fabric.v1;
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1";
+
+import "temporal/v1/temporal.proto";
+
+// Fabric service defines workflows for manipulating a Fabric shard
+// These workflows run on the fabric worker in the org-specific Temporal namespace
+service Fabric {
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {
+    task_queue: "infra"
+  };
+
+  // BootstrapShard is the entry point for Phase 2 of shard initialization
+  // This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
+  // and deploys all Fabric components (CAs, peers, orderers) for the organization.
+  // Called via Nexus from the central worker after Phase 1 completes
+  rpc BootstrapShard(BootstrapShardInput) returns (BootstrapShardOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.BootstrapShard"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+}
+
+// ==================== BootstrapShard Workflow Messages ====================
+
+// BootstrapShardInput specifies the parameters for bootstrapping a Fabric shard
+// Empty for now - will be populated as implementation progresses
+message BootstrapShardInput {
+  // org is the organization identifier (e.g., "org1", "acme-corp")
+  string org = 1;
+}
+
+// BootstrapShardOutput indicates the result of shard bootstrapping
+// Empty for now - will be populated as implementation progresses
+message BootstrapShardOutput {
+  // Empty for now
+}
+

@@ -23,6 +23,9 @@ const (
 
 	// Kubernetes configuration
 	kubeconfigPathName = "KUBECONFIG"
+
+	// Fabric organization configuration
+	orgIDName = "ORG_ID"
 )
 
 func init() {
@@ -89,4 +92,9 @@ func FabricCAHomeDir() string {
 // Kubernetes configuration
 func KubeconfigPath() string {
 	return viper.GetString(kubeconfigPathName)
+}
+
+// Fabric organization configuration
+func OrgID() string {
+	return viper.GetString(orgIDName)
 }

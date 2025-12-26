@@ -89,18 +89,16 @@ service Vault {
 
 // CreateAuthRoleInput specifies parameters for creating an auth role in Vault
 message CreateAuthRoleInput {
-  // organization is the organization name (e.g., "metacensus", "acme-corp")
-  string organization = 1;
+  // role_name is the name of the Kubernetes auth role to create
+  string role_name = 1;
   
   // service_account_name is the Kubernetes service account that can authenticate
-  // (e.g., "fabric-org-sa")
   string service_account_name = 2;
   
   // kubernetes_namespace is the Kubernetes namespace where the service account exists
   string kubernetes_namespace = 3;
   
   // policy_names is a list of Vault policy names to bind to this role
-  // (e.g., ["fabric-foundational", "fabric-org-specific"])
   repeated string policy_names = 4;
 }
 
@@ -140,7 +138,7 @@ enum Capability {
 
 // PolicyRule defines a single path and its allowed capabilities
 message PolicyRule {
-  // path is the Vault path pattern (e.g., "secret/data/fabric/*")
+  // path is the Vault path pattern (e.g., "secret/data/myapp/*")
   string path = 1;
   
   // capabilities are the allowed capabilities for this path
@@ -155,7 +153,7 @@ message PolicyDocument {
 
 // CreatePolicyInput specifies parameters for creating a Vault policy
 message CreatePolicyInput {
-  // name is the name of the policy (e.g., "fabric-foundational")
+  // name is the name of the policy
   string name = 1;
   
   // document contains the structured policy rules
@@ -190,7 +188,9 @@ message SecretRef {
 
 // StoreSecretInput specifies parameters for storing a secret in Vault
 message StoreSecretInput {
-  string path = 1;                    // Vault path (e.g., "fabric/metacensus/msp/peer-peer0")
+  // path is the Vault path to store the secret at
+  string path = 1;
+  // data is the secret key-value pairs to store
   map<string, bytes> data = 2;
 }
 
@@ -201,8 +201,10 @@ message StoreSecretOutput {
 
 // FetchSecretInput specifies which secret to retrieve
 message FetchSecretInput {
-  string path = 1;       // Vault path (e.g., "fabric/metacensus/msp/peer-peer0")
-  int64 version = 2;     // optional: specific version (0 or omit for latest)
+  // path is the Vault path to fetch the secret from
+  string path = 1;
+  // version is the specific version to fetch (0 or omit for latest)
+  int64 version = 2;
 }
 
 // FetchSecretOutput returns the fetched secret with all its data
@@ -213,7 +215,8 @@ message FetchSecretOutput {
 
 // DeleteSecretInput specifies which secret to delete
 message DeleteSecretInput {
-  string path = 1;       // Vault path (e.g., "fabric/metacensus/msp/peer-peer0")
+  // path is the Vault path of the secret to delete
+  string path = 1;
 }
 
 // DeleteSecretOutput confirms successful secret deletion
@@ -226,24 +229,21 @@ message DeleteSecretOutput {
 // CreateAccessInput specifies parameters for creating both a policy and auth role
 message CreateAccessInput {
   // Policy configuration
-  // name is the name of the policy to create (e.g., "fabric-foundational")
+  // policy_name is the name of the policy to create
   string policy_name = 1;
   
-  // document is the structured policy content
+  // policy_document is the structured policy content
   PolicyDocument policy_document = 2;
 
   // Auth role configuration
-  // organization is the organization name (e.g., "metacensus", "acme-corp")
-  string organization = 3;
+  // auth_role_name is the name of the Kubernetes auth role to create
+  string auth_role_name = 3;
   
   // service_account_name is the Kubernetes service account that can authenticate
-  // (e.g., "fabric-org-sa")
   string service_account_name = 4;
   
   // kubernetes_namespace is the Kubernetes namespace where the service account exists
   string kubernetes_namespace = 5;
-  
-
 }
 
 // CreateAccessOutput returns the created policy and auth role names

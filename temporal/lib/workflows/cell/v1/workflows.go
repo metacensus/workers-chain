@@ -3,9 +3,11 @@ package cell
 import (
 	"fmt"
 	"path"
+	"time"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/cell/v1"
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
+	fabricpb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	temporalpb "github.com/metacensus/infra/temporal/gen/workflows/temporal/v1"
 	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	"go.temporal.io/sdk/workflow"
@@ -38,86 +40,82 @@ type initFabricShardWorkflow struct {
 	input *pb.InitFabricShardWorkflowInput
 }
 
-// Execute orchestrates the complete initialization of a Fabric shard
-// This root workflow executes in the central "infra" namespace and coordinates:
-// 1. ✅ Creation of a Temporal namespace for the shard (temporal.v1.CreateNamespace)
-// 2. ✅ Creation of a Kubernetes namespace for the shard (cluster.fabric.v1.CreateNamespace)
-// 3. ✅ Creation of a service account for the fabric worker (cluster.fabric.v1.CreateServiceAccount)
-// 4. ✅ Creation of Vault access policies for the shard (vault.v1.CreateAccess)
-// 5. Deployment of the fabric worker pod (cluster.fabric.v1.CreateDeployment) - TODO
-// 6. Registration of the Nexus endpoint for fabric.v1.BootstrapShard service - TODO
-// 7. Cross-namespace Nexus call to BootstrapShard workflow in fabric namespace - TODO
+// Execute orchestrates the complete initialization of a Fabric shard.
 func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricShardOutput, error) {
-	logger := workflow.GetLogger(ctx)
-	logger.Info("InitFabricShard workflow started", "org", w.input.Req.Org)
-
-	// Validate input
 	if w.input.Req.Org == "" {
 		return nil, fmt.Errorf("org is required")
 	}
 
-	// Derive namespace names from org
 	temporalNamespace := fmt.Sprintf("fabric-%s", w.input.Req.Org)
 
-	// Step 1: Create Temporal namespace
-	logger.Info("Step 1: Creating Temporal namespace for shard", "namespace", temporalNamespace)
-	temporalOutput, err := temporalpb.CreateNamespaceChild(ctx, &temporalpb.CreateNamespaceInput{
+	// Create Temporal namespace
+	if _, err := temporalpb.CreateNamespaceChild(ctx, &temporalpb.CreateNamespaceInput{
 		Name: temporalNamespace,
-	})
-	if err != nil {
-		logger.Error("Failed to create Temporal namespace", "error", err)
+	}); err != nil {
 		return nil, fmt.Errorf("create temporal namespace: %w", err)
 	}
-	logger.Info("Temporal namespace created", "namespace", temporalOutput.Name)
 
-	// Step 2: Create Kubernetes namespace
-	logger.Info("Step 2: Creating Kubernetes namespace for shard", "org", w.input.Req.Org)
-	kubeOutput, err := clusterpb.CreateNamespaceChild(ctx, &clusterpb.CreateNamespaceInput{
+	// Create Kubernetes namespace
+	if _, err := clusterpb.CreateNamespaceChild(ctx, &clusterpb.CreateNamespaceInput{
 		Org: w.input.Req.Org,
-	})
-	if err != nil {
-		logger.Error("Failed to create Kubernetes namespace", "error", err)
+	}); err != nil {
 		return nil, fmt.Errorf("create kubernetes namespace: %w", err)
 	}
-	logger.Info("Kubernetes namespace created", "namespace", kubeOutput.NamespaceName)
 
-	// Step 3: Create service account for fabric worker
-	logger.Info("Step 3: Creating ServiceAccount for fabric worker", "org", w.input.Req.Org)
-	saOutput, err := clusterpb.CreateServiceAccountChild(ctx, &clusterpb.CreateServiceAccountInput{
+	// Create service account for fabric worker
+	if _, err := clusterpb.CreateServiceAccountChild(ctx, &clusterpb.CreateServiceAccountInput{
 		Org: w.input.Req.Org,
-	})
-	if err != nil {
-		logger.Error("Failed to create ServiceAccount", "error", err)
+	}); err != nil {
 		return nil, fmt.Errorf("create service account: %w", err)
 	}
-	logger.Info("ServiceAccount created successfully", "org", w.input.Req.Org)
 
-	// Step 4: Create Vault access policies for the fabric worker
-	logger.Info("Step 4: Creating Vault access for fabric worker", "org", w.input.Req.Org)
+	// Create Vault access policies for the fabric worker
 	fabricNamespace := fmt.Sprintf("fabric-%s", w.input.Req.Org)
 	serviceAccountName := fmt.Sprintf("fabric-worker-%s", w.input.Req.Org)
 	policyName := fmt.Sprintf("fabric-%s-worker", w.input.Req.Org)
+	authRoleName := fmt.Sprintf("fabric-%s-worker", w.input.Req.Org)
 
-	vaultOutput, err := vaultpb.CreateAccessChild(ctx, &vaultpb.CreateAccessInput{
+	if _, err := vaultpb.CreateAccessChild(ctx, &vaultpb.CreateAccessInput{
 		PolicyName:          policyName,
 		PolicyDocument:      buildFabricWorkerPolicy(w.input.Req.Org),
-		Organization:        w.input.Req.Org,
+		AuthRoleName:        authRoleName,
 		ServiceAccountName:  serviceAccountName,
 		KubernetesNamespace: fabricNamespace,
-	})
-	if err != nil {
-		logger.Error("Failed to create Vault access", "error", err)
+	}); err != nil {
 		return nil, fmt.Errorf("create vault access: %w", err)
 	}
-	logger.Info("Vault access created", "policy", vaultOutput.PolicyName, "auth_role", vaultOutput.AuthRoleName)
 
-	// TODO: Steps 5-7 unimplemented
-	// 5. Deploy fabric worker pod
-	// 6. Register Nexus endpoint for BootstrapShard service
-	// 7. Call BootstrapShard workflow via Nexus
-	_ = saOutput
+	// Deploy fabric worker pod
+	if _, err := clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
+		Org:       w.input.Req.Org,
+		Component: "worker",
+	}); err != nil {
+		return nil, fmt.Errorf("deploy fabric worker: %w", err)
+	}
 
-	logger.Info("InitFabricShard workflow completed", "org", w.input.Req.Org)
+	// Register Nexus endpoint for BootstrapShard service
+	nexusEndpointName := fmt.Sprintf("BootstrapShard-%s", w.input.Req.Org)
+	if _, err := temporalpb.CreateNexusEndpoint(ctx, &temporalpb.CreateNexusEndpointInput{
+		Name:      nexusEndpointName,
+		Namespace: temporalNamespace,
+		TaskQueue: "infra",
+	}); err != nil {
+		return nil, fmt.Errorf("create nexus endpoint: %w", err)
+	}
+
+	// Call BootstrapShard workflow via Nexus
+	nexusClient := workflow.NewNexusClient(nexusEndpointName, "Fabric")
+	bootstrapFut := nexusClient.ExecuteOperation(ctx, "BootstrapShard", &fabricpb.BootstrapShardInput{
+		Org: w.input.Req.Org,
+	}, workflow.NexusOperationOptions{
+		ScheduleToCloseTimeout: 30 * time.Minute,
+	})
+
+	var bootstrapOutput fabricpb.BootstrapShardOutput
+	if err := bootstrapFut.Get(ctx, &bootstrapOutput); err != nil {
+		return nil, fmt.Errorf("bootstrap shard via nexus: %w", err)
+	}
+
 	return &pb.InitFabricShardOutput{}, nil
 }
 

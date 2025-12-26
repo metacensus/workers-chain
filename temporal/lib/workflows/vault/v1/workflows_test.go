@@ -36,8 +36,8 @@ func TestCreateAccessWorkflow(t *testing.T) {
 							},
 						},
 					},
-					Organization:       "org1",
-					ServiceAccountName: "test-sa",
+					AuthRoleName:        "org1-worker",
+					ServiceAccountName:  "test-sa",
 					KubernetesNamespace: "default",
 				},
 			},
@@ -45,7 +45,7 @@ func TestCreateAccessWorkflow(t *testing.T) {
 				Name: "test-policy",
 			},
 			createAuthRoleRes: &pb.CreateAuthRoleOutput{
-				Name: "fabric-org1",
+				Name: "org1-worker",
 			},
 		},
 		{
@@ -61,13 +61,13 @@ func TestCreateAccessWorkflow(t *testing.T) {
 							},
 						},
 					},
-					Organization:       "org1",
-					ServiceAccountName: "test-sa",
+					AuthRoleName:        "org1-worker",
+					ServiceAccountName:  "test-sa",
 					KubernetesNamespace: "default",
 				},
 			},
 			createPolicyErr: errActivityFailed,
-			expectErr:      true,
+			expectErr:       true,
 		},
 		{
 			name: "failure - CreateAuthRole activity fails",
@@ -82,8 +82,8 @@ func TestCreateAccessWorkflow(t *testing.T) {
 							},
 						},
 					},
-					Organization:       "org1",
-					ServiceAccountName: "test-sa",
+					AuthRoleName:        "org1-worker",
+					ServiceAccountName:  "test-sa",
 					KubernetesNamespace: "default",
 				},
 			},
@@ -133,7 +133,7 @@ func TestCreateAccessWorkflow(t *testing.T) {
 						}
 					}
 					
-					return input.GetOrganization() == tt.input.Req.GetOrganization() &&
+					return input.GetRoleName() == tt.input.Req.GetAuthRoleName() &&
 						input.GetServiceAccountName() == tt.input.Req.GetServiceAccountName() &&
 						input.GetKubernetesNamespace() == tt.input.Req.GetKubernetesNamespace()
 				})).

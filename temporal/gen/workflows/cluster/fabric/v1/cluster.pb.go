@@ -194,7 +194,14 @@ func (*CreateServiceAccountOutput) Descriptor() ([]byte, []int) {
 }
 
 type CreateDeploymentInput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// org is the organization identifier (e.g., "org1")
+	// Used to derive namespace names, service account names, etc.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// component specifies which type of deployment to create
+	// Currently supported: "worker"
+	// Future components: "peer", "orderer", "ca", "couchdb"
+	Component     string `protobuf:"bytes,2,opt,name=component,proto3" json:"component,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -229,10 +236,26 @@ func (*CreateDeploymentInput) Descriptor() ([]byte, []int) {
 	return file_cluster_fabric_v1_cluster_proto_rawDescGZIP(), []int{4}
 }
 
+func (x *CreateDeploymentInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *CreateDeploymentInput) GetComponent() string {
+	if x != nil {
+		return x.Component
+	}
+	return ""
+}
+
 type CreateDeploymentOutput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// deployment_name is the name of the created deployment
+	DeploymentName string `protobuf:"bytes,1,opt,name=deployment_name,json=deploymentName,proto3" json:"deployment_name,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreateDeploymentOutput) Reset() {
@@ -265,6 +288,13 @@ func (*CreateDeploymentOutput) Descriptor() ([]byte, []int) {
 	return file_cluster_fabric_v1_cluster_proto_rawDescGZIP(), []int{5}
 }
 
+func (x *CreateDeploymentOutput) GetDeploymentName() string {
+	if x != nil {
+		return x.DeploymentName
+	}
+	return ""
+}
+
 var File_cluster_fabric_v1_cluster_proto protoreflect.FileDescriptor
 
 const file_cluster_fabric_v1_cluster_proto_rawDesc = "" +
@@ -276,9 +306,12 @@ const file_cluster_fabric_v1_cluster_proto_rawDesc = "" +
 	"\x0enamespace_name\x18\x01 \x01(\tR\rnamespaceName\"-\n" +
 	"\x19CreateServiceAccountInput\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\"\x1c\n" +
-	"\x1aCreateServiceAccountOutput\"\x17\n" +
-	"\x15CreateDeploymentInput\"\x18\n" +
-	"\x16CreateDeploymentOutput2\xe4\x03\n" +
+	"\x1aCreateServiceAccountOutput\"G\n" +
+	"\x15CreateDeploymentInput\x12\x10\n" +
+	"\x03org\x18\x01 \x01(\tR\x03org\x12\x1c\n" +
+	"\tcomponent\x18\x02 \x01(\tR\tcomponent\"A\n" +
+	"\x16CreateDeploymentOutput\x12'\n" +
+	"\x0fdeployment_name\x18\x01 \x01(\tR\x0edeploymentName2\xe4\x03\n" +
 	"\aCluster\x12\x8f\x01\n" +
 	"\x0fCreateNamespace\x12'.cluster.fabric.v1.CreateNamespaceInput\x1a(.cluster.fabric.v1.CreateNamespaceOutput\")\x8a\xc4\x03%0\x01r!cluster.fabric.v1.CreateNamespace\x12\xa3\x01\n" +
 	"\x14CreateServiceAccount\x12,.cluster.fabric.v1.CreateServiceAccountInput\x1a-.cluster.fabric.v1.CreateServiceAccountOutput\".\x8a\xc4\x03*0\x01r&cluster.fabric.v1.CreateServiceAccount\x12\x93\x01\n" +

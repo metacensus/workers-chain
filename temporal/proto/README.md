@@ -33,6 +33,14 @@
     - [cluster.fabric.v1.CreateNamespaceOutput](#cluster-fabric-v1-createnamespaceoutput)
     - [cluster.fabric.v1.CreateServiceAccountInput](#cluster-fabric-v1-createserviceaccountinput)
     - [cluster.fabric.v1.CreateServiceAccountOutput](#cluster-fabric-v1-createserviceaccountoutput)
+- [fabric.v1](#fabric-v1)
+  - Services
+    - [fabric.v1.Fabric](#fabric-v1-fabric)
+      - [Workflows](#fabric-v1-fabric-workflows)
+        - [fabric.v1.BootstrapShard](#fabric-v1-bootstrapshard-workflow)
+  - Messages
+    - [fabric.v1.BootstrapShardInput](#fabric-v1-bootstrapshardinput)
+    - [fabric.v1.BootstrapShardOutput](#fabric-v1-bootstrapshardoutput)
 - [helm.v1](#helm-v1)
   - Services
     - [helm.v1.Helm](#helm-v1-helm)
@@ -822,11 +830,52 @@ This workflow renders a Helm chart with provided values and applies it to the cl
 
 **Input:** [cluster.fabric.v1.CreateDeploymentInput](#cluster-fabric-v1-createdeploymentinput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>component</td>
+<td>string</td>
+<td><pre>
+component specifies which type of deployment to create
+Currently supported: "worker"
+Future components: "peer", "orderer", "ca", "couchdb"<br>
 
+json_name: component
+go_name: Component</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the organization identifier (e.g., "org1")
+Used to derive namespace names, service account names, etc.<br>
+
+json_name: org
+go_name: Org</pre></td>
+</tr>
+</table>
 
 **Output:** [cluster.fabric.v1.CreateDeploymentOutput](#cluster-fabric-v1-createdeploymentoutput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>deployment_name</td>
+<td>string</td>
+<td><pre>
+deployment_name is the name of the created deployment<br>
 
+json_name: deploymentName
+go_name: DeploymentName</pre></td>
+</tr>
+</table>
 
 **Defaults:**
 
@@ -841,10 +890,55 @@ This workflow renders a Helm chart with provided values and applies it to the cl
 <a name="cluster-fabric-v1-createdeploymentinput"></a>
 ### cluster.fabric.v1.CreateDeploymentInput
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>component</td>
+<td>string</td>
+<td><pre>
+component specifies which type of deployment to create
+Currently supported: "worker"
+Future components: "peer", "orderer", "ca", "couchdb"<br>
+
+json_name: component
+go_name: Component</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the organization identifier (e.g., "org1")
+Used to derive namespace names, service account names, etc.<br>
+
+json_name: org
+go_name: Org</pre></td>
+</tr>
+</table>
+
 
 
 <a name="cluster-fabric-v1-createdeploymentoutput"></a>
 ### cluster.fabric.v1.CreateDeploymentOutput
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>deployment_name</td>
+<td>string</td>
+<td><pre>
+deployment_name is the name of the created deployment<br>
+
+json_name: deploymentName
+go_name: DeploymentName</pre></td>
+</tr>
+</table>
 
 
 
@@ -915,6 +1009,104 @@ go_name: Org</pre></td>
 
 <a name="cluster-fabric-v1-createserviceaccountoutput"></a>
 ### cluster.fabric.v1.CreateServiceAccountOutput
+
+
+
+<a name="fabric-v1"></a>
+# fabric.v1
+
+<a name="fabric-v1-services"></a>
+## Services
+
+<a name="fabric-v1-fabric"></a>
+## fabric.v1.Fabric
+
+<pre>
+Fabric service defines workflows for manipulating a Fabric shard
+These workflows run on the fabric worker in the org-specific Temporal namespace
+</pre>
+
+<a name="fabric-v1-fabric-workflows"></a>
+### Workflows
+
+---
+<a name="fabric-v1-bootstrapshard-workflow"></a>
+### fabric.v1.BootstrapShard
+
+<pre>
+BootstrapShard is the entry point for Phase 2 of shard initialization
+This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
+and deploys all Fabric components (CAs, peers, orderers) for the organization.
+Called via Nexus from the central worker after Phase 1 completes
+</pre>
+
+**Input:** [fabric.v1.BootstrapShardInput](#fabric-v1-bootstrapshardinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the organization identifier (e.g., "org1", "acme-corp")<br>
+
+json_name: org
+go_name: Org</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.v1.BootstrapShardOutput](#fabric-v1-bootstrapshardoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>     
+
+<a name="fabric-v1-messages"></a>
+## Messages
+
+<a name="fabric-v1-bootstrapshardinput"></a>
+### fabric.v1.BootstrapShardInput
+
+<pre>
+BootstrapShardInput specifies the parameters for bootstrapping a Fabric shard
+Empty for now - will be populated as implementation progresses
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the organization identifier (e.g., "org1", "acme-corp")<br>
+
+json_name: org
+go_name: Org</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-bootstrapshardoutput"></a>
+### fabric.v1.BootstrapShardOutput
+
+<pre>
+BootstrapShardOutput indicates the result of shard bootstrapping
+Empty for now - will be populated as implementation progresses
+</pre>
 
 
 
@@ -3309,6 +3501,15 @@ Access Management
 <th>Description</th>
 </tr>
 <tr>
+<td>auth_role_name</td>
+<td>string</td>
+<td><pre>
+Auth role configuration
+auth_role_name is the name of the Kubernetes auth role to create<br>
+
+json_name: authRoleName
+go_name: AuthRoleName</pre></td>
+</tr><tr>
 <td>kubernetes_namespace</td>
 <td>string</td>
 <td><pre>
@@ -3317,19 +3518,10 @@ kubernetes_namespace is the Kubernetes namespace where the service account exist
 json_name: kubernetesNamespace
 go_name: KubernetesNamespace</pre></td>
 </tr><tr>
-<td>organization</td>
-<td>string</td>
-<td><pre>
-Auth role configuration
-organization is the organization name (e.g., "metacensus", "acme-corp")<br>
-
-json_name: organization
-go_name: Organization</pre></td>
-</tr><tr>
 <td>policy_document</td>
 <td><a href="#vault-v1-policydocument">vault.v1.PolicyDocument</a></td>
 <td><pre>
-document is the structured policy content<br>
+policy_document is the structured policy content<br>
 
 json_name: policyDocument
 go_name: PolicyDocument</pre></td>
@@ -3338,7 +3530,7 @@ go_name: PolicyDocument</pre></td>
 <td>string</td>
 <td><pre>
 Policy configuration
-name is the name of the policy to create (e.g., "fabric-foundational")<br>
+policy_name is the name of the policy to create<br>
 
 json_name: policyName
 go_name: PolicyName</pre></td>
@@ -3346,8 +3538,7 @@ go_name: PolicyName</pre></td>
 <td>service_account_name</td>
 <td>string</td>
 <td><pre>
-service_account_name is the Kubernetes service account that can authenticate
-(e.g., "fabric-org-sa")<br>
+service_account_name is the Kubernetes service account that can authenticate<br>
 
 json_name: serviceAccountName
 go_name: ServiceAccountName</pre></td>
@@ -3417,28 +3608,26 @@ kubernetes_namespace is the Kubernetes namespace where the service account exist
 json_name: kubernetesNamespace
 go_name: KubernetesNamespace</pre></td>
 </tr><tr>
-<td>organization</td>
-<td>string</td>
-<td><pre>
-organization is the organization name (e.g., "metacensus", "acme-corp")<br>
-
-json_name: organization
-go_name: Organization</pre></td>
-</tr><tr>
 <td>policy_names</td>
 <td>string</td>
 <td><pre>
-policy_names is a list of Vault policy names to bind to this role
-(e.g., ["fabric-foundational", "fabric-org-specific"])<br>
+policy_names is a list of Vault policy names to bind to this role<br>
 
 json_name: policyNames
 go_name: PolicyNames</pre></td>
 </tr><tr>
+<td>role_name</td>
+<td>string</td>
+<td><pre>
+role_name is the name of the Kubernetes auth role to create<br>
+
+json_name: roleName
+go_name: RoleName</pre></td>
+</tr><tr>
 <td>service_account_name</td>
 <td>string</td>
 <td><pre>
-service_account_name is the Kubernetes service account that can authenticate
-(e.g., "fabric-org-sa")<br>
+service_account_name is the Kubernetes service account that can authenticate<br>
 
 json_name: serviceAccountName
 go_name: ServiceAccountName</pre></td>
@@ -3521,7 +3710,7 @@ go_name: Document</pre></td>
 <td>name</td>
 <td>string</td>
 <td><pre>
-name is the name of the policy (e.g., "fabric-foundational")<br>
+name is the name of the policy<br>
 
 json_name: name
 go_name: Name</pre></td>
@@ -3596,12 +3785,16 @@ Secret Management
 <td>data</td>
 <td><a href="#vault-v1-storesecretinput-dataentry">vault.v1.StoreSecretInput.DataEntry</a></td>
 <td><pre>
+data is the secret key-value pairs to store<br>
+
 json_name: data
 go_name: Data</pre></td>
 </tr><tr>
 <td>path</td>
 <td>string</td>
 <td><pre>
+path is the Vault path to store the secret at<br>
+
 json_name: path
 go_name: Path</pre></td>
 </tr>
@@ -3642,12 +3835,16 @@ go_name: SecretRef</pre></td>
 <td>path</td>
 <td>string</td>
 <td><pre>
+path is the Vault path to fetch the secret from<br>
+
 json_name: path
 go_name: Path</pre></td>
 </tr><tr>
 <td>version</td>
 <td>int64</td>
 <td><pre>
+version is the specific version to fetch (0 or omit for latest)<br>
+
 json_name: version
 go_name: Version</pre></td>
 </tr>
@@ -3694,6 +3891,8 @@ go_name: SecretRef</pre></td>
 <td>path</td>
 <td>string</td>
 <td><pre>
+path is the Vault path of the secret to delete<br>
+
 json_name: path
 go_name: Path</pre></td>
 </tr>
@@ -3765,6 +3964,15 @@ CreateAccessInput specifies parameters for creating both a policy and auth role
 <th>Description</th>
 </tr>
 <tr>
+<td>auth_role_name</td>
+<td>string</td>
+<td><pre>
+Auth role configuration
+auth_role_name is the name of the Kubernetes auth role to create<br>
+
+json_name: authRoleName
+go_name: AuthRoleName</pre></td>
+</tr><tr>
 <td>kubernetes_namespace</td>
 <td>string</td>
 <td><pre>
@@ -3773,19 +3981,10 @@ kubernetes_namespace is the Kubernetes namespace where the service account exist
 json_name: kubernetesNamespace
 go_name: KubernetesNamespace</pre></td>
 </tr><tr>
-<td>organization</td>
-<td>string</td>
-<td><pre>
-Auth role configuration
-organization is the organization name (e.g., "metacensus", "acme-corp")<br>
-
-json_name: organization
-go_name: Organization</pre></td>
-</tr><tr>
 <td>policy_document</td>
 <td><a href="#vault-v1-policydocument">vault.v1.PolicyDocument</a></td>
 <td><pre>
-document is the structured policy content<br>
+policy_document is the structured policy content<br>
 
 json_name: policyDocument
 go_name: PolicyDocument</pre></td>
@@ -3794,7 +3993,7 @@ go_name: PolicyDocument</pre></td>
 <td>string</td>
 <td><pre>
 Policy configuration
-name is the name of the policy to create (e.g., "fabric-foundational")<br>
+policy_name is the name of the policy to create<br>
 
 json_name: policyName
 go_name: PolicyName</pre></td>
@@ -3802,8 +4001,7 @@ go_name: PolicyName</pre></td>
 <td>service_account_name</td>
 <td>string</td>
 <td><pre>
-service_account_name is the Kubernetes service account that can authenticate
-(e.g., "fabric-org-sa")<br>
+service_account_name is the Kubernetes service account that can authenticate<br>
 
 json_name: serviceAccountName
 go_name: ServiceAccountName</pre></td>
@@ -3868,28 +4066,26 @@ kubernetes_namespace is the Kubernetes namespace where the service account exist
 json_name: kubernetesNamespace
 go_name: KubernetesNamespace</pre></td>
 </tr><tr>
-<td>organization</td>
-<td>string</td>
-<td><pre>
-organization is the organization name (e.g., "metacensus", "acme-corp")<br>
-
-json_name: organization
-go_name: Organization</pre></td>
-</tr><tr>
 <td>policy_names</td>
 <td>string</td>
 <td><pre>
-policy_names is a list of Vault policy names to bind to this role
-(e.g., ["fabric-foundational", "fabric-org-specific"])<br>
+policy_names is a list of Vault policy names to bind to this role<br>
 
 json_name: policyNames
 go_name: PolicyNames</pre></td>
 </tr><tr>
+<td>role_name</td>
+<td>string</td>
+<td><pre>
+role_name is the name of the Kubernetes auth role to create<br>
+
+json_name: roleName
+go_name: RoleName</pre></td>
+</tr><tr>
 <td>service_account_name</td>
 <td>string</td>
 <td><pre>
-service_account_name is the Kubernetes service account that can authenticate
-(e.g., "fabric-org-sa")<br>
+service_account_name is the Kubernetes service account that can authenticate<br>
 
 json_name: serviceAccountName
 go_name: ServiceAccountName</pre></td>
@@ -3949,7 +4145,7 @@ go_name: Document</pre></td>
 <td>name</td>
 <td>string</td>
 <td><pre>
-name is the name of the policy (e.g., "fabric-foundational")<br>
+name is the name of the policy<br>
 
 json_name: name
 go_name: Name</pre></td>
@@ -4071,6 +4267,8 @@ DeleteSecretInput specifies which secret to delete
 <td>path</td>
 <td>string</td>
 <td><pre>
+path is the Vault path of the secret to delete<br>
+
 json_name: path
 go_name: Path</pre></td>
 </tr>
@@ -4104,12 +4302,16 @@ FetchSecretInput specifies which secret to retrieve
 <td>path</td>
 <td>string</td>
 <td><pre>
+path is the Vault path to fetch the secret from<br>
+
 json_name: path
 go_name: Path</pre></td>
 </tr><tr>
 <td>version</td>
 <td>int64</td>
 <td><pre>
+version is the specific version to fetch (0 or omit for latest)<br>
+
 json_name: version
 go_name: Version</pre></td>
 </tr>
@@ -4224,7 +4426,7 @@ go_name: Capabilities</pre></td>
 <td>path</td>
 <td>string</td>
 <td><pre>
-path is the Vault path pattern (e.g., "secret/data/fabric/*")<br>
+path is the Vault path pattern (e.g., "secret/data/myapp/*")<br>
 
 json_name: path
 go_name: Path</pre></td>
@@ -4282,12 +4484,16 @@ StoreSecretInput specifies parameters for storing a secret in Vault
 <td>data</td>
 <td><a href="#vault-v1-storesecretinput-dataentry">vault.v1.StoreSecretInput.DataEntry</a></td>
 <td><pre>
+data is the secret key-value pairs to store<br>
+
 json_name: data
 go_name: Data</pre></td>
 </tr><tr>
 <td>path</td>
 <td>string</td>
 <td><pre>
+path is the Vault path to store the secret at<br>
+
 json_name: path
 go_name: Path</pre></td>
 </tr>

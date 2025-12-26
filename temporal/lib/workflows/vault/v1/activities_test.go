@@ -270,27 +270,27 @@ func TestCreateAuthRoleActivity(t *testing.T) {
 		{
 			name: "success - creates role with policies",
 			input: &pb.CreateAuthRoleInput{
-				Organization:        "metacensus",
-				ServiceAccountName:  "fabric-metacensus-sa",
-				KubernetesNamespace: "fabric-metacensus",
-				PolicyNames:         []string{"fabric-foundational", "fabric-metacensus-specific"},
+				RoleName:            "metacensus-worker",
+				ServiceAccountName:  "metacensus-sa",
+				KubernetesNamespace: "metacensus",
+				PolicyNames:         []string{"policy-foundational", "policy-specific"},
 			},
 		},
 		{
 			name: "success - creates role with single policy",
 			input: &pb.CreateAuthRoleInput{
-				Organization:        "acme-corp",
-				ServiceAccountName:  "fabric-acme-corp-sa",
-				KubernetesNamespace: "fabric-acme-corp",
-				PolicyNames:         []string{"fabric-foundational"},
+				RoleName:            "acme-corp-worker",
+				ServiceAccountName:  "acme-corp-sa",
+				KubernetesNamespace: "acme-corp",
+				PolicyNames:         []string{"policy-foundational"},
 			},
 		},
 		{
-			name: "error - missing organization",
+			name: "error - missing role name",
 			input: &pb.CreateAuthRoleInput{
-				Organization:        "",
-				ServiceAccountName:  "fabric-sa",
-				KubernetesNamespace: "fabric-ns",
+				RoleName:            "",
+				ServiceAccountName:  "my-sa",
+				KubernetesNamespace: "my-ns",
 				PolicyNames:         []string{"policy"},
 			},
 			expectErr: true,
@@ -298,9 +298,9 @@ func TestCreateAuthRoleActivity(t *testing.T) {
 		{
 			name: "error - missing service account name",
 			input: &pb.CreateAuthRoleInput{
-				Organization:        "metacensus",
+				RoleName:            "my-role",
 				ServiceAccountName:  "",
-				KubernetesNamespace: "fabric-metacensus",
+				KubernetesNamespace: "my-ns",
 				PolicyNames:         []string{"policy"},
 			},
 			expectErr: true,
@@ -308,8 +308,8 @@ func TestCreateAuthRoleActivity(t *testing.T) {
 		{
 			name: "error - missing kubernetes namespace",
 			input: &pb.CreateAuthRoleInput{
-				Organization:        "metacensus",
-				ServiceAccountName:  "fabric-sa",
+				RoleName:            "my-role",
+				ServiceAccountName:  "my-sa",
 				KubernetesNamespace: "",
 				PolicyNames:         []string{"policy"},
 			},
@@ -318,9 +318,9 @@ func TestCreateAuthRoleActivity(t *testing.T) {
 		{
 			name: "error - empty policy list",
 			input: &pb.CreateAuthRoleInput{
-				Organization:        "metacensus",
-				ServiceAccountName:  "fabric-sa",
-				KubernetesNamespace: "fabric-ns",
+				RoleName:            "my-role",
+				ServiceAccountName:  "my-sa",
+				KubernetesNamespace: "my-ns",
 				PolicyNames:         []string{},
 			},
 			expectErr: true,
@@ -328,9 +328,9 @@ func TestCreateAuthRoleActivity(t *testing.T) {
 		{
 			name: "error - client connection refused",
 			input: &pb.CreateAuthRoleInput{
-				Organization:        "metacensus",
-				ServiceAccountName:  "fabric-sa",
-				KubernetesNamespace: "fabric-ns",
+				RoleName:            "my-role",
+				ServiceAccountName:  "my-sa",
+				KubernetesNamespace: "my-ns",
 				PolicyNames:         []string{"policy"},
 			},
 			clientErr: errClientConnectionRefused,
@@ -346,11 +346,11 @@ func TestCreateAuthRoleActivity(t *testing.T) {
 			mockClient := vaultmocks.NewMockVaultClient(t)
 
 			// Setup mock expectations only for valid inputs
-			if tt.input.Organization != "" && tt.input.ServiceAccountName != "" &&
+			if tt.input.RoleName != "" && tt.input.ServiceAccountName != "" &&
 				tt.input.KubernetesNamespace != "" && len(tt.input.PolicyNames) > 0 {
 				mockClient.EXPECT().
 					Write(mock.Anything, mock.MatchedBy(func(path string) bool {
-						return path == fmt.Sprintf("auth/kubernetes/role/fabric-%s", tt.input.Organization)
+						return path == fmt.Sprintf("auth/kubernetes/role/%s", tt.input.RoleName)
 					}), mock.MatchedBy(func(data map[string]any) bool {
 						// Verify request structure
 						if _, ok := data["bound_service_account_names"]; !ok {
@@ -392,9 +392,8 @@ func TestCreateAuthRoleActivity(t *testing.T) {
 				if result == nil {
 					t.Fatal("result is nil")
 				}
-				expectedRoleName := fmt.Sprintf("fabric-%s", tt.input.Organization)
-				if result.Name != expectedRoleName {
-					t.Errorf("role name mismatch: got %s, want %s", result.Name, expectedRoleName)
+				if result.Name != tt.input.RoleName {
+					t.Errorf("role name mismatch: got %s, want %s", result.Name, tt.input.RoleName)
 				}
 			}
 		})

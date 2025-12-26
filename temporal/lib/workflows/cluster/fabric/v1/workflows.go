@@ -15,9 +15,11 @@ import (
 const (
 	chartNamespace      = "fabric/namespace"
 	chartServiceAccount = "fabric/service-account"
+	chartWorker         = "fabric/worker"
 
 	componentNamespace      = "namespace"
 	componentServiceAccount = "service-account"
+	componentWorker         = "worker"
 )
 
 // Workflows implements the ClusterWorkflows interface from generated code
@@ -198,12 +200,96 @@ type createDeploymentWorkflow struct {
 	input *pb.CreateDeploymentInput
 }
 
-// Execute deploys resources to Kubernetes
+// Execute deploys resources to Kubernetes based on the specified component type
 func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDeploymentOutput, error) {
 	logger := workflow.GetLogger(ctx)
-	logger.Info("CreateDeployment workflow started")
+	logger.Info("CreateDeployment workflow started", "org", w.input.Org, "component", w.input.Component)
 
-	// TODO: Implementation
+	// Validate input
+	if w.input.Org == "" {
+		return nil, fmt.Errorf("org is required")
+	}
+	if w.input.Component == "" {
+		return nil, fmt.Errorf("component is required")
+	}
 
-	return &pb.CreateDeploymentOutput{}, nil
+	// Determine chart name and build values based on component type
+	var chartName string
+	var componentName string
+	var values interface{}
+	var namespaceName string
+	var deploymentName string
+
+	switch w.input.Component {
+	case componentWorker:
+		chartName = chartWorker
+		componentName = componentWorker
+		workerValues := helm.NewWorkerValues(w.input.Org)
+		values = workerValues
+		namespaceName = "fabric-" + w.input.Org
+		deploymentName = "fabric-worker-" + w.input.Org
+	default:
+		return nil, fmt.Errorf("unsupported component type: %s", w.input.Component)
+	}
+
+	// Convert Go struct to protobuf Struct
+	valuesStruct, err := ToProtoStruct(values)
+	if err != nil {
+		return nil, fmt.Errorf("convert values: %w", err)
+	}
+
+	// Activity options
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    1 * time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    5,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
+
+	// Step 1: Render Helm chart
+	logger.Info("Rendering Helm chart", "chart", chartName, "namespace", namespaceName)
+	var renderOutput *helmpb.RenderChartOutput
+	err = workflow.ExecuteActivity(activityCtx, helmpb.RenderChartWithTemplateActivityName, &helmpb.RenderChartWithTemplateInput{
+		ChartName: chartName,
+		Component: componentName,
+		Values:    valuesStruct,
+		Namespace: &namespaceName,
+	}).Get(ctx, &renderOutput)
+	if err != nil {
+		return nil, fmt.Errorf("render chart: %w", err)
+	}
+
+	if len(renderOutput.Failures) > 0 {
+		return nil, fmt.Errorf("chart rendering failed: %v", renderOutput.Failures)
+	}
+
+	// Step 2: Apply resources to Kubernetes
+	logger.Info("Applying resources", "resource_count", len(renderOutput.Resources))
+	kubeResources := make(map[string]*kubepb.Resource)
+	for id, res := range renderOutput.Resources {
+		kubeResources[id] = &kubepb.Resource{
+			ManifestYaml: res.ManifestYaml,
+		}
+	}
+
+	var applyOutput *kubepb.ApplyOutput
+	err = workflow.ExecuteActivity(activityCtx, kubepb.ApplyActivityName, &kubepb.ApplyInput{
+		Resources: kubeResources,
+	}).Get(ctx, &applyOutput)
+	if err != nil {
+		return nil, fmt.Errorf("apply resources: %w", err)
+	}
+
+	if applyOutput.Summary.Failed > 0 {
+		return nil, fmt.Errorf("failed to apply %d resources", applyOutput.Summary.Failed)
+	}
+
+	logger.Info("Deployment created successfully", "deployment", deploymentName, "namespace", namespaceName)
+	return &pb.CreateDeploymentOutput{
+		DeploymentName: deploymentName,
+	}, nil
 }

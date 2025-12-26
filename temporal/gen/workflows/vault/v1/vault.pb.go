@@ -99,15 +99,13 @@ func (Capability) EnumDescriptor() ([]byte, []int) {
 // CreateAuthRoleInput specifies parameters for creating an auth role in Vault
 type CreateAuthRoleInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// organization is the organization name (e.g., "metacensus", "acme-corp")
-	Organization string `protobuf:"bytes,1,opt,name=organization,proto3" json:"organization,omitempty"`
+	// role_name is the name of the Kubernetes auth role to create
+	RoleName string `protobuf:"bytes,1,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
 	// service_account_name is the Kubernetes service account that can authenticate
-	// (e.g., "fabric-org-sa")
 	ServiceAccountName string `protobuf:"bytes,2,opt,name=service_account_name,json=serviceAccountName,proto3" json:"service_account_name,omitempty"`
 	// kubernetes_namespace is the Kubernetes namespace where the service account exists
 	KubernetesNamespace string `protobuf:"bytes,3,opt,name=kubernetes_namespace,json=kubernetesNamespace,proto3" json:"kubernetes_namespace,omitempty"`
 	// policy_names is a list of Vault policy names to bind to this role
-	// (e.g., ["fabric-foundational", "fabric-org-specific"])
 	PolicyNames   []string `protobuf:"bytes,4,rep,name=policy_names,json=policyNames,proto3" json:"policy_names,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -143,9 +141,9 @@ func (*CreateAuthRoleInput) Descriptor() ([]byte, []int) {
 	return file_vault_v1_vault_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CreateAuthRoleInput) GetOrganization() string {
+func (x *CreateAuthRoleInput) GetRoleName() string {
 	if x != nil {
-		return x.Organization
+		return x.RoleName
 	}
 	return ""
 }
@@ -303,7 +301,7 @@ func (*DeleteAuthRoleOutput) Descriptor() ([]byte, []int) {
 // PolicyRule defines a single path and its allowed capabilities
 type PolicyRule struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// path is the Vault path pattern (e.g., "secret/data/fabric/*")
+	// path is the Vault path pattern (e.g., "secret/data/myapp/*")
 	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	// capabilities are the allowed capabilities for this path
 	Capabilities  []Capability `protobuf:"varint,2,rep,packed,name=capabilities,proto3,enum=vault.v1.Capability" json:"capabilities,omitempty"`
@@ -404,7 +402,7 @@ func (x *PolicyDocument) GetRules() []*PolicyRule {
 // CreatePolicyInput specifies parameters for creating a Vault policy
 type CreatePolicyInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// name is the name of the policy (e.g., "fabric-foundational")
+	// name is the name of the policy
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// document contains the structured policy rules
 	Document      *PolicyDocument `protobuf:"bytes,2,opt,name=document,proto3" json:"document,omitempty"`
@@ -641,9 +639,11 @@ func (x *SecretRef) GetVersion() int64 {
 
 // StoreSecretInput specifies parameters for storing a secret in Vault
 type StoreSecretInput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"` // Vault path (e.g., "fabric/metacensus/msp/peer-peer0")
-	Data          map[string][]byte      `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// path is the Vault path to store the secret at
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// data is the secret key-value pairs to store
+	Data          map[string][]byte `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -739,9 +739,11 @@ func (x *StoreSecretOutput) GetSecretRef() *SecretRef {
 
 // FetchSecretInput specifies which secret to retrieve
 type FetchSecretInput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`        // Vault path (e.g., "fabric/metacensus/msp/peer-peer0")
-	Version       int64                  `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"` // optional: specific version (0 or omit for latest)
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// path is the Vault path to fetch the secret from
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// version is the specific version to fetch (0 or omit for latest)
+	Version       int64 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -845,8 +847,9 @@ func (x *FetchSecretOutput) GetData() map[string][]byte {
 
 // DeleteSecretInput specifies which secret to delete
 type DeleteSecretInput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"` // Vault path (e.g., "fabric/metacensus/msp/peer-peer0")
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// path is the Vault path of the secret to delete
+	Path          string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -929,15 +932,14 @@ func (*DeleteSecretOutput) Descriptor() ([]byte, []int) {
 type CreateAccessInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Policy configuration
-	// name is the name of the policy to create (e.g., "fabric-foundational")
+	// policy_name is the name of the policy to create
 	PolicyName string `protobuf:"bytes,1,opt,name=policy_name,json=policyName,proto3" json:"policy_name,omitempty"`
-	// document is the structured policy content
+	// policy_document is the structured policy content
 	PolicyDocument *PolicyDocument `protobuf:"bytes,2,opt,name=policy_document,json=policyDocument,proto3" json:"policy_document,omitempty"`
 	// Auth role configuration
-	// organization is the organization name (e.g., "metacensus", "acme-corp")
-	Organization string `protobuf:"bytes,3,opt,name=organization,proto3" json:"organization,omitempty"`
+	// auth_role_name is the name of the Kubernetes auth role to create
+	AuthRoleName string `protobuf:"bytes,3,opt,name=auth_role_name,json=authRoleName,proto3" json:"auth_role_name,omitempty"`
 	// service_account_name is the Kubernetes service account that can authenticate
-	// (e.g., "fabric-org-sa")
 	ServiceAccountName string `protobuf:"bytes,4,opt,name=service_account_name,json=serviceAccountName,proto3" json:"service_account_name,omitempty"`
 	// kubernetes_namespace is the Kubernetes namespace where the service account exists
 	KubernetesNamespace string `protobuf:"bytes,5,opt,name=kubernetes_namespace,json=kubernetesNamespace,proto3" json:"kubernetes_namespace,omitempty"`
@@ -989,9 +991,9 @@ func (x *CreateAccessInput) GetPolicyDocument() *PolicyDocument {
 	return nil
 }
 
-func (x *CreateAccessInput) GetOrganization() string {
+func (x *CreateAccessInput) GetAuthRoleName() string {
 	if x != nil {
-		return x.Organization
+		return x.AuthRoleName
 	}
 	return ""
 }
@@ -1069,9 +1071,9 @@ var File_vault_v1_vault_proto protoreflect.FileDescriptor
 
 const file_vault_v1_vault_proto_rawDesc = "" +
 	"\n" +
-	"\x14vault/v1/vault.proto\x12\bvault.v1\x1a\x1atemporal/v1/temporal.proto\"\xc1\x01\n" +
-	"\x13CreateAuthRoleInput\x12\"\n" +
-	"\forganization\x18\x01 \x01(\tR\forganization\x120\n" +
+	"\x14vault/v1/vault.proto\x12\bvault.v1\x1a\x1atemporal/v1/temporal.proto\"\xba\x01\n" +
+	"\x13CreateAuthRoleInput\x12\x1b\n" +
+	"\trole_name\x18\x01 \x01(\tR\broleName\x120\n" +
 	"\x14service_account_name\x18\x02 \x01(\tR\x12serviceAccountName\x121\n" +
 	"\x14kubernetes_namespace\x18\x03 \x01(\tR\x13kubernetesNamespace\x12!\n" +
 	"\fpolicy_names\x18\x04 \x03(\tR\vpolicyNames\"*\n" +
@@ -1118,12 +1120,12 @@ const file_vault_v1_vault_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\"'\n" +
 	"\x11DeleteSecretInput\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\"\x14\n" +
-	"\x12DeleteSecretOutput\"\x80\x02\n" +
+	"\x12DeleteSecretOutput\"\x82\x02\n" +
 	"\x11CreateAccessInput\x12\x1f\n" +
 	"\vpolicy_name\x18\x01 \x01(\tR\n" +
 	"policyName\x12A\n" +
-	"\x0fpolicy_document\x18\x02 \x01(\v2\x18.vault.v1.PolicyDocumentR\x0epolicyDocument\x12\"\n" +
-	"\forganization\x18\x03 \x01(\tR\forganization\x120\n" +
+	"\x0fpolicy_document\x18\x02 \x01(\v2\x18.vault.v1.PolicyDocumentR\x0epolicyDocument\x12$\n" +
+	"\x0eauth_role_name\x18\x03 \x01(\tR\fauthRoleName\x120\n" +
 	"\x14service_account_name\x18\x04 \x01(\tR\x12serviceAccountName\x121\n" +
 	"\x14kubernetes_namespace\x18\x05 \x01(\tR\x13kubernetesNamespace\"[\n" +
 	"\x12CreateAccessOutput\x12\x1f\n" +

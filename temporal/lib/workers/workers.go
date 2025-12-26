@@ -3,6 +3,7 @@ package workers
 import (
 	cell "github.com/metacensus/infra/temporal/lib/workflows/cell/v1"
 	clusterfabric "github.com/metacensus/infra/temporal/lib/workflows/cluster/fabric/v1"
+	fabric "github.com/metacensus/infra/temporal/lib/workflows/fabric/v1"
 	helm "github.com/metacensus/infra/temporal/lib/workflows/helm/v1"
 	kube "github.com/metacensus/infra/temporal/lib/workflows/kube/v1"
 	temporal "github.com/metacensus/infra/temporal/lib/workflows/temporal/v1"
@@ -41,12 +42,22 @@ var InfraModule = fx.Options(
 
 var FabricModule = fx.Options(
 	fx.Provide(NewWorker),
-
-	vault.Module,
 	fx.Provide(NewVaultConfig),
+	fx.Provide(NewKubeConfig),
+	fx.Provide(NewOrgConfig),
 
 	helm.Module,
-
 	kube.Module,
-	fx.Provide(NewKubeConfig),
+	vault.Module,
+	clusterfabric.Module,
+	fabric.Module,
+
+	fx.Invoke(
+		vault.RegisterActivities,
+		vault.RegisterWorkflows,
+		helm.RegisterActivities,
+		kube.RegisterActivities,
+		clusterfabric.RegisterWorkflows,
+		fabric.RegisterWorkflows,
+	),
 )

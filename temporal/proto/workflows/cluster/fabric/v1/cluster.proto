@@ -70,7 +70,19 @@ message CreateServiceAccountOutput {}
 
 // ==================== CreateDeployment Workflow Messages ====================
 
-message CreateDeploymentInput {}
+message CreateDeploymentInput {
+  // org is the organization identifier (e.g., "org1")
+  // Used to derive namespace names, service account names, etc.
+  string org = 1;
 
-message CreateDeploymentOutput {}
+  // component specifies which type of deployment to create
+  // Currently supported: "worker"
+  // Future components: "peer", "orderer", "ca", "couchdb"
+  string component = 2;
+}
+
+message CreateDeploymentOutput {
+  // deployment_name is the name of the created deployment
+  string deployment_name = 1;
+}
 

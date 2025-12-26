@@ -125,14 +125,14 @@ func NewActivities(client VaultClient) *Activities {
 func (a *Activities) CreateAuthRole(ctx context.Context, req *pb.CreateAuthRoleInput) (*pb.CreateAuthRoleOutput, error) {
 	logger := activity.GetLogger(ctx)
 	logger.Info("Creating auth role",
-		"organization", req.Organization,
+		"role_name", req.RoleName,
 		"service_account", req.ServiceAccountName,
 		"namespace", req.KubernetesNamespace,
 		"policies", req.PolicyNames)
 
 	// Validate required fields
-	if req.Organization == "" {
-		return nil, errors.New("organization cannot be empty")
+	if req.RoleName == "" {
+		return nil, errors.New("role name cannot be empty")
 	}
 	if req.ServiceAccountName == "" {
 		return nil, errors.New("service account name cannot be empty")
@@ -144,8 +144,7 @@ func (a *Activities) CreateAuthRole(ctx context.Context, req *pb.CreateAuthRoleI
 		return nil, errors.New("policy names list cannot be empty")
 	}
 
-	roleName := fmt.Sprintf("fabric-%s", req.Organization)
-	path := buildAuthRolePath(roleName)
+	path := buildAuthRolePath(req.RoleName)
 
 	// Prepare request body for Vault Kubernetes auth role
 	body := map[string]any{
@@ -159,9 +158,9 @@ func (a *Activities) CreateAuthRole(ctx context.Context, req *pb.CreateAuthRoleI
 		return nil, fmt.Errorf("create auth role: %w", err)
 	}
 
-	logger.Info("Auth role created successfully", "role_name", roleName)
+	logger.Info("Auth role created successfully", "role_name", req.RoleName)
 	return &pb.CreateAuthRoleOutput{
-		Name: roleName,
+		Name: req.RoleName,
 	}, nil
 }
 
