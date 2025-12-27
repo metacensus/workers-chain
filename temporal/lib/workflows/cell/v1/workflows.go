@@ -1,6 +1,7 @@
 package cell
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"time"
@@ -21,6 +22,18 @@ const (
 
 	// Fabric secret path structure
 	fabricSecretBase = "fabric"
+)
+
+// Sentinel errors for InitFabricShard workflow
+var (
+	ErrOrgRequired               = errors.New("org is required")
+	ErrCreateTemporalNamespace   = errors.New("create temporal namespace")
+	ErrCreateKubernetesNamespace = errors.New("create kubernetes namespace")
+	ErrCreateServiceAccount      = errors.New("create service account")
+	ErrCreateVaultAccess         = errors.New("create vault access")
+	ErrDeployFabricWorker        = errors.New("deploy fabric worker")
+	ErrCreateNexusEndpoint       = errors.New("create nexus endpoint")
+	ErrBootstrapShard            = errors.New("bootstrap shard via nexus")
 )
 
 // Workflows implements the CellWorkflows interface from generated code
@@ -44,7 +57,7 @@ type initFabricShardWorkflow struct {
 // Execute orchestrates the complete initialization of a Fabric shard.
 func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricShardOutput, error) {
 	if w.input.Req.Org == "" {
-		return nil, fmt.Errorf("org is required")
+		return nil, ErrOrgRequired
 	}
 
 	temporalNamespace := fmt.Sprintf("fabric-%s", w.input.Req.Org)
@@ -53,21 +66,21 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 	if _, err := temporalpb.CreateNamespaceChild(ctx, &temporalpb.CreateNamespaceInput{
 		Name: temporalNamespace,
 	}); err != nil {
-		return nil, fmt.Errorf("create temporal namespace: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateTemporalNamespace, err)
 	}
 
 	// Create Kubernetes namespace
 	if _, err := clusterpb.CreateNamespaceChild(ctx, &clusterpb.CreateNamespaceInput{
 		Org: w.input.Req.Org,
 	}); err != nil {
-		return nil, fmt.Errorf("create kubernetes namespace: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateKubernetesNamespace, err)
 	}
 
 	// Create service account for fabric worker
 	if _, err := clusterpb.CreateServiceAccountChild(ctx, &clusterpb.CreateServiceAccountInput{
 		Org: w.input.Req.Org,
 	}); err != nil {
-		return nil, fmt.Errorf("create service account: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateServiceAccount, err)
 	}
 
 	// Create Vault access policies for the fabric worker
@@ -83,7 +96,7 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 		ServiceAccountName:  serviceAccountName,
 		KubernetesNamespace: fabricNamespace,
 	}); err != nil {
-		return nil, fmt.Errorf("create vault access: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateVaultAccess, err)
 	}
 
 	// Deploy fabric worker pod
@@ -91,7 +104,7 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 		Org:       w.input.Req.Org,
 		Component: "worker",
 	}); err != nil {
-		return nil, fmt.Errorf("deploy fabric worker: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrDeployFabricWorker, err)
 	}
 
 	// Register Nexus endpoint for BootstrapShard service
@@ -101,7 +114,7 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 		Namespace: temporalNamespace,
 		TaskQueue: "infra",
 	}); err != nil {
-		return nil, fmt.Errorf("create nexus endpoint: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateNexusEndpoint, err)
 	}
 
 	// Call BootstrapShard workflow via Nexus using generated client
@@ -112,7 +125,7 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 		ScheduleToCloseTimeout: 30 * time.Minute,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("bootstrap shard via nexus: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrBootstrapShard, err)
 	}
 	_ = bootstrapOutput // Unused for now
 
