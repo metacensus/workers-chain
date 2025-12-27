@@ -42,6 +42,7 @@ var InfraModule = fx.Options(
 
 var FabricModule = fx.Options(
 	fx.Provide(NewWorker),
+	fx.Provide(NewTemporalClient),
 	fx.Provide(NewVaultConfig),
 	fx.Provide(NewKubeConfig),
 	fx.Provide(NewOrgConfig),
@@ -59,5 +60,6 @@ var FabricModule = fx.Options(
 		kube.RegisterActivities,
 		clusterfabric.RegisterWorkflows,
 		fabric.RegisterWorkflows,
+		fabric.RegisterNexusService,
 	),
 )

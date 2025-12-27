@@ -7,6 +7,7 @@
 package fabricv1
 
 import (
+	_ "github.com/bergundy/nexus-proto-annotations/go/nexus/v1"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -111,13 +112,13 @@ var File_fabric_v1_fabric_proto protoreflect.FileDescriptor
 
 const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\n" +
-	"\x16fabric/v1/fabric.proto\x12\tfabric.v1\x1a\x1atemporal/v1/temporal.proto\"'\n" +
+	"\x16fabric/v1/fabric.proto\x12\tfabric.v1\x1a\x16nexus/v1/options.proto\x1a\x1atemporal/v1/temporal.proto\"'\n" +
 	"\x13BootstrapShardInput\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\"\x16\n" +
-	"\x14BootstrapShardOutput2\x8a\x01\n" +
-	"\x06Fabric\x12s\n" +
-	"\x0eBootstrapShard\x12\x1e.fabric.v1.BootstrapShardInput\x1a\x1f.fabric.v1.BootstrapShardOutput\" \x8a\xc4\x03\x1c0\x01r\x18fabric.v1.BootstrapShard\x1a\v\x8a\xc4\x03\a\n" +
-	"\x05infraB\xa8\x01\n" +
+	"\x14BootstrapShardOutput2\xc0\x01\n" +
+	"\x06Fabric\x12\x95\x01\n" +
+	"\x0eBootstrapShard\x12\x1e.fabric.v1.BootstrapShardInput\x1a\x1f.fabric.v1.BootstrapShardOutput\"B\x8a\xc4\x03>* fabric/${! org }/bootstrap-shard0\x01r\x18fabric.v1.BootstrapShard\x1a\x1e\x8a\xc4\x03\a\n" +
+	"\x05infraʂ\x04\x0f\x12\rnexus-enabledB\xa8\x01\n" +
 	"\rcom.fabric.v1B\vFabricProtoP\x01ZEgithub.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1\xa2\x02\x03FXX\xaa\x02\tFabric.V1\xca\x02\tFabric\\V1\xe2\x02\x15Fabric\\V1\\GPBMetadata\xea\x02\n" +
 	"Fabric::V1b\x06proto3"
 

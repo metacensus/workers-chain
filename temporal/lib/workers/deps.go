@@ -13,7 +13,8 @@ import (
 // NewTemporalClient creates a Temporal client from environment configuration
 func NewTemporalClient() (client.Client, error) {
 	return client.Dial(client.Options{
-		HostPort: env.TemporalAddress(),
+		HostPort:  env.TemporalAddress(),
+		Namespace: env.TemporalNamespace(),
 	})
 }
 

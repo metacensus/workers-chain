@@ -316,8 +316,8 @@ const file_cluster_fabric_v1_cluster_proto_rawDesc = "" +
 	"\x0fCreateNamespace\x12'.cluster.fabric.v1.CreateNamespaceInput\x1a(.cluster.fabric.v1.CreateNamespaceOutput\")\x8a\xc4\x03%0\x01r!cluster.fabric.v1.CreateNamespace\x12\xa3\x01\n" +
 	"\x14CreateServiceAccount\x12,.cluster.fabric.v1.CreateServiceAccountInput\x1a-.cluster.fabric.v1.CreateServiceAccountOutput\".\x8a\xc4\x03*0\x01r&cluster.fabric.v1.CreateServiceAccount\x12\x93\x01\n" +
 	"\x10CreateDeployment\x12(.cluster.fabric.v1.CreateDeploymentInput\x1a).cluster.fabric.v1.CreateDeploymentOutput\"*\x8a\xc4\x03&0\x01r\"cluster.fabric.v1.CreateDeployment\x1a\v\x8a\xc4\x03\a\n" +
-	"\x05infraB\xda\x01\n" +
-	"\x15com.cluster.fabric.v1B\fClusterProtoP\x01ZMgithub.com/metacensus/infra/temporal/gen/workflows/cluster/v1;clusterfabricv1\xa2\x02\x03CFX\xaa\x02\x11Cluster.Fabric.V1\xca\x02\x11Cluster\\Fabric\\V1\xe2\x02\x1dCluster\\Fabric\\V1\\GPBMetadata\xea\x02\x13Cluster::Fabric::V1b\x06proto3"
+	"\x05infraB\xe1\x01\n" +
+	"\x15com.cluster.fabric.v1B\fClusterProtoP\x01ZTgithub.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1;clusterfabricv1\xa2\x02\x03CFX\xaa\x02\x11Cluster.Fabric.V1\xca\x02\x11Cluster\\Fabric\\V1\xe2\x02\x1dCluster\\Fabric\\V1\\GPBMetadata\xea\x02\x13Cluster::Fabric::V1b\x06proto3"
 
 var (
 	file_cluster_fabric_v1_cluster_proto_rawDescOnce sync.Once

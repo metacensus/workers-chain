@@ -4,6 +4,7 @@ import "github.com/spf13/viper"
 
 const (
 	temporalAddressName    = "TEMPORAL_ADDRESS"
+	temporalNamespaceName  = "TEMPORAL_NAMESPACE"
 	healthCheckAddressName = "HEALTH_CHECK_ADDRESS"
 	taskQueueName          = "TASK_QUEUE"
 
@@ -33,6 +34,7 @@ func init() {
 	viper.SetEnvPrefix("") // or set a prefix if needed
 
 	// Set defaults
+	viper.SetDefault(temporalNamespaceName, "infra")
 	viper.SetDefault(vaultRoleName, "infra-worker")
 	viper.SetDefault(vaultMountPathName, "secret")
 	viper.SetDefault(vaultEngineType, "kv")
@@ -41,6 +43,10 @@ func init() {
 
 func TemporalAddress() string {
 	return viper.GetString(temporalAddressName)
+}
+
+func TemporalNamespace() string {
+	return viper.GetString(temporalNamespaceName)
 }
 
 func HealthCheckAddress() string {

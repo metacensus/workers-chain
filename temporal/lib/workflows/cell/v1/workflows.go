@@ -8,6 +8,7 @@ import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/cell/v1"
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	fabricpb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
+	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1nexustemporal"
 	temporalpb "github.com/metacensus/infra/temporal/gen/workflows/temporal/v1"
 	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	"go.temporal.io/sdk/workflow"
@@ -94,7 +95,7 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 	}
 
 	// Register Nexus endpoint for BootstrapShard service
-	nexusEndpointName := fmt.Sprintf("BootstrapShard-%s", w.input.Req.Org)
+	nexusEndpointName := fmt.Sprintf("fabric-%s-BootstrapShard", w.input.Req.Org)
 	if _, err := temporalpb.CreateNexusEndpoint(ctx, &temporalpb.CreateNexusEndpointInput{
 		Name:      nexusEndpointName,
 		Namespace: temporalNamespace,
@@ -103,18 +104,17 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 		return nil, fmt.Errorf("create nexus endpoint: %w", err)
 	}
 
-	// Call BootstrapShard workflow via Nexus
-	nexusClient := workflow.NewNexusClient(nexusEndpointName, "Fabric")
-	bootstrapFut := nexusClient.ExecuteOperation(ctx, "BootstrapShard", &fabricpb.BootstrapShardInput{
+	// Call BootstrapShard workflow via Nexus using generated client
+	nexusClient := fabricv1nexustemporal.NewFabricNexusClient(nexusEndpointName)
+	bootstrapOutput, err := nexusClient.BootstrapShard(ctx, &fabricpb.BootstrapShardInput{
 		Org: w.input.Req.Org,
 	}, workflow.NexusOperationOptions{
 		ScheduleToCloseTimeout: 30 * time.Minute,
 	})
-
-	var bootstrapOutput fabricpb.BootstrapShardOutput
-	if err := bootstrapFut.Get(ctx, &bootstrapOutput); err != nil {
+	if err != nil {
 		return nil, fmt.Errorf("bootstrap shard via nexus: %w", err)
 	}
+	_ = bootstrapOutput // Unused for now
 
 	return &pb.InitFabricShardOutput{}, nil
 }

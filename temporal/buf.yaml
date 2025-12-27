@@ -2,6 +2,7 @@ version: v2
 modules:
   - path: proto/workflows
 deps:
+  - buf.build/bergundy/nexus
   - buf.build/cludden/protoc-gen-go-temporal
 lint:
   use:

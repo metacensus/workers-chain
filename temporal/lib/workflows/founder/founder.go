@@ -28,7 +28,7 @@ func Workflow(ctx workflow.Context, name string) (string, error) {
 		return "", err
 	}
 
-	// TODO: Trigger Fabric CA bootstrap using fabric/identity/v1 workflows
+	// TODO: Trigger Fabric CA bootstrap
 	// This will be implemented once the bootstrap workflow is ready
 
 	logger.Info("founder workflow completed.", "result", result)

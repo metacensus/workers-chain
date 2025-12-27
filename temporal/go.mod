@@ -17,7 +17,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.39.0
 	github.com/vektra/mockery/v2 v2.53.5
 	go.temporal.io/api v1.58.0
-	go.temporal.io/sdk v1.33.0
+	go.temporal.io/sdk v1.34.0
 	go.uber.org/fx v1.24.0
 	helm.sh/helm/v3 v3.19.1
 	k8s.io/api v0.34.0
@@ -57,6 +57,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.7 // indirect
 	github.com/aws/smithy-go v1.23.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bergundy/nexus-proto-annotations v0.1.0 // indirect
+	github.com/bergundy/protoc-gen-go-nexus v0.0.9 // indirect
+	github.com/bergundy/protoc-gen-go-nexus-temporal v0.0.4 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -224,7 +227,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/nexus-rpc/sdk-go v0.4.0 // indirect
+	github.com/nexus-rpc/sdk-go v0.5.1 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect

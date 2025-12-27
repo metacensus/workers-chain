@@ -1067,6 +1067,7 @@ go_name: Org</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/${! org }/bootstrap-shard</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>     
 
