@@ -62,6 +62,13 @@ packages:
     interfaces:
       HelmActivities:
 
+  # Postgres v1
+  github.com/metacensus/infra/temporal/gen/workflows/postgres/v1:
+    config:
+      dir: "mocks/workflows/postgres/v1"
+    interfaces:
+      PostgresActivities:
+
   # ============================================================================
   # IMPLEMENTATION INTERFACES - Clients from implementation code
   # Used for testing activity implementations with mocked external dependencies
@@ -91,6 +98,14 @@ packages:
       outpkg: "helmv1"
     interfaces:
       RepoClient:
+
+  # Postgres v1 client
+  github.com/metacensus/infra/temporal/lib/workflows/postgres/v1:
+    config:
+      dir: "mocks/workflows/postgres/v1"
+      outpkg: "postgresv1"
+    interfaces:
+      PostgresClient:
 
   # Temporal v1 clients - namespace and operator service
   go.temporal.io/sdk/client:

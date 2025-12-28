@@ -10,6 +10,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.88.5
 	github.com/bergundy/nexus-proto-annotations v0.1.0
 	github.com/cludden/protoc-gen-go-temporal v1.17.7
+	github.com/golang/mock v1.7.0-rc.1
+	github.com/hyperledger/fabric-ca v1.5.15
+	github.com/jackc/pgx/v5 v5.7.1
 	github.com/spf13/viper v1.20.0
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.39.0
@@ -109,6 +112,8 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect

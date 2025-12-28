@@ -112,6 +112,20 @@
     - [kube.v1.UpdateOutput.ResultsEntry](#kube-v1-updateoutput-resultsentry)
     - [kube.v1.UpdateResult](#kube-v1-updateresult)
     - [kube.v1.UpdateSummary](#kube-v1-updatesummary)
+- [postgres.v1](#postgres-v1)
+  - Services
+    - [postgres.v1.Postgres](#postgres-v1-postgres)
+      - [Activities](#postgres-v1-postgres-activities)
+        - [postgres.v1.CreateDatabase](#postgres-v1-createdatabase-activity)
+        - [postgres.v1.CreateUser](#postgres-v1-createuser-activity)
+        - [postgres.v1.GrantPrivileges](#postgres-v1-grantprivileges-activity)
+  - Messages
+    - [postgres.v1.CreateDatabaseInput](#postgres-v1-createdatabaseinput)
+    - [postgres.v1.CreateDatabaseOutput](#postgres-v1-createdatabaseoutput)
+    - [postgres.v1.CreateUserInput](#postgres-v1-createuserinput)
+    - [postgres.v1.CreateUserOutput](#postgres-v1-createuseroutput)
+    - [postgres.v1.GrantPrivilegesInput](#postgres-v1-grantprivilegesinput)
+    - [postgres.v1.GrantPrivilegesOutput](#postgres-v1-grantprivilegesoutput)
 - [temporal.v1](#temporal-v1)
   - Services
     - [temporal.v1.Admin](#temporal-v1-admin)
@@ -3112,6 +3126,462 @@ go_name: Total</pre></td>
 <td><pre>
 json_name: updated
 go_name: Updated</pre></td>
+</tr>
+</table>
+
+
+
+<a name="postgres-v1"></a>
+# postgres.v1
+
+<a name="postgres-v1-services"></a>
+## Services
+
+<a name="postgres-v1-postgres"></a>
+## postgres.v1.Postgres
+
+<pre>
+Postgres service defines activities for PostgreSQL database management
+</pre>   
+
+<a name="postgres-v1-postgres-activities"></a>
+### Activities
+
+---
+<a name="postgres-v1-createdatabase-activity"></a>
+### postgres.v1.CreateDatabase
+
+<pre>
+CreateDatabase creates a new PostgreSQL database
+Idempotent: returns success if database already exists
+</pre>
+
+**Input:** [postgres.v1.CreateDatabaseInput](#postgres-v1-createdatabaseinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>connection_string</td>
+<td>string</td>
+<td><pre>
+connection_string is the PostgreSQL connection string for admin access
+Format: postgres://user:password@host:port/database?sslmode=disable
+The database in the connection string should be an existing database (typically "postgres")<br>
+
+json_name: connectionString
+go_name: ConnectionString</pre></td>
+</tr><tr>
+<td>database_name</td>
+<td>string</td>
+<td><pre>
+database_name is the name of the database to create<br>
+
+json_name: databaseName
+go_name: DatabaseName</pre></td>
+</tr>
+</table>
+
+**Output:** [postgres.v1.CreateDatabaseOutput](#postgres-v1-createdatabaseoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>database_name</td>
+<td>string</td>
+<td><pre>
+database_name is the name of the created database<br>
+
+json_name: databaseName
+go_name: DatabaseName</pre></td>
+</tr>
+</table> 
+
+---
+<a name="postgres-v1-createuser-activity"></a>
+### postgres.v1.CreateUser
+
+<pre>
+CreateUser creates a new PostgreSQL user
+Idempotent: returns success if user already exists
+</pre>
+
+**Input:** [postgres.v1.CreateUserInput](#postgres-v1-createuserinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>connection_string</td>
+<td>string</td>
+<td><pre>
+connection_string is the PostgreSQL connection string for admin access
+Format: postgres://user:password@host:port/database?sslmode=disable<br>
+
+json_name: connectionString
+go_name: ConnectionString</pre></td>
+</tr><tr>
+<td>password</td>
+<td>string</td>
+<td><pre>
+password is the password for the user<br>
+
+json_name: password
+go_name: Password</pre></td>
+</tr><tr>
+<td>username</td>
+<td>string</td>
+<td><pre>
+username is the name of the user to create<br>
+
+json_name: username
+go_name: Username</pre></td>
+</tr>
+</table>
+
+**Output:** [postgres.v1.CreateUserOutput](#postgres-v1-createuseroutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>username</td>
+<td>string</td>
+<td><pre>
+username is the name of the created user<br>
+
+json_name: username
+go_name: Username</pre></td>
+</tr>
+</table> 
+
+---
+<a name="postgres-v1-grantprivileges-activity"></a>
+### postgres.v1.GrantPrivileges
+
+<pre>
+GrantPrivileges grants privileges to a user on a database
+Idempotent: can be called multiple times safely
+</pre>
+
+**Input:** [postgres.v1.GrantPrivilegesInput](#postgres-v1-grantprivilegesinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>connection_string</td>
+<td>string</td>
+<td><pre>
+connection_string is the PostgreSQL connection string for admin access
+Format: postgres://user:password@host:port/database?sslmode=disable<br>
+
+json_name: connectionString
+go_name: ConnectionString</pre></td>
+</tr><tr>
+<td>database_name</td>
+<td>string</td>
+<td><pre>
+database_name is the name of the database to grant privileges on<br>
+
+json_name: databaseName
+go_name: DatabaseName</pre></td>
+</tr><tr>
+<td>privileges</td>
+<td>string</td>
+<td><pre>
+privileges is a comma-separated list of privileges to grant
+Common values: "ALL", "SELECT,INSERT,UPDATE,DELETE", "SELECT,INSERT"
+If empty, defaults to "ALL"<br>
+
+json_name: privileges
+go_name: Privileges</pre></td>
+</tr><tr>
+<td>username</td>
+<td>string</td>
+<td><pre>
+username is the name of the user to grant privileges to<br>
+
+json_name: username
+go_name: Username</pre></td>
+</tr>
+</table>
+
+**Output:** [postgres.v1.GrantPrivilegesOutput](#postgres-v1-grantprivilegesoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>database_name</td>
+<td>string</td>
+<td><pre>
+database_name is the name of the database privileges were granted on<br>
+
+json_name: databaseName
+go_name: DatabaseName</pre></td>
+</tr><tr>
+<td>privileges</td>
+<td>string</td>
+<td><pre>
+privileges is the list of privileges that were granted<br>
+
+json_name: privileges
+go_name: Privileges</pre></td>
+</tr><tr>
+<td>username</td>
+<td>string</td>
+<td><pre>
+username is the name of the user that was granted privileges<br>
+
+json_name: username
+go_name: Username</pre></td>
+</tr>
+</table>   
+
+<a name="postgres-v1-messages"></a>
+## Messages
+
+<a name="postgres-v1-createdatabaseinput"></a>
+### postgres.v1.CreateDatabaseInput
+
+<pre>
+CreateDatabaseInput specifies parameters for creating a database
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>connection_string</td>
+<td>string</td>
+<td><pre>
+connection_string is the PostgreSQL connection string for admin access
+Format: postgres://user:password@host:port/database?sslmode=disable
+The database in the connection string should be an existing database (typically "postgres")<br>
+
+json_name: connectionString
+go_name: ConnectionString</pre></td>
+</tr><tr>
+<td>database_name</td>
+<td>string</td>
+<td><pre>
+database_name is the name of the database to create<br>
+
+json_name: databaseName
+go_name: DatabaseName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="postgres-v1-createdatabaseoutput"></a>
+### postgres.v1.CreateDatabaseOutput
+
+<pre>
+CreateDatabaseOutput returns the created database name
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>database_name</td>
+<td>string</td>
+<td><pre>
+database_name is the name of the created database<br>
+
+json_name: databaseName
+go_name: DatabaseName</pre></td>
+</tr>
+</table>
+
+
+
+<a name="postgres-v1-createuserinput"></a>
+### postgres.v1.CreateUserInput
+
+<pre>
+CreateUserInput specifies parameters for creating a user
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>connection_string</td>
+<td>string</td>
+<td><pre>
+connection_string is the PostgreSQL connection string for admin access
+Format: postgres://user:password@host:port/database?sslmode=disable<br>
+
+json_name: connectionString
+go_name: ConnectionString</pre></td>
+</tr><tr>
+<td>password</td>
+<td>string</td>
+<td><pre>
+password is the password for the user<br>
+
+json_name: password
+go_name: Password</pre></td>
+</tr><tr>
+<td>username</td>
+<td>string</td>
+<td><pre>
+username is the name of the user to create<br>
+
+json_name: username
+go_name: Username</pre></td>
+</tr>
+</table>
+
+
+
+<a name="postgres-v1-createuseroutput"></a>
+### postgres.v1.CreateUserOutput
+
+<pre>
+CreateUserOutput returns the created username
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>username</td>
+<td>string</td>
+<td><pre>
+username is the name of the created user<br>
+
+json_name: username
+go_name: Username</pre></td>
+</tr>
+</table>
+
+
+
+<a name="postgres-v1-grantprivilegesinput"></a>
+### postgres.v1.GrantPrivilegesInput
+
+<pre>
+GrantPrivilegesInput specifies parameters for granting privileges
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>connection_string</td>
+<td>string</td>
+<td><pre>
+connection_string is the PostgreSQL connection string for admin access
+Format: postgres://user:password@host:port/database?sslmode=disable<br>
+
+json_name: connectionString
+go_name: ConnectionString</pre></td>
+</tr><tr>
+<td>database_name</td>
+<td>string</td>
+<td><pre>
+database_name is the name of the database to grant privileges on<br>
+
+json_name: databaseName
+go_name: DatabaseName</pre></td>
+</tr><tr>
+<td>privileges</td>
+<td>string</td>
+<td><pre>
+privileges is a comma-separated list of privileges to grant
+Common values: "ALL", "SELECT,INSERT,UPDATE,DELETE", "SELECT,INSERT"
+If empty, defaults to "ALL"<br>
+
+json_name: privileges
+go_name: Privileges</pre></td>
+</tr><tr>
+<td>username</td>
+<td>string</td>
+<td><pre>
+username is the name of the user to grant privileges to<br>
+
+json_name: username
+go_name: Username</pre></td>
+</tr>
+</table>
+
+
+
+<a name="postgres-v1-grantprivilegesoutput"></a>
+### postgres.v1.GrantPrivilegesOutput
+
+<pre>
+GrantPrivilegesOutput confirms successful privilege grant
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>database_name</td>
+<td>string</td>
+<td><pre>
+database_name is the name of the database privileges were granted on<br>
+
+json_name: databaseName
+go_name: DatabaseName</pre></td>
+</tr><tr>
+<td>privileges</td>
+<td>string</td>
+<td><pre>
+privileges is the list of privileges that were granted<br>
+
+json_name: privileges
+go_name: Privileges</pre></td>
+</tr><tr>
+<td>username</td>
+<td>string</td>
+<td><pre>
+username is the name of the user that was granted privileges<br>
+
+json_name: username
+go_name: Username</pre></td>
 </tr>
 </table>
 
