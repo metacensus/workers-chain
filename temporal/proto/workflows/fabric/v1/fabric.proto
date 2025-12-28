@@ -24,7 +24,7 @@ service Fabric {
   rpc BootstrapShard(BootstrapShardInput) returns (BootstrapShardOutput) {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.BootstrapShard"
-      id: 'fabric/${! org }/bootstrap-shard'
+      id: 'fabric/bootstrap-shard'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -34,7 +34,7 @@ service Fabric {
   rpc BootstrapCertificateAuthorities(BootstrapCertificateAuthoritiesInput) returns (BootstrapCertificateAuthoritiesOutput) {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.BootstrapCertificateAuthorities"
-      id: 'fabric/${! org }/bootstrap-certificate-authorities'
+      id: 'fabric/bootstrap-certificate-authorities'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -44,7 +44,28 @@ service Fabric {
   rpc DeployCertificateStore(DeployCertificateStoreInput) returns (DeployCertificateStoreOutput) {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.DeployCertificateStore"
-      id: 'fabric/${! org }/deploy-certificate-store'
+      id: 'fabric/deploy-certificate-store'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployRootCertificateAuthority deploys the root certificate authority (root CA)
+  // for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
+  // and is used to issue intermediate CAs for org and TLS identities.
+  rpc DeployRootCertificateAuthority(DeployRootCertificateAuthorityInput) returns (DeployRootCertificateAuthorityOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployRootCertificateAuthority"
+      id: 'fabric/deploy-root-certificate-authority'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
+  // for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+  rpc DeployCertificateAuthority(DeployCertificateAuthorityInput) returns (DeployCertificateAuthorityOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployCertificateAuthority"
+      id: 'fabric/deploy-certificate-authority'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -55,8 +76,7 @@ service Fabric {
 // BootstrapShardInput specifies the parameters for bootstrapping a Fabric shard
 // Empty for now - will be populated as implementation progresses
 message BootstrapShardInput {
-  // org is the organization identifier (e.g., "org1", "acme-corp")
-  string org = 1;
+  // Empty for now - org is implicit from the worker's namespace
 }
 
 // BootstrapShardOutput indicates the result of shard bootstrapping
@@ -68,9 +88,9 @@ message BootstrapShardOutput {
 // ==================== BootstrapCertificateAuthorities Workflow Messages ====================
 
 // BootstrapCertificateAuthoritiesInput specifies the parameters for bootstrapping certificate authorities
+// Empty for now - org is implicit from the worker's namespace
 message BootstrapCertificateAuthoritiesInput {
-  // org is the organization identifier (e.g., "org1", "acme-corp")
-  string org = 1;
+  // Empty for now
 }
 
 // BootstrapCertificateAuthoritiesOutput indicates the result of CA bootstrapping
@@ -82,9 +102,9 @@ message BootstrapCertificateAuthoritiesOutput {
 // ==================== DeployCertificateStore Workflow Messages ====================
 
 // DeployCertificateStoreInput specifies the parameters for deploying the certificate store
+// Empty for now - org is implicit from the worker's namespace
 message DeployCertificateStoreInput {
-  // org is the organization identifier (e.g., "org1", "acme-corp")
-  string org = 1;
+  // Empty for now
 }
 
 // DeployCertificateStoreOutput indicates the result of certificate store deployment
@@ -92,4 +112,31 @@ message DeployCertificateStoreInput {
 message DeployCertificateStoreOutput {
   // Empty for now
 }
+
+// ==================== DeployRootCertificateAuthority Workflow Messages ====================
+
+// DeployRootCertificateAuthorityInput specifies the parameters for deploying the root CA
+message DeployRootCertificateAuthorityInput {
+  // Empty for now - will be populated as implementation progresses
+}
+
+// DeployRootCertificateAuthorityOutput indicates the result of root CA deployment
+// Empty for now - will be populated as implementation progresses
+message DeployRootCertificateAuthorityOutput {
+  // Empty for now
+}
+
+// ==================== DeployCertificateAuthority Workflow Messages ====================
+
+// DeployCertificateAuthorityInput specifies the parameters for deploying an intermediate CA
+message DeployCertificateAuthorityInput {
+  // Empty for now - will be populated as implementation progresses
+}
+
+// DeployCertificateAuthorityOutput indicates the result of intermediate CA deployment
+// Empty for now - will be populated as implementation progresses
+message DeployCertificateAuthorityOutput {
+  // Empty for now
+}
+
 

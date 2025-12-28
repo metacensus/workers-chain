@@ -1,6 +1,10 @@
 package env
 
-import "github.com/spf13/viper"
+import (
+	"fmt"
+
+	"github.com/spf13/viper"
+)
 
 const (
 	temporalAddressName    = "TEMPORAL_ADDRESS"
@@ -103,4 +107,44 @@ func KubeconfigPath() string {
 // Fabric organization configuration
 func OrgID() string {
 	return viper.GetString(orgIDName)
+}
+
+// OrgConfig holds the fabric organization identity and provides derived values
+// for Kubernetes namespaces, Temporal namespaces, Vault paths, etc.
+type OrgConfig struct {
+	OrgID string // Organization identifier (e.g., "metacensus", "org1")
+}
+
+// NewOrgConfig creates OrgConfig from environment variables
+func NewOrgConfig() (OrgConfig, error) {
+	orgID := OrgID()
+	if orgID == "" {
+		return OrgConfig{}, fmt.Errorf("ORG_ID environment variable is required for fabric worker")
+	}
+	return OrgConfig{OrgID: orgID}, nil
+}
+
+// KubeNamespace returns the Kubernetes namespace for this org (fabric-{org})
+func (c OrgConfig) KubeNamespace() string {
+	return "fabric-" + c.OrgID
+}
+
+// TemporalNamespace returns the Temporal namespace for this org (fabric-{org})
+func (c OrgConfig) TemporalNamespace() string {
+	return "fabric-" + c.OrgID
+}
+
+// VaultBasePath returns the base Vault path for this org's secrets
+func (c OrgConfig) VaultBasePath() string {
+	return "fabric/" + c.OrgID
+}
+
+// ServiceAccountName returns the Kubernetes service account name for this org
+func (c OrgConfig) ServiceAccountName() string {
+	return "fabric-" + c.OrgID
+}
+
+// WorkerDeploymentName returns the worker deployment name for this org
+func (c OrgConfig) WorkerDeploymentName() string {
+	return "fabric-" + c.OrgID + "-worker"
 }

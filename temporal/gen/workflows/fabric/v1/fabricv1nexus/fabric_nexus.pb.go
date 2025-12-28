@@ -34,15 +34,27 @@ const FabricDeployCertificateStoreOperationName = "DeployCertificateStore"
 
 var FabricDeployCertificateStoreOperation = nexus.NewOperationReference[*v1.DeployCertificateStoreInput, *v1.DeployCertificateStoreOutput](FabricDeployCertificateStoreOperationName)
 
+// FabricDeployRootCertificateAuthorityOperationName defines the fully-qualified name for the DeployRootCertificateAuthority operation.
+const FabricDeployRootCertificateAuthorityOperationName = "DeployRootCertificateAuthority"
+
+var FabricDeployRootCertificateAuthorityOperation = nexus.NewOperationReference[*v1.DeployRootCertificateAuthorityInput, *v1.DeployRootCertificateAuthorityOutput](FabricDeployRootCertificateAuthorityOperationName)
+
+// FabricDeployCertificateAuthorityOperationName defines the fully-qualified name for the DeployCertificateAuthority operation.
+const FabricDeployCertificateAuthorityOperationName = "DeployCertificateAuthority"
+
+var FabricDeployCertificateAuthorityOperation = nexus.NewOperationReference[*v1.DeployCertificateAuthorityInput, *v1.DeployCertificateAuthorityOutput](FabricDeployCertificateAuthorityOperationName)
+
 type FabricNexusHandler interface {
 	BootstrapShard(name string) nexus.Operation[*v1.BootstrapShardInput, *v1.BootstrapShardOutput]
 	BootstrapCertificateAuthorities(name string) nexus.Operation[*v1.BootstrapCertificateAuthoritiesInput, *v1.BootstrapCertificateAuthoritiesOutput]
 	DeployCertificateStore(name string) nexus.Operation[*v1.DeployCertificateStoreInput, *v1.DeployCertificateStoreOutput]
+	DeployRootCertificateAuthority(name string) nexus.Operation[*v1.DeployRootCertificateAuthorityInput, *v1.DeployRootCertificateAuthorityOutput]
+	DeployCertificateAuthority(name string) nexus.Operation[*v1.DeployCertificateAuthorityInput, *v1.DeployCertificateAuthorityOutput]
 }
 
 func NewFabricNexusService(h FabricNexusHandler) (*nexus.Service, error) {
 	svc := nexus.NewService(FabricServiceName)
-	err := svc.Register(h.BootstrapShard(FabricBootstrapShardOperationName), h.BootstrapCertificateAuthorities(FabricBootstrapCertificateAuthoritiesOperationName), h.DeployCertificateStore(FabricDeployCertificateStoreOperationName))
+	err := svc.Register(h.BootstrapShard(FabricBootstrapShardOperationName), h.BootstrapCertificateAuthorities(FabricBootstrapCertificateAuthoritiesOperationName), h.DeployCertificateStore(FabricDeployCertificateStoreOperationName), h.DeployRootCertificateAuthority(FabricDeployRootCertificateAuthorityOperationName), h.DeployCertificateAuthority(FabricDeployCertificateAuthorityOperationName))
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +100,34 @@ func (h *unimplementedFabricDeployCertificateStore) Name() string {
 }
 func (h *UnimplementedFabricNexusHandler) DeployCertificateStore(name string) nexus.Operation[*v1.DeployCertificateStoreInput, *v1.DeployCertificateStoreOutput] {
 	return &unimplementedFabricDeployCertificateStore{
+		name: name,
+	}
+}
+
+type unimplementedFabricDeployRootCertificateAuthority struct {
+	nexus.UnimplementedOperation[*v1.DeployRootCertificateAuthorityInput, *v1.DeployRootCertificateAuthorityOutput]
+	name string
+}
+
+func (h *unimplementedFabricDeployRootCertificateAuthority) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) DeployRootCertificateAuthority(name string) nexus.Operation[*v1.DeployRootCertificateAuthorityInput, *v1.DeployRootCertificateAuthorityOutput] {
+	return &unimplementedFabricDeployRootCertificateAuthority{
+		name: name,
+	}
+}
+
+type unimplementedFabricDeployCertificateAuthority struct {
+	nexus.UnimplementedOperation[*v1.DeployCertificateAuthorityInput, *v1.DeployCertificateAuthorityOutput]
+	name string
+}
+
+func (h *unimplementedFabricDeployCertificateAuthority) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) DeployCertificateAuthority(name string) nexus.Operation[*v1.DeployCertificateAuthorityInput, *v1.DeployCertificateAuthorityOutput] {
+	return &unimplementedFabricDeployCertificateAuthority{
 		name: name,
 	}
 }

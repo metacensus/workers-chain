@@ -34,14 +34,18 @@ var FabricTaskQueue = "infra"
 const (
 	BootstrapCertificateAuthoritiesWorkflowName = "fabric.v1.BootstrapCertificateAuthorities"
 	BootstrapShardWorkflowName                  = "fabric.v1.BootstrapShard"
+	DeployCertificateAuthorityWorkflowName      = "fabric.v1.DeployCertificateAuthority"
 	DeployCertificateStoreWorkflowName          = "fabric.v1.DeployCertificateStore"
+	DeployRootCertificateAuthorityWorkflowName  = "fabric.v1.DeployRootCertificateAuthority"
 )
 
 // fabric.v1.Fabric workflow id expressions
 var (
-	BootstrapCertificateAuthoritiesIdexpression = expression.MustParseExpression("fabric/${! org }/bootstrap-certificate-authorities")
-	BootstrapShardIdexpression                  = expression.MustParseExpression("fabric/${! org }/bootstrap-shard")
-	DeployCertificateStoreIdexpression          = expression.MustParseExpression("fabric/${! org }/deploy-certificate-store")
+	BootstrapCertificateAuthoritiesIdexpression = expression.MustParseExpression("fabric/bootstrap-certificate-authorities")
+	BootstrapShardIdexpression                  = expression.MustParseExpression("fabric/bootstrap-shard")
+	DeployCertificateAuthorityIdexpression      = expression.MustParseExpression("fabric/deploy-certificate-authority")
+	DeployCertificateStoreIdexpression          = expression.MustParseExpression("fabric/deploy-certificate-store")
+	DeployRootCertificateAuthorityIdexpression  = expression.MustParseExpression("fabric/deploy-root-certificate-authority")
 )
 
 // FabricClient describes a client for a(n) fabric.v1.Fabric worker
@@ -68,6 +72,16 @@ type FabricClient interface {
 	// GetBootstrapShard retrieves a handle to an existing fabric.v1.BootstrapShard workflow execution
 	GetBootstrapShard(ctx context.Context, workflowID string, runID string) BootstrapShardRun
 
+	// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
+	// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+	DeployCertificateAuthority(ctx context.Context, req *DeployCertificateAuthorityInput, opts ...*DeployCertificateAuthorityOptions) (*DeployCertificateAuthorityOutput, error)
+
+	// DeployCertificateAuthorityAsync starts a(n) fabric.v1.DeployCertificateAuthority workflow and returns a handle to the workflow run
+	DeployCertificateAuthorityAsync(ctx context.Context, req *DeployCertificateAuthorityInput, opts ...*DeployCertificateAuthorityOptions) (DeployCertificateAuthorityRun, error)
+
+	// GetDeployCertificateAuthority retrieves a handle to an existing fabric.v1.DeployCertificateAuthority workflow execution
+	GetDeployCertificateAuthority(ctx context.Context, workflowID string, runID string) DeployCertificateAuthorityRun
+
 	// DeployCertificateStore deploys the shared certificate store (PostgreSQL)
 	// used by all certificate authorities in the organization.
 	DeployCertificateStore(ctx context.Context, req *DeployCertificateStoreInput, opts ...*DeployCertificateStoreOptions) (*DeployCertificateStoreOutput, error)
@@ -77,6 +91,17 @@ type FabricClient interface {
 
 	// GetDeployCertificateStore retrieves a handle to an existing fabric.v1.DeployCertificateStore workflow execution
 	GetDeployCertificateStore(ctx context.Context, workflowID string, runID string) DeployCertificateStoreRun
+
+	// DeployRootCertificateAuthority deploys the root certificate authority (root CA)
+	// for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
+	// and is used to issue intermediate CAs for org and TLS identities.
+	DeployRootCertificateAuthority(ctx context.Context, req *DeployRootCertificateAuthorityInput, opts ...*DeployRootCertificateAuthorityOptions) (*DeployRootCertificateAuthorityOutput, error)
+
+	// DeployRootCertificateAuthorityAsync starts a(n) fabric.v1.DeployRootCertificateAuthority workflow and returns a handle to the workflow run
+	DeployRootCertificateAuthorityAsync(ctx context.Context, req *DeployRootCertificateAuthorityInput, opts ...*DeployRootCertificateAuthorityOptions) (DeployRootCertificateAuthorityRun, error)
+
+	// GetDeployRootCertificateAuthority retrieves a handle to an existing fabric.v1.DeployRootCertificateAuthority workflow execution
+	GetDeployRootCertificateAuthority(ctx context.Context, workflowID string, runID string) DeployRootCertificateAuthorityRun
 
 	// CancelWorkflow requests cancellation of an existing workflow execution
 	CancelWorkflow(ctx context.Context, workflowID string, runID string) error
@@ -242,6 +267,50 @@ func (c *fabricClient) GetBootstrapShard(ctx context.Context, workflowID string,
 	}
 }
 
+// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
+// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+func (c *fabricClient) DeployCertificateAuthority(ctx context.Context, req *DeployCertificateAuthorityInput, options ...*DeployCertificateAuthorityOptions) (*DeployCertificateAuthorityOutput, error) {
+	run, err := c.DeployCertificateAuthorityAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
+// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+func (c *fabricClient) DeployCertificateAuthorityAsync(ctx context.Context, req *DeployCertificateAuthorityInput, options ...*DeployCertificateAuthorityOptions) (DeployCertificateAuthorityRun, error) {
+	var o *DeployCertificateAuthorityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployCertificateAuthorityOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, DeployCertificateAuthorityWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &deployCertificateAuthorityRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetDeployCertificateAuthority fetches an existing fabric.v1.DeployCertificateAuthority execution
+func (c *fabricClient) GetDeployCertificateAuthority(ctx context.Context, workflowID string, runID string) DeployCertificateAuthorityRun {
+	return &deployCertificateAuthorityRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
 // DeployCertificateStore deploys the shared certificate store (PostgreSQL)
 // used by all certificate authorities in the organization.
 func (c *fabricClient) DeployCertificateStore(ctx context.Context, req *DeployCertificateStoreInput, options ...*DeployCertificateStoreOptions) (*DeployCertificateStoreOutput, error) {
@@ -281,6 +350,52 @@ func (c *fabricClient) DeployCertificateStoreAsync(ctx context.Context, req *Dep
 // GetDeployCertificateStore fetches an existing fabric.v1.DeployCertificateStore execution
 func (c *fabricClient) GetDeployCertificateStore(ctx context.Context, workflowID string, runID string) DeployCertificateStoreRun {
 	return &deployCertificateStoreRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// DeployRootCertificateAuthority deploys the root certificate authority (root CA)
+// for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
+// and is used to issue intermediate CAs for org and TLS identities.
+func (c *fabricClient) DeployRootCertificateAuthority(ctx context.Context, req *DeployRootCertificateAuthorityInput, options ...*DeployRootCertificateAuthorityOptions) (*DeployRootCertificateAuthorityOutput, error) {
+	run, err := c.DeployRootCertificateAuthorityAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// DeployRootCertificateAuthority deploys the root certificate authority (root CA)
+// for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
+// and is used to issue intermediate CAs for org and TLS identities.
+func (c *fabricClient) DeployRootCertificateAuthorityAsync(ctx context.Context, req *DeployRootCertificateAuthorityInput, options ...*DeployRootCertificateAuthorityOptions) (DeployRootCertificateAuthorityRun, error) {
+	var o *DeployRootCertificateAuthorityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployRootCertificateAuthorityOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, DeployRootCertificateAuthorityWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &deployRootCertificateAuthorityRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetDeployRootCertificateAuthority fetches an existing fabric.v1.DeployRootCertificateAuthority execution
+func (c *fabricClient) GetDeployRootCertificateAuthority(ctx context.Context, workflowID string, runID string) DeployRootCertificateAuthorityRun {
+	return &deployRootCertificateAuthorityRun{
 		client: c,
 		run:    c.client.GetWorkflow(ctx, workflowID, runID),
 	}
@@ -662,6 +777,189 @@ func (r *bootstrapShardRun) Terminate(ctx context.Context, reason string, detail
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
+// DeployCertificateAuthorityOptions provides configuration for a fabric.v1.DeployCertificateAuthority workflow operation
+type DeployCertificateAuthorityOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewDeployCertificateAuthorityOptions initializes a new DeployCertificateAuthorityOptions value
+func NewDeployCertificateAuthorityOptions() *DeployCertificateAuthorityOptions {
+	return &DeployCertificateAuthorityOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *DeployCertificateAuthorityOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(DeployCertificateAuthorityIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployCertificateAuthorityWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *DeployCertificateAuthorityOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *DeployCertificateAuthorityOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *DeployCertificateAuthorityOptions) WithExecutionTimeout(d time.Duration) *DeployCertificateAuthorityOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *DeployCertificateAuthorityOptions) WithID(id string) *DeployCertificateAuthorityOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployCertificateAuthorityOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployCertificateAuthorityOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeployCertificateAuthorityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployCertificateAuthorityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *DeployCertificateAuthorityOptions) WithRunTimeout(d time.Duration) *DeployCertificateAuthorityOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *DeployCertificateAuthorityOptions) WithSearchAttributes(sa map[string]any) *DeployCertificateAuthorityOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *DeployCertificateAuthorityOptions) WithTaskTimeout(d time.Duration) *DeployCertificateAuthorityOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeployCertificateAuthorityOptions) WithTaskQueue(tq string) *DeployCertificateAuthorityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *DeployCertificateAuthorityOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployCertificateAuthorityOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// DeployCertificateAuthorityRun describes a(n) fabric.v1.DeployCertificateAuthority workflow run
+type DeployCertificateAuthorityRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*DeployCertificateAuthorityOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// deployCertificateAuthorityRun provides an internal implementation of a(n) DeployCertificateAuthorityRunRun
+type deployCertificateAuthorityRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *deployCertificateAuthorityRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *deployCertificateAuthorityRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *deployCertificateAuthorityRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *deployCertificateAuthorityRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *deployCertificateAuthorityRun) Get(ctx context.Context) (*DeployCertificateAuthorityOutput, error) {
+	var resp DeployCertificateAuthorityOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *deployCertificateAuthorityRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
 // DeployCertificateStoreOptions provides configuration for a fabric.v1.DeployCertificateStore workflow operation
 type DeployCertificateStoreOptions struct {
 	options                  client.StartWorkflowOptions
@@ -845,6 +1143,189 @@ func (r *deployCertificateStoreRun) Terminate(ctx context.Context, reason string
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
+// DeployRootCertificateAuthorityOptions provides configuration for a fabric.v1.DeployRootCertificateAuthority workflow operation
+type DeployRootCertificateAuthorityOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewDeployRootCertificateAuthorityOptions initializes a new DeployRootCertificateAuthorityOptions value
+func NewDeployRootCertificateAuthorityOptions() *DeployRootCertificateAuthorityOptions {
+	return &DeployRootCertificateAuthorityOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *DeployRootCertificateAuthorityOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(DeployRootCertificateAuthorityIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployRootCertificateAuthorityWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *DeployRootCertificateAuthorityOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *DeployRootCertificateAuthorityOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *DeployRootCertificateAuthorityOptions) WithExecutionTimeout(d time.Duration) *DeployRootCertificateAuthorityOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *DeployRootCertificateAuthorityOptions) WithID(id string) *DeployRootCertificateAuthorityOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployRootCertificateAuthorityOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployRootCertificateAuthorityOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeployRootCertificateAuthorityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployRootCertificateAuthorityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *DeployRootCertificateAuthorityOptions) WithRunTimeout(d time.Duration) *DeployRootCertificateAuthorityOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *DeployRootCertificateAuthorityOptions) WithSearchAttributes(sa map[string]any) *DeployRootCertificateAuthorityOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *DeployRootCertificateAuthorityOptions) WithTaskTimeout(d time.Duration) *DeployRootCertificateAuthorityOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeployRootCertificateAuthorityOptions) WithTaskQueue(tq string) *DeployRootCertificateAuthorityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *DeployRootCertificateAuthorityOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployRootCertificateAuthorityOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// DeployRootCertificateAuthorityRun describes a(n) fabric.v1.DeployRootCertificateAuthority workflow run
+type DeployRootCertificateAuthorityRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*DeployRootCertificateAuthorityOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// deployRootCertificateAuthorityRun provides an internal implementation of a(n) DeployRootCertificateAuthorityRunRun
+type deployRootCertificateAuthorityRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *deployRootCertificateAuthorityRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *deployRootCertificateAuthorityRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *deployRootCertificateAuthorityRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *deployRootCertificateAuthorityRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *deployRootCertificateAuthorityRun) Get(ctx context.Context) (*DeployRootCertificateAuthorityOutput, error) {
+	var resp DeployRootCertificateAuthorityOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *deployRootCertificateAuthorityRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
 // Reference to generated workflow functions
 var (
 	// fabricRegistrationMutex is a mutex for registering fabric.v1.Fabric workflows
@@ -857,9 +1338,16 @@ var (
 	// and deploys all Fabric components (CAs, peers, orderers) for the organization.
 	// Called via Nexus from the central worker after Phase 1 completes
 	BootstrapShardFunction func(workflow.Context, *BootstrapShardInput) (*BootstrapShardOutput, error)
+	// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
+	// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+	DeployCertificateAuthorityFunction func(workflow.Context, *DeployCertificateAuthorityInput) (*DeployCertificateAuthorityOutput, error)
 	// DeployCertificateStore deploys the shared certificate store (PostgreSQL)
 	// used by all certificate authorities in the organization.
 	DeployCertificateStoreFunction func(workflow.Context, *DeployCertificateStoreInput) (*DeployCertificateStoreOutput, error)
+	// DeployRootCertificateAuthority deploys the root certificate authority (root CA)
+	// for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
+	// and is used to issue intermediate CAs for org and TLS identities.
+	DeployRootCertificateAuthorityFunction func(workflow.Context, *DeployRootCertificateAuthorityInput) (*DeployRootCertificateAuthorityOutput, error)
 )
 
 // FabricWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
@@ -874,9 +1362,16 @@ type (
 		// and deploys all Fabric components (CAs, peers, orderers) for the organization.
 		// Called via Nexus from the central worker after Phase 1 completes
 		BootstrapShard(workflow.Context, *BootstrapShardInput) (*BootstrapShardOutput, error)
+		// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
+		// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+		DeployCertificateAuthority(workflow.Context, *DeployCertificateAuthorityInput) (*DeployCertificateAuthorityOutput, error)
 		// DeployCertificateStore deploys the shared certificate store (PostgreSQL)
 		// used by all certificate authorities in the organization.
 		DeployCertificateStore(workflow.Context, *DeployCertificateStoreInput) (*DeployCertificateStoreOutput, error)
+		// DeployRootCertificateAuthority deploys the root certificate authority (root CA)
+		// for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
+		// and is used to issue intermediate CAs for org and TLS identities.
+		DeployRootCertificateAuthority(workflow.Context, *DeployRootCertificateAuthorityInput) (*DeployRootCertificateAuthorityOutput, error)
 	}
 	// fabricWorkflowFunctions provides an internal FabricWorkflowFunctions implementation
 	fabricWorkflowFunctions struct{}
@@ -906,6 +1401,15 @@ func (f *fabricWorkflowFunctions) BootstrapShard(ctx workflow.Context, req *Boot
 	return BootstrapShardFunction(ctx, req)
 }
 
+// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
+// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+func (f *fabricWorkflowFunctions) DeployCertificateAuthority(ctx workflow.Context, req *DeployCertificateAuthorityInput) (*DeployCertificateAuthorityOutput, error) {
+	if DeployCertificateAuthorityFunction == nil {
+		return nil, errors.New("DeployCertificateAuthority requires workflow registration via RegisterFabricWorkflows or RegisterDeployCertificateAuthorityWorkflow")
+	}
+	return DeployCertificateAuthorityFunction(ctx, req)
+}
+
 // DeployCertificateStore deploys the shared certificate store (PostgreSQL)
 // used by all certificate authorities in the organization.
 func (f *fabricWorkflowFunctions) DeployCertificateStore(ctx workflow.Context, req *DeployCertificateStoreInput) (*DeployCertificateStoreOutput, error) {
@@ -913,6 +1417,16 @@ func (f *fabricWorkflowFunctions) DeployCertificateStore(ctx workflow.Context, r
 		return nil, errors.New("DeployCertificateStore requires workflow registration via RegisterFabricWorkflows or RegisterDeployCertificateStoreWorkflow")
 	}
 	return DeployCertificateStoreFunction(ctx, req)
+}
+
+// DeployRootCertificateAuthority deploys the root certificate authority (root CA)
+// for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
+// and is used to issue intermediate CAs for org and TLS identities.
+func (f *fabricWorkflowFunctions) DeployRootCertificateAuthority(ctx workflow.Context, req *DeployRootCertificateAuthorityInput) (*DeployRootCertificateAuthorityOutput, error) {
+	if DeployRootCertificateAuthorityFunction == nil {
+		return nil, errors.New("DeployRootCertificateAuthority requires workflow registration via RegisterFabricWorkflows or RegisterDeployRootCertificateAuthorityWorkflow")
+	}
+	return DeployRootCertificateAuthorityFunction(ctx, req)
 }
 
 // FabricWorkflows provides methods for initializing new fabric.v1.Fabric workflow values
@@ -927,16 +1441,27 @@ type FabricWorkflows interface {
 	// Called via Nexus from the central worker after Phase 1 completes
 	BootstrapShard(ctx workflow.Context, input *BootstrapShardWorkflowInput) (BootstrapShardWorkflow, error)
 
+	// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
+	// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+	DeployCertificateAuthority(ctx workflow.Context, input *DeployCertificateAuthorityWorkflowInput) (DeployCertificateAuthorityWorkflow, error)
+
 	// DeployCertificateStore deploys the shared certificate store (PostgreSQL)
 	// used by all certificate authorities in the organization.
 	DeployCertificateStore(ctx workflow.Context, input *DeployCertificateStoreWorkflowInput) (DeployCertificateStoreWorkflow, error)
+
+	// DeployRootCertificateAuthority deploys the root certificate authority (root CA)
+	// for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
+	// and is used to issue intermediate CAs for org and TLS identities.
+	DeployRootCertificateAuthority(ctx workflow.Context, input *DeployRootCertificateAuthorityWorkflowInput) (DeployRootCertificateAuthorityWorkflow, error)
 }
 
 // RegisterFabricWorkflows registers fabric.v1.Fabric workflows with the given worker
 func RegisterFabricWorkflows(r worker.WorkflowRegistry, workflows FabricWorkflows) {
 	RegisterBootstrapCertificateAuthoritiesWorkflow(r, workflows.BootstrapCertificateAuthorities)
 	RegisterBootstrapShardWorkflow(r, workflows.BootstrapShard)
+	RegisterDeployCertificateAuthorityWorkflow(r, workflows.DeployCertificateAuthority)
 	RegisterDeployCertificateStoreWorkflow(r, workflows.DeployCertificateStore)
+	RegisterDeployRootCertificateAuthorityWorkflow(r, workflows.DeployRootCertificateAuthority)
 }
 
 // RegisterBootstrapCertificateAuthoritiesWorkflow registers a fabric.v1.Fabric.BootstrapCertificateAuthorities workflow with the given worker
@@ -974,7 +1499,7 @@ type BootstrapCertificateAuthoritiesWorkflowInput struct {
 // BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
 // for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
 //
-// workflow details: (name: "fabric.v1.BootstrapCertificateAuthorities", id: "fabric/${! org }/bootstrap-certificate-authorities")
+// workflow details: (name: "fabric.v1.BootstrapCertificateAuthorities", id: "fabric/bootstrap-certificate-authorities")
 type BootstrapCertificateAuthoritiesWorkflow interface {
 	// Execute defines the entrypoint to a(n) fabric.v1.BootstrapCertificateAuthorities workflow
 	Execute(ctx workflow.Context) (*BootstrapCertificateAuthoritiesOutput, error)
@@ -1250,7 +1775,7 @@ type BootstrapShardWorkflowInput struct {
 // and deploys all Fabric components (CAs, peers, orderers) for the organization.
 // Called via Nexus from the central worker after Phase 1 completes
 //
-// workflow details: (name: "fabric.v1.BootstrapShard", id: "fabric/${! org }/bootstrap-shard")
+// workflow details: (name: "fabric.v1.BootstrapShard", id: "fabric/bootstrap-shard")
 type BootstrapShardWorkflow interface {
 	// Execute defines the entrypoint to a(n) fabric.v1.BootstrapShard workflow
 	Execute(ctx workflow.Context) (*BootstrapShardOutput, error)
@@ -1493,6 +2018,280 @@ func (r *BootstrapShardChildRun) WaitStart(ctx workflow.Context) (*workflow.Exec
 	return &exec, nil
 }
 
+// RegisterDeployCertificateAuthorityWorkflow registers a fabric.v1.Fabric.DeployCertificateAuthority workflow with the given worker
+func RegisterDeployCertificateAuthorityWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployCertificateAuthorityWorkflowInput) (DeployCertificateAuthorityWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	DeployCertificateAuthorityFunction = buildDeployCertificateAuthority(wf)
+	r.RegisterWorkflowWithOptions(DeployCertificateAuthorityFunction, workflow.RegisterOptions{Name: DeployCertificateAuthorityWorkflowName})
+}
+
+// buildDeployCertificateAuthority converts a DeployCertificateAuthority workflow struct into a valid workflow function
+func buildDeployCertificateAuthority(ctor func(workflow.Context, *DeployCertificateAuthorityWorkflowInput) (DeployCertificateAuthorityWorkflow, error)) func(workflow.Context, *DeployCertificateAuthorityInput) (*DeployCertificateAuthorityOutput, error) {
+	return func(ctx workflow.Context, req *DeployCertificateAuthorityInput) (*DeployCertificateAuthorityOutput, error) {
+		input := &DeployCertificateAuthorityWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// DeployCertificateAuthorityWorkflowInput describes the input to a(n) fabric.v1.DeployCertificateAuthority workflow constructor
+type DeployCertificateAuthorityWorkflowInput struct {
+	Req *DeployCertificateAuthorityInput
+}
+
+// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
+// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+//
+// workflow details: (name: "fabric.v1.DeployCertificateAuthority", id: "fabric/deploy-certificate-authority")
+type DeployCertificateAuthorityWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.DeployCertificateAuthority workflow
+	Execute(ctx workflow.Context) (*DeployCertificateAuthorityOutput, error)
+}
+
+// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
+// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+func DeployCertificateAuthorityChild(ctx workflow.Context, req *DeployCertificateAuthorityInput, options ...*DeployCertificateAuthorityChildOptions) (*DeployCertificateAuthorityOutput, error) {
+	childRun, err := DeployCertificateAuthorityChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
+// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+func DeployCertificateAuthorityChildAsync(ctx workflow.Context, req *DeployCertificateAuthorityInput, options ...*DeployCertificateAuthorityChildOptions) (*DeployCertificateAuthorityChildRun, error) {
+	var o *DeployCertificateAuthorityChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployCertificateAuthorityChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &DeployCertificateAuthorityChildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployCertificateAuthorityWorkflowName, req)}, nil
+}
+
+// DeployCertificateAuthorityChildOptions provides configuration for a child fabric.v1.DeployCertificateAuthority workflow operation
+type DeployCertificateAuthorityChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewDeployCertificateAuthorityChildOptions initializes a new DeployCertificateAuthorityChildOptions value
+func NewDeployCertificateAuthorityChildOptions() *DeployCertificateAuthorityChildOptions {
+	return &DeployCertificateAuthorityChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *DeployCertificateAuthorityChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(DeployCertificateAuthorityIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployCertificateAuthorityWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployCertificateAuthorityWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(DeployCertificateAuthorityIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployCertificateAuthorityWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *DeployCertificateAuthorityChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *DeployCertificateAuthorityChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *DeployCertificateAuthorityChildOptions) WithDataConverter(dc converter.DataConverter) *DeployCertificateAuthorityChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *DeployCertificateAuthorityChildOptions) WithExecutionTimeout(d time.Duration) *DeployCertificateAuthorityChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *DeployCertificateAuthorityChildOptions) WithID(id string) *DeployCertificateAuthorityChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployCertificateAuthorityChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployCertificateAuthorityChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployCertificateAuthorityChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *DeployCertificateAuthorityChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeployCertificateAuthorityChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployCertificateAuthorityChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *DeployCertificateAuthorityChildOptions) WithRunTimeout(d time.Duration) *DeployCertificateAuthorityChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *DeployCertificateAuthorityChildOptions) WithSearchAttributes(sa map[string]any) *DeployCertificateAuthorityChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *DeployCertificateAuthorityChildOptions) WithTaskTimeout(d time.Duration) *DeployCertificateAuthorityChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeployCertificateAuthorityChildOptions) WithTaskQueue(tq string) *DeployCertificateAuthorityChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *DeployCertificateAuthorityChildOptions) WithWaitForCancellation(wait bool) *DeployCertificateAuthorityChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *DeployCertificateAuthorityChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployCertificateAuthorityChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// DeployCertificateAuthorityChildRun describes a child DeployCertificateAuthority workflow run
+type DeployCertificateAuthorityChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *DeployCertificateAuthorityChildRun) Get(ctx workflow.Context) (*DeployCertificateAuthorityOutput, error) {
+	var resp DeployCertificateAuthorityOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *DeployCertificateAuthorityChildRun) Select(sel workflow.Selector, fn func(*DeployCertificateAuthorityChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *DeployCertificateAuthorityChildRun) SelectStart(sel workflow.Selector, fn func(*DeployCertificateAuthorityChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *DeployCertificateAuthorityChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
 // RegisterDeployCertificateStoreWorkflow registers a fabric.v1.Fabric.DeployCertificateStore workflow with the given worker
 func RegisterDeployCertificateStoreWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployCertificateStoreWorkflowInput) (DeployCertificateStoreWorkflow, error)) {
 	fabricRegistrationMutex.Lock()
@@ -1528,7 +2327,7 @@ type DeployCertificateStoreWorkflowInput struct {
 // DeployCertificateStore deploys the shared certificate store (PostgreSQL)
 // used by all certificate authorities in the organization.
 //
-// workflow details: (name: "fabric.v1.DeployCertificateStore", id: "fabric/${! org }/deploy-certificate-store")
+// workflow details: (name: "fabric.v1.DeployCertificateStore", id: "fabric/deploy-certificate-store")
 type DeployCertificateStoreWorkflow interface {
 	// Execute defines the entrypoint to a(n) fabric.v1.DeployCertificateStore workflow
 	Execute(ctx workflow.Context) (*DeployCertificateStoreOutput, error)
@@ -1767,6 +2566,283 @@ func (r *DeployCertificateStoreChildRun) WaitStart(ctx workflow.Context) (*workf
 	return &exec, nil
 }
 
+// RegisterDeployRootCertificateAuthorityWorkflow registers a fabric.v1.Fabric.DeployRootCertificateAuthority workflow with the given worker
+func RegisterDeployRootCertificateAuthorityWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployRootCertificateAuthorityWorkflowInput) (DeployRootCertificateAuthorityWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	DeployRootCertificateAuthorityFunction = buildDeployRootCertificateAuthority(wf)
+	r.RegisterWorkflowWithOptions(DeployRootCertificateAuthorityFunction, workflow.RegisterOptions{Name: DeployRootCertificateAuthorityWorkflowName})
+}
+
+// buildDeployRootCertificateAuthority converts a DeployRootCertificateAuthority workflow struct into a valid workflow function
+func buildDeployRootCertificateAuthority(ctor func(workflow.Context, *DeployRootCertificateAuthorityWorkflowInput) (DeployRootCertificateAuthorityWorkflow, error)) func(workflow.Context, *DeployRootCertificateAuthorityInput) (*DeployRootCertificateAuthorityOutput, error) {
+	return func(ctx workflow.Context, req *DeployRootCertificateAuthorityInput) (*DeployRootCertificateAuthorityOutput, error) {
+		input := &DeployRootCertificateAuthorityWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// DeployRootCertificateAuthorityWorkflowInput describes the input to a(n) fabric.v1.DeployRootCertificateAuthority workflow constructor
+type DeployRootCertificateAuthorityWorkflowInput struct {
+	Req *DeployRootCertificateAuthorityInput
+}
+
+// DeployRootCertificateAuthority deploys the root certificate authority (root CA)
+// for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
+// and is used to issue intermediate CAs for org and TLS identities.
+//
+// workflow details: (name: "fabric.v1.DeployRootCertificateAuthority", id: "fabric/deploy-root-certificate-authority")
+type DeployRootCertificateAuthorityWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.DeployRootCertificateAuthority workflow
+	Execute(ctx workflow.Context) (*DeployRootCertificateAuthorityOutput, error)
+}
+
+// DeployRootCertificateAuthority deploys the root certificate authority (root CA)
+// for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
+// and is used to issue intermediate CAs for org and TLS identities.
+func DeployRootCertificateAuthorityChild(ctx workflow.Context, req *DeployRootCertificateAuthorityInput, options ...*DeployRootCertificateAuthorityChildOptions) (*DeployRootCertificateAuthorityOutput, error) {
+	childRun, err := DeployRootCertificateAuthorityChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// DeployRootCertificateAuthority deploys the root certificate authority (root CA)
+// for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
+// and is used to issue intermediate CAs for org and TLS identities.
+func DeployRootCertificateAuthorityChildAsync(ctx workflow.Context, req *DeployRootCertificateAuthorityInput, options ...*DeployRootCertificateAuthorityChildOptions) (*DeployRootCertificateAuthorityChildRun, error) {
+	var o *DeployRootCertificateAuthorityChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployRootCertificateAuthorityChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &DeployRootCertificateAuthorityChildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployRootCertificateAuthorityWorkflowName, req)}, nil
+}
+
+// DeployRootCertificateAuthorityChildOptions provides configuration for a child fabric.v1.DeployRootCertificateAuthority workflow operation
+type DeployRootCertificateAuthorityChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewDeployRootCertificateAuthorityChildOptions initializes a new DeployRootCertificateAuthorityChildOptions value
+func NewDeployRootCertificateAuthorityChildOptions() *DeployRootCertificateAuthorityChildOptions {
+	return &DeployRootCertificateAuthorityChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *DeployRootCertificateAuthorityChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(DeployRootCertificateAuthorityIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployRootCertificateAuthorityWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployRootCertificateAuthorityWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(DeployRootCertificateAuthorityIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployRootCertificateAuthorityWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *DeployRootCertificateAuthorityChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *DeployRootCertificateAuthorityChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *DeployRootCertificateAuthorityChildOptions) WithDataConverter(dc converter.DataConverter) *DeployRootCertificateAuthorityChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *DeployRootCertificateAuthorityChildOptions) WithExecutionTimeout(d time.Duration) *DeployRootCertificateAuthorityChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *DeployRootCertificateAuthorityChildOptions) WithID(id string) *DeployRootCertificateAuthorityChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployRootCertificateAuthorityChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployRootCertificateAuthorityChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployRootCertificateAuthorityChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *DeployRootCertificateAuthorityChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeployRootCertificateAuthorityChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployRootCertificateAuthorityChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *DeployRootCertificateAuthorityChildOptions) WithRunTimeout(d time.Duration) *DeployRootCertificateAuthorityChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *DeployRootCertificateAuthorityChildOptions) WithSearchAttributes(sa map[string]any) *DeployRootCertificateAuthorityChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *DeployRootCertificateAuthorityChildOptions) WithTaskTimeout(d time.Duration) *DeployRootCertificateAuthorityChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeployRootCertificateAuthorityChildOptions) WithTaskQueue(tq string) *DeployRootCertificateAuthorityChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *DeployRootCertificateAuthorityChildOptions) WithWaitForCancellation(wait bool) *DeployRootCertificateAuthorityChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *DeployRootCertificateAuthorityChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployRootCertificateAuthorityChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// DeployRootCertificateAuthorityChildRun describes a child DeployRootCertificateAuthority workflow run
+type DeployRootCertificateAuthorityChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *DeployRootCertificateAuthorityChildRun) Get(ctx workflow.Context) (*DeployRootCertificateAuthorityOutput, error) {
+	var resp DeployRootCertificateAuthorityOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *DeployRootCertificateAuthorityChildRun) Select(sel workflow.Selector, fn func(*DeployRootCertificateAuthorityChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *DeployRootCertificateAuthorityChildRun) SelectStart(sel workflow.Selector, fn func(*DeployRootCertificateAuthorityChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *DeployRootCertificateAuthorityChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
 // FabricActivities describes available worker activities
 type FabricActivities interface{}
 
@@ -1850,6 +2926,35 @@ func (c *TestFabricClient) GetBootstrapShard(ctx context.Context, workflowID str
 	return &testBootstrapShardRun{env: c.env, workflows: c.workflows}
 }
 
+// DeployCertificateAuthority executes a(n) fabric.v1.DeployCertificateAuthority workflow in the test environment
+func (c *TestFabricClient) DeployCertificateAuthority(ctx context.Context, req *DeployCertificateAuthorityInput, opts ...*DeployCertificateAuthorityOptions) (*DeployCertificateAuthorityOutput, error) {
+	run, err := c.DeployCertificateAuthorityAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// DeployCertificateAuthorityAsync executes a(n) fabric.v1.DeployCertificateAuthority workflow in the test environment
+func (c *TestFabricClient) DeployCertificateAuthorityAsync(ctx context.Context, req *DeployCertificateAuthorityInput, options ...*DeployCertificateAuthorityOptions) (DeployCertificateAuthorityRun, error) {
+	var o *DeployCertificateAuthorityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployCertificateAuthorityOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testDeployCertificateAuthorityRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetDeployCertificateAuthority is a noop
+func (c *TestFabricClient) GetDeployCertificateAuthority(ctx context.Context, workflowID string, runID string) DeployCertificateAuthorityRun {
+	return &testDeployCertificateAuthorityRun{env: c.env, workflows: c.workflows}
+}
+
 // DeployCertificateStore executes a(n) fabric.v1.DeployCertificateStore workflow in the test environment
 func (c *TestFabricClient) DeployCertificateStore(ctx context.Context, req *DeployCertificateStoreInput, opts ...*DeployCertificateStoreOptions) (*DeployCertificateStoreOutput, error) {
 	run, err := c.DeployCertificateStoreAsync(ctx, req, opts...)
@@ -1877,6 +2982,35 @@ func (c *TestFabricClient) DeployCertificateStoreAsync(ctx context.Context, req 
 // GetDeployCertificateStore is a noop
 func (c *TestFabricClient) GetDeployCertificateStore(ctx context.Context, workflowID string, runID string) DeployCertificateStoreRun {
 	return &testDeployCertificateStoreRun{env: c.env, workflows: c.workflows}
+}
+
+// DeployRootCertificateAuthority executes a(n) fabric.v1.DeployRootCertificateAuthority workflow in the test environment
+func (c *TestFabricClient) DeployRootCertificateAuthority(ctx context.Context, req *DeployRootCertificateAuthorityInput, opts ...*DeployRootCertificateAuthorityOptions) (*DeployRootCertificateAuthorityOutput, error) {
+	run, err := c.DeployRootCertificateAuthorityAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// DeployRootCertificateAuthorityAsync executes a(n) fabric.v1.DeployRootCertificateAuthority workflow in the test environment
+func (c *TestFabricClient) DeployRootCertificateAuthorityAsync(ctx context.Context, req *DeployRootCertificateAuthorityInput, options ...*DeployRootCertificateAuthorityOptions) (DeployRootCertificateAuthorityRun, error) {
+	var o *DeployRootCertificateAuthorityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployRootCertificateAuthorityOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testDeployRootCertificateAuthorityRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetDeployRootCertificateAuthority is a noop
+func (c *TestFabricClient) GetDeployRootCertificateAuthority(ctx context.Context, workflowID string, runID string) DeployRootCertificateAuthorityRun {
+	return &testDeployRootCertificateAuthorityRun{env: c.env, workflows: c.workflows}
 }
 
 // CancelWorkflow requests cancellation of an existing workflow execution
@@ -2006,6 +3140,64 @@ func (r *testBootstrapShardRun) Terminate(ctx context.Context, reason string, de
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
+var _ DeployCertificateAuthorityRun = &testDeployCertificateAuthorityRun{}
+
+// testDeployCertificateAuthorityRun provides convenience methods for interacting with a(n) fabric.v1.DeployCertificateAuthority workflow in the test environment
+type testDeployCertificateAuthorityRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *DeployCertificateAuthorityInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testDeployCertificateAuthorityRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.DeployCertificateAuthority workflow result
+func (r *testDeployCertificateAuthorityRun) Get(context.Context) (*DeployCertificateAuthorityOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(DeployCertificateAuthorityWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result DeployCertificateAuthorityOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.DeployCertificateAuthority workflow run's workflow ID
+func (r *testDeployCertificateAuthorityRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testDeployCertificateAuthorityRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testDeployCertificateAuthorityRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testDeployCertificateAuthorityRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
 var _ DeployCertificateStoreRun = &testDeployCertificateStoreRun{}
 
 // testDeployCertificateStoreRun provides convenience methods for interacting with a(n) fabric.v1.DeployCertificateStore workflow in the test environment
@@ -2061,5 +3253,63 @@ func (r *testDeployCertificateStoreRun) RunID() string {
 
 // Terminate terminates a workflow in execution, returning an error if applicable
 func (r *testDeployCertificateStoreRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ DeployRootCertificateAuthorityRun = &testDeployRootCertificateAuthorityRun{}
+
+// testDeployRootCertificateAuthorityRun provides convenience methods for interacting with a(n) fabric.v1.DeployRootCertificateAuthority workflow in the test environment
+type testDeployRootCertificateAuthorityRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *DeployRootCertificateAuthorityInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testDeployRootCertificateAuthorityRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.DeployRootCertificateAuthority workflow result
+func (r *testDeployRootCertificateAuthorityRun) Get(context.Context) (*DeployRootCertificateAuthorityOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(DeployRootCertificateAuthorityWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result DeployRootCertificateAuthorityOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.DeployRootCertificateAuthority workflow run's workflow ID
+func (r *testDeployRootCertificateAuthorityRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testDeployRootCertificateAuthorityRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testDeployRootCertificateAuthorityRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testDeployRootCertificateAuthorityRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }

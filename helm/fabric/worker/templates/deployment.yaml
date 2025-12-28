@@ -30,6 +30,9 @@ spec:
           containerPort: {{ .Values.healthCheck.port }}
           protocol: TCP
         env:
+        # Organization configuration
+        - name: ORG_ID
+          value: {{ .Values.org | quote }}
         # Temporal configuration
         - name: TEMPORAL_ADDRESS
           value: {{ .Values.temporal.address | quote }}

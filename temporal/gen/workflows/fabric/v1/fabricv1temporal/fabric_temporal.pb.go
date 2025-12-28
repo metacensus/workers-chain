@@ -51,6 +51,21 @@ func (h *FabricNexusHandler) BootstrapShard(name string) nexus.Operation[*v1.Boo
 	})
 }
 
+// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
+// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+func (h *FabricNexusHandler) DeployCertificateAuthority(name string) nexus.Operation[*v1.DeployCertificateAuthorityInput, *v1.DeployCertificateAuthorityOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployCertificateAuthorityInput, *v1.DeployCertificateAuthorityOutput]{
+		Handler: func(ctx context.Context, input *v1.DeployCertificateAuthorityInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployCertificateAuthorityOutput], error) {
+			o, err := v1.NewDeployCertificateAuthorityOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployCertificateAuthorityOutput](ctx, opts, o, v1.DeployCertificateAuthorityWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
 // DeployCertificateStore deploys the shared certificate store (PostgreSQL)
 // used by all certificate authorities in the organization.
 func (h *FabricNexusHandler) DeployCertificateStore(name string) nexus.Operation[*v1.DeployCertificateStoreInput, *v1.DeployCertificateStoreOutput] {
@@ -61,6 +76,22 @@ func (h *FabricNexusHandler) DeployCertificateStore(name string) nexus.Operation
 				return nil, err
 			}
 			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployCertificateStoreOutput](ctx, opts, o, v1.DeployCertificateStoreWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// DeployRootCertificateAuthority deploys the root certificate authority (root CA)
+// for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
+// and is used to issue intermediate CAs for org and TLS identities.
+func (h *FabricNexusHandler) DeployRootCertificateAuthority(name string) nexus.Operation[*v1.DeployRootCertificateAuthorityInput, *v1.DeployRootCertificateAuthorityOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployRootCertificateAuthorityInput, *v1.DeployRootCertificateAuthorityOutput]{
+		Handler: func(ctx context.Context, input *v1.DeployRootCertificateAuthorityInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployRootCertificateAuthorityOutput], error) {
+			o, err := v1.NewDeployRootCertificateAuthorityOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployRootCertificateAuthorityOutput](ctx, opts, o, v1.DeployRootCertificateAuthorityWorkflowName, input)
 		},
 		Name: name,
 	})

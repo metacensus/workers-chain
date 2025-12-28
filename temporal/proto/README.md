@@ -40,13 +40,19 @@
         - [fabric.v1.BootstrapShard](#fabric-v1-bootstrapshard-workflow)
         - [fabric.v1.BootstrapCertificateAuthorities](#fabric-v1-bootstrapcertificateauthorities-workflow)
         - [fabric.v1.DeployCertificateStore](#fabric-v1-deploycertificatestore-workflow)
+        - [fabric.v1.DeployRootCertificateAuthority](#fabric-v1-deployrootcertificateauthority-workflow)
+        - [fabric.v1.DeployCertificateAuthority](#fabric-v1-deploycertificateauthority-workflow)
   - Messages
     - [fabric.v1.BootstrapCertificateAuthoritiesInput](#fabric-v1-bootstrapcertificateauthoritiesinput)
     - [fabric.v1.BootstrapCertificateAuthoritiesOutput](#fabric-v1-bootstrapcertificateauthoritiesoutput)
     - [fabric.v1.BootstrapShardInput](#fabric-v1-bootstrapshardinput)
     - [fabric.v1.BootstrapShardOutput](#fabric-v1-bootstrapshardoutput)
+    - [fabric.v1.DeployCertificateAuthorityInput](#fabric-v1-deploycertificateauthorityinput)
+    - [fabric.v1.DeployCertificateAuthorityOutput](#fabric-v1-deploycertificateauthorityoutput)
     - [fabric.v1.DeployCertificateStoreInput](#fabric-v1-deploycertificatestoreinput)
     - [fabric.v1.DeployCertificateStoreOutput](#fabric-v1-deploycertificatestoreoutput)
+    - [fabric.v1.DeployRootCertificateAuthorityInput](#fabric-v1-deployrootcertificateauthorityinput)
+    - [fabric.v1.DeployRootCertificateAuthorityOutput](#fabric-v1-deployrootcertificateauthorityoutput)
 - [helm.v1](#helm-v1)
   - Services
     - [helm.v1.Helm](#helm-v1-helm)
@@ -847,7 +853,7 @@ This workflow renders a Helm chart with provided values and applies it to the cl
 <td>string</td>
 <td><pre>
 component specifies which type of deployment to create
-Currently supported: "worker"
+Currently supported: "worker", "certificate-store"
 Future components: "peer", "orderer", "ca", "couchdb"<br>
 
 json_name: component
@@ -907,7 +913,7 @@ go_name: DeploymentName</pre></td>
 <td>string</td>
 <td><pre>
 component specifies which type of deployment to create
-Currently supported: "worker"
+Currently supported: "worker", "certificate-store"
 Future components: "peer", "orderer", "ca", "couchdb"<br>
 
 json_name: component
@@ -1048,22 +1054,7 @@ Called via Nexus from the central worker after Phase 1 completes
 
 **Input:** [fabric.v1.BootstrapShardInput](#fabric-v1-bootstrapshardinput)
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the organization identifier (e.g., "org1", "acme-corp")<br>
 
-json_name: org
-go_name: Org</pre></td>
-</tr>
-</table>
 
 **Output:** [fabric.v1.BootstrapShardOutput](#fabric-v1-bootstrapshardoutput)
 
@@ -1073,7 +1064,7 @@ go_name: Org</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/${! org }/bootstrap-shard</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/bootstrap-shard</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -1088,22 +1079,7 @@ for a Fabric organization. This includes the certificate store, root CA, and int
 
 **Input:** [fabric.v1.BootstrapCertificateAuthoritiesInput](#fabric-v1-bootstrapcertificateauthoritiesinput)
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the organization identifier (e.g., "org1", "acme-corp")<br>
 
-json_name: org
-go_name: Org</pre></td>
-</tr>
-</table>
 
 **Output:** [fabric.v1.BootstrapCertificateAuthoritiesOutput](#fabric-v1-bootstrapcertificateauthoritiesoutput)
 
@@ -1113,7 +1089,7 @@ go_name: Org</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/${! org }/bootstrap-certificate-authorities</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/bootstrap-certificate-authorities</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -1128,22 +1104,7 @@ used by all certificate authorities in the organization.
 
 **Input:** [fabric.v1.DeployCertificateStoreInput](#fabric-v1-deploycertificatestoreinput)
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the organization identifier (e.g., "org1", "acme-corp")<br>
 
-json_name: org
-go_name: Org</pre></td>
-</tr>
-</table>
 
 **Output:** [fabric.v1.DeployCertificateStoreOutput](#fabric-v1-deploycertificatestoreoutput)
 
@@ -1153,7 +1114,58 @@ go_name: Org</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/${! org }/deploy-certificate-store</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-certificate-store</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-deployrootcertificateauthority-workflow"></a>
+### fabric.v1.DeployRootCertificateAuthority
+
+<pre>
+DeployRootCertificateAuthority deploys the root certificate authority (root CA)
+for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
+and is used to issue intermediate CAs for org and TLS identities.
+</pre>
+
+**Input:** [fabric.v1.DeployRootCertificateAuthorityInput](#fabric-v1-deployrootcertificateauthorityinput)
+
+
+
+**Output:** [fabric.v1.DeployRootCertificateAuthorityOutput](#fabric-v1-deployrootcertificateauthorityoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-root-certificate-authority</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-deploycertificateauthority-workflow"></a>
+### fabric.v1.DeployCertificateAuthority
+
+<pre>
+DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
+for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+</pre>
+
+**Input:** [fabric.v1.DeployCertificateAuthorityInput](#fabric-v1-deploycertificateauthorityinput)
+
+
+
+**Output:** [fabric.v1.DeployCertificateAuthorityOutput](#fabric-v1-deploycertificateauthorityoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-certificate-authority</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>     
 
@@ -1165,24 +1177,8 @@ go_name: Org</pre></td>
 
 <pre>
 BootstrapCertificateAuthoritiesInput specifies the parameters for bootstrapping certificate authorities
+Empty for now - org is implicit from the worker's namespace
 </pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the organization identifier (e.g., "org1", "acme-corp")<br>
-
-json_name: org
-go_name: Org</pre></td>
-</tr>
-</table>
 
 
 
@@ -1204,23 +1200,6 @@ BootstrapShardInput specifies the parameters for bootstrapping a Fabric shard
 Empty for now - will be populated as implementation progresses
 </pre>
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the organization identifier (e.g., "org1", "acme-corp")<br>
-
-json_name: org
-go_name: Org</pre></td>
-</tr>
-</table>
-
 
 
 <a name="fabric-v1-bootstrapshardoutput"></a>
@@ -1233,29 +1212,32 @@ Empty for now - will be populated as implementation progresses
 
 
 
+<a name="fabric-v1-deploycertificateauthorityinput"></a>
+### fabric.v1.DeployCertificateAuthorityInput
+
+<pre>
+DeployCertificateAuthorityInput specifies the parameters for deploying an intermediate CA
+</pre>
+
+
+
+<a name="fabric-v1-deploycertificateauthorityoutput"></a>
+### fabric.v1.DeployCertificateAuthorityOutput
+
+<pre>
+DeployCertificateAuthorityOutput indicates the result of intermediate CA deployment
+Empty for now - will be populated as implementation progresses
+</pre>
+
+
+
 <a name="fabric-v1-deploycertificatestoreinput"></a>
 ### fabric.v1.DeployCertificateStoreInput
 
 <pre>
 DeployCertificateStoreInput specifies the parameters for deploying the certificate store
+Empty for now - org is implicit from the worker's namespace
 </pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the organization identifier (e.g., "org1", "acme-corp")<br>
-
-json_name: org
-go_name: Org</pre></td>
-</tr>
-</table>
 
 
 
@@ -1264,6 +1246,25 @@ go_name: Org</pre></td>
 
 <pre>
 DeployCertificateStoreOutput indicates the result of certificate store deployment
+Empty for now - will be populated as implementation progresses
+</pre>
+
+
+
+<a name="fabric-v1-deployrootcertificateauthorityinput"></a>
+### fabric.v1.DeployRootCertificateAuthorityInput
+
+<pre>
+DeployRootCertificateAuthorityInput specifies the parameters for deploying the root CA
+</pre>
+
+
+
+<a name="fabric-v1-deployrootcertificateauthorityoutput"></a>
+### fabric.v1.DeployRootCertificateAuthorityOutput
+
+<pre>
+DeployRootCertificateAuthorityOutput indicates the result of root CA deployment
 Empty for now - will be populated as implementation progresses
 </pre>
 

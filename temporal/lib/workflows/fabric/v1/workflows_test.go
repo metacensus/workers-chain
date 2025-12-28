@@ -7,6 +7,7 @@ import (
 
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
+	workerenv "github.com/metacensus/infra/temporal/lib/env"
 	fabric "github.com/metacensus/infra/temporal/lib/workflows/fabric/v1"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/testsuite"
@@ -56,11 +57,6 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 		validateDeploymentInput bool  // if true, verify the deployment input
 	}{
 		{
-			name:        "failure - org is required",
-			org:         "",
-			expectedErr: fabric.ErrOrgRequired,
-		},
-		{
 			name:                "failure - create deployment fails",
 			org:                 testOrg,
 			createDeploymentErr: errors.New("kubernetes error"),
@@ -83,6 +79,9 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 			// Register child workflow stubs
 			registerChildWorkflowStubs(env)
 
+			// Create OrgConfig for testing
+			orgConfig := workerenv.OrgConfig{OrgID: tt.org}
+
 			// Mock CreateDeployment child workflow
 			if tt.validateDeploymentInput {
 				// Validate that correct component is passed
@@ -98,13 +97,13 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployCertificateStoreInput) (*pb.DeployCertificateStoreOutput, error) {
-				workflows := fabric.NewWorkflows()
+				workflows := fabric.NewWorkflows(orgConfig)
 				wf, err := workflows.DeployCertificateStore(ctx, &pb.DeployCertificateStoreWorkflowInput{Req: input})
 				if err != nil {
 					return nil, err
 				}
 				return wf.Execute(ctx)
-			}, &pb.DeployCertificateStoreInput{Org: tt.org})
+			}, &pb.DeployCertificateStoreInput{})
 
 			var result *pb.DeployCertificateStoreOutput
 			err := env.GetWorkflowResult(&result)

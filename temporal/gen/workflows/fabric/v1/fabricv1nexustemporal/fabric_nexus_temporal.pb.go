@@ -90,3 +90,47 @@ func (c *FabricNexusClient) DeployCertificateStore(ctx workflow.Context, input *
 	err := fut.Get(ctx, &output)
 	return &output, err
 }
+
+type DeployRootCertificateAuthorityFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *DeployRootCertificateAuthorityFuture) GetTyped(ctx workflow.Context) (*v1.DeployRootCertificateAuthorityOutput, error) {
+	var output v1.DeployRootCertificateAuthorityOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) DeployRootCertificateAuthorityAsync(ctx workflow.Context, input *v1.DeployRootCertificateAuthorityInput, options workflow.NexusOperationOptions) DeployRootCertificateAuthorityFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployRootCertificateAuthorityOperationName, input, options)
+	return DeployRootCertificateAuthorityFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) DeployRootCertificateAuthority(ctx workflow.Context, input *v1.DeployRootCertificateAuthorityInput, options workflow.NexusOperationOptions) (*v1.DeployRootCertificateAuthorityOutput, error) {
+	var output v1.DeployRootCertificateAuthorityOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployRootCertificateAuthorityOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type DeployCertificateAuthorityFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *DeployCertificateAuthorityFuture) GetTyped(ctx workflow.Context) (*v1.DeployCertificateAuthorityOutput, error) {
+	var output v1.DeployCertificateAuthorityOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) DeployCertificateAuthorityAsync(ctx workflow.Context, input *v1.DeployCertificateAuthorityInput, options workflow.NexusOperationOptions) DeployCertificateAuthorityFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployCertificateAuthorityOperationName, input, options)
+	return DeployCertificateAuthorityFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) DeployCertificateAuthority(ctx workflow.Context, input *v1.DeployCertificateAuthorityInput, options workflow.NexusOperationOptions) (*v1.DeployCertificateAuthorityOutput, error) {
+	var output v1.DeployCertificateAuthorityOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployCertificateAuthorityOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}

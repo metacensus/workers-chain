@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"github.com/metacensus/infra/temporal/lib/env"
 	cell "github.com/metacensus/infra/temporal/lib/workflows/cell/v1"
 	clusterfabric "github.com/metacensus/infra/temporal/lib/workflows/cluster/fabric/v1"
 	fabric "github.com/metacensus/infra/temporal/lib/workflows/fabric/v1"
@@ -45,7 +46,7 @@ var FabricModule = fx.Options(
 	fx.Provide(NewTemporalClient),
 	fx.Provide(NewVaultConfig),
 	fx.Provide(NewKubeConfig),
-	fx.Provide(NewOrgConfig),
+	fx.Provide(env.NewOrgConfig),
 
 	helm.Module,
 	kube.Module,

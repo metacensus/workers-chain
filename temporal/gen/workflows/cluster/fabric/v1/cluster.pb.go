@@ -199,7 +199,7 @@ type CreateDeploymentInput struct {
 	// Used to derive namespace names, service account names, etc.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// component specifies which type of deployment to create
-	// Currently supported: "worker"
+	// Currently supported: "worker", "certificate-store"
 	// Future components: "peer", "orderer", "ca", "couchdb"
 	Component     string `protobuf:"bytes,2,opt,name=component,proto3" json:"component,omitempty"`
 	unknownFields protoimpl.UnknownFields
