@@ -76,7 +76,7 @@ message CreateDeploymentInput {
   string org = 1;
 
   // component specifies which type of deployment to create
-  // Currently supported: "worker"
+  // Currently supported: "worker", "certificate-store"
   // Future components: "peer", "orderer", "ca", "couchdb"
   string component = 2;
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	"go.temporal.io/sdk/workflow"
 )
@@ -91,11 +92,22 @@ type deployCertificateStoreWorkflow struct {
 
 // Execute deploys the shared certificate store (PostgreSQL) for the organization.
 func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.DeployCertificateStoreOutput, error) {
+	logger := workflow.GetLogger(ctx)
 	if w.input.Req.Org == "" {
 		return nil, ErrOrgRequired
 	}
 
-	// TODO: Deploy PostgreSQL for certificate store
+	logger.Info("Deploying certificate store", "org", w.input.Req.Org)
 
+	// Deploy PostgreSQL StatefulSet for certificate storage
+	_, err := clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
+		Org:       w.input.Req.Org,
+		Component: "certificate-store",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create certificate store deployment: %w", err)
+	}
+
+	logger.Info("Certificate store deployed successfully", "org", w.input.Req.Org)
 	return &pb.DeployCertificateStoreOutput{}, nil
 }

@@ -13,13 +13,15 @@ import (
 )
 
 const (
-	chartNamespace      = "fabric/namespace"
-	chartServiceAccount = "fabric/service-account"
-	chartWorker         = "fabric/worker"
+	chartNamespace        = "fabric/namespace"
+	chartServiceAccount   = "fabric/service-account"
+	chartWorker           = "fabric/worker"
+	chartCertificateStore = "fabric/certificate-store"
 
-	componentNamespace      = "namespace"
-	componentServiceAccount = "service-account"
-	componentWorker         = "worker"
+	componentNamespace        = "namespace"
+	componentServiceAccount   = "service-account"
+	componentWorker           = "worker"
+	componentCertificateStore = "certificate-store"
 )
 
 // Workflows implements the ClusterWorkflows interface from generated code
@@ -228,6 +230,13 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		values = workerValues
 		namespaceName = "fabric-" + w.input.Org
 		deploymentName = "fabric-worker-" + w.input.Org
+	case componentCertificateStore:
+		chartName = chartCertificateStore
+		componentName = componentCertificateStore
+		certStoreValues := helm.NewCertificateStoreValues(w.input.Org)
+		values = certStoreValues
+		namespaceName = "fabric-" + w.input.Org
+		deploymentName = "fabric-postgres-" + w.input.Org
 	default:
 		return nil, fmt.Errorf("unsupported component type: %s", w.input.Component)
 	}

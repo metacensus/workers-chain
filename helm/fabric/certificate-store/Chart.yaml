@@ -1,0 +1,11 @@
+apiVersion: v2
+name: fabric-certificate-store
+description: PostgreSQL certificate store for Hyperledger Fabric Certificate Authorities
+type: application
+version: 1.0.0
+appVersion: "16"
+maintainers:
+  - name: MetaCensus Infrastructure Team
+
+
+

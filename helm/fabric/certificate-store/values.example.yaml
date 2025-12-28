@@ -1,0 +1,63 @@
+# Certificate Store Configuration Example
+# This chart deploys PostgreSQL for certificate storage
+
+# Organization identifier (e.g., "org1", "acme-corp")
+org: "org1"
+
+# Container image configuration
+image:
+  repository: postgres
+  tag: "16-alpine"
+  pullPolicy: IfNotPresent
+
+# Number of replicas (start with 1, can scale later)
+replicas: 1
+
+# Database configuration
+database:
+  name: fabricca
+  user: fabricca
+  password: "changeme"  # Should be generated and stored in Vault
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 5432
+
+# Persistence configuration
+persistence:
+  enabled: true
+  storageClass: ""  # Use default storage class
+  accessModes:
+  - ReadWriteOnce
+  size: 10Gi
+  mountPath: /var/lib/postgresql/data
+
+# Resource requests and limits
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+
+# Liveness probe configuration
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+
+# Readiness probe configuration
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+
+# Common labels
+commonLabels:
+  managedBy: temporal
+  partOf: fabric
+
+
+
