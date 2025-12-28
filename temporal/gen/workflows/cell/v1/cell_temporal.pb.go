@@ -31,11 +31,27 @@ var CellTaskQueue = "infra"
 
 // cell.v1.Cell workflow names
 const (
+	BootstrapInfraWorkflowName  = "cell.v1.BootstrapInfra"
 	InitFabricShardWorkflowName = "cell.v1.InitFabricShard"
 )
 
 // CellClient describes a client for a(n) cell.v1.Cell worker
 type CellClient interface {
+	// BootstrapInfra orchestrates the initialization of the infrastructure platform
+	// This root workflow executes in the central "infra" namespace and coordinates:
+	// 1. Registration of Nexus endpoints for cross-namespace service calls
+	// 2. Establishment of core platform services that enable other workflows
+	//
+	// This workflow runs once at platform bootstrap time and sets up the Nexus
+	// communication layer needed for workflows in different namespaces to call services.
+	BootstrapInfra(ctx context.Context, req *BootstrapInfraInput, opts ...*BootstrapInfraOptions) (*BootstrapInfraOutput, error)
+
+	// BootstrapInfraAsync starts a(n) cell.v1.BootstrapInfra workflow and returns a handle to the workflow run
+	BootstrapInfraAsync(ctx context.Context, req *BootstrapInfraInput, opts ...*BootstrapInfraOptions) (BootstrapInfraRun, error)
+
+	// GetBootstrapInfra retrieves a handle to an existing cell.v1.BootstrapInfra workflow execution
+	GetBootstrapInfra(ctx context.Context, workflowID string, runID string) BootstrapInfraRun
+
 	// InitFabricShard orchestrates the complete initialization of a Fabric shard
 	// This root workflow executes in the central "infra" namespace and coordinates:
 	// 1. Creation of a Temporal namespace for the shard (temporal.v1.CreateNamespace)
@@ -129,6 +145,60 @@ func (opts *cellClientOptions) getLogger() *slog.Logger {
 	return slog.Default()
 }
 
+// BootstrapInfra orchestrates the initialization of the infrastructure platform
+// This root workflow executes in the central "infra" namespace and coordinates:
+// 1. Registration of Nexus endpoints for cross-namespace service calls
+// 2. Establishment of core platform services that enable other workflows
+//
+// This workflow runs once at platform bootstrap time and sets up the Nexus
+// communication layer needed for workflows in different namespaces to call services.
+func (c *cellClient) BootstrapInfra(ctx context.Context, req *BootstrapInfraInput, options ...*BootstrapInfraOptions) (*BootstrapInfraOutput, error) {
+	run, err := c.BootstrapInfraAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// BootstrapInfra orchestrates the initialization of the infrastructure platform
+// This root workflow executes in the central "infra" namespace and coordinates:
+// 1. Registration of Nexus endpoints for cross-namespace service calls
+// 2. Establishment of core platform services that enable other workflows
+//
+// This workflow runs once at platform bootstrap time and sets up the Nexus
+// communication layer needed for workflows in different namespaces to call services.
+func (c *cellClient) BootstrapInfraAsync(ctx context.Context, req *BootstrapInfraInput, options ...*BootstrapInfraOptions) (BootstrapInfraRun, error) {
+	var o *BootstrapInfraOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewBootstrapInfraOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, BootstrapInfraWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &bootstrapInfraRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetBootstrapInfra fetches an existing cell.v1.BootstrapInfra execution
+func (c *cellClient) GetBootstrapInfra(ctx context.Context, workflowID string, runID string) BootstrapInfraRun {
+	return &bootstrapInfraRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
 // InitFabricShard orchestrates the complete initialization of a Fabric shard
 // This root workflow executes in the central "infra" namespace and coordinates:
 // 1. Creation of a Temporal namespace for the shard (temporal.v1.CreateNamespace)
@@ -203,6 +273,183 @@ func (c *cellClient) CancelWorkflow(ctx context.Context, workflowID string, runI
 // TerminateWorkflow terminates an existing workflow execution
 func (c *cellClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
 	return c.client.TerminateWorkflow(ctx, workflowID, runID, reason, details...)
+}
+
+// BootstrapInfraOptions provides configuration for a cell.v1.BootstrapInfra workflow operation
+type BootstrapInfraOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewBootstrapInfraOptions initializes a new BootstrapInfraOptions value
+func NewBootstrapInfraOptions() *BootstrapInfraOptions {
+	return &BootstrapInfraOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *BootstrapInfraOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = CellTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *BootstrapInfraOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *BootstrapInfraOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *BootstrapInfraOptions) WithExecutionTimeout(d time.Duration) *BootstrapInfraOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *BootstrapInfraOptions) WithID(id string) *BootstrapInfraOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *BootstrapInfraOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *BootstrapInfraOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *BootstrapInfraOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *BootstrapInfraOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *BootstrapInfraOptions) WithRunTimeout(d time.Duration) *BootstrapInfraOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *BootstrapInfraOptions) WithSearchAttributes(sa map[string]any) *BootstrapInfraOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *BootstrapInfraOptions) WithTaskTimeout(d time.Duration) *BootstrapInfraOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *BootstrapInfraOptions) WithTaskQueue(tq string) *BootstrapInfraOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *BootstrapInfraOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *BootstrapInfraOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// BootstrapInfraRun describes a(n) cell.v1.BootstrapInfra workflow run
+type BootstrapInfraRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*BootstrapInfraOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// bootstrapInfraRun provides an internal implementation of a(n) BootstrapInfraRunRun
+type bootstrapInfraRun struct {
+	client *cellClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *bootstrapInfraRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *bootstrapInfraRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *bootstrapInfraRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *bootstrapInfraRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *bootstrapInfraRun) Get(ctx context.Context) (*BootstrapInfraOutput, error) {
+	var resp BootstrapInfraOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *bootstrapInfraRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
 // InitFabricShardOptions provides configuration for a cell.v1.InitFabricShard workflow operation
@@ -386,6 +633,14 @@ func (r *initFabricShardRun) Terminate(ctx context.Context, reason string, detai
 var (
 	// cellRegistrationMutex is a mutex for registering cell.v1.Cell workflows
 	cellRegistrationMutex sync.Mutex
+	// BootstrapInfra orchestrates the initialization of the infrastructure platform
+	// This root workflow executes in the central "infra" namespace and coordinates:
+	// 1. Registration of Nexus endpoints for cross-namespace service calls
+	// 2. Establishment of core platform services that enable other workflows
+	//
+	// This workflow runs once at platform bootstrap time and sets up the Nexus
+	// communication layer needed for workflows in different namespaces to call services.
+	BootstrapInfraFunction func(workflow.Context, *BootstrapInfraInput) (*BootstrapInfraOutput, error)
 	// InitFabricShard orchestrates the complete initialization of a Fabric shard
 	// This root workflow executes in the central "infra" namespace and coordinates:
 	// 1. Creation of a Temporal namespace for the shard (temporal.v1.CreateNamespace)
@@ -406,6 +661,14 @@ var (
 type (
 	// CellWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
 	CellWorkflowFunctions interface {
+		// BootstrapInfra orchestrates the initialization of the infrastructure platform
+		// This root workflow executes in the central "infra" namespace and coordinates:
+		// 1. Registration of Nexus endpoints for cross-namespace service calls
+		// 2. Establishment of core platform services that enable other workflows
+		//
+		// This workflow runs once at platform bootstrap time and sets up the Nexus
+		// communication layer needed for workflows in different namespaces to call services.
+		BootstrapInfra(workflow.Context, *BootstrapInfraInput) (*BootstrapInfraOutput, error)
 		// InitFabricShard orchestrates the complete initialization of a Fabric shard
 		// This root workflow executes in the central "infra" namespace and coordinates:
 		// 1. Creation of a Temporal namespace for the shard (temporal.v1.CreateNamespace)
@@ -427,6 +690,20 @@ type (
 
 func NewCellWorkflowFunctions() CellWorkflowFunctions {
 	return &cellWorkflowFunctions{}
+}
+
+// BootstrapInfra orchestrates the initialization of the infrastructure platform
+// This root workflow executes in the central "infra" namespace and coordinates:
+// 1. Registration of Nexus endpoints for cross-namespace service calls
+// 2. Establishment of core platform services that enable other workflows
+//
+// This workflow runs once at platform bootstrap time and sets up the Nexus
+// communication layer needed for workflows in different namespaces to call services.
+func (f *cellWorkflowFunctions) BootstrapInfra(ctx workflow.Context, req *BootstrapInfraInput) (*BootstrapInfraOutput, error) {
+	if BootstrapInfraFunction == nil {
+		return nil, errors.New("BootstrapInfra requires workflow registration via RegisterCellWorkflows or RegisterBootstrapInfraWorkflow")
+	}
+	return BootstrapInfraFunction(ctx, req)
 }
 
 // InitFabricShard orchestrates the complete initialization of a Fabric shard
@@ -451,6 +728,15 @@ func (f *cellWorkflowFunctions) InitFabricShard(ctx workflow.Context, req *InitF
 
 // CellWorkflows provides methods for initializing new cell.v1.Cell workflow values
 type CellWorkflows interface {
+	// BootstrapInfra orchestrates the initialization of the infrastructure platform
+	// This root workflow executes in the central "infra" namespace and coordinates:
+	// 1. Registration of Nexus endpoints for cross-namespace service calls
+	// 2. Establishment of core platform services that enable other workflows
+	//
+	// This workflow runs once at platform bootstrap time and sets up the Nexus
+	// communication layer needed for workflows in different namespaces to call services.
+	BootstrapInfra(ctx workflow.Context, input *BootstrapInfraWorkflowInput) (BootstrapInfraWorkflow, error)
+
 	// InitFabricShard orchestrates the complete initialization of a Fabric shard
 	// This root workflow executes in the central "infra" namespace and coordinates:
 	// 1. Creation of a Temporal namespace for the shard (temporal.v1.CreateNamespace)
@@ -469,7 +755,275 @@ type CellWorkflows interface {
 
 // RegisterCellWorkflows registers cell.v1.Cell workflows with the given worker
 func RegisterCellWorkflows(r worker.WorkflowRegistry, workflows CellWorkflows) {
+	RegisterBootstrapInfraWorkflow(r, workflows.BootstrapInfra)
 	RegisterInitFabricShardWorkflow(r, workflows.InitFabricShard)
+}
+
+// RegisterBootstrapInfraWorkflow registers a cell.v1.Cell.BootstrapInfra workflow with the given worker
+func RegisterBootstrapInfraWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *BootstrapInfraWorkflowInput) (BootstrapInfraWorkflow, error)) {
+	cellRegistrationMutex.Lock()
+	defer cellRegistrationMutex.Unlock()
+	BootstrapInfraFunction = buildBootstrapInfra(wf)
+	r.RegisterWorkflowWithOptions(BootstrapInfraFunction, workflow.RegisterOptions{Name: BootstrapInfraWorkflowName})
+}
+
+// buildBootstrapInfra converts a BootstrapInfra workflow struct into a valid workflow function
+func buildBootstrapInfra(ctor func(workflow.Context, *BootstrapInfraWorkflowInput) (BootstrapInfraWorkflow, error)) func(workflow.Context, *BootstrapInfraInput) (*BootstrapInfraOutput, error) {
+	return func(ctx workflow.Context, req *BootstrapInfraInput) (*BootstrapInfraOutput, error) {
+		input := &BootstrapInfraWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// BootstrapInfraWorkflowInput describes the input to a(n) cell.v1.BootstrapInfra workflow constructor
+type BootstrapInfraWorkflowInput struct {
+	Req *BootstrapInfraInput
+}
+
+// BootstrapInfra orchestrates the initialization of the infrastructure platform
+// This root workflow executes in the central "infra" namespace and coordinates:
+// 1. Registration of Nexus endpoints for cross-namespace service calls
+// 2. Establishment of core platform services that enable other workflows
+//
+// This workflow runs once at platform bootstrap time and sets up the Nexus
+// communication layer needed for workflows in different namespaces to call services.
+//
+// workflow details: (name: "cell.v1.BootstrapInfra")
+type BootstrapInfraWorkflow interface {
+	// Execute defines the entrypoint to a(n) cell.v1.BootstrapInfra workflow
+	Execute(ctx workflow.Context) (*BootstrapInfraOutput, error)
+}
+
+// BootstrapInfra orchestrates the initialization of the infrastructure platform
+// This root workflow executes in the central "infra" namespace and coordinates:
+// 1. Registration of Nexus endpoints for cross-namespace service calls
+// 2. Establishment of core platform services that enable other workflows
+//
+// This workflow runs once at platform bootstrap time and sets up the Nexus
+// communication layer needed for workflows in different namespaces to call services.
+func BootstrapInfraChild(ctx workflow.Context, req *BootstrapInfraInput, options ...*BootstrapInfraChildOptions) (*BootstrapInfraOutput, error) {
+	childRun, err := BootstrapInfraChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// BootstrapInfra orchestrates the initialization of the infrastructure platform
+// This root workflow executes in the central "infra" namespace and coordinates:
+// 1. Registration of Nexus endpoints for cross-namespace service calls
+// 2. Establishment of core platform services that enable other workflows
+//
+// This workflow runs once at platform bootstrap time and sets up the Nexus
+// communication layer needed for workflows in different namespaces to call services.
+func BootstrapInfraChildAsync(ctx workflow.Context, req *BootstrapInfraInput, options ...*BootstrapInfraChildOptions) (*BootstrapInfraChildRun, error) {
+	var o *BootstrapInfraChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewBootstrapInfraChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &BootstrapInfraChildRun{Future: workflow.ExecuteChildWorkflow(ctx, BootstrapInfraWorkflowName, req)}, nil
+}
+
+// BootstrapInfraChildOptions provides configuration for a child cell.v1.BootstrapInfra workflow operation
+type BootstrapInfraChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewBootstrapInfraChildOptions initializes a new BootstrapInfraChildOptions value
+func NewBootstrapInfraChildOptions() *BootstrapInfraChildOptions {
+	return &BootstrapInfraChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *BootstrapInfraChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = CellTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *BootstrapInfraChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *BootstrapInfraChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *BootstrapInfraChildOptions) WithDataConverter(dc converter.DataConverter) *BootstrapInfraChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *BootstrapInfraChildOptions) WithExecutionTimeout(d time.Duration) *BootstrapInfraChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *BootstrapInfraChildOptions) WithID(id string) *BootstrapInfraChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *BootstrapInfraChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *BootstrapInfraChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *BootstrapInfraChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *BootstrapInfraChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *BootstrapInfraChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *BootstrapInfraChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *BootstrapInfraChildOptions) WithRunTimeout(d time.Duration) *BootstrapInfraChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *BootstrapInfraChildOptions) WithSearchAttributes(sa map[string]any) *BootstrapInfraChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *BootstrapInfraChildOptions) WithTaskTimeout(d time.Duration) *BootstrapInfraChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *BootstrapInfraChildOptions) WithTaskQueue(tq string) *BootstrapInfraChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *BootstrapInfraChildOptions) WithWaitForCancellation(wait bool) *BootstrapInfraChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *BootstrapInfraChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *BootstrapInfraChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// BootstrapInfraChildRun describes a child BootstrapInfra workflow run
+type BootstrapInfraChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *BootstrapInfraChildRun) Get(ctx workflow.Context) (*BootstrapInfraOutput, error) {
+	var resp BootstrapInfraOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *BootstrapInfraChildRun) Select(sel workflow.Selector, fn func(*BootstrapInfraChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *BootstrapInfraChildRun) SelectStart(sel workflow.Selector, fn func(*BootstrapInfraChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *BootstrapInfraChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
 }
 
 // RegisterInitFabricShardWorkflow registers a cell.v1.Cell.InitFabricShard workflow with the given worker
@@ -782,6 +1336,35 @@ func NewTestCellClient(env *testsuite.TestWorkflowEnvironment, workflows CellWor
 	return &TestCellClient{env, workflows}
 }
 
+// BootstrapInfra executes a(n) cell.v1.BootstrapInfra workflow in the test environment
+func (c *TestCellClient) BootstrapInfra(ctx context.Context, req *BootstrapInfraInput, opts ...*BootstrapInfraOptions) (*BootstrapInfraOutput, error) {
+	run, err := c.BootstrapInfraAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// BootstrapInfraAsync executes a(n) cell.v1.BootstrapInfra workflow in the test environment
+func (c *TestCellClient) BootstrapInfraAsync(ctx context.Context, req *BootstrapInfraInput, options ...*BootstrapInfraOptions) (BootstrapInfraRun, error) {
+	var o *BootstrapInfraOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewBootstrapInfraOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testBootstrapInfraRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetBootstrapInfra is a noop
+func (c *TestCellClient) GetBootstrapInfra(ctx context.Context, workflowID string, runID string) BootstrapInfraRun {
+	return &testBootstrapInfraRun{env: c.env, workflows: c.workflows}
+}
+
 // InitFabricShard executes a(n) cell.v1.InitFabricShard workflow in the test environment
 func (c *TestCellClient) InitFabricShard(ctx context.Context, req *InitFabricShardInput, opts ...*InitFabricShardOptions) (*InitFabricShardOutput, error) {
 	run, err := c.InitFabricShardAsync(ctx, req, opts...)
@@ -820,6 +1403,64 @@ func (c *TestCellClient) CancelWorkflow(ctx context.Context, workflowID string, 
 // TerminateWorkflow terminates an existing workflow execution
 func (c *TestCellClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
 	return c.CancelWorkflow(ctx, workflowID, runID)
+}
+
+var _ BootstrapInfraRun = &testBootstrapInfraRun{}
+
+// testBootstrapInfraRun provides convenience methods for interacting with a(n) cell.v1.BootstrapInfra workflow in the test environment
+type testBootstrapInfraRun struct {
+	client    *TestCellClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *BootstrapInfraInput
+	workflows CellWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testBootstrapInfraRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test cell.v1.BootstrapInfra workflow result
+func (r *testBootstrapInfraRun) Get(context.Context) (*BootstrapInfraOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(BootstrapInfraWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result BootstrapInfraOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test cell.v1.BootstrapInfra workflow run's workflow ID
+func (r *testBootstrapInfraRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testBootstrapInfraRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testBootstrapInfraRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testBootstrapInfraRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
 var _ InitFabricShardRun = &testInitFabricShardRun{}

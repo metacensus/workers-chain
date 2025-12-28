@@ -7,6 +7,7 @@
 package cellv1
 
 import (
+	_ "github.com/bergundy/nexus-proto-annotations/go/nexus/v1"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -22,6 +23,80 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// BootstrapInfraInput specifies the parameters for bootstrapping infrastructure
+type BootstrapInfraInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BootstrapInfraInput) Reset() {
+	*x = BootstrapInfraInput{}
+	mi := &file_cell_v1_cell_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BootstrapInfraInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BootstrapInfraInput) ProtoMessage() {}
+
+func (x *BootstrapInfraInput) ProtoReflect() protoreflect.Message {
+	mi := &file_cell_v1_cell_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BootstrapInfraInput.ProtoReflect.Descriptor instead.
+func (*BootstrapInfraInput) Descriptor() ([]byte, []int) {
+	return file_cell_v1_cell_proto_rawDescGZIP(), []int{0}
+}
+
+// BootstrapInfraOutput indicates the result of infrastructure bootstrap
+type BootstrapInfraOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BootstrapInfraOutput) Reset() {
+	*x = BootstrapInfraOutput{}
+	mi := &file_cell_v1_cell_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BootstrapInfraOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BootstrapInfraOutput) ProtoMessage() {}
+
+func (x *BootstrapInfraOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_cell_v1_cell_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BootstrapInfraOutput.ProtoReflect.Descriptor instead.
+func (*BootstrapInfraOutput) Descriptor() ([]byte, []int) {
+	return file_cell_v1_cell_proto_rawDescGZIP(), []int{1}
+}
+
 // InitFabricShardInput specifies the parameters for initializing a Fabric shard
 type InitFabricShardInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -34,7 +109,7 @@ type InitFabricShardInput struct {
 
 func (x *InitFabricShardInput) Reset() {
 	*x = InitFabricShardInput{}
-	mi := &file_cell_v1_cell_proto_msgTypes[0]
+	mi := &file_cell_v1_cell_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +121,7 @@ func (x *InitFabricShardInput) String() string {
 func (*InitFabricShardInput) ProtoMessage() {}
 
 func (x *InitFabricShardInput) ProtoReflect() protoreflect.Message {
-	mi := &file_cell_v1_cell_proto_msgTypes[0]
+	mi := &file_cell_v1_cell_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +134,7 @@ func (x *InitFabricShardInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InitFabricShardInput.ProtoReflect.Descriptor instead.
 func (*InitFabricShardInput) Descriptor() ([]byte, []int) {
-	return file_cell_v1_cell_proto_rawDescGZIP(), []int{0}
+	return file_cell_v1_cell_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *InitFabricShardInput) GetOrg() string {
@@ -78,7 +153,7 @@ type InitFabricShardOutput struct {
 
 func (x *InitFabricShardOutput) Reset() {
 	*x = InitFabricShardOutput{}
-	mi := &file_cell_v1_cell_proto_msgTypes[1]
+	mi := &file_cell_v1_cell_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -90,7 +165,7 @@ func (x *InitFabricShardOutput) String() string {
 func (*InitFabricShardOutput) ProtoMessage() {}
 
 func (x *InitFabricShardOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_cell_v1_cell_proto_msgTypes[1]
+	mi := &file_cell_v1_cell_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -103,20 +178,23 @@ func (x *InitFabricShardOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InitFabricShardOutput.ProtoReflect.Descriptor instead.
 func (*InitFabricShardOutput) Descriptor() ([]byte, []int) {
-	return file_cell_v1_cell_proto_rawDescGZIP(), []int{1}
+	return file_cell_v1_cell_proto_rawDescGZIP(), []int{3}
 }
 
 var File_cell_v1_cell_proto protoreflect.FileDescriptor
 
 const file_cell_v1_cell_proto_rawDesc = "" +
 	"\n" +
-	"\x12cell/v1/cell.proto\x12\acell.v1\x1a\x1atemporal/v1/temporal.proto\"(\n" +
+	"\x12cell/v1/cell.proto\x12\acell.v1\x1a\x1atemporal/v1/temporal.proto\x1a\x16nexus/v1/options.proto\"\x15\n" +
+	"\x13BootstrapInfraInput\"\x16\n" +
+	"\x14BootstrapInfraOutput\"(\n" +
 	"\x14InitFabricShardInput\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\"\x17\n" +
-	"\x15InitFabricShardOutput2\x86\x01\n" +
-	"\x04Cell\x12q\n" +
-	"\x0fInitFabricShard\x12\x1d.cell.v1.InitFabricShardInput\x1a\x1e.cell.v1.InitFabricShardOutput\"\x1f\x8a\xc4\x03\x1b0\x01r\x17cell.v1.InitFabricShard\x1a\v\x8a\xc4\x03\a\n" +
-	"\x05infraB\x98\x01\n" +
+	"\x15InitFabricShardOutput2\x88\x02\n" +
+	"\x04Cell\x12m\n" +
+	"\x0eBootstrapInfra\x12\x1c.cell.v1.BootstrapInfraInput\x1a\x1d.cell.v1.BootstrapInfraOutput\"\x1e\x8a\xc4\x03\x1a0\x01r\x16cell.v1.BootstrapInfra\x12q\n" +
+	"\x0fInitFabricShard\x12\x1d.cell.v1.InitFabricShardInput\x1a\x1e.cell.v1.InitFabricShardOutput\"\x1f\x8a\xc4\x03\x1b0\x01r\x17cell.v1.InitFabricShard\x1a\x1e\x8a\xc4\x03\a\n" +
+	"\x05infraʂ\x04\x0f\x12\rnexus-enabledB\x98\x01\n" +
 	"\vcom.cell.v1B\tCellProtoP\x01ZAgithub.com/metacensus/infra/temporal/gen/workflows/cell/v1;cellv1\xa2\x02\x03CXX\xaa\x02\aCell.V1\xca\x02\aCell\\V1\xe2\x02\x13Cell\\V1\\GPBMetadata\xea\x02\bCell::V1b\x06proto3"
 
 var (
@@ -131,16 +209,20 @@ func file_cell_v1_cell_proto_rawDescGZIP() []byte {
 	return file_cell_v1_cell_proto_rawDescData
 }
 
-var file_cell_v1_cell_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_cell_v1_cell_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_cell_v1_cell_proto_goTypes = []any{
-	(*InitFabricShardInput)(nil),  // 0: cell.v1.InitFabricShardInput
-	(*InitFabricShardOutput)(nil), // 1: cell.v1.InitFabricShardOutput
+	(*BootstrapInfraInput)(nil),   // 0: cell.v1.BootstrapInfraInput
+	(*BootstrapInfraOutput)(nil),  // 1: cell.v1.BootstrapInfraOutput
+	(*InitFabricShardInput)(nil),  // 2: cell.v1.InitFabricShardInput
+	(*InitFabricShardOutput)(nil), // 3: cell.v1.InitFabricShardOutput
 }
 var file_cell_v1_cell_proto_depIdxs = []int32{
-	0, // 0: cell.v1.Cell.InitFabricShard:input_type -> cell.v1.InitFabricShardInput
-	1, // 1: cell.v1.Cell.InitFabricShard:output_type -> cell.v1.InitFabricShardOutput
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	0, // 0: cell.v1.Cell.BootstrapInfra:input_type -> cell.v1.BootstrapInfraInput
+	2, // 1: cell.v1.Cell.InitFabricShard:input_type -> cell.v1.InitFabricShardInput
+	1, // 2: cell.v1.Cell.BootstrapInfra:output_type -> cell.v1.BootstrapInfraOutput
+	3, // 3: cell.v1.Cell.InitFabricShard:output_type -> cell.v1.InitFabricShardOutput
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -157,7 +239,7 @@ func file_cell_v1_cell_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cell_v1_cell_proto_rawDesc), len(file_cell_v1_cell_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

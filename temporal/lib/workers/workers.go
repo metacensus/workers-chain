@@ -37,6 +37,7 @@ var InfraModule = fx.Options(
 		temporal.RegisterActivities,
 		temporal.RegisterWorkflows,
 		cell.RegisterWorkflows,
+		cell.RegisterNexusService,
 		clusterfabric.RegisterWorkflows,
 	),
 )

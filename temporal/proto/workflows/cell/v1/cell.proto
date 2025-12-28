@@ -5,14 +5,33 @@ package cell.v1;
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/cell/v1;cellv1";
 
 import "temporal/v1/temporal.proto";
+import "nexus/v1/options.proto";
 
 // Cell service defines the root workflow for initializing a Fabric shard (cluster/cell)
 // This is the entry point for multi-tenant infrastructure provisioning
 service Cell {
+  // Nexus service configuration - enables receiving calls from other namespaces
+  option (.nexus.v1.service).tags = "nexus-enabled";
+
   // Service-wide Temporal settings
   option (temporal.v1.service) = {
     task_queue: "infra"
   };
+
+  // BootstrapInfra orchestrates the initialization of the infrastructure platform
+  // This root workflow executes in the central "infra" namespace and coordinates:
+  // 1. Registration of Nexus endpoints for cross-namespace service calls
+  // 2. Establishment of core platform services that enable other workflows
+  //
+  // This workflow runs once at platform bootstrap time and sets up the Nexus
+  // communication layer needed for workflows in different namespaces to call services.
+  rpc BootstrapInfra(BootstrapInfraInput) returns (BootstrapInfraOutput) {
+    // Workflow execution metadata
+    option (temporal.v1.workflow) = {
+      name: "cell.v1.BootstrapInfra"
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
 
   // InitFabricShard orchestrates the complete initialization of a Fabric shard
   // This root workflow executes in the central "infra" namespace and coordinates:
@@ -34,6 +53,18 @@ service Cell {
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
+}
+
+// ==================== BootstrapInfra Workflow Messages ====================
+
+// BootstrapInfraInput specifies the parameters for bootstrapping infrastructure
+message BootstrapInfraInput {
+  // Empty - no parameters needed for platform bootstrap
+}
+
+// BootstrapInfraOutput indicates the result of infrastructure bootstrap
+message BootstrapInfraOutput {
+  // Empty for now - output structure to be defined as implementation progresses
 }
 
 // ==================== InitFabricShard Workflow Messages ====================

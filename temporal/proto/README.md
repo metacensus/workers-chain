@@ -15,8 +15,11 @@
   - Services
     - [cell.v1.Cell](#cell-v1-cell)
       - [Workflows](#cell-v1-cell-workflows)
+        - [cell.v1.BootstrapInfra](#cell-v1-bootstrapinfra-workflow)
         - [cell.v1.InitFabricShard](#cell-v1-initfabricshard-workflow)
   - Messages
+    - [cell.v1.BootstrapInfraInput](#cell-v1-bootstrapinfrainput)
+    - [cell.v1.BootstrapInfraOutput](#cell-v1-bootstrapinfraoutput)
     - [cell.v1.InitFabricShardInput](#cell-v1-initfabricshardinput)
     - [cell.v1.InitFabricShardOutput](#cell-v1-initfabricshardoutput)
 - [cluster.fabric.v1](#cluster-fabric-v1)
@@ -631,6 +634,35 @@ This is the entry point for multi-tenant infrastructure provisioning
 ### Workflows
 
 ---
+<a name="cell-v1-bootstrapinfra-workflow"></a>
+### cell.v1.BootstrapInfra
+
+<pre>
+BootstrapInfra orchestrates the initialization of the infrastructure platform
+This root workflow executes in the central "infra" namespace and coordinates:
+1. Registration of Nexus endpoints for cross-namespace service calls
+2. Establishment of core platform services that enable other workflows
+
+This workflow runs once at platform bootstrap time and sets up the Nexus
+communication layer needed for workflows in different namespaces to call services.
+</pre>
+
+**Input:** [cell.v1.BootstrapInfraInput](#cell-v1-bootstrapinfrainput)
+
+
+
+**Output:** [cell.v1.BootstrapInfraOutput](#cell-v1-bootstrapinfraoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
 <a name="cell-v1-initfabricshard-workflow"></a>
 ### cell.v1.InitFabricShard
 
@@ -683,6 +715,24 @@ go_name: Org</pre></td>
 
 <a name="cell-v1-messages"></a>
 ## Messages
+
+<a name="cell-v1-bootstrapinfrainput"></a>
+### cell.v1.BootstrapInfraInput
+
+<pre>
+BootstrapInfraInput specifies the parameters for bootstrapping infrastructure
+</pre>
+
+
+
+<a name="cell-v1-bootstrapinfraoutput"></a>
+### cell.v1.BootstrapInfraOutput
+
+<pre>
+BootstrapInfraOutput indicates the result of infrastructure bootstrap
+</pre>
+
+
 
 <a name="cell-v1-initfabricshardinput"></a>
 ### cell.v1.InitFabricShardInput

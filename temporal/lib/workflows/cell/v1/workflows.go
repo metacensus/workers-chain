@@ -12,6 +12,7 @@ import (
 	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1nexustemporal"
 	temporalpb "github.com/metacensus/infra/temporal/gen/workflows/temporal/v1"
 	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
+	"github.com/metacensus/infra/temporal/lib/env"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -24,8 +25,12 @@ const (
 	fabricSecretBase = "fabric"
 )
 
-// Sentinel errors for InitFabricShard workflow
+// Sentinel errors for workflows
 var (
+	// BootstrapInfra errors
+	ErrCreateVaultNexusEndpoint = errors.New("create vault nexus endpoint")
+
+	// InitFabricShard errors
 	ErrOrgRequired               = errors.New("org is required")
 	ErrCreateTemporalNamespace   = errors.New("create temporal namespace")
 	ErrCreateKubernetesNamespace = errors.New("create kubernetes namespace")
@@ -42,6 +47,38 @@ type Workflows struct{}
 // NewWorkflows creates a new Workflows instance
 func NewWorkflows() *Workflows {
 	return &Workflows{}
+}
+
+// BootstrapInfra implements the BootstrapInfra workflow
+func (w *Workflows) BootstrapInfra(ctx workflow.Context, input *pb.BootstrapInfraWorkflowInput) (pb.BootstrapInfraWorkflow, error) {
+	return &bootstrapInfraWorkflow{input: input}, nil
+}
+
+// bootstrapInfraWorkflow implements pb.BootstrapInfraWorkflow
+type bootstrapInfraWorkflow struct {
+	input *pb.BootstrapInfraWorkflowInput
+}
+
+// Execute orchestrates the initialization of the infrastructure platform.
+// This workflow sets up platform-level services and Nexus endpoints that enable
+// other workflows to communicate across namespaces.
+func (w *bootstrapInfraWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapInfraOutput, error) {
+	logger := workflow.GetLogger(ctx)
+	logger.Info("BootstrapInfra workflow started")
+
+	// Register Nexus endpoint for vault.v1.CreateAccess service
+	// This endpoint is called from fabric shards to request vault access setup in the infra namespace
+	vaultNexusEndpointName := "vault-CreateAccess"
+	if _, err := temporalpb.CreateNexusEndpoint(ctx, &temporalpb.CreateNexusEndpointInput{
+		Name:      vaultNexusEndpointName,
+		Namespace: env.TemporalNamespace(),
+		TaskQueue: env.TaskQueue(),
+	}); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateVaultNexusEndpoint, err)
+	}
+
+	logger.Info("BootstrapInfra workflow completed")
+	return &pb.BootstrapInfraOutput{}, nil
 }
 
 // InitFabricShard implements the InitFabricShard workflow

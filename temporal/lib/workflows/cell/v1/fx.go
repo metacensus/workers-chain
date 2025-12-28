@@ -2,6 +2,7 @@ package cell
 
 import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/cell/v1"
+	"github.com/metacensus/infra/temporal/gen/workflows/cell/v1/cellv1temporal"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/fx"
 )
@@ -17,4 +18,10 @@ var Module = fx.Options(
 // RegisterWorkflows registers cell workflows with the worker
 func RegisterWorkflows(w worker.Worker, workflows pb.CellWorkflows) {
 	pb.RegisterCellWorkflows(w, workflows)
+}
+
+// RegisterNexusService registers the cell Nexus service handler with the worker
+// This allows the infra worker to receive Nexus calls from other namespaces (e.g., fabric shards)
+func RegisterNexusService(w worker.Worker) error {
+	return cellv1temporal.RegisterCellNexusService(w)
 }
