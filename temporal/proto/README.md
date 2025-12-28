@@ -38,9 +38,15 @@
     - [fabric.v1.Fabric](#fabric-v1-fabric)
       - [Workflows](#fabric-v1-fabric-workflows)
         - [fabric.v1.BootstrapShard](#fabric-v1-bootstrapshard-workflow)
+        - [fabric.v1.BootstrapCertificateAuthorities](#fabric-v1-bootstrapcertificateauthorities-workflow)
+        - [fabric.v1.DeployCertificateStore](#fabric-v1-deploycertificatestore-workflow)
   - Messages
+    - [fabric.v1.BootstrapCertificateAuthoritiesInput](#fabric-v1-bootstrapcertificateauthoritiesinput)
+    - [fabric.v1.BootstrapCertificateAuthoritiesOutput](#fabric-v1-bootstrapcertificateauthoritiesoutput)
     - [fabric.v1.BootstrapShardInput](#fabric-v1-bootstrapshardinput)
     - [fabric.v1.BootstrapShardOutput](#fabric-v1-bootstrapshardoutput)
+    - [fabric.v1.DeployCertificateStoreInput](#fabric-v1-deploycertificatestoreinput)
+    - [fabric.v1.DeployCertificateStoreOutput](#fabric-v1-deploycertificatestoreoutput)
 - [helm.v1](#helm-v1)
   - Services
     - [helm.v1.Helm](#helm-v1-helm)
@@ -1069,10 +1075,126 @@ go_name: Org</pre></td>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/${! org }/bootstrap-shard</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-bootstrapcertificateauthorities-workflow"></a>
+### fabric.v1.BootstrapCertificateAuthorities
+
+<pre>
+BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
+for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
+</pre>
+
+**Input:** [fabric.v1.BootstrapCertificateAuthoritiesInput](#fabric-v1-bootstrapcertificateauthoritiesinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the organization identifier (e.g., "org1", "acme-corp")<br>
+
+json_name: org
+go_name: Org</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.v1.BootstrapCertificateAuthoritiesOutput](#fabric-v1-bootstrapcertificateauthoritiesoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/${! org }/bootstrap-certificate-authorities</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-deploycertificatestore-workflow"></a>
+### fabric.v1.DeployCertificateStore
+
+<pre>
+DeployCertificateStore deploys the shared certificate store (PostgreSQL)
+used by all certificate authorities in the organization.
+</pre>
+
+**Input:** [fabric.v1.DeployCertificateStoreInput](#fabric-v1-deploycertificatestoreinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the organization identifier (e.g., "org1", "acme-corp")<br>
+
+json_name: org
+go_name: Org</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.v1.DeployCertificateStoreOutput](#fabric-v1-deploycertificatestoreoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/${! org }/deploy-certificate-store</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>     
 
 <a name="fabric-v1-messages"></a>
 ## Messages
+
+<a name="fabric-v1-bootstrapcertificateauthoritiesinput"></a>
+### fabric.v1.BootstrapCertificateAuthoritiesInput
+
+<pre>
+BootstrapCertificateAuthoritiesInput specifies the parameters for bootstrapping certificate authorities
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the organization identifier (e.g., "org1", "acme-corp")<br>
+
+json_name: org
+go_name: Org</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-bootstrapcertificateauthoritiesoutput"></a>
+### fabric.v1.BootstrapCertificateAuthoritiesOutput
+
+<pre>
+BootstrapCertificateAuthoritiesOutput indicates the result of CA bootstrapping
+Empty for now - will be populated as implementation progresses
+</pre>
+
+
 
 <a name="fabric-v1-bootstrapshardinput"></a>
 ### fabric.v1.BootstrapShardInput
@@ -1106,6 +1228,42 @@ go_name: Org</pre></td>
 
 <pre>
 BootstrapShardOutput indicates the result of shard bootstrapping
+Empty for now - will be populated as implementation progresses
+</pre>
+
+
+
+<a name="fabric-v1-deploycertificatestoreinput"></a>
+### fabric.v1.DeployCertificateStoreInput
+
+<pre>
+DeployCertificateStoreInput specifies the parameters for deploying the certificate store
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the organization identifier (e.g., "org1", "acme-corp")<br>
+
+json_name: org
+go_name: Org</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-deploycertificatestoreoutput"></a>
+### fabric.v1.DeployCertificateStoreOutput
+
+<pre>
+DeployCertificateStoreOutput indicates the result of certificate store deployment
 Empty for now - will be populated as implementation progresses
 </pre>
 

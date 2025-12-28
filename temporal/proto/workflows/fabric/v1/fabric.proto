@@ -28,6 +28,26 @@ service Fabric {
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
+
+  // BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
+  // for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
+  rpc BootstrapCertificateAuthorities(BootstrapCertificateAuthoritiesInput) returns (BootstrapCertificateAuthoritiesOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.BootstrapCertificateAuthorities"
+      id: 'fabric/${! org }/bootstrap-certificate-authorities'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployCertificateStore deploys the shared certificate store (PostgreSQL)
+  // used by all certificate authorities in the organization.
+  rpc DeployCertificateStore(DeployCertificateStoreInput) returns (DeployCertificateStoreOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployCertificateStore"
+      id: 'fabric/${! org }/deploy-certificate-store'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
 }
 
 // ==================== BootstrapShard Workflow Messages ====================
@@ -42,6 +62,34 @@ message BootstrapShardInput {
 // BootstrapShardOutput indicates the result of shard bootstrapping
 // Empty for now - will be populated as implementation progresses
 message BootstrapShardOutput {
+  // Empty for now
+}
+
+// ==================== BootstrapCertificateAuthorities Workflow Messages ====================
+
+// BootstrapCertificateAuthoritiesInput specifies the parameters for bootstrapping certificate authorities
+message BootstrapCertificateAuthoritiesInput {
+  // org is the organization identifier (e.g., "org1", "acme-corp")
+  string org = 1;
+}
+
+// BootstrapCertificateAuthoritiesOutput indicates the result of CA bootstrapping
+// Empty for now - will be populated as implementation progresses
+message BootstrapCertificateAuthoritiesOutput {
+  // Empty for now
+}
+
+// ==================== DeployCertificateStore Workflow Messages ====================
+
+// DeployCertificateStoreInput specifies the parameters for deploying the certificate store
+message DeployCertificateStoreInput {
+  // org is the organization identifier (e.g., "org1", "acme-corp")
+  string org = 1;
+}
+
+// DeployCertificateStoreOutput indicates the result of certificate store deployment
+// Empty for now - will be populated as implementation progresses
+message DeployCertificateStoreOutput {
   // Empty for now
 }
 

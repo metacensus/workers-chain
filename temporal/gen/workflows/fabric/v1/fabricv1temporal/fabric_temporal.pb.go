@@ -19,6 +19,21 @@ import (
 // Nexus handler for fabric.v1.Fabric
 type FabricNexusHandler struct{}
 
+// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
+// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
+func (h *FabricNexusHandler) BootstrapCertificateAuthorities(name string) nexus.Operation[*v1.BootstrapCertificateAuthoritiesInput, *v1.BootstrapCertificateAuthoritiesOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.BootstrapCertificateAuthoritiesInput, *v1.BootstrapCertificateAuthoritiesOutput]{
+		Handler: func(ctx context.Context, input *v1.BootstrapCertificateAuthoritiesInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.BootstrapCertificateAuthoritiesOutput], error) {
+			o, err := v1.NewBootstrapCertificateAuthoritiesOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.BootstrapCertificateAuthoritiesOutput](ctx, opts, o, v1.BootstrapCertificateAuthoritiesWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
 // BootstrapShard is the entry point for Phase 2 of shard initialization
 // This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
 // and deploys all Fabric components (CAs, peers, orderers) for the organization.
@@ -31,6 +46,21 @@ func (h *FabricNexusHandler) BootstrapShard(name string) nexus.Operation[*v1.Boo
 				return nil, err
 			}
 			return temporalnexus.ExecuteUntypedWorkflow[*v1.BootstrapShardOutput](ctx, opts, o, v1.BootstrapShardWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// DeployCertificateStore deploys the shared certificate store (PostgreSQL)
+// used by all certificate authorities in the organization.
+func (h *FabricNexusHandler) DeployCertificateStore(name string) nexus.Operation[*v1.DeployCertificateStoreInput, *v1.DeployCertificateStoreOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployCertificateStoreInput, *v1.DeployCertificateStoreOutput]{
+		Handler: func(ctx context.Context, input *v1.DeployCertificateStoreInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployCertificateStoreOutput], error) {
+			o, err := v1.NewDeployCertificateStoreOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployCertificateStoreOutput](ctx, opts, o, v1.DeployCertificateStoreWorkflowName, input)
 		},
 		Name: name,
 	})

@@ -108,6 +108,174 @@ func (*BootstrapShardOutput) Descriptor() ([]byte, []int) {
 	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{1}
 }
 
+// BootstrapCertificateAuthoritiesInput specifies the parameters for bootstrapping certificate authorities
+type BootstrapCertificateAuthoritiesInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// org is the organization identifier (e.g., "org1", "acme-corp")
+	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BootstrapCertificateAuthoritiesInput) Reset() {
+	*x = BootstrapCertificateAuthoritiesInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BootstrapCertificateAuthoritiesInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BootstrapCertificateAuthoritiesInput) ProtoMessage() {}
+
+func (x *BootstrapCertificateAuthoritiesInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BootstrapCertificateAuthoritiesInput.ProtoReflect.Descriptor instead.
+func (*BootstrapCertificateAuthoritiesInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *BootstrapCertificateAuthoritiesInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+// BootstrapCertificateAuthoritiesOutput indicates the result of CA bootstrapping
+// Empty for now - will be populated as implementation progresses
+type BootstrapCertificateAuthoritiesOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BootstrapCertificateAuthoritiesOutput) Reset() {
+	*x = BootstrapCertificateAuthoritiesOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BootstrapCertificateAuthoritiesOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BootstrapCertificateAuthoritiesOutput) ProtoMessage() {}
+
+func (x *BootstrapCertificateAuthoritiesOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BootstrapCertificateAuthoritiesOutput.ProtoReflect.Descriptor instead.
+func (*BootstrapCertificateAuthoritiesOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{3}
+}
+
+// DeployCertificateStoreInput specifies the parameters for deploying the certificate store
+type DeployCertificateStoreInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// org is the organization identifier (e.g., "org1", "acme-corp")
+	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployCertificateStoreInput) Reset() {
+	*x = DeployCertificateStoreInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployCertificateStoreInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployCertificateStoreInput) ProtoMessage() {}
+
+func (x *DeployCertificateStoreInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployCertificateStoreInput.ProtoReflect.Descriptor instead.
+func (*DeployCertificateStoreInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *DeployCertificateStoreInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+// DeployCertificateStoreOutput indicates the result of certificate store deployment
+// Empty for now - will be populated as implementation progresses
+type DeployCertificateStoreOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployCertificateStoreOutput) Reset() {
+	*x = DeployCertificateStoreOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployCertificateStoreOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployCertificateStoreOutput) ProtoMessage() {}
+
+func (x *DeployCertificateStoreOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployCertificateStoreOutput.ProtoReflect.Descriptor instead.
+func (*DeployCertificateStoreOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{5}
+}
+
 var File_fabric_v1_fabric_proto protoreflect.FileDescriptor
 
 const file_fabric_v1_fabric_proto_rawDesc = "" +
@@ -115,9 +283,17 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x16fabric/v1/fabric.proto\x12\tfabric.v1\x1a\x16nexus/v1/options.proto\x1a\x1atemporal/v1/temporal.proto\"'\n" +
 	"\x13BootstrapShardInput\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\"\x16\n" +
-	"\x14BootstrapShardOutput2\xc0\x01\n" +
+	"\x14BootstrapShardOutput\"8\n" +
+	"$BootstrapCertificateAuthoritiesInput\x12\x10\n" +
+	"\x03org\x18\x01 \x01(\tR\x03org\"'\n" +
+	"%BootstrapCertificateAuthoritiesOutput\"/\n" +
+	"\x1bDeployCertificateStoreInput\x12\x10\n" +
+	"\x03org\x18\x01 \x01(\tR\x03org\"\x1e\n" +
+	"\x1cDeployCertificateStoreOutput2\xef\x04\n" +
 	"\x06Fabric\x12\x95\x01\n" +
-	"\x0eBootstrapShard\x12\x1e.fabric.v1.BootstrapShardInput\x1a\x1f.fabric.v1.BootstrapShardOutput\"B\x8a\xc4\x03>* fabric/${! org }/bootstrap-shard0\x01r\x18fabric.v1.BootstrapShard\x1a\x1e\x8a\xc4\x03\a\n" +
+	"\x0eBootstrapShard\x12\x1e.fabric.v1.BootstrapShardInput\x1a\x1f.fabric.v1.BootstrapShardOutput\"B\x8a\xc4\x03>* fabric/${! org }/bootstrap-shard0\x01r\x18fabric.v1.BootstrapShard\x12\xeb\x01\n" +
+	"\x1fBootstrapCertificateAuthorities\x12/.fabric.v1.BootstrapCertificateAuthoritiesInput\x1a0.fabric.v1.BootstrapCertificateAuthoritiesOutput\"e\x8a\xc4\x03a*2fabric/${! org }/bootstrap-certificate-authorities0\x01r)fabric.v1.BootstrapCertificateAuthorities\x12\xbe\x01\n" +
+	"\x16DeployCertificateStore\x12&.fabric.v1.DeployCertificateStoreInput\x1a'.fabric.v1.DeployCertificateStoreOutput\"S\x8a\xc4\x03O*)fabric/${! org }/deploy-certificate-store0\x01r fabric.v1.DeployCertificateStore\x1a\x1e\x8a\xc4\x03\a\n" +
 	"\x05infraʂ\x04\x0f\x12\rnexus-enabledB\xa8\x01\n" +
 	"\rcom.fabric.v1B\vFabricProtoP\x01ZEgithub.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1\xa2\x02\x03FXX\xaa\x02\tFabric.V1\xca\x02\tFabric\\V1\xe2\x02\x15Fabric\\V1\\GPBMetadata\xea\x02\n" +
 	"Fabric::V1b\x06proto3"
@@ -134,16 +310,24 @@ func file_fabric_v1_fabric_proto_rawDescGZIP() []byte {
 	return file_fabric_v1_fabric_proto_rawDescData
 }
 
-var file_fabric_v1_fabric_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_fabric_v1_fabric_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_fabric_v1_fabric_proto_goTypes = []any{
-	(*BootstrapShardInput)(nil),  // 0: fabric.v1.BootstrapShardInput
-	(*BootstrapShardOutput)(nil), // 1: fabric.v1.BootstrapShardOutput
+	(*BootstrapShardInput)(nil),                   // 0: fabric.v1.BootstrapShardInput
+	(*BootstrapShardOutput)(nil),                  // 1: fabric.v1.BootstrapShardOutput
+	(*BootstrapCertificateAuthoritiesInput)(nil),  // 2: fabric.v1.BootstrapCertificateAuthoritiesInput
+	(*BootstrapCertificateAuthoritiesOutput)(nil), // 3: fabric.v1.BootstrapCertificateAuthoritiesOutput
+	(*DeployCertificateStoreInput)(nil),           // 4: fabric.v1.DeployCertificateStoreInput
+	(*DeployCertificateStoreOutput)(nil),          // 5: fabric.v1.DeployCertificateStoreOutput
 }
 var file_fabric_v1_fabric_proto_depIdxs = []int32{
 	0, // 0: fabric.v1.Fabric.BootstrapShard:input_type -> fabric.v1.BootstrapShardInput
-	1, // 1: fabric.v1.Fabric.BootstrapShard:output_type -> fabric.v1.BootstrapShardOutput
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: fabric.v1.Fabric.BootstrapCertificateAuthorities:input_type -> fabric.v1.BootstrapCertificateAuthoritiesInput
+	4, // 2: fabric.v1.Fabric.DeployCertificateStore:input_type -> fabric.v1.DeployCertificateStoreInput
+	1, // 3: fabric.v1.Fabric.BootstrapShard:output_type -> fabric.v1.BootstrapShardOutput
+	3, // 4: fabric.v1.Fabric.BootstrapCertificateAuthorities:output_type -> fabric.v1.BootstrapCertificateAuthoritiesOutput
+	5, // 5: fabric.v1.Fabric.DeployCertificateStore:output_type -> fabric.v1.DeployCertificateStoreOutput
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -160,7 +344,7 @@ func file_fabric_v1_fabric_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_fabric_v1_fabric_proto_rawDesc), len(file_fabric_v1_fabric_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
