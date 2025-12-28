@@ -12,7 +12,7 @@ import (
 	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1nexustemporal"
 	temporalpb "github.com/metacensus/infra/temporal/gen/workflows/temporal/v1"
 	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
-	"github.com/metacensus/infra/temporal/lib/env"
+	"github.com/metacensus/infra/temporal/lib/workers/config"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -68,11 +68,12 @@ func (w *bootstrapInfraWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapInf
 
 	// Register Nexus endpoint for vault.v1.CreateAccess service
 	// This endpoint is called from fabric shards to request vault access setup in the infra namespace
+	temporalCfg := config.GetTemporal()
 	vaultNexusEndpointName := "vault-CreateAccess"
 	if _, err := temporalpb.CreateNexusEndpoint(ctx, &temporalpb.CreateNexusEndpointInput{
 		Name:      vaultNexusEndpointName,
-		Namespace: env.TemporalNamespace(),
-		TaskQueue: env.TaskQueue(),
+		Namespace: temporalCfg.Namespace,
+		TaskQueue: temporalCfg.TaskQueue,
 	}); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateVaultNexusEndpoint, err)
 	}

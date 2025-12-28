@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/metacensus/infra/temporal/lib/workers/config"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -273,7 +274,7 @@ func TestVaultClient_ErrorHandling(t *testing.T) {
 // This is for testing only - production code should use NewVaultClient with k8s auth.
 func newVaultClientWithToken(address, token string) VaultClient {
 	return &vaultClient{
-		config: VaultConfig{
+		config: &config.VaultConfig{
 			Address: address,
 		},
 		httpClient: &http.Client{

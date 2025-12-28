@@ -1,0 +1,43 @@
+package infra
+
+import (
+	"github.com/metacensus/infra/temporal/lib/workers"
+	"github.com/metacensus/infra/temporal/lib/workers/config"
+	cell "github.com/metacensus/infra/temporal/lib/workflows/cell/v1"
+	clusterfabric "github.com/metacensus/infra/temporal/lib/workflows/cluster/fabric/v1"
+	helm "github.com/metacensus/infra/temporal/lib/workflows/helm/v1"
+	kube "github.com/metacensus/infra/temporal/lib/workflows/kube/v1"
+	temporal "github.com/metacensus/infra/temporal/lib/workflows/temporal/v1"
+	vault "github.com/metacensus/infra/temporal/lib/workflows/vault/v1"
+	"go.uber.org/fx"
+)
+
+// Module provides all dependencies for the infra worker
+var Module = fx.Module("infra",
+	// Load environment config (excludes OrgConfig - not needed for infra worker)
+	config.Module,
+
+	// Provide worker (shared from workers package)
+	fx.Provide(workers.NewWorker),
+
+	// Include workflow modules (provides workflows/activities)
+	vault.Module,
+	helm.Module,
+	kube.Module,
+	temporal.Module, // Provides Client, NamespaceClient, and admin activities/workflows
+	cell.Module,
+	clusterfabric.Module,
+
+	// Register all workflows and activities with the worker
+	fx.Invoke(
+		vault.RegisterActivities,
+		vault.RegisterWorkflows,
+		helm.RegisterActivities,
+		kube.RegisterActivities,
+		temporal.RegisterActivities,
+		temporal.RegisterWorkflows,
+		cell.RegisterWorkflows,
+		cell.RegisterNexusService,
+		clusterfabric.RegisterWorkflows,
+	),
+)

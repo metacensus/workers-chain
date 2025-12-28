@@ -38,7 +38,7 @@ spec:
           value: {{ .Values.temporal.address | quote }}
         - name: TEMPORAL_NAMESPACE
           value: {{ .Values.temporal.namespace | quote }}
-        - name: TASK_QUEUE
+        - name: TEMPORAL_TASK_QUEUE
           value: {{ .Values.temporal.taskQueue | quote }}
         # Vault configuration
         - name: VAULT_ADDR

@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/metacensus/infra/temporal/lib/workers/config"
 )
 
 // Sentinel errors for Vault API responses
@@ -18,12 +20,6 @@ var (
 	ErrUnauthorized = errors.New("vault: unauthorized")
 	ErrForbidden    = errors.New("vault: forbidden")
 )
-
-// VaultConfig represents Vault connection configuration
-type VaultConfig struct {
-	Address string // Vault server address (e.g., "https://vault.example.com")
-	Role    string // Kubernetes auth role name
-}
 
 // VaultClient defines generic path-based operations for Vault
 type VaultClient interface {
@@ -39,16 +35,16 @@ type VaultClient interface {
 
 // vaultClient implements VaultClient
 type vaultClient struct {
-	config     VaultConfig
+	config     *config.VaultConfig
 	httpClient *http.Client
 	token      string // Actual auth token (from config or k8s auth)
 }
 
 // NewVaultClient creates a new Vault client with the given configuration
 // It authenticates using Kubernetes service account auth method.
-func NewVaultClient(config VaultConfig) (VaultClient, error) {
+func NewVaultClient(cfg *config.VaultConfig) (VaultClient, error) {
 	client := &vaultClient{
-		config: config,
+		config: cfg,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},

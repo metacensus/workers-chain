@@ -9,6 +9,7 @@ import (
 	"time"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
+	"github.com/metacensus/infra/temporal/lib/workers/config"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -51,7 +52,7 @@ func TestKubeClient_RealCluster(t *testing.T) {
 
 	// For now, integration tests require a real Kubernetes cluster
 	// Using in-cluster config if available, otherwise skip
-	client, err := NewKubeClient(KubeConfig{})
+	client, err := NewKubeClient(&config.KubernetesConfig{})
 	if err != nil {
 		t.Logf("could not connect to Kubernetes cluster (expected in integration test environment): %v", err)
 		t.Skip("Integration test requires access to a Kubernetes cluster")

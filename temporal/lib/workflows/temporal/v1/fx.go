@@ -8,7 +8,21 @@ import (
 	"go.uber.org/fx"
 )
 
+// ClientModule provides Temporal SDK clients (used by activities)
+// Can be used independently of activities/workflows
+var ClientModule = fx.Options(
+	// Provide Temporal client
+	fx.Provide(NewClient),
+
+	// Provide Temporal namespace client (for namespace management)
+	fx.Provide(NewNamespaceClient),
+)
+
+// Module provides temporal admin activities and workflows along with clients
 var Module = fx.Options(
+	// Include client providers
+	ClientModule,
+
 	// Provide OperatorService client for Nexus endpoint operations
 	fx.Provide(func(c client.Client) operatorservice.OperatorServiceClient {
 		return c.OperatorService()

@@ -6,7 +6,7 @@ import (
 
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
-	"github.com/metacensus/infra/temporal/lib/env"
+	"github.com/metacensus/infra/temporal/lib/workers/config"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -20,11 +20,11 @@ var (
 
 // Workflows implements the FabricWorkflows interface from generated code
 type Workflows struct {
-	orgConfig env.OrgConfig
+	orgConfig config.OrgConfig
 }
 
 // NewWorkflows creates a new Workflows instance with org configuration
-func NewWorkflows(orgConfig env.OrgConfig) *Workflows {
+func NewWorkflows(orgConfig config.OrgConfig) *Workflows {
 	return &Workflows{orgConfig: orgConfig}
 }
 
@@ -36,7 +36,7 @@ func (w *Workflows) BootstrapShard(ctx workflow.Context, input *pb.BootstrapShar
 // bootstrapShardWorkflow implements pb.BootstrapShardWorkflow
 type bootstrapShardWorkflow struct {
 	input     *pb.BootstrapShardWorkflowInput
-	orgConfig env.OrgConfig
+	orgConfig config.OrgConfig
 }
 
 // Execute deploys all Fabric components (CAs, peers, orderers) for the organization.
@@ -59,7 +59,7 @@ func (w *Workflows) BootstrapCertificateAuthorities(ctx workflow.Context, input 
 // bootstrapCertificateAuthoritiesWorkflow implements pb.BootstrapCertificateAuthoritiesWorkflow
 type bootstrapCertificateAuthoritiesWorkflow struct {
 	input     *pb.BootstrapCertificateAuthoritiesWorkflowInput
-	orgConfig env.OrgConfig
+	orgConfig config.OrgConfig
 }
 
 // Execute orchestrates the deployment of all certificate authorities for the organization.
@@ -69,13 +69,13 @@ func (w *bootstrapCertificateAuthoritiesWorkflow) Execute(ctx workflow.Context) 
 		return nil, fmt.Errorf("%w: %w", ErrDeployCertificateStore, err)
 	}
 
-	// Deploy root certificate authority
-	if _, err := pb.DeployRootCertificateAuthorityChild(ctx, &pb.DeployRootCertificateAuthorityInput{}); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrDeployRootCertificateAuthority, err)
-	}
-
-	// Deploy intermediate CAs for both "tls" and "org"
+	// Deploy Certificate Authorities for both "tls" and "org"
 	for _, caType := range []string{"tls", "org"} {
+
+		// Deploy root certificate authority
+		if _, err := pb.DeployRootCertificateAuthorityChild(ctx, &pb.DeployRootCertificateAuthorityInput{}); err != nil {
+			return nil, fmt.Errorf("%w: %w", ErrDeployRootCertificateAuthority, err)
+		}
 		if _, err := pb.DeployCertificateAuthorityChild(ctx, &pb.DeployCertificateAuthorityInput{}); err != nil {
 			return nil, fmt.Errorf("%w (caType=%s): %w", ErrDeployCertificateAuthority, caType, err)
 		}
@@ -92,7 +92,7 @@ func (w *Workflows) DeployCertificateStore(ctx workflow.Context, input *pb.Deplo
 // deployCertificateStoreWorkflow implements pb.DeployCertificateStoreWorkflow
 type deployCertificateStoreWorkflow struct {
 	input     *pb.DeployCertificateStoreWorkflowInput
-	orgConfig env.OrgConfig
+	orgConfig config.OrgConfig
 }
 
 // Execute deploys the shared certificate store (PostgreSQL) for the organization.
@@ -121,7 +121,7 @@ func (w *Workflows) DeployRootCertificateAuthority(ctx workflow.Context, input *
 // deployRootCertificateAuthorityWorkflow implements pb.DeployRootCertificateAuthorityWorkflow
 type deployRootCertificateAuthorityWorkflow struct {
 	input     *pb.DeployRootCertificateAuthorityWorkflowInput
-	orgConfig env.OrgConfig
+	orgConfig config.OrgConfig
 }
 
 // Execute deploys the root certificate authority for the organization.
@@ -139,7 +139,7 @@ func (w *Workflows) DeployCertificateAuthority(ctx workflow.Context, input *pb.D
 // deployCertificateAuthorityWorkflow implements pb.DeployCertificateAuthorityWorkflow
 type deployCertificateAuthorityWorkflow struct {
 	input     *pb.DeployCertificateAuthorityWorkflowInput
-	orgConfig env.OrgConfig
+	orgConfig config.OrgConfig
 }
 
 // Execute deploys an intermediate certificate authority for the organization.

@@ -7,7 +7,7 @@ import (
 
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
-	workerenv "github.com/metacensus/infra/temporal/lib/env"
+	"github.com/metacensus/infra/temporal/lib/workers/config"
 	fabric "github.com/metacensus/infra/temporal/lib/workflows/fabric/v1"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/testsuite"
@@ -80,7 +80,7 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 			registerChildWorkflowStubs(env)
 
 			// Create OrgConfig for testing
-			orgConfig := workerenv.OrgConfig{OrgID: tt.org}
+			orgConfig := config.OrgConfig{OrgID: tt.org}
 
 			// Mock CreateDeployment child workflow
 			if tt.validateDeploymentInput {

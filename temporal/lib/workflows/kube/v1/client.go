@@ -16,14 +16,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
+	"github.com/metacensus/infra/temporal/lib/workers/config"
 )
-
-// KubeConfig represents Kubernetes client configuration
-type KubeConfig struct {
-	// KubeconfigPath is the path to kubeconfig file
-	// If empty, uses in-cluster config
-	KubeconfigPath string
-}
 
 // ResourceStatus represents the current state of a resource
 type ResourceStatus struct {
@@ -61,14 +55,14 @@ type kubeClient struct {
 }
 
 // NewKubeClient creates a new Kubernetes client with the given configuration
-func NewKubeClient(config KubeConfig) (KubeClient, error) {
+func NewKubeClient(cfg *config.KubernetesConfig) (KubeClient, error) {
 	var restConfig *rest.Config
 	var err error
 
-	if config.KubeconfigPath != "" {
-		restConfig, err = clientcmd.BuildConfigFromFlags("", config.KubeconfigPath)
+	if cfg.KubeconfigPath != "" {
+		restConfig, err = clientcmd.BuildConfigFromFlags("", cfg.KubeconfigPath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load kubeconfig from %s: %w", config.KubeconfigPath, err)
+			return nil, fmt.Errorf("failed to load kubeconfig from %s: %w", cfg.KubeconfigPath, err)
 		}
 	} else {
 		restConfig, err = rest.InClusterConfig()
