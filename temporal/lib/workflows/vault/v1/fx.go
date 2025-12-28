@@ -2,6 +2,7 @@ package vault
 
 import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
+	"github.com/metacensus/infra/temporal/gen/workflows/vault/v1/vaultv1temporal"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/fx"
 )
@@ -37,4 +38,10 @@ func RegisterActivities(w worker.Worker, activities pb.VaultActivities) {
 // RegisterWorkflows registers vault workflows with the worker
 func RegisterWorkflows(w worker.Worker, workflows pb.VaultWorkflows) {
 	pb.RegisterVaultWorkflows(w, workflows)
+}
+
+// RegisterNexusService registers the vault Nexus service handler with the worker
+// This allows the infra worker to receive Nexus calls from other namespaces (e.g., fabric shards)
+func RegisterNexusService(w worker.Worker) error {
+	return vaultv1temporal.RegisterVaultNexusService(w)
 }

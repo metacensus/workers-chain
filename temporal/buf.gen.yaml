@@ -12,12 +12,14 @@ plugins:
     out: gen/workflows
     opt:
       - include-service-tags=nexus-enabled
+      - exclude-operation-tags=activity
       - paths=source_relative
   # Generate Nexus workflow client for calling Nexus from workflows
   - local: protoc-gen-go-nexus-temporal
     out: gen/workflows
     opt:
       - include-service-tags=nexus-enabled
+      - exclude-operation-tags=activity
       - paths=source_relative
   # Generate Temporal workflow/activity stubs
   - local: protoc-gen-go_temporal
@@ -26,6 +28,7 @@ plugins:
       - docs-out=./proto/README.md
       - nexus=true
       - nexus-include-service-tags=nexus-enabled
+      - nexus-exclude-operation-tags=activity
       - paths=source_relative
     strategy: all
 inputs:

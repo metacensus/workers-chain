@@ -4,11 +4,14 @@ package vault.v1;
 
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/vault/v1;vaultv1";
 
+import "nexus/v1/options.proto";
 import "temporal/v1/temporal.proto";
 
 // Vault service defines activities related to secret and auth management
 service Vault {
-  // Service‐wide Temporal settings
+  // Enable Nexus for cross-namespace calls from fabric workers
+  option (.nexus.v1.service).tags = "nexus-enabled";
+  // Service-wide Temporal settings
   option (temporal.v1.service) = {
     task_queue: "infra"
   };
@@ -17,6 +20,7 @@ service Vault {
   // Auth Role Management
   rpc CreateAuthRole(CreateAuthRoleInput) returns (CreateAuthRoleOutput) {
     // Creates a Kubernetes auth role binding a service account to policies
+    option (.nexus.v1.operation).tags = "activity";  // Exclude from Nexus
     option (temporal.v1.activity) = {
       name: "vault.v1.CreateAuthRole"
       schedule_to_close_timeout: {seconds: 300}  // 5 minutes
@@ -25,6 +29,7 @@ service Vault {
   
   rpc DeleteAuthRole(DeleteAuthRoleInput) returns (DeleteAuthRoleOutput) {
     // Deletes an existing Kubernetes auth role
+    option (.nexus.v1.operation).tags = "activity";  // Exclude from Nexus
     option (temporal.v1.activity) = {
       name: "vault.v1.DeleteAuthRole"
       schedule_to_close_timeout: {seconds: 300}  // 5 minutes
@@ -34,6 +39,7 @@ service Vault {
   // Policy Management
   rpc CreatePolicy(CreatePolicyInput) returns (CreatePolicyOutput) {
     // Creates a new Vault policy with the specified HCL document
+    option (.nexus.v1.operation).tags = "activity";  // Exclude from Nexus
     option (temporal.v1.activity) = {
       name: "vault.v1.CreatePolicy"
       schedule_to_close_timeout: {seconds: 300}  // 5 minutes
@@ -42,6 +48,7 @@ service Vault {
   
   rpc DeletePolicy(DeletePolicyInput) returns (DeletePolicyOutput) {
     // Deletes an existing Vault policy
+    option (.nexus.v1.operation).tags = "activity";  // Exclude from Nexus
     option (temporal.v1.activity) = {
       name: "vault.v1.DeletePolicy"
       schedule_to_close_timeout: {seconds: 300}  // 5 minutes
@@ -51,6 +58,7 @@ service Vault {
   // Secret Management
   rpc StoreSecret(StoreSecretInput) returns (StoreSecretOutput) {
     // Stores a secret in Vault and returns its reference
+    option (.nexus.v1.operation).tags = "activity";  // Exclude from Nexus
     option (temporal.v1.activity) = {
       name: "vault.v1.StoreSecret"
       schedule_to_close_timeout: {seconds: 300}  // 5 minutes
@@ -59,6 +67,7 @@ service Vault {
 
   rpc FetchSecret(FetchSecretInput) returns (FetchSecretOutput) {
     // Retrieves a secret from Vault
+    option (.nexus.v1.operation).tags = "activity";  // Exclude from Nexus
     option (temporal.v1.activity) = {
       name: "vault.v1.FetchSecret"
       schedule_to_close_timeout: {seconds: 60}  // 1 minute
@@ -67,6 +76,7 @@ service Vault {
   
   rpc DeleteSecret(DeleteSecretInput) returns (DeleteSecretOutput) {
     // Deletes an existing secret from Vault
+    option (.nexus.v1.operation).tags = "activity";  // Exclude from Nexus
     option (temporal.v1.activity) = {
       name: "vault.v1.DeleteSecret"
       schedule_to_close_timeout: {seconds: 300}  // 5 minutes
@@ -79,6 +89,7 @@ service Vault {
     // This workflow orchestrates CreatePolicy and CreateAuthRole activities
     option (temporal.v1.workflow) = {
       name: "vault.v1.CreateAccess"
+      id: 'vault/create-access/${! policy_name.or("default") }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
     };

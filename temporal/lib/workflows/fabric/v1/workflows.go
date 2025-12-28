@@ -3,11 +3,19 @@ package fabric
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
+	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
+	"github.com/metacensus/infra/temporal/gen/workflows/vault/v1/vaultv1nexustemporal"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 	"go.temporal.io/sdk/workflow"
+)
+
+// Nexus endpoint names for cross-namespace calls to infra worker
+const (
+	vaultCreateAccessNexusEndpoint = "vault-CreateAccess"
 )
 
 // Sentinel errors for fabric workflows
@@ -16,6 +24,8 @@ var (
 	ErrDeployCertificateStore          = errors.New("deploy certificate store")
 	ErrDeployRootCertificateAuthority  = errors.New("deploy root certificate authority")
 	ErrDeployCertificateAuthority      = errors.New("deploy certificate authority")
+	ErrCreateVaultAccess               = errors.New("create vault access via nexus")
+	ErrInvalidCertType                 = errors.New("invalid cert type")
 )
 
 // Workflows implements the FabricWorkflows interface from generated code
@@ -69,15 +79,22 @@ func (w *bootstrapCertificateAuthoritiesWorkflow) Execute(ctx workflow.Context) 
 		return nil, fmt.Errorf("%w: %w", ErrDeployCertificateStore, err)
 	}
 
-	// Deploy Certificate Authorities for both "tls" and "org"
-	for _, caType := range []string{"tls", "org"} {
-
-		// Deploy root certificate authority
-		if _, err := pb.DeployRootCertificateAuthorityChild(ctx, &pb.DeployRootCertificateAuthorityInput{}); err != nil {
-			return nil, fmt.Errorf("%w: %w", ErrDeployRootCertificateAuthority, err)
+	// Deploy Certificate Authorities for both TLS and Org cert types
+	for _, certType := range []string{"tls", "org"} {
+		// Deploy root certificate authority for this cert type
+		if _, err := pb.DeployRootCertificateAuthorityChild(ctx, &pb.DeployRootCertificateAuthorityInput{
+			CertType: certType,
+		}); err != nil {
+			return nil, fmt.Errorf("%w (certType=%s): %w", ErrDeployRootCertificateAuthority, certType, err)
 		}
-		if _, err := pb.DeployCertificateAuthorityChild(ctx, &pb.DeployCertificateAuthorityInput{}); err != nil {
-			return nil, fmt.Errorf("%w (caType=%s): %w", ErrDeployCertificateAuthority, caType, err)
+
+		// Deploy intermediate certificate authority for this cert type
+		// TODO: Generate unique ID for intermediate CA (e.g., timestamp-based or sequential)
+		if _, err := pb.DeployCertificateAuthorityChild(ctx, &pb.DeployCertificateAuthorityInput{
+			CertType: certType,
+			Id:       "v1", // Initial intermediate CA version
+		}); err != nil {
+			return nil, fmt.Errorf("%w (certType=%s): %w", ErrDeployCertificateAuthority, certType, err)
 		}
 	}
 
@@ -126,9 +143,78 @@ type deployRootCertificateAuthorityWorkflow struct {
 
 // Execute deploys the root certificate authority for the organization.
 func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.DeployRootCertificateAuthorityOutput, error) {
-	// TODO: Implement root CA deployment logic
+	logger := workflow.GetLogger(ctx)
+	certType := w.input.Req.GetCertType()
+
+	// Validate cert type
+	if certType != "tls" && certType != "org" {
+		return nil, ErrInvalidCertType
+	}
+
+	// Build naming helper for this root CA
+	rootCA := NewRootCertificateAuthority(w.orgConfig, certType)
+
+	logger.Info("Deploying root certificate authority",
+		"org", w.orgConfig.OrgID,
+		"certType", certType,
+		"policyName", rootCA.PolicyName(),
+	)
+
+	// Request Vault access via Nexus call to infra worker
+	// This creates the policy and auth role needed for the root CA pod to access its secrets
+	vaultClient := vaultv1nexustemporal.NewVaultNexusClient(vaultCreateAccessNexusEndpoint)
+	_, err := vaultClient.CreateAccess(ctx, &vaultpb.CreateAccessInput{
+		PolicyName:          rootCA.PolicyName(),
+		PolicyDocument:      buildRootCertificateAuthorityPolicy(rootCA),
+		AuthRoleName:        rootCA.AuthRoleName(),
+		ServiceAccountName:  rootCA.ServiceAccountName(),
+		KubernetesNamespace: rootCA.KubernetesNamespace(),
+	}, workflow.NexusOperationOptions{
+		ScheduleToCloseTimeout: 5 * time.Minute,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateVaultAccess, err)
+	}
+
+	logger.Info("Vault access created for root certificate authority",
+		"org", w.orgConfig.OrgID,
+		"certType", certType,
+	)
+
+	// TODO: Create certificate database
+	// TODO: Generate root CA key pair
+	// TODO: Generate root CA certificate
+	// TODO: Deploy root CA pod
+	// TODO: Bootstrap root CA admin
 
 	return &pb.DeployRootCertificateAuthorityOutput{}, nil
+}
+
+// buildRootCertificateAuthorityPolicy creates a Vault policy document for a root CA.
+// The policy grants read/write access to the CA's secrets path.
+func buildRootCertificateAuthorityPolicy(ca *FabricCertificateAuthority) *vaultpb.PolicyDocument {
+	return &vaultpb.PolicyDocument{
+		Rules: []*vaultpb.PolicyRule{
+			// KV v2 data path - read/write access to CA secrets
+			{
+				Path: ca.VaultSecretDataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_CREATE,
+					vaultpb.Capability_CAPABILITY_READ,
+					vaultpb.Capability_CAPABILITY_UPDATE,
+					vaultpb.Capability_CAPABILITY_LIST,
+				},
+			},
+			// KV v2 metadata path - list and read metadata
+			{
+				Path: ca.VaultSecretMetadataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_LIST,
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+		},
+	}
 }
 
 // DeployCertificateAuthority implements the DeployCertificateAuthority workflow

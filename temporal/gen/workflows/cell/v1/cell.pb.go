@@ -7,7 +7,6 @@
 package cellv1
 
 import (
-	_ "github.com/bergundy/nexus-proto-annotations/go/nexus/v1"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -185,16 +184,16 @@ var File_cell_v1_cell_proto protoreflect.FileDescriptor
 
 const file_cell_v1_cell_proto_rawDesc = "" +
 	"\n" +
-	"\x12cell/v1/cell.proto\x12\acell.v1\x1a\x1atemporal/v1/temporal.proto\x1a\x16nexus/v1/options.proto\"\x15\n" +
+	"\x12cell/v1/cell.proto\x12\acell.v1\x1a\x1atemporal/v1/temporal.proto\"\x15\n" +
 	"\x13BootstrapInfraInput\"\x16\n" +
 	"\x14BootstrapInfraOutput\"(\n" +
 	"\x14InitFabricShardInput\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\"\x17\n" +
-	"\x15InitFabricShardOutput2\x88\x02\n" +
+	"\x15InitFabricShardOutput2\xf5\x01\n" +
 	"\x04Cell\x12m\n" +
 	"\x0eBootstrapInfra\x12\x1c.cell.v1.BootstrapInfraInput\x1a\x1d.cell.v1.BootstrapInfraOutput\"\x1e\x8a\xc4\x03\x1a0\x01r\x16cell.v1.BootstrapInfra\x12q\n" +
-	"\x0fInitFabricShard\x12\x1d.cell.v1.InitFabricShardInput\x1a\x1e.cell.v1.InitFabricShardOutput\"\x1f\x8a\xc4\x03\x1b0\x01r\x17cell.v1.InitFabricShard\x1a\x1e\x8a\xc4\x03\a\n" +
-	"\x05infraʂ\x04\x0f\x12\rnexus-enabledB\x98\x01\n" +
+	"\x0fInitFabricShard\x12\x1d.cell.v1.InitFabricShardInput\x1a\x1e.cell.v1.InitFabricShardOutput\"\x1f\x8a\xc4\x03\x1b0\x01r\x17cell.v1.InitFabricShard\x1a\v\x8a\xc4\x03\a\n" +
+	"\x05infraB\x98\x01\n" +
 	"\vcom.cell.v1B\tCellProtoP\x01ZAgithub.com/metacensus/infra/temporal/gen/workflows/cell/v1;cellv1\xa2\x02\x03CXX\xaa\x02\aCell.V1\xca\x02\aCell\\V1\xe2\x02\x13Cell\\V1\\GPBMetadata\xea\x02\bCell::V1b\x06proto3"
 
 var (

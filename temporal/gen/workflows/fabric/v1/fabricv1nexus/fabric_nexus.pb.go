@@ -5,6 +5,7 @@
 //	go go1.25.5
 //
 // include service tags: nexus-enabled
+// exclude operation tags: activity
 //
 //	protoc (unknown)
 //

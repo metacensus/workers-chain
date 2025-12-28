@@ -43,9 +43,9 @@ const (
 var (
 	BootstrapCertificateAuthoritiesIdexpression = expression.MustParseExpression("fabric/bootstrap-certificate-authorities")
 	BootstrapShardIdexpression                  = expression.MustParseExpression("fabric/bootstrap-shard")
-	DeployCertificateAuthorityIdexpression      = expression.MustParseExpression("fabric/deploy-certificate-authority")
+	DeployCertificateAuthorityIdexpression      = expression.MustParseExpression("fabric/deploy-certificate-authority/${! cert_type }/${! id }")
 	DeployCertificateStoreIdexpression          = expression.MustParseExpression("fabric/deploy-certificate-store")
-	DeployRootCertificateAuthorityIdexpression  = expression.MustParseExpression("fabric/deploy-root-certificate-authority")
+	DeployRootCertificateAuthorityIdexpression  = expression.MustParseExpression("fabric/deploy-certificate-authority/${! cert_type }/root")
 )
 
 // FabricClient describes a client for a(n) fabric.v1.Fabric worker
@@ -2053,7 +2053,7 @@ type DeployCertificateAuthorityWorkflowInput struct {
 // DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
 // for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
 //
-// workflow details: (name: "fabric.v1.DeployCertificateAuthority", id: "fabric/deploy-certificate-authority")
+// workflow details: (name: "fabric.v1.DeployCertificateAuthority", id: "fabric/deploy-certificate-authority/${! cert_type }/${! id }")
 type DeployCertificateAuthorityWorkflow interface {
 	// Execute defines the entrypoint to a(n) fabric.v1.DeployCertificateAuthority workflow
 	Execute(ctx workflow.Context) (*DeployCertificateAuthorityOutput, error)
@@ -2602,7 +2602,7 @@ type DeployRootCertificateAuthorityWorkflowInput struct {
 // for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
 // and is used to issue intermediate CAs for org and TLS identities.
 //
-// workflow details: (name: "fabric.v1.DeployRootCertificateAuthority", id: "fabric/deploy-root-certificate-authority")
+// workflow details: (name: "fabric.v1.DeployRootCertificateAuthority", id: "fabric/deploy-certificate-authority/${! cert_type }/root")
 type DeployRootCertificateAuthorityWorkflow interface {
 	// Execute defines the entrypoint to a(n) fabric.v1.DeployRootCertificateAuthority workflow
 	Execute(ctx workflow.Context) (*DeployRootCertificateAuthorityOutput, error)

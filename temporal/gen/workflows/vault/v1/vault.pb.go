@@ -7,6 +7,7 @@
 package vaultv1
 
 import (
+	_ "github.com/bergundy/nexus-proto-annotations/go/nexus/v1"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -1071,7 +1072,7 @@ var File_vault_v1_vault_proto protoreflect.FileDescriptor
 
 const file_vault_v1_vault_proto_rawDesc = "" +
 	"\n" +
-	"\x14vault/v1/vault.proto\x12\bvault.v1\x1a\x1atemporal/v1/temporal.proto\"\xba\x01\n" +
+	"\x14vault/v1/vault.proto\x12\bvault.v1\x1a\x16nexus/v1/options.proto\x1a\x1atemporal/v1/temporal.proto\"\xba\x01\n" +
 	"\x13CreateAuthRoleInput\x12\x1b\n" +
 	"\trole_name\x18\x01 \x01(\tR\broleName\x120\n" +
 	"\x14service_account_name\x18\x02 \x01(\tR\x12serviceAccountName\x121\n" +
@@ -1145,17 +1146,24 @@ const file_vault_v1_vault_proto_rawDesc = "" +
 	"\x0fCAPABILITY_DENY\x10\b\x12\x18\n" +
 	"\x14CAPABILITY_SUBSCRIBE\x10\t\x12\x16\n" +
 	"\x12CAPABILITY_RECOVER\x10\n" +
-	"2\x82\a\n" +
-	"\x05Vault\x12s\n" +
-	"\x0eCreateAuthRole\x12\x1d.vault.v1.CreateAuthRoleInput\x1a\x1e.vault.v1.CreateAuthRoleOutput\"\"\x92\xc4\x03\x1e\x12\x03\b\xac\x02:\x17vault.v1.CreateAuthRole\x12s\n" +
-	"\x0eDeleteAuthRole\x12\x1d.vault.v1.DeleteAuthRoleInput\x1a\x1e.vault.v1.DeleteAuthRoleOutput\"\"\x92\xc4\x03\x1e\x12\x03\b\xac\x02:\x17vault.v1.DeleteAuthRole\x12k\n" +
-	"\fCreatePolicy\x12\x1b.vault.v1.CreatePolicyInput\x1a\x1c.vault.v1.CreatePolicyOutput\" \x92\xc4\x03\x1c\x12\x03\b\xac\x02:\x15vault.v1.CreatePolicy\x12k\n" +
-	"\fDeletePolicy\x12\x1b.vault.v1.DeletePolicyInput\x1a\x1c.vault.v1.DeletePolicyOutput\" \x92\xc4\x03\x1c\x12\x03\b\xac\x02:\x15vault.v1.DeletePolicy\x12g\n" +
-	"\vStoreSecret\x12\x1a.vault.v1.StoreSecretInput\x1a\x1b.vault.v1.StoreSecretOutput\"\x1f\x92\xc4\x03\x1b\x12\x03\b\xac\x02:\x14vault.v1.StoreSecret\x12f\n" +
-	"\vFetchSecret\x12\x1a.vault.v1.FetchSecretInput\x1a\x1b.vault.v1.FetchSecretOutput\"\x1e\x92\xc4\x03\x1a\x12\x02\b<:\x14vault.v1.FetchSecret\x12k\n" +
-	"\fDeleteSecret\x12\x1b.vault.v1.DeleteSecretInput\x1a\x1c.vault.v1.DeleteSecretOutput\" \x92\xc4\x03\x1c\x12\x03\b\xac\x02:\x15vault.v1.DeleteSecret\x12j\n" +
-	"\fCreateAccess\x12\x1b.vault.v1.CreateAccessInput\x1a\x1c.vault.v1.CreateAccessOutput\"\x1f\x8a\xc4\x03\x1b0\x01@\x03r\x15vault.v1.CreateAccess\x1a\v\x8a\xc4\x03\a\n" +
-	"\x05infraB\xa0\x01\n" +
+	"2\xaf\b\n" +
+	"\x05Vault\x12\x81\x01\n" +
+	"\x0eCreateAuthRole\x12\x1d.vault.v1.CreateAuthRoleInput\x1a\x1e.vault.v1.CreateAuthRoleOutput\"0\x92\xc4\x03\x1e\x12\x03\b\xac\x02:\x17vault.v1.CreateAuthRole҂\x04\n" +
+	"\x12\bactivity\x12\x81\x01\n" +
+	"\x0eDeleteAuthRole\x12\x1d.vault.v1.DeleteAuthRoleInput\x1a\x1e.vault.v1.DeleteAuthRoleOutput\"0\x92\xc4\x03\x1e\x12\x03\b\xac\x02:\x17vault.v1.DeleteAuthRole҂\x04\n" +
+	"\x12\bactivity\x12y\n" +
+	"\fCreatePolicy\x12\x1b.vault.v1.CreatePolicyInput\x1a\x1c.vault.v1.CreatePolicyOutput\".\x92\xc4\x03\x1c\x12\x03\b\xac\x02:\x15vault.v1.CreatePolicy҂\x04\n" +
+	"\x12\bactivity\x12y\n" +
+	"\fDeletePolicy\x12\x1b.vault.v1.DeletePolicyInput\x1a\x1c.vault.v1.DeletePolicyOutput\".\x92\xc4\x03\x1c\x12\x03\b\xac\x02:\x15vault.v1.DeletePolicy҂\x04\n" +
+	"\x12\bactivity\x12u\n" +
+	"\vStoreSecret\x12\x1a.vault.v1.StoreSecretInput\x1a\x1b.vault.v1.StoreSecretOutput\"-\x92\xc4\x03\x1b\x12\x03\b\xac\x02:\x14vault.v1.StoreSecret҂\x04\n" +
+	"\x12\bactivity\x12t\n" +
+	"\vFetchSecret\x12\x1a.vault.v1.FetchSecretInput\x1a\x1b.vault.v1.FetchSecretOutput\",\x92\xc4\x03\x1a\x12\x02\b<:\x14vault.v1.FetchSecret҂\x04\n" +
+	"\x12\bactivity\x12y\n" +
+	"\fDeleteSecret\x12\x1b.vault.v1.DeleteSecretInput\x1a\x1c.vault.v1.DeleteSecretOutput\".\x92\xc4\x03\x1c\x12\x03\b\xac\x02:\x15vault.v1.DeleteSecret҂\x04\n" +
+	"\x12\bactivity\x12\x9f\x01\n" +
+	"\fCreateAccess\x12\x1b.vault.v1.CreateAccessInput\x1a\x1c.vault.v1.CreateAccessOutput\"T\x8a\xc4\x03P*3vault/create-access/${! policy_name.or(\"default\") }0\x01@\x03r\x15vault.v1.CreateAccess\x1a\x1e\x8a\xc4\x03\a\n" +
+	"\x05infraʂ\x04\x0f\x12\rnexus-enabledB\xa0\x01\n" +
 	"\fcom.vault.v1B\n" +
 	"VaultProtoP\x01ZCgithub.com/metacensus/infra/temporal/gen/workflows/vault/v1;vaultv1\xa2\x02\x03VXX\xaa\x02\bVault.V1\xca\x02\bVault\\V1\xe2\x02\x14Vault\\V1\\GPBMetadata\xea\x02\tVault::V1b\x06proto3"
 

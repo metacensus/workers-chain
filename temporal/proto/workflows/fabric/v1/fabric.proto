@@ -55,7 +55,8 @@ service Fabric {
   rpc DeployRootCertificateAuthority(DeployRootCertificateAuthorityInput) returns (DeployRootCertificateAuthorityOutput) {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.DeployRootCertificateAuthority"
-      id: 'fabric/deploy-root-certificate-authority'
+      // Workflow ID includes cert_type and root suffix for clarity
+      id: 'fabric/deploy-certificate-authority/${! cert_type }/root'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -65,7 +66,8 @@ service Fabric {
   rpc DeployCertificateAuthority(DeployCertificateAuthorityInput) returns (DeployCertificateAuthorityOutput) {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.DeployCertificateAuthority"
-      id: 'fabric/deploy-certificate-authority'
+      // Workflow ID includes cert_type and id to allow parallel deployment and rotation
+      id: 'fabric/deploy-certificate-authority/${! cert_type }/${! id }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -117,7 +119,9 @@ message DeployCertificateStoreOutput {
 
 // DeployRootCertificateAuthorityInput specifies the parameters for deploying the root CA
 message DeployRootCertificateAuthorityInput {
-  // Empty for now - will be populated as implementation progresses
+  // cert_type specifies whether this is a TLS or Org certificate authority
+  // Valid values: "tls" (for secure communication), "org" (for Fabric MSP identity)
+  string cert_type = 1;
 }
 
 // DeployRootCertificateAuthorityOutput indicates the result of root CA deployment
@@ -130,7 +134,14 @@ message DeployRootCertificateAuthorityOutput {
 
 // DeployCertificateAuthorityInput specifies the parameters for deploying an intermediate CA
 message DeployCertificateAuthorityInput {
-  // Empty for now - will be populated as implementation progresses
+  // cert_type specifies whether this is a TLS or Org certificate authority
+  // Valid values: "tls" or "org"
+  string cert_type = 1;
+  
+  // id is a unique identifier for this intermediate CA instance.
+  // This enables rotation by deploying a new intermediate CA with a different ID
+  // while the old one is still active, then switching over and revoking the old one.
+  string id = 2;
 }
 
 // DeployCertificateAuthorityOutput indicates the result of intermediate CA deployment

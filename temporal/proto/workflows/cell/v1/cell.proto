@@ -5,14 +5,10 @@ package cell.v1;
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/cell/v1;cellv1";
 
 import "temporal/v1/temporal.proto";
-import "nexus/v1/options.proto";
 
 // Cell service defines the root workflow for initializing a Fabric shard (cluster/cell)
 // This is the entry point for multi-tenant infrastructure provisioning
 service Cell {
-  // Nexus service configuration - enables receiving calls from other namespaces
-  option (.nexus.v1.service).tags = "nexus-enabled";
-
   // Service-wide Temporal settings
   option (temporal.v1.service) = {
     task_queue: "infra"

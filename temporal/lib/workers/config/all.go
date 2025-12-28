@@ -189,7 +189,7 @@ func GetOrg() *OrgConfig {
 
 // OrgConfig methods for deriving per-org values
 
-func (c OrgConfig) KubeNamespace() string {
+func (c OrgConfig) KubernetesNamespace() string {
 	return "fabric-" + c.OrgID
 }
 

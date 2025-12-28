@@ -32,12 +32,12 @@ var Module = fx.Module("infra",
 	fx.Invoke(
 		vault.RegisterActivities,
 		vault.RegisterWorkflows,
+		vault.RegisterNexusService,
 		helm.RegisterActivities,
 		kube.RegisterActivities,
 		temporal.RegisterActivities,
 		temporal.RegisterWorkflows,
 		cell.RegisterWorkflows,
-		cell.RegisterNexusService,
 		clusterfabric.RegisterWorkflows,
 	),
 )

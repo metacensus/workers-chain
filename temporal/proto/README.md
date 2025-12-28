@@ -1180,7 +1180,23 @@ and is used to issue intermediate CAs for org and TLS identities.
 
 **Input:** [fabric.v1.DeployRootCertificateAuthorityInput](#fabric-v1-deployrootcertificateauthorityinput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is a TLS or Org certificate authority
+Valid values: "tls" (for secure communication), "org" (for Fabric MSP identity)<br>
 
+json_name: certType
+go_name: CertType</pre></td>
+</tr>
+</table>
 
 **Output:** [fabric.v1.DeployRootCertificateAuthorityOutput](#fabric-v1-deployrootcertificateauthorityoutput)
 
@@ -1190,7 +1206,7 @@ and is used to issue intermediate CAs for org and TLS identities.
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/deploy-root-certificate-authority</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-certificate-authority/${! cert_type }/root</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -1205,7 +1221,33 @@ for the Fabric organization. Intermediate CAs are deployed for both "org" and "t
 
 **Input:** [fabric.v1.DeployCertificateAuthorityInput](#fabric-v1-deploycertificateauthorityinput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is a TLS or Org certificate authority
+Valid values: "tls" or "org"<br>
 
+json_name: certType
+go_name: CertType</pre></td>
+</tr><tr>
+<td>id</td>
+<td>string</td>
+<td><pre>
+id is a unique identifier for this intermediate CA instance.
+This enables rotation by deploying a new intermediate CA with a different ID
+while the old one is still active, then switching over and revoking the old one.<br>
+
+json_name: id
+go_name: Id</pre></td>
+</tr>
+</table>
 
 **Output:** [fabric.v1.DeployCertificateAuthorityOutput](#fabric-v1-deploycertificateauthorityoutput)
 
@@ -1215,7 +1257,7 @@ for the Fabric organization. Intermediate CAs are deployed for both "org" and "t
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/deploy-certificate-authority</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-certificate-authority/${! cert_type }/${! id }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>     
 
@@ -1269,6 +1311,34 @@ Empty for now - will be populated as implementation progresses
 DeployCertificateAuthorityInput specifies the parameters for deploying an intermediate CA
 </pre>
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is a TLS or Org certificate authority
+Valid values: "tls" or "org"<br>
+
+json_name: certType
+go_name: CertType</pre></td>
+</tr><tr>
+<td>id</td>
+<td>string</td>
+<td><pre>
+id is a unique identifier for this intermediate CA instance.
+This enables rotation by deploying a new intermediate CA with a different ID
+while the old one is still active, then switching over and revoking the old one.<br>
+
+json_name: id
+go_name: Id</pre></td>
+</tr>
+</table>
+
 
 
 <a name="fabric-v1-deploycertificateauthorityoutput"></a>
@@ -1307,6 +1377,24 @@ Empty for now - will be populated as implementation progresses
 <pre>
 DeployRootCertificateAuthorityInput specifies the parameters for deploying the root CA
 </pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is a TLS or Org certificate authority
+Valid values: "tls" (for secure communication), "org" (for Fabric MSP identity)<br>
+
+json_name: certType
+go_name: CertType</pre></td>
+</tr>
+</table>
 
 
 
@@ -3786,6 +3874,7 @@ go_name: PolicyName</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>vault/create-access/${! policy_name.or("default") }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 <tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
 </table>    
