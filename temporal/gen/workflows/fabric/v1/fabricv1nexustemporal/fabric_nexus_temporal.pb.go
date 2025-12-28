@@ -134,3 +134,25 @@ func (c *FabricNexusClient) DeployCertificateAuthority(ctx workflow.Context, inp
 	err := fut.Get(ctx, &output)
 	return &output, err
 }
+
+type CreateCertificateDatabaseFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *CreateCertificateDatabaseFuture) GetTyped(ctx workflow.Context) (*v1.CreateCertificateDatabaseOutput, error) {
+	var output v1.CreateCertificateDatabaseOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) CreateCertificateDatabaseAsync(ctx workflow.Context, input *v1.CreateCertificateDatabaseInput, options workflow.NexusOperationOptions) CreateCertificateDatabaseFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricCreateCertificateDatabaseOperationName, input, options)
+	return CreateCertificateDatabaseFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) CreateCertificateDatabase(ctx workflow.Context, input *v1.CreateCertificateDatabaseInput, options workflow.NexusOperationOptions) (*v1.CreateCertificateDatabaseOutput, error) {
+	var output v1.CreateCertificateDatabaseOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricCreateCertificateDatabaseOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}

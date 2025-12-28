@@ -71,6 +71,17 @@ service Fabric {
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
+
+  // CreateCertificateDatabase creates a dedicated database and user for a certificate authority
+  // in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
+  // isolated database to store issued certificates and revocation information.
+  rpc CreateCertificateDatabase(CreateCertificateDatabaseInput) returns (CreateCertificateDatabaseOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.CreateCertificateDatabase"
+      id: 'fabric/create-certificate-database'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
 }
 
 // ==================== BootstrapShard Workflow Messages ====================
@@ -147,6 +158,20 @@ message DeployCertificateAuthorityInput {
 // DeployCertificateAuthorityOutput indicates the result of intermediate CA deployment
 // Empty for now - will be populated as implementation progresses
 message DeployCertificateAuthorityOutput {
+  // Empty for now
+}
+
+// ==================== CreateCertificateDatabase Workflow Messages ====================
+
+// CreateCertificateDatabaseInput specifies the parameters for creating a certificate database
+// Empty for now - will be populated as implementation progresses
+message CreateCertificateDatabaseInput {
+  // Empty for now
+}
+
+// CreateCertificateDatabaseOutput indicates the result of certificate database creation
+// Empty for now - will be populated as implementation progresses
+message CreateCertificateDatabaseOutput {
   // Empty for now
 }
 

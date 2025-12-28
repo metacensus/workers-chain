@@ -37,6 +37,11 @@ func registerChildWorkflowStubs(env *testsuite.TestWorkflowEnvironment) {
 		func(workflow.Context, *pb.BootstrapCertificateAuthoritiesInput) (*pb.BootstrapCertificateAuthoritiesOutput, error) {
 			return nil, nil
 		})
+
+	register(pb.CreateCertificateDatabaseWorkflowName,
+		func(workflow.Context, *pb.CreateCertificateDatabaseInput) (*pb.CreateCertificateDatabaseOutput, error) {
+			return nil, nil
+		})
 }
 
 // mockChildWorkflow sets up a mock for a child workflow, returning success or the given error.
@@ -106,6 +111,66 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 			}, &pb.DeployCertificateStoreInput{})
 
 			var result *pb.DeployCertificateStoreOutput
+			err := env.GetWorkflowResult(&result)
+
+			if tt.expectedErr == nil {
+				if err != nil {
+					t.Fatalf("unexpected workflow error: %v", err)
+				}
+				if result == nil {
+					t.Fatal("result is nil")
+				}
+			} else {
+				if err == nil {
+					t.Fatalf("expected error %v, got nil", tt.expectedErr)
+				}
+				// Temporal serializes workflow errors, breaking Go's error chain, so we check the message.
+				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
+					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
+				}
+			}
+		})
+	}
+}
+
+func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
+	tests := []struct {
+		name        string
+		org         string
+		expectedErr error // nil = success
+	}{
+		{
+			name:        "success - certificate database created",
+			org:         testOrg,
+			expectedErr: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestWorkflowEnvironment()
+
+			// Register child workflow stubs
+			registerChildWorkflowStubs(env)
+
+			// Create OrgConfig for testing
+			orgConfig := config.OrgConfig{OrgID: tt.org}
+
+			// TODO: Mock postgres activities and crypto workflows when implemented
+			// For now, the workflow only logs
+
+			// Execute workflow
+			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.CreateCertificateDatabaseInput) (*pb.CreateCertificateDatabaseOutput, error) {
+				workflows := fabric.NewWorkflows(orgConfig)
+				wf, err := workflows.CreateCertificateDatabase(ctx, &pb.CreateCertificateDatabaseWorkflowInput{Req: input})
+				if err != nil {
+					return nil, err
+				}
+				return wf.Execute(ctx)
+			}, &pb.CreateCertificateDatabaseInput{})
+
+			var result *pb.CreateCertificateDatabaseOutput
 			err := env.GetWorkflowResult(&result)
 
 			if tt.expectedErr == nil {

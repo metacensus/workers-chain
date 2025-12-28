@@ -45,11 +45,14 @@
         - [fabric.v1.DeployCertificateStore](#fabric-v1-deploycertificatestore-workflow)
         - [fabric.v1.DeployRootCertificateAuthority](#fabric-v1-deployrootcertificateauthority-workflow)
         - [fabric.v1.DeployCertificateAuthority](#fabric-v1-deploycertificateauthority-workflow)
+        - [fabric.v1.CreateCertificateDatabase](#fabric-v1-createcertificatedatabase-workflow)
   - Messages
     - [fabric.v1.BootstrapCertificateAuthoritiesInput](#fabric-v1-bootstrapcertificateauthoritiesinput)
     - [fabric.v1.BootstrapCertificateAuthoritiesOutput](#fabric-v1-bootstrapcertificateauthoritiesoutput)
     - [fabric.v1.BootstrapShardInput](#fabric-v1-bootstrapshardinput)
     - [fabric.v1.BootstrapShardOutput](#fabric-v1-bootstrapshardoutput)
+    - [fabric.v1.CreateCertificateDatabaseInput](#fabric-v1-createcertificatedatabaseinput)
+    - [fabric.v1.CreateCertificateDatabaseOutput](#fabric-v1-createcertificatedatabaseoutput)
     - [fabric.v1.DeployCertificateAuthorityInput](#fabric-v1-deploycertificateauthorityinput)
     - [fabric.v1.DeployCertificateAuthorityOutput](#fabric-v1-deploycertificateauthorityoutput)
     - [fabric.v1.DeployCertificateStoreInput](#fabric-v1-deploycertificatestoreinput)
@@ -1259,6 +1262,32 @@ go_name: Id</pre></td>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/deploy-certificate-authority/${! cert_type }/${! id }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-createcertificatedatabase-workflow"></a>
+### fabric.v1.CreateCertificateDatabase
+
+<pre>
+CreateCertificateDatabase creates a dedicated database and user for a certificate authority
+in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
+isolated database to store issued certificates and revocation information.
+</pre>
+
+**Input:** [fabric.v1.CreateCertificateDatabaseInput](#fabric-v1-createcertificatedatabaseinput)
+
+
+
+**Output:** [fabric.v1.CreateCertificateDatabaseOutput](#fabric-v1-createcertificatedatabaseoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/create-certificate-database</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>     
 
 <a name="fabric-v1-messages"></a>
@@ -1299,6 +1328,26 @@ Empty for now - will be populated as implementation progresses
 
 <pre>
 BootstrapShardOutput indicates the result of shard bootstrapping
+Empty for now - will be populated as implementation progresses
+</pre>
+
+
+
+<a name="fabric-v1-createcertificatedatabaseinput"></a>
+### fabric.v1.CreateCertificateDatabaseInput
+
+<pre>
+CreateCertificateDatabaseInput specifies the parameters for creating a certificate database
+Empty for now - will be populated as implementation progresses
+</pre>
+
+
+
+<a name="fabric-v1-createcertificatedatabaseoutput"></a>
+### fabric.v1.CreateCertificateDatabaseOutput
+
+<pre>
+CreateCertificateDatabaseOutput indicates the result of certificate database creation
 Empty for now - will be populated as implementation progresses
 </pre>
 

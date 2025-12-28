@@ -51,6 +51,22 @@ func (h *FabricNexusHandler) BootstrapShard(name string) nexus.Operation[*v1.Boo
 	})
 }
 
+// CreateCertificateDatabase creates a dedicated database and user for a certificate authority
+// in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
+// isolated database to store issued certificates and revocation information.
+func (h *FabricNexusHandler) CreateCertificateDatabase(name string) nexus.Operation[*v1.CreateCertificateDatabaseInput, *v1.CreateCertificateDatabaseOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.CreateCertificateDatabaseInput, *v1.CreateCertificateDatabaseOutput]{
+		Handler: func(ctx context.Context, input *v1.CreateCertificateDatabaseInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.CreateCertificateDatabaseOutput], error) {
+			o, err := v1.NewCreateCertificateDatabaseOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateCertificateDatabaseOutput](ctx, opts, o, v1.CreateCertificateDatabaseWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
 // DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
 // for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
 func (h *FabricNexusHandler) DeployCertificateAuthority(name string) nexus.Operation[*v1.DeployCertificateAuthorityInput, *v1.DeployCertificateAuthorityOutput] {

@@ -22,6 +22,7 @@ const (
 var (
 	ErrBootstrapCertificateAuthorities = errors.New("bootstrap certificate authorities")
 	ErrDeployCertificateStore          = errors.New("deploy certificate store")
+	ErrCreateCertificateDatabase       = errors.New("create certificate database")
 	ErrDeployRootCertificateAuthority  = errors.New("deploy root certificate authority")
 	ErrDeployCertificateAuthority      = errors.New("deploy certificate authority")
 	ErrCreateVaultAccess               = errors.New("create vault access via nexus")
@@ -130,6 +131,33 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 	return &pb.DeployCertificateStoreOutput{}, nil
 }
 
+// CreateCertificateDatabase implements the CreateCertificateDatabase workflow
+func (w *Workflows) CreateCertificateDatabase(ctx workflow.Context, input *pb.CreateCertificateDatabaseWorkflowInput) (pb.CreateCertificateDatabaseWorkflow, error) {
+	return &createCertificateDatabaseWorkflow{input: input, orgConfig: w.orgConfig}, nil
+}
+
+// createCertificateDatabaseWorkflow implements pb.CreateCertificateDatabaseWorkflow
+type createCertificateDatabaseWorkflow struct {
+	input     *pb.CreateCertificateDatabaseWorkflowInput
+	orgConfig config.OrgConfig
+}
+
+// Execute creates a dedicated database and user for a certificate authority.
+func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.CreateCertificateDatabaseOutput, error) {
+	logger := workflow.GetLogger(ctx)
+
+	logger.Info("Creating certificate database", "org", w.orgConfig.OrgID)
+
+	// TODO: Create database (postgres.v1.CreateDatabase activity)
+	// TODO: Generate password (crypto.v1.CreatePassword workflow)
+	// TODO: Create user (postgres.v1.CreateUser activity)
+	// TODO: Grant privileges (postgres.v1.GrantPrivileges activity)
+
+	logger.Info("Certificate database created successfully", "org", w.orgConfig.OrgID)
+
+	return &pb.CreateCertificateDatabaseOutput{}, nil
+}
+
 // DeployRootCertificateAuthority implements the DeployRootCertificateAuthority workflow
 func (w *Workflows) DeployRootCertificateAuthority(ctx workflow.Context, input *pb.DeployRootCertificateAuthorityWorkflowInput) (pb.DeployRootCertificateAuthorityWorkflow, error) {
 	return &deployRootCertificateAuthorityWorkflow{input: input, orgConfig: w.orgConfig}, nil
@@ -181,7 +209,11 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		"certType", certType,
 	)
 
-	// TODO: Create certificate database
+	// Create certificate database for this root CA
+	if _, err := pb.CreateCertificateDatabaseChild(ctx, &pb.CreateCertificateDatabaseInput{}); err != nil {
+		return nil, fmt.Errorf("%w (certType=%s): %w", ErrCreateCertificateDatabase, certType, err)
+	}
+
 	// TODO: Generate root CA key pair
 	// TODO: Generate root CA certificate
 	// TODO: Deploy root CA pod

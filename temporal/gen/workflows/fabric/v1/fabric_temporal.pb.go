@@ -34,6 +34,7 @@ var FabricTaskQueue = "infra"
 const (
 	BootstrapCertificateAuthoritiesWorkflowName = "fabric.v1.BootstrapCertificateAuthorities"
 	BootstrapShardWorkflowName                  = "fabric.v1.BootstrapShard"
+	CreateCertificateDatabaseWorkflowName       = "fabric.v1.CreateCertificateDatabase"
 	DeployCertificateAuthorityWorkflowName      = "fabric.v1.DeployCertificateAuthority"
 	DeployCertificateStoreWorkflowName          = "fabric.v1.DeployCertificateStore"
 	DeployRootCertificateAuthorityWorkflowName  = "fabric.v1.DeployRootCertificateAuthority"
@@ -43,6 +44,7 @@ const (
 var (
 	BootstrapCertificateAuthoritiesIdexpression = expression.MustParseExpression("fabric/bootstrap-certificate-authorities")
 	BootstrapShardIdexpression                  = expression.MustParseExpression("fabric/bootstrap-shard")
+	CreateCertificateDatabaseIdexpression       = expression.MustParseExpression("fabric/create-certificate-database")
 	DeployCertificateAuthorityIdexpression      = expression.MustParseExpression("fabric/deploy-certificate-authority/${! cert_type }/${! id }")
 	DeployCertificateStoreIdexpression          = expression.MustParseExpression("fabric/deploy-certificate-store")
 	DeployRootCertificateAuthorityIdexpression  = expression.MustParseExpression("fabric/deploy-certificate-authority/${! cert_type }/root")
@@ -71,6 +73,17 @@ type FabricClient interface {
 
 	// GetBootstrapShard retrieves a handle to an existing fabric.v1.BootstrapShard workflow execution
 	GetBootstrapShard(ctx context.Context, workflowID string, runID string) BootstrapShardRun
+
+	// CreateCertificateDatabase creates a dedicated database and user for a certificate authority
+	// in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
+	// isolated database to store issued certificates and revocation information.
+	CreateCertificateDatabase(ctx context.Context, req *CreateCertificateDatabaseInput, opts ...*CreateCertificateDatabaseOptions) (*CreateCertificateDatabaseOutput, error)
+
+	// CreateCertificateDatabaseAsync starts a(n) fabric.v1.CreateCertificateDatabase workflow and returns a handle to the workflow run
+	CreateCertificateDatabaseAsync(ctx context.Context, req *CreateCertificateDatabaseInput, opts ...*CreateCertificateDatabaseOptions) (CreateCertificateDatabaseRun, error)
+
+	// GetCreateCertificateDatabase retrieves a handle to an existing fabric.v1.CreateCertificateDatabase workflow execution
+	GetCreateCertificateDatabase(ctx context.Context, workflowID string, runID string) CreateCertificateDatabaseRun
 
 	// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
 	// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
@@ -262,6 +275,52 @@ func (c *fabricClient) BootstrapShardAsync(ctx context.Context, req *BootstrapSh
 // GetBootstrapShard fetches an existing fabric.v1.BootstrapShard execution
 func (c *fabricClient) GetBootstrapShard(ctx context.Context, workflowID string, runID string) BootstrapShardRun {
 	return &bootstrapShardRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// CreateCertificateDatabase creates a dedicated database and user for a certificate authority
+// in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
+// isolated database to store issued certificates and revocation information.
+func (c *fabricClient) CreateCertificateDatabase(ctx context.Context, req *CreateCertificateDatabaseInput, options ...*CreateCertificateDatabaseOptions) (*CreateCertificateDatabaseOutput, error) {
+	run, err := c.CreateCertificateDatabaseAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// CreateCertificateDatabase creates a dedicated database and user for a certificate authority
+// in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
+// isolated database to store issued certificates and revocation information.
+func (c *fabricClient) CreateCertificateDatabaseAsync(ctx context.Context, req *CreateCertificateDatabaseInput, options ...*CreateCertificateDatabaseOptions) (CreateCertificateDatabaseRun, error) {
+	var o *CreateCertificateDatabaseOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateCertificateDatabaseOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, CreateCertificateDatabaseWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &createCertificateDatabaseRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetCreateCertificateDatabase fetches an existing fabric.v1.CreateCertificateDatabase execution
+func (c *fabricClient) GetCreateCertificateDatabase(ctx context.Context, workflowID string, runID string) CreateCertificateDatabaseRun {
+	return &createCertificateDatabaseRun{
 		client: c,
 		run:    c.client.GetWorkflow(ctx, workflowID, runID),
 	}
@@ -774,6 +833,189 @@ func (r *bootstrapShardRun) Get(ctx context.Context) (*BootstrapShardOutput, err
 
 // Terminate terminates a workflow in execution, returning an error if applicable
 func (r *bootstrapShardRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+// CreateCertificateDatabaseOptions provides configuration for a fabric.v1.CreateCertificateDatabase workflow operation
+type CreateCertificateDatabaseOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewCreateCertificateDatabaseOptions initializes a new CreateCertificateDatabaseOptions value
+func NewCreateCertificateDatabaseOptions() *CreateCertificateDatabaseOptions {
+	return &CreateCertificateDatabaseOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *CreateCertificateDatabaseOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(CreateCertificateDatabaseIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateCertificateDatabaseWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *CreateCertificateDatabaseOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *CreateCertificateDatabaseOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *CreateCertificateDatabaseOptions) WithExecutionTimeout(d time.Duration) *CreateCertificateDatabaseOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *CreateCertificateDatabaseOptions) WithID(id string) *CreateCertificateDatabaseOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *CreateCertificateDatabaseOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *CreateCertificateDatabaseOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CreateCertificateDatabaseOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateCertificateDatabaseOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *CreateCertificateDatabaseOptions) WithRunTimeout(d time.Duration) *CreateCertificateDatabaseOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *CreateCertificateDatabaseOptions) WithSearchAttributes(sa map[string]any) *CreateCertificateDatabaseOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *CreateCertificateDatabaseOptions) WithTaskTimeout(d time.Duration) *CreateCertificateDatabaseOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *CreateCertificateDatabaseOptions) WithTaskQueue(tq string) *CreateCertificateDatabaseOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *CreateCertificateDatabaseOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *CreateCertificateDatabaseOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// CreateCertificateDatabaseRun describes a(n) fabric.v1.CreateCertificateDatabase workflow run
+type CreateCertificateDatabaseRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*CreateCertificateDatabaseOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// createCertificateDatabaseRun provides an internal implementation of a(n) CreateCertificateDatabaseRunRun
+type createCertificateDatabaseRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *createCertificateDatabaseRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *createCertificateDatabaseRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *createCertificateDatabaseRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *createCertificateDatabaseRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *createCertificateDatabaseRun) Get(ctx context.Context) (*CreateCertificateDatabaseOutput, error) {
+	var resp CreateCertificateDatabaseOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *createCertificateDatabaseRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
@@ -1338,6 +1580,10 @@ var (
 	// and deploys all Fabric components (CAs, peers, orderers) for the organization.
 	// Called via Nexus from the central worker after Phase 1 completes
 	BootstrapShardFunction func(workflow.Context, *BootstrapShardInput) (*BootstrapShardOutput, error)
+	// CreateCertificateDatabase creates a dedicated database and user for a certificate authority
+	// in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
+	// isolated database to store issued certificates and revocation information.
+	CreateCertificateDatabaseFunction func(workflow.Context, *CreateCertificateDatabaseInput) (*CreateCertificateDatabaseOutput, error)
 	// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
 	// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
 	DeployCertificateAuthorityFunction func(workflow.Context, *DeployCertificateAuthorityInput) (*DeployCertificateAuthorityOutput, error)
@@ -1362,6 +1608,10 @@ type (
 		// and deploys all Fabric components (CAs, peers, orderers) for the organization.
 		// Called via Nexus from the central worker after Phase 1 completes
 		BootstrapShard(workflow.Context, *BootstrapShardInput) (*BootstrapShardOutput, error)
+		// CreateCertificateDatabase creates a dedicated database and user for a certificate authority
+		// in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
+		// isolated database to store issued certificates and revocation information.
+		CreateCertificateDatabase(workflow.Context, *CreateCertificateDatabaseInput) (*CreateCertificateDatabaseOutput, error)
 		// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
 		// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
 		DeployCertificateAuthority(workflow.Context, *DeployCertificateAuthorityInput) (*DeployCertificateAuthorityOutput, error)
@@ -1399,6 +1649,16 @@ func (f *fabricWorkflowFunctions) BootstrapShard(ctx workflow.Context, req *Boot
 		return nil, errors.New("BootstrapShard requires workflow registration via RegisterFabricWorkflows or RegisterBootstrapShardWorkflow")
 	}
 	return BootstrapShardFunction(ctx, req)
+}
+
+// CreateCertificateDatabase creates a dedicated database and user for a certificate authority
+// in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
+// isolated database to store issued certificates and revocation information.
+func (f *fabricWorkflowFunctions) CreateCertificateDatabase(ctx workflow.Context, req *CreateCertificateDatabaseInput) (*CreateCertificateDatabaseOutput, error) {
+	if CreateCertificateDatabaseFunction == nil {
+		return nil, errors.New("CreateCertificateDatabase requires workflow registration via RegisterFabricWorkflows or RegisterCreateCertificateDatabaseWorkflow")
+	}
+	return CreateCertificateDatabaseFunction(ctx, req)
 }
 
 // DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
@@ -1441,6 +1701,11 @@ type FabricWorkflows interface {
 	// Called via Nexus from the central worker after Phase 1 completes
 	BootstrapShard(ctx workflow.Context, input *BootstrapShardWorkflowInput) (BootstrapShardWorkflow, error)
 
+	// CreateCertificateDatabase creates a dedicated database and user for a certificate authority
+	// in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
+	// isolated database to store issued certificates and revocation information.
+	CreateCertificateDatabase(ctx workflow.Context, input *CreateCertificateDatabaseWorkflowInput) (CreateCertificateDatabaseWorkflow, error)
+
 	// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
 	// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
 	DeployCertificateAuthority(ctx workflow.Context, input *DeployCertificateAuthorityWorkflowInput) (DeployCertificateAuthorityWorkflow, error)
@@ -1459,6 +1724,7 @@ type FabricWorkflows interface {
 func RegisterFabricWorkflows(r worker.WorkflowRegistry, workflows FabricWorkflows) {
 	RegisterBootstrapCertificateAuthoritiesWorkflow(r, workflows.BootstrapCertificateAuthorities)
 	RegisterBootstrapShardWorkflow(r, workflows.BootstrapShard)
+	RegisterCreateCertificateDatabaseWorkflow(r, workflows.CreateCertificateDatabase)
 	RegisterDeployCertificateAuthorityWorkflow(r, workflows.DeployCertificateAuthority)
 	RegisterDeployCertificateStoreWorkflow(r, workflows.DeployCertificateStore)
 	RegisterDeployRootCertificateAuthorityWorkflow(r, workflows.DeployRootCertificateAuthority)
@@ -2011,6 +2277,283 @@ func (r *BootstrapShardChildRun) SelectStart(sel workflow.Selector, fn func(*Boo
 
 // WaitStart waits for the child workflow to start
 func (r *BootstrapShardChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
+// RegisterCreateCertificateDatabaseWorkflow registers a fabric.v1.Fabric.CreateCertificateDatabase workflow with the given worker
+func RegisterCreateCertificateDatabaseWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *CreateCertificateDatabaseWorkflowInput) (CreateCertificateDatabaseWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	CreateCertificateDatabaseFunction = buildCreateCertificateDatabase(wf)
+	r.RegisterWorkflowWithOptions(CreateCertificateDatabaseFunction, workflow.RegisterOptions{Name: CreateCertificateDatabaseWorkflowName})
+}
+
+// buildCreateCertificateDatabase converts a CreateCertificateDatabase workflow struct into a valid workflow function
+func buildCreateCertificateDatabase(ctor func(workflow.Context, *CreateCertificateDatabaseWorkflowInput) (CreateCertificateDatabaseWorkflow, error)) func(workflow.Context, *CreateCertificateDatabaseInput) (*CreateCertificateDatabaseOutput, error) {
+	return func(ctx workflow.Context, req *CreateCertificateDatabaseInput) (*CreateCertificateDatabaseOutput, error) {
+		input := &CreateCertificateDatabaseWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// CreateCertificateDatabaseWorkflowInput describes the input to a(n) fabric.v1.CreateCertificateDatabase workflow constructor
+type CreateCertificateDatabaseWorkflowInput struct {
+	Req *CreateCertificateDatabaseInput
+}
+
+// CreateCertificateDatabase creates a dedicated database and user for a certificate authority
+// in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
+// isolated database to store issued certificates and revocation information.
+//
+// workflow details: (name: "fabric.v1.CreateCertificateDatabase", id: "fabric/create-certificate-database")
+type CreateCertificateDatabaseWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.CreateCertificateDatabase workflow
+	Execute(ctx workflow.Context) (*CreateCertificateDatabaseOutput, error)
+}
+
+// CreateCertificateDatabase creates a dedicated database and user for a certificate authority
+// in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
+// isolated database to store issued certificates and revocation information.
+func CreateCertificateDatabaseChild(ctx workflow.Context, req *CreateCertificateDatabaseInput, options ...*CreateCertificateDatabaseChildOptions) (*CreateCertificateDatabaseOutput, error) {
+	childRun, err := CreateCertificateDatabaseChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// CreateCertificateDatabase creates a dedicated database and user for a certificate authority
+// in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
+// isolated database to store issued certificates and revocation information.
+func CreateCertificateDatabaseChildAsync(ctx workflow.Context, req *CreateCertificateDatabaseInput, options ...*CreateCertificateDatabaseChildOptions) (*CreateCertificateDatabaseChildRun, error) {
+	var o *CreateCertificateDatabaseChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateCertificateDatabaseChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &CreateCertificateDatabaseChildRun{Future: workflow.ExecuteChildWorkflow(ctx, CreateCertificateDatabaseWorkflowName, req)}, nil
+}
+
+// CreateCertificateDatabaseChildOptions provides configuration for a child fabric.v1.CreateCertificateDatabase workflow operation
+type CreateCertificateDatabaseChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewCreateCertificateDatabaseChildOptions initializes a new CreateCertificateDatabaseChildOptions value
+func NewCreateCertificateDatabaseChildOptions() *CreateCertificateDatabaseChildOptions {
+	return &CreateCertificateDatabaseChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *CreateCertificateDatabaseChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(CreateCertificateDatabaseIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateCertificateDatabaseWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateCertificateDatabaseWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(CreateCertificateDatabaseIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateCertificateDatabaseWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *CreateCertificateDatabaseChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *CreateCertificateDatabaseChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *CreateCertificateDatabaseChildOptions) WithDataConverter(dc converter.DataConverter) *CreateCertificateDatabaseChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *CreateCertificateDatabaseChildOptions) WithExecutionTimeout(d time.Duration) *CreateCertificateDatabaseChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *CreateCertificateDatabaseChildOptions) WithID(id string) *CreateCertificateDatabaseChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *CreateCertificateDatabaseChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *CreateCertificateDatabaseChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *CreateCertificateDatabaseChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *CreateCertificateDatabaseChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CreateCertificateDatabaseChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateCertificateDatabaseChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *CreateCertificateDatabaseChildOptions) WithRunTimeout(d time.Duration) *CreateCertificateDatabaseChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *CreateCertificateDatabaseChildOptions) WithSearchAttributes(sa map[string]any) *CreateCertificateDatabaseChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *CreateCertificateDatabaseChildOptions) WithTaskTimeout(d time.Duration) *CreateCertificateDatabaseChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *CreateCertificateDatabaseChildOptions) WithTaskQueue(tq string) *CreateCertificateDatabaseChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *CreateCertificateDatabaseChildOptions) WithWaitForCancellation(wait bool) *CreateCertificateDatabaseChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *CreateCertificateDatabaseChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *CreateCertificateDatabaseChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// CreateCertificateDatabaseChildRun describes a child CreateCertificateDatabase workflow run
+type CreateCertificateDatabaseChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *CreateCertificateDatabaseChildRun) Get(ctx workflow.Context) (*CreateCertificateDatabaseOutput, error) {
+	var resp CreateCertificateDatabaseOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *CreateCertificateDatabaseChildRun) Select(sel workflow.Selector, fn func(*CreateCertificateDatabaseChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *CreateCertificateDatabaseChildRun) SelectStart(sel workflow.Selector, fn func(*CreateCertificateDatabaseChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *CreateCertificateDatabaseChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
 	var exec workflow.Execution
 	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
 		return nil, err
@@ -2926,6 +3469,35 @@ func (c *TestFabricClient) GetBootstrapShard(ctx context.Context, workflowID str
 	return &testBootstrapShardRun{env: c.env, workflows: c.workflows}
 }
 
+// CreateCertificateDatabase executes a(n) fabric.v1.CreateCertificateDatabase workflow in the test environment
+func (c *TestFabricClient) CreateCertificateDatabase(ctx context.Context, req *CreateCertificateDatabaseInput, opts ...*CreateCertificateDatabaseOptions) (*CreateCertificateDatabaseOutput, error) {
+	run, err := c.CreateCertificateDatabaseAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// CreateCertificateDatabaseAsync executes a(n) fabric.v1.CreateCertificateDatabase workflow in the test environment
+func (c *TestFabricClient) CreateCertificateDatabaseAsync(ctx context.Context, req *CreateCertificateDatabaseInput, options ...*CreateCertificateDatabaseOptions) (CreateCertificateDatabaseRun, error) {
+	var o *CreateCertificateDatabaseOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateCertificateDatabaseOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testCreateCertificateDatabaseRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetCreateCertificateDatabase is a noop
+func (c *TestFabricClient) GetCreateCertificateDatabase(ctx context.Context, workflowID string, runID string) CreateCertificateDatabaseRun {
+	return &testCreateCertificateDatabaseRun{env: c.env, workflows: c.workflows}
+}
+
 // DeployCertificateAuthority executes a(n) fabric.v1.DeployCertificateAuthority workflow in the test environment
 func (c *TestFabricClient) DeployCertificateAuthority(ctx context.Context, req *DeployCertificateAuthorityInput, opts ...*DeployCertificateAuthorityOptions) (*DeployCertificateAuthorityOutput, error) {
 	run, err := c.DeployCertificateAuthorityAsync(ctx, req, opts...)
@@ -3137,6 +3709,64 @@ func (r *testBootstrapShardRun) RunID() string {
 
 // Terminate terminates a workflow in execution, returning an error if applicable
 func (r *testBootstrapShardRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ CreateCertificateDatabaseRun = &testCreateCertificateDatabaseRun{}
+
+// testCreateCertificateDatabaseRun provides convenience methods for interacting with a(n) fabric.v1.CreateCertificateDatabase workflow in the test environment
+type testCreateCertificateDatabaseRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *CreateCertificateDatabaseInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testCreateCertificateDatabaseRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.CreateCertificateDatabase workflow result
+func (r *testCreateCertificateDatabaseRun) Get(context.Context) (*CreateCertificateDatabaseOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(CreateCertificateDatabaseWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result CreateCertificateDatabaseOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.CreateCertificateDatabase workflow run's workflow ID
+func (r *testCreateCertificateDatabaseRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testCreateCertificateDatabaseRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testCreateCertificateDatabaseRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testCreateCertificateDatabaseRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
