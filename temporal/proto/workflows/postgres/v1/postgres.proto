@@ -72,6 +72,24 @@ message CreateUserOutput {
 
 // ==================== Privilege Messages ====================
 
+// Privilege enum for PostgreSQL database permissions
+enum Privilege {
+  PRIVILEGE_UNSPECIFIED = 0;
+  PRIVILEGE_ALL = 1;           // All available privileges
+  PRIVILEGE_SELECT = 2;         // Query data
+  PRIVILEGE_INSERT = 3;         // Insert data
+  PRIVILEGE_UPDATE = 4;         // Update data
+  PRIVILEGE_DELETE = 5;         // Delete data
+  PRIVILEGE_TRUNCATE = 6;       // Truncate tables
+  PRIVILEGE_REFERENCES = 7;     // Create foreign key constraints
+  PRIVILEGE_TRIGGER = 8;        // Create triggers
+  PRIVILEGE_CREATE = 9;         // Create schemas/tables
+  PRIVILEGE_CONNECT = 10;       // Connect to database
+  PRIVILEGE_TEMPORARY = 11;     // Create temporary tables
+  PRIVILEGE_EXECUTE = 12;       // Execute functions
+  PRIVILEGE_USAGE = 13;         // Use schemas/sequences
+}
+
 // GrantPrivilegesInput specifies parameters for granting privileges
 message GrantPrivilegesInput {
   // username is the name of the user to grant privileges to
@@ -80,10 +98,9 @@ message GrantPrivilegesInput {
   // database_name is the name of the database to grant privileges on
   string database_name = 2;
   
-  // privileges is a comma-separated list of privileges to grant
-  // Common values: "ALL", "SELECT,INSERT,UPDATE,DELETE", "SELECT,INSERT"
-  // If empty, defaults to "ALL"
-  string privileges = 3;
+  // privileges is a list of privileges to grant
+  // If empty, defaults to [PRIVILEGE_ALL]
+  repeated Privilege privileges = 3;
 }
 
 // GrantPrivilegesOutput confirms successful privilege grant

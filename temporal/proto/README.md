@@ -144,6 +144,7 @@
     - [postgres.v1.CreateUserOutput](#postgres-v1-createuseroutput)
     - [postgres.v1.GrantPrivilegesInput](#postgres-v1-grantprivilegesinput)
     - [postgres.v1.GrantPrivilegesOutput](#postgres-v1-grantprivilegesoutput)
+    - [postgres.v1.Privilege](#postgres-v1-privilege)
 - [temporal.v1](#temporal-v1)
   - Services
     - [temporal.v1.Admin](#temporal-v1-admin)
@@ -3661,11 +3662,10 @@ json_name: databaseName
 go_name: DatabaseName</pre></td>
 </tr><tr>
 <td>privileges</td>
-<td>string</td>
+<td><a href="#postgres-v1-privilege">postgres.v1.Privilege</a></td>
 <td><pre>
-privileges is a comma-separated list of privileges to grant
-Common values: "ALL", "SELECT,INSERT,UPDATE,DELETE", "SELECT,INSERT"
-If empty, defaults to "ALL"<br>
+privileges is a list of privileges to grant
+If empty, defaults to [PRIVILEGE_ALL]<br>
 
 json_name: privileges
 go_name: Privileges</pre></td>
@@ -3788,11 +3788,10 @@ json_name: databaseName
 go_name: DatabaseName</pre></td>
 </tr><tr>
 <td>privileges</td>
-<td>string</td>
+<td><a href="#postgres-v1-privilege">postgres.v1.Privilege</a></td>
 <td><pre>
-privileges is a comma-separated list of privileges to grant
-Common values: "ALL", "SELECT,INSERT,UPDATE,DELETE", "SELECT,INSERT"
-If empty, defaults to "ALL"<br>
+privileges is a list of privileges to grant
+If empty, defaults to [PRIVILEGE_ALL]<br>
 
 json_name: privileges
 go_name: Privileges</pre></td>
@@ -3817,6 +3816,60 @@ GrantPrivilegesOutput confirms successful privilege grant
 </pre>
 
 
+
+<a name="postgres-v1-privilege"></a>
+### postgres.v1.Privilege
+
+<pre>
+Privilege enum for PostgreSQL database permissions
+</pre>
+
+<table>
+<tr><th>Value</th><th>Description</th></tr>
+<tr>
+<td>PRIVILEGE_UNSPECIFIED</td>
+<td></td>
+</tr><tr>
+<td>PRIVILEGE_ALL</td>
+<td></td>
+</tr><tr>
+<td>PRIVILEGE_SELECT</td>
+<td></td>
+</tr><tr>
+<td>PRIVILEGE_INSERT</td>
+<td></td>
+</tr><tr>
+<td>PRIVILEGE_UPDATE</td>
+<td></td>
+</tr><tr>
+<td>PRIVILEGE_DELETE</td>
+<td></td>
+</tr><tr>
+<td>PRIVILEGE_TRUNCATE</td>
+<td></td>
+</tr><tr>
+<td>PRIVILEGE_REFERENCES</td>
+<td></td>
+</tr><tr>
+<td>PRIVILEGE_TRIGGER</td>
+<td></td>
+</tr><tr>
+<td>PRIVILEGE_CREATE</td>
+<td></td>
+</tr><tr>
+<td>PRIVILEGE_CONNECT</td>
+<td></td>
+</tr><tr>
+<td>PRIVILEGE_TEMPORARY</td>
+<td></td>
+</tr><tr>
+<td>PRIVILEGE_EXECUTE</td>
+<td></td>
+</tr><tr>
+<td>PRIVILEGE_USAGE</td>
+<td></td>
+</tr>
+</table>
 
 <a name="temporal-v1"></a>
 # temporal.v1

@@ -135,17 +135,14 @@ func (a *Activities) GrantPrivileges(ctx context.Context, req *pb.GrantPrivilege
 		return nil, errors.New("database name cannot be empty")
 	}
 
-	// Default to ALL if privileges not specified
-	privileges := req.Privileges
-	if privileges == "" {
-		privileges = "ALL"
-	}
+	// Convert enum privileges to PostgreSQL privilege strings
+	privilegesStr := ConvertPrivilegesToSQL(req.Privileges)
 
 	// Grant privileges on the database
 	// We need to escape identifiers
 	escapedUsername := escapeIdentifier(req.Username)
 	escapedDatabaseName := escapeIdentifier(req.DatabaseName)
-	grantSQL := fmt.Sprintf("GRANT %s ON DATABASE %s TO %s", privileges, escapedDatabaseName, escapedUsername)
+	grantSQL := fmt.Sprintf("GRANT %s ON DATABASE %s TO %s", privilegesStr, escapedDatabaseName, escapedUsername)
 
 	if err := a.client.Exec(ctx, grantSQL); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrGrantPrivileges, err)
@@ -154,7 +151,7 @@ func (a *Activities) GrantPrivileges(ctx context.Context, req *pb.GrantPrivilege
 	logger.Info("Privileges granted successfully",
 		"username", req.Username,
 		"database_name", req.DatabaseName,
-		"privileges", privileges)
+		"privileges", privilegesStr)
 
 	return &pb.GrantPrivilegesOutput{}, nil
 }
@@ -199,4 +196,57 @@ func escapeStringLiteral(s string) string {
 	// Replace single quotes with two single quotes (PostgreSQL escaping)
 	escaped := strings.ReplaceAll(s, `'`, `''`)
 	return fmt.Sprintf(`'%s'`, escaped)
+}
+
+// ConvertPrivilegesToSQL converts Privilege enums to PostgreSQL SQL privilege strings
+func ConvertPrivilegesToSQL(privileges []pb.Privilege) string {
+	// Default to ALL if no privileges specified or only UNSPECIFIED
+	if len(privileges) == 0 {
+		return "ALL"
+	}
+
+	// Filter out UNSPECIFIED and convert to SQL strings
+	var sqlPrivileges []string
+	for _, priv := range privileges {
+		switch priv {
+		case pb.Privilege_PRIVILEGE_UNSPECIFIED:
+			// Skip unspecified
+			continue
+		case pb.Privilege_PRIVILEGE_ALL:
+			// ALL is a special case - if present, just return ALL
+			return "ALL"
+		case pb.Privilege_PRIVILEGE_SELECT:
+			sqlPrivileges = append(sqlPrivileges, "SELECT")
+		case pb.Privilege_PRIVILEGE_INSERT:
+			sqlPrivileges = append(sqlPrivileges, "INSERT")
+		case pb.Privilege_PRIVILEGE_UPDATE:
+			sqlPrivileges = append(sqlPrivileges, "UPDATE")
+		case pb.Privilege_PRIVILEGE_DELETE:
+			sqlPrivileges = append(sqlPrivileges, "DELETE")
+		case pb.Privilege_PRIVILEGE_TRUNCATE:
+			sqlPrivileges = append(sqlPrivileges, "TRUNCATE")
+		case pb.Privilege_PRIVILEGE_REFERENCES:
+			sqlPrivileges = append(sqlPrivileges, "REFERENCES")
+		case pb.Privilege_PRIVILEGE_TRIGGER:
+			sqlPrivileges = append(sqlPrivileges, "TRIGGER")
+		case pb.Privilege_PRIVILEGE_CREATE:
+			sqlPrivileges = append(sqlPrivileges, "CREATE")
+		case pb.Privilege_PRIVILEGE_CONNECT:
+			sqlPrivileges = append(sqlPrivileges, "CONNECT")
+		case pb.Privilege_PRIVILEGE_TEMPORARY:
+			sqlPrivileges = append(sqlPrivileges, "TEMPORARY")
+		case pb.Privilege_PRIVILEGE_EXECUTE:
+			sqlPrivileges = append(sqlPrivileges, "EXECUTE")
+		case pb.Privilege_PRIVILEGE_USAGE:
+			sqlPrivileges = append(sqlPrivileges, "USAGE")
+		}
+	}
+
+	// If all were UNSPECIFIED, default to ALL
+	if len(sqlPrivileges) == 0 {
+		return "ALL"
+	}
+
+	// Join multiple privileges with commas
+	return strings.Join(sqlPrivileges, ", ")
 }

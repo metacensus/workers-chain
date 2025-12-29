@@ -19,6 +19,88 @@ var (
 	errClientQueryFailed       = errors.New("query failed")
 )
 
+// TestConvertPrivilegesToSQL tests the privilege conversion helper function
+func TestConvertPrivilegesToSQL(t *testing.T) {
+	// Note: We're testing the public behavior through the activity, but we can
+	// verify the conversion logic by checking the generated SQL
+	tests := []struct {
+		name       string
+		privileges []pb.Privilege
+		expected   string
+	}{
+		{
+			name:       "empty privileges defaults to ALL",
+			privileges: []pb.Privilege{},
+			expected:   "ALL",
+		},
+		{
+			name:       "nil privileges defaults to ALL",
+			privileges: nil,
+			expected:   "ALL",
+		},
+		{
+			name:       "PRIVILEGE_ALL returns ALL",
+			privileges: []pb.Privilege{pb.Privilege_PRIVILEGE_ALL},
+			expected:   "ALL",
+		},
+		{
+			name:       "PRIVILEGE_UNSPECIFIED defaults to ALL",
+			privileges: []pb.Privilege{pb.Privilege_PRIVILEGE_UNSPECIFIED},
+			expected:   "ALL",
+		},
+		{
+			name:       "single privilege",
+			privileges: []pb.Privilege{pb.Privilege_PRIVILEGE_SELECT},
+			expected:   "SELECT",
+		},
+		{
+			name: "multiple privileges",
+			privileges: []pb.Privilege{
+				pb.Privilege_PRIVILEGE_SELECT,
+				pb.Privilege_PRIVILEGE_INSERT,
+				pb.Privilege_PRIVILEGE_UPDATE,
+			},
+			expected: "SELECT, INSERT, UPDATE",
+		},
+		{
+			name: "all database-level privileges",
+			privileges: []pb.Privilege{
+				pb.Privilege_PRIVILEGE_CONNECT,
+				pb.Privilege_PRIVILEGE_CREATE,
+				pb.Privilege_PRIVILEGE_TEMPORARY,
+			},
+			expected: "CONNECT, CREATE, TEMPORARY",
+		},
+		{
+			name: "PRIVILEGE_ALL with others returns just ALL",
+			privileges: []pb.Privilege{
+				pb.Privilege_PRIVILEGE_SELECT,
+				pb.Privilege_PRIVILEGE_ALL,
+				pb.Privilege_PRIVILEGE_INSERT,
+			},
+			expected: "ALL",
+		},
+		{
+			name: "UNSPECIFIED mixed with valid privileges",
+			privileges: []pb.Privilege{
+				pb.Privilege_PRIVILEGE_UNSPECIFIED,
+				pb.Privilege_PRIVILEGE_SELECT,
+				pb.Privilege_PRIVILEGE_INSERT,
+			},
+			expected: "SELECT, INSERT",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := postgresv1.ConvertPrivilegesToSQL(tt.privileges)
+			if result != tt.expected {
+				t.Errorf("ConvertPrivilegesToSQL() = %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
 // mockRows is a simple mock implementation of pgx.Rows for testing
 type mockRows struct {
 	hasNext bool
@@ -255,7 +337,7 @@ func TestGrantPrivilegesActivity(t *testing.T) {
 			input: &pb.GrantPrivilegesInput{
 				Username:     "testuser",
 				DatabaseName: "testdb",
-				Privileges:   "ALL",
+				Privileges:   []pb.Privilege{pb.Privilege_PRIVILEGE_ALL},
 			},
 			setupMock: func(m *postgresmocks.MockPostgresClient) {
 				m.EXPECT().
@@ -268,11 +350,15 @@ func TestGrantPrivilegesActivity(t *testing.T) {
 			input: &pb.GrantPrivilegesInput{
 				Username:     "testuser",
 				DatabaseName: "testdb",
-				Privileges:   "SELECT,INSERT,UPDATE",
+				Privileges: []pb.Privilege{
+					pb.Privilege_PRIVILEGE_SELECT,
+					pb.Privilege_PRIVILEGE_INSERT,
+					pb.Privilege_PRIVILEGE_UPDATE,
+				},
 			},
 			setupMock: func(m *postgresmocks.MockPostgresClient) {
 				m.EXPECT().
-					Exec(mock.Anything, `GRANT SELECT,INSERT,UPDATE ON DATABASE "testdb" TO "testuser"`).
+					Exec(mock.Anything, `GRANT SELECT, INSERT, UPDATE ON DATABASE "testdb" TO "testuser"`).
 					Return(nil)
 			},
 		},
@@ -281,7 +367,7 @@ func TestGrantPrivilegesActivity(t *testing.T) {
 			input: &pb.GrantPrivilegesInput{
 				Username:     "testuser",
 				DatabaseName: "testdb",
-				Privileges:   "",
+				Privileges:   []pb.Privilege{},
 			},
 			setupMock: func(m *postgresmocks.MockPostgresClient) {
 				m.EXPECT().
@@ -290,11 +376,41 @@ func TestGrantPrivilegesActivity(t *testing.T) {
 			},
 		},
 		{
+			name: "success - defaults to ALL when only UNSPECIFIED",
+			input: &pb.GrantPrivilegesInput{
+				Username:     "testuser",
+				DatabaseName: "testdb",
+				Privileges:   []pb.Privilege{pb.Privilege_PRIVILEGE_UNSPECIFIED},
+			},
+			setupMock: func(m *postgresmocks.MockPostgresClient) {
+				m.EXPECT().
+					Exec(mock.Anything, `GRANT ALL ON DATABASE "testdb" TO "testuser"`).
+					Return(nil)
+			},
+		},
+		{
+			name: "success - grants multiple specific privileges",
+			input: &pb.GrantPrivilegesInput{
+				Username:     "testuser",
+				DatabaseName: "testdb",
+				Privileges: []pb.Privilege{
+					pb.Privilege_PRIVILEGE_CONNECT,
+					pb.Privilege_PRIVILEGE_TEMPORARY,
+					pb.Privilege_PRIVILEGE_CREATE,
+				},
+			},
+			setupMock: func(m *postgresmocks.MockPostgresClient) {
+				m.EXPECT().
+					Exec(mock.Anything, `GRANT CONNECT, TEMPORARY, CREATE ON DATABASE "testdb" TO "testuser"`).
+					Return(nil)
+			},
+		},
+		{
 			name: "error - missing username",
 			input: &pb.GrantPrivilegesInput{
 				Username:     "",
 				DatabaseName: "testdb",
-				Privileges:   "ALL",
+				Privileges:   []pb.Privilege{pb.Privilege_PRIVILEGE_ALL},
 			},
 			expectErr: true,
 		},
@@ -303,7 +419,7 @@ func TestGrantPrivilegesActivity(t *testing.T) {
 			input: &pb.GrantPrivilegesInput{
 				Username:     "testuser",
 				DatabaseName: "",
-				Privileges:   "ALL",
+				Privileges:   []pb.Privilege{pb.Privilege_PRIVILEGE_ALL},
 			},
 			expectErr: true,
 		},
@@ -312,7 +428,7 @@ func TestGrantPrivilegesActivity(t *testing.T) {
 			input: &pb.GrantPrivilegesInput{
 				Username:     "testuser",
 				DatabaseName: "testdb",
-				Privileges:   "ALL",
+				Privileges:   []pb.Privilege{pb.Privilege_PRIVILEGE_ALL},
 			},
 			setupMock: func(m *postgresmocks.MockPostgresClient) {
 				m.EXPECT().
