@@ -69,6 +69,13 @@ packages:
     interfaces:
       PostgresActivities:
 
+  # Crypto v1
+  github.com/metacensus/infra/temporal/gen/workflows/crypto/v1:
+    config:
+      dir: "mocks/workflows/crypto/v1"
+    interfaces:
+      CryptoActivities:
+
   # ============================================================================
   # IMPLEMENTATION INTERFACES - Clients from implementation code
   # Used for testing activity implementations with mocked external dependencies

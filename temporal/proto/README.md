@@ -36,6 +36,17 @@
     - [cluster.fabric.v1.CreateNamespaceOutput](#cluster-fabric-v1-createnamespaceoutput)
     - [cluster.fabric.v1.CreateServiceAccountInput](#cluster-fabric-v1-createserviceaccountinput)
     - [cluster.fabric.v1.CreateServiceAccountOutput](#cluster-fabric-v1-createserviceaccountoutput)
+- [crypto.v1](#crypto-v1)
+  - Services
+    - [crypto.v1.Crypto](#crypto-v1-crypto)
+      - [Activities](#crypto-v1-crypto-activities)
+        - [crypto.v1.GeneratePassword](#crypto-v1-generatepassword-activity)
+        - [crypto.v1.GenerateKeyPair](#crypto-v1-generatekeypair-activity)
+  - Messages
+    - [crypto.v1.GenerateKeyPairInput](#crypto-v1-generatekeypairinput)
+    - [crypto.v1.GenerateKeyPairOutput](#crypto-v1-generatekeypairoutput)
+    - [crypto.v1.GeneratePasswordInput](#crypto-v1-generatepasswordinput)
+    - [crypto.v1.GeneratePasswordOutput](#crypto-v1-generatepasswordoutput)
 - [fabric.v1](#fabric-v1)
   - Services
     - [fabric.v1.Fabric](#fabric-v1-fabric)
@@ -1088,6 +1099,176 @@ go_name: Org</pre></td>
 
 <a name="cluster-fabric-v1-createserviceaccountoutput"></a>
 ### cluster.fabric.v1.CreateServiceAccountOutput
+
+
+
+<a name="crypto-v1"></a>
+# crypto.v1
+
+<a name="crypto-v1-services"></a>
+## Services
+
+<a name="crypto-v1-crypto"></a>
+## crypto.v1.Crypto
+
+<pre>
+Crypto service defines activities for cryptographic operations
+Activities generate passwords, key pairs, and other cryptographic primitives
+</pre>   
+
+<a name="crypto-v1-crypto-activities"></a>
+### Activities
+
+---
+<a name="crypto-v1-generatepassword-activity"></a>
+### crypto.v1.GeneratePassword
+
+<pre>
+GeneratePassword generates a secure random password
+Password is 32 characters with mix of uppercase, lowercase, numbers, and special characters
+</pre>
+
+**Input:** [crypto.v1.GeneratePasswordInput](#crypto-v1-generatepasswordinput)
+
+
+
+**Output:** [crypto.v1.GeneratePasswordOutput](#crypto-v1-generatepasswordoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>password</td>
+<td>string</td>
+<td><pre>
+password is the generated secure random password<br>
+
+json_name: password
+go_name: Password</pre></td>
+</tr>
+</table> 
+
+---
+<a name="crypto-v1-generatekeypair-activity"></a>
+### crypto.v1.GenerateKeyPair
+
+<pre>
+GenerateKeyPair generates an ECDSA key pair
+Key is 256-bit ECDSA (P-256 curve)
+</pre>
+
+**Input:** [crypto.v1.GenerateKeyPairInput](#crypto-v1-generatekeypairinput)
+
+
+
+**Output:** [crypto.v1.GenerateKeyPairOutput](#crypto-v1-generatekeypairoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>private_key</td>
+<td>bytes</td>
+<td><pre>
+private_key is the PEM-encoded private key<br>
+
+json_name: privateKey
+go_name: PrivateKey</pre></td>
+</tr><tr>
+<td>public_key</td>
+<td>bytes</td>
+<td><pre>
+public_key is the PEM-encoded public key<br>
+
+json_name: publicKey
+go_name: PublicKey</pre></td>
+</tr>
+</table>   
+
+<a name="crypto-v1-messages"></a>
+## Messages
+
+<a name="crypto-v1-generatekeypairinput"></a>
+### crypto.v1.GenerateKeyPairInput
+
+<pre>
+GenerateKeyPairInput specifies key pair generation parameters
+</pre>
+
+
+
+<a name="crypto-v1-generatekeypairoutput"></a>
+### crypto.v1.GenerateKeyPairOutput
+
+<pre>
+GenerateKeyPairOutput contains the generated key pair
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>private_key</td>
+<td>bytes</td>
+<td><pre>
+private_key is the PEM-encoded private key<br>
+
+json_name: privateKey
+go_name: PrivateKey</pre></td>
+</tr><tr>
+<td>public_key</td>
+<td>bytes</td>
+<td><pre>
+public_key is the PEM-encoded public key<br>
+
+json_name: publicKey
+go_name: PublicKey</pre></td>
+</tr>
+</table>
+
+
+
+<a name="crypto-v1-generatepasswordinput"></a>
+### crypto.v1.GeneratePasswordInput
+
+<pre>
+GeneratePasswordInput specifies password generation parameters
+</pre>
+
+
+
+<a name="crypto-v1-generatepasswordoutput"></a>
+### crypto.v1.GeneratePasswordOutput
+
+<pre>
+GeneratePasswordOutput contains the generated password
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>password</td>
+<td>string</td>
+<td><pre>
+password is the generated secure random password<br>
+
+json_name: password
+go_name: Password</pre></td>
+</tr>
+</table>
 
 
 
