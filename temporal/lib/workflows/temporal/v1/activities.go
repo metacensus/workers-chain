@@ -2,6 +2,7 @@ package temporal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -14,6 +15,15 @@ import (
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"google.golang.org/protobuf/types/known/durationpb"
+)
+
+// Sentinel errors for temporal activities
+var (
+	ErrRegisterNamespace     = errors.New("register namespace")
+	ErrDescribeNamespace     = errors.New("describe namespace")
+	ErrCreateNexusEndpoint   = errors.New("create nexus endpoint")
+	ErrDescribeNexusEndpoint = errors.New("describe nexus endpoint")
+	ErrUpdateNexusEndpoint   = errors.New("update nexus endpoint")
 )
 
 // Activities implements the AdminActivities interface from generated code
@@ -61,10 +71,7 @@ func (a *Activities) RegisterNamespace(ctx context.Context, req *pb.RegisterName
 	// Call Temporal admin API
 	// This is idempotent - if the namespace already exists, it returns success
 	if err := a.namespaceClient.Register(ctx, registerReq); err != nil {
-		logger.Error("Failed to register namespace",
-			"error", err,
-			"namespace", req.Name)
-		return nil, fmt.Errorf("register namespace: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrRegisterNamespace, err)
 	}
 
 	logger.Info("Namespace registered successfully",
@@ -83,10 +90,7 @@ func (a *Activities) DescribeNamespace(ctx context.Context, req *pb.DescribeName
 	// Call Temporal admin API
 	resp, err := a.namespaceClient.Describe(ctx, req.Name)
 	if err != nil {
-		logger.Error("Failed to describe namespace",
-			"error", err,
-			"namespace", req.Name)
-		return nil, fmt.Errorf("describe namespace: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrDescribeNamespace, err)
 	}
 
 	// Determine namespace state from NamespaceInfo
@@ -147,10 +151,7 @@ func (a *Activities) CreateNexusEndpoint(ctx context.Context, req *pb.CreateNexu
 				"name", req.Name)
 			return &pb.CreateNexusEndpointOutput{}, nil
 		}
-		logger.Error("Failed to create Nexus endpoint",
-			"error", err,
-			"endpoint_name", req.Name)
-		return nil, fmt.Errorf("create nexus endpoint: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateNexusEndpoint, err)
 	}
 
 	endpointID := ""
@@ -184,10 +185,7 @@ func (a *Activities) DescribeNexusEndpoint(ctx context.Context, req *pb.Describe
 
 	resp, err := a.operatorService.GetNexusEndpoint(ctx, getReq)
 	if err != nil {
-		logger.Error("Failed to describe Nexus endpoint",
-			"error", err,
-			"endpoint_id", req.Id)
-		return nil, fmt.Errorf("describe nexus endpoint: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrDescribeNexusEndpoint, err)
 	}
 
 	endpoint := &pb.Endpoint{}
@@ -245,10 +243,7 @@ func (a *Activities) UpdateNexusEndpoint(ctx context.Context, req *pb.UpdateNexu
 	// Call Temporal operator service
 	_, err := a.operatorService.UpdateNexusEndpoint(ctx, updateReq)
 	if err != nil {
-		logger.Error("Failed to update Nexus endpoint",
-			"error", err,
-			"endpoint_id", req.Endpoint.Id)
-		return nil, fmt.Errorf("update nexus endpoint: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrUpdateNexusEndpoint, err)
 	}
 
 	logger.Info("Nexus endpoint updated successfully",

@@ -10,6 +10,19 @@ import (
 	"go.temporal.io/sdk/activity"
 )
 
+// Sentinel errors for vault activities
+var (
+	ErrCreateAuthRole      = errors.New("create auth role")
+	ErrDeleteAuthRole      = errors.New("delete auth role")
+	ErrConvertPolicyToHCL  = errors.New("convert policy to HCL")
+	ErrCreatePolicy        = errors.New("create policy")
+	ErrDeletePolicy        = errors.New("delete policy")
+	ErrStoreSecret         = errors.New("store secret")
+	ErrFetchSecret         = errors.New("fetch secret")
+	ErrDeleteSecret        = errors.New("delete secret")
+	ErrInvalidResponseData = errors.New("invalid response data format")
+)
+
 // Vault path components
 const (
 	authKubernetesRolePath = "auth/kubernetes/role"
@@ -154,8 +167,7 @@ func (a *Activities) CreateAuthRole(ctx context.Context, req *pb.CreateAuthRoleI
 	}
 
 	if err := a.client.Write(ctx, path, body); err != nil {
-		logger.Error("Failed to create auth role", "error", err)
-		return nil, fmt.Errorf("create auth role: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateAuthRole, err)
 	}
 
 	logger.Info("Auth role created successfully", "role_name", req.RoleName)
@@ -176,8 +188,7 @@ func (a *Activities) DeleteAuthRole(ctx context.Context, req *pb.DeleteAuthRoleI
 	path := buildAuthRolePath(req.Name)
 
 	if err := a.client.Delete(ctx, path); err != nil {
-		logger.Error("Failed to delete auth role", "error", err)
-		return nil, fmt.Errorf("delete auth role: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrDeleteAuthRole, err)
 	}
 
 	logger.Info("Auth role deleted successfully", "role_name", req.Name)
@@ -196,8 +207,7 @@ func (a *Activities) CreatePolicy(ctx context.Context, req *pb.CreatePolicyInput
 	// Convert structured PolicyDocument to HCL format
 	hcl, err := policyDocumentToHCL(req.Document)
 	if err != nil {
-		logger.Error("Failed to convert policy document to HCL", "error", err)
-		return nil, fmt.Errorf("create policy: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrConvertPolicyToHCL, err)
 	}
 
 	path := buildPolicyPath(req.Name)
@@ -208,8 +218,7 @@ func (a *Activities) CreatePolicy(ctx context.Context, req *pb.CreatePolicyInput
 	}
 
 	if err := a.client.Write(ctx, path, body); err != nil {
-		logger.Error("Failed to create policy", "error", err)
-		return nil, fmt.Errorf("create policy: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCreatePolicy, err)
 	}
 
 	logger.Info("Policy created successfully", "policy_name", req.Name)
@@ -230,8 +239,7 @@ func (a *Activities) DeletePolicy(ctx context.Context, req *pb.DeletePolicyInput
 	path := buildPolicyPath(req.Name)
 
 	if err := a.client.Delete(ctx, path); err != nil {
-		logger.Error("Failed to delete policy", "error", err)
-		return nil, fmt.Errorf("delete policy: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrDeletePolicy, err)
 	}
 
 	logger.Info("Policy deleted successfully", "policy_name", req.Name)
@@ -258,8 +266,7 @@ func (a *Activities) StoreSecret(ctx context.Context, req *pb.StoreSecretInput) 
 	}
 
 	if err := a.client.Write(ctx, vaultPath, body); err != nil {
-		logger.Error("Failed to store secret", "error", err)
-		return nil, fmt.Errorf("store secret: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrStoreSecret, err)
 	}
 
 	logger.Info("Secret stored successfully", "path", req.Path)
@@ -290,21 +297,20 @@ func (a *Activities) FetchSecret(ctx context.Context, req *pb.FetchSecretInput) 
 		// Check if it's a not found error
 		if errors.Is(err, ErrNotFound) {
 			logger.Warn("Secret not found", "path", req.Path)
-			return nil, fmt.Errorf("fetch secret: %w", err)
+			return nil, fmt.Errorf("%w: %w", ErrFetchSecret, err)
 		}
-		logger.Error("Failed to fetch secret", "error", err)
-		return nil, fmt.Errorf("fetch secret: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrFetchSecret, err)
 	}
 
 	// Parse Vault KV v2 response structure: {data: {data: {...}, metadata: {version: N}}}
 	dataSection, ok := result[vaultFieldData].(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("fetch secret: invalid response format")
+		return nil, fmt.Errorf("%w: invalid response format", ErrInvalidResponseData)
 	}
 
 	secretData, ok := dataSection[vaultFieldData].(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("fetch secret: invalid data format")
+		return nil, fmt.Errorf("%w: invalid data format", ErrInvalidResponseData)
 	}
 
 	// Extract version from metadata if available
@@ -345,8 +351,7 @@ func (a *Activities) DeleteSecret(ctx context.Context, req *pb.DeleteSecretInput
 	vaultPath := fmt.Sprintf("secret/data/%s", req.Path)
 
 	if err := a.client.Delete(ctx, vaultPath); err != nil {
-		logger.Error("Failed to delete secret", "error", err)
-		return nil, fmt.Errorf("delete secret: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrDeleteSecret, err)
 	}
 
 	logger.Info("Secret deleted successfully", "path", req.Path)

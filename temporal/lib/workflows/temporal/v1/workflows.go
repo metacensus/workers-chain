@@ -1,12 +1,19 @@
 package temporal
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/temporal/v1"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
+)
+
+// Sentinel errors for temporal workflows
+var (
+	ErrRegisterNamespaceWorkflow = errors.New("register namespace workflow failed")
+	ErrNamespaceActivationTimeout = errors.New("namespace activation timeout")
 )
 
 // Workflows implements the AdminWorkflows interface from generated code
@@ -54,8 +61,7 @@ func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNames
 		Name:      req.Name,
 		Retention: req.Retention,
 	}).Get(ctx, nil); err != nil {
-		logger.Error("Failed to register namespace", "error", err)
-		return nil, fmt.Errorf("register namespace: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrRegisterNamespaceWorkflow, err)
 	}
 
 	// Poll for namespace activation (Temporal's namespace creation is async)
@@ -86,8 +92,5 @@ func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNames
 		}
 	}
 
-	logger.Error("Timeout waiting for namespace to activate",
-		"namespace", req.Name)
-
-	return nil, fmt.Errorf("namespace %s did not reach REGISTERED state within timeout", req.Name)
+	return nil, fmt.Errorf("%w: namespace %s did not reach REGISTERED state within timeout", ErrNamespaceActivationTimeout, req.Name)
 }

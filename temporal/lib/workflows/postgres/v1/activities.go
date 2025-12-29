@@ -10,6 +10,15 @@ import (
 	"go.temporal.io/sdk/activity"
 )
 
+// Sentinel errors for postgres activities
+var (
+	ErrCheckDatabaseExistence = errors.New("check database existence")
+	ErrCreateDatabase         = errors.New("create database")
+	ErrCheckUserExistence     = errors.New("check user existence")
+	ErrCreateUser             = errors.New("create user")
+	ErrGrantPrivileges        = errors.New("grant privileges")
+)
+
 // Activities implements the PostgresActivities interface from generated code
 type Activities struct {
 	client PostgresClient
@@ -37,8 +46,7 @@ func (a *Activities) CreateDatabase(ctx context.Context, req *pb.CreateDatabaseI
 	// Check if database already exists
 	exists, err := a.databaseExists(ctx, a.client, req.DatabaseName)
 	if err != nil {
-		logger.Error("Failed to check if database exists", "error", err)
-		return nil, fmt.Errorf("check database existence: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCheckDatabaseExistence, err)
 	}
 
 	if exists {
@@ -58,8 +66,7 @@ func (a *Activities) CreateDatabase(ctx context.Context, req *pb.CreateDatabaseI
 			logger.Info("Database already exists (race condition)", "database_name", req.DatabaseName)
 			return &pb.CreateDatabaseOutput{}, nil
 		}
-		logger.Error("Failed to create database", "error", err)
-		return nil, fmt.Errorf("create database: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateDatabase, err)
 	}
 
 	logger.Info("Database created successfully", "database_name", req.DatabaseName)
@@ -84,8 +91,7 @@ func (a *Activities) CreateUser(ctx context.Context, req *pb.CreateUserInput) (*
 	// Check if user already exists
 	exists, err := a.userExists(ctx, a.client, req.Username)
 	if err != nil {
-		logger.Error("Failed to check if user exists", "error", err)
-		return nil, fmt.Errorf("check user existence: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCheckUserExistence, err)
 	}
 
 	if exists {
@@ -105,8 +111,7 @@ func (a *Activities) CreateUser(ctx context.Context, req *pb.CreateUserInput) (*
 			logger.Info("User already exists (race condition)", "username", req.Username)
 			return &pb.CreateUserOutput{}, nil
 		}
-		logger.Error("Failed to create user", "error", err)
-		return nil, fmt.Errorf("create user: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateUser, err)
 	}
 
 	logger.Info("User created successfully", "username", req.Username)
@@ -143,8 +148,7 @@ func (a *Activities) GrantPrivileges(ctx context.Context, req *pb.GrantPrivilege
 	grantSQL := fmt.Sprintf("GRANT %s ON DATABASE %s TO %s", privileges, escapedDatabaseName, escapedUsername)
 
 	if err := a.client.Exec(ctx, grantSQL); err != nil {
-		logger.Error("Failed to grant privileges", "error", err)
-		return nil, fmt.Errorf("grant privileges: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrGrantPrivileges, err)
 	}
 
 	logger.Info("Privileges granted successfully",

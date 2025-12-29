@@ -3,6 +3,7 @@ package helm
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"text/template"
@@ -13,6 +14,15 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
 	"sigs.k8s.io/yaml"
+)
+
+// Sentinel errors for helm activities
+var (
+	ErrGetValuesTemplate = errors.New("get values template")
+	ErrRenderTemplate    = errors.New("render template")
+	ErrGetChart          = errors.New("get chart")
+	ErrParseValues       = errors.New("parse values")
+	ErrRenderChart       = errors.New("render chart")
 )
 
 // Activities implements the HelmServiceActivities interface from generated code
@@ -66,8 +76,7 @@ func (a *Activities) RenderChartWithTemplate(ctx context.Context, req *pb.Render
 	// Step 1: Load values template from the chart directory
 	templateStr, err := a.repo.GetValuesTemplate(ctx, req.GetChartName())
 	if err != nil {
-		logger.Error("Failed to get values template", "error", err)
-		return nil, fmt.Errorf("failed to get values template for chart %s: %w", req.GetChartName(), err)
+		return nil, fmt.Errorf("%w for chart %s: %w", ErrGetValuesTemplate, req.GetChartName(), err)
 	}
 
 	// Step 2: Convert proto Struct to map[string]interface{}
@@ -76,8 +85,7 @@ func (a *Activities) RenderChartWithTemplate(ctx context.Context, req *pb.Render
 	// Step 3: Render template with values
 	renderedYAML, err := renderTemplate(templateStr, values)
 	if err != nil {
-		logger.Error("Failed to render template", "error", err)
-		return nil, fmt.Errorf("failed to render values template: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrRenderTemplate, err)
 	}
 
 	// Step 4: Use shared chart rendering logic
@@ -91,15 +99,13 @@ func (a *Activities) renderChartWithValues(ctx context.Context, chartName, value
 	// Acquire chart from repository
 	ch, err := a.repo.GetChart(ctx, chartName)
 	if err != nil {
-		logger.Error("Failed to get chart", "error", err)
-		return nil, fmt.Errorf("failed to get chart %s: %w", chartName, err)
+		return nil, fmt.Errorf("%w %s: %w", ErrGetChart, chartName, err)
 	}
 
 	// Parse values from YAML string
 	vals, err := parseValues(valuesYAML)
 	if err != nil {
-		logger.Error("Failed to parse values", "error", err)
-		return nil, fmt.Errorf("failed to parse values: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrParseValues, err)
 	}
 
 	// Convert chart name to valid Helm release name (e.g., "fabric/namespace" → "fabric-namespace")
@@ -108,8 +114,7 @@ func (a *Activities) renderChartWithValues(ctx context.Context, chartName, value
 	// Render the chart
 	release, err := renderHelmChart(ch, namespace, releaseName, vals)
 	if err != nil {
-		logger.Error("Failed to render chart", "error", err)
-		return nil, fmt.Errorf("failed to render chart: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrRenderChart, err)
 	}
 
 	// Parse rendered manifests into individual resources

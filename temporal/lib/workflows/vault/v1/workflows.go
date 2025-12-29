@@ -1,12 +1,19 @@
 package vault
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
+)
+
+// Sentinel errors for vault workflows
+var (
+	ErrCreatePolicyWorkflow   = errors.New("create policy workflow failed")
+	ErrCreateAuthRoleWorkflow = errors.New("create auth role workflow failed")
 )
 
 // Workflows implements the VaultWorkflows interface from generated code
@@ -56,8 +63,7 @@ func (w *createAccessWorkflow) Execute(ctx workflow.Context) (*pb.CreateAccessOu
 			Document: w.input.Req.GetPolicyDocument(),
 		}).Get(ctx, &policyOutput)
 	if err != nil {
-		logger.Error("Failed to create policy", "error", err)
-		return nil, fmt.Errorf("failed to create policy: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCreatePolicyWorkflow, err)
 	}
 
 	// Step 2: Create the auth role using the policy name from step 1
@@ -72,8 +78,7 @@ func (w *createAccessWorkflow) Execute(ctx workflow.Context) (*pb.CreateAccessOu
 			PolicyNames:         []string{policyOutput.GetName()},
 		}).Get(ctx, &authRoleOutput)
 	if err != nil {
-		logger.Error("Failed to create auth role", "error", err)
-		return nil, fmt.Errorf("failed to create auth role: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateAuthRoleWorkflow, err)
 	}
 
 	logger.Info("CreateAccess workflow completed successfully",
