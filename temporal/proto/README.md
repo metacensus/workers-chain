@@ -39,10 +39,17 @@
 - [crypto.v1](#crypto-v1)
   - Services
     - [crypto.v1.Crypto](#crypto-v1-crypto)
+      - [Workflows](#crypto-v1-crypto-workflows)
+        - [crypto.v1.GenerateAndStorePassword](#crypto-v1-generateandstorepassword-workflow)
+        - [crypto.v1.GenerateAndStoreKeyPair](#crypto-v1-generateandstorekeypair-workflow)
       - [Activities](#crypto-v1-crypto-activities)
         - [crypto.v1.GeneratePassword](#crypto-v1-generatepassword-activity)
         - [crypto.v1.GenerateKeyPair](#crypto-v1-generatekeypair-activity)
   - Messages
+    - [crypto.v1.GenerateAndStoreKeyPairInput](#crypto-v1-generateandstorekeypairinput)
+    - [crypto.v1.GenerateAndStoreKeyPairOutput](#crypto-v1-generateandstorekeypairoutput)
+    - [crypto.v1.GenerateAndStorePasswordInput](#crypto-v1-generateandstorepasswordinput)
+    - [crypto.v1.GenerateAndStorePasswordOutput](#crypto-v1-generateandstorepasswordoutput)
     - [crypto.v1.GenerateKeyPairInput](#crypto-v1-generatekeypairinput)
     - [crypto.v1.GenerateKeyPairOutput](#crypto-v1-generatekeypairoutput)
     - [crypto.v1.GeneratePasswordInput](#crypto-v1-generatepasswordinput)
@@ -1114,7 +1121,127 @@ go_name: Org</pre></td>
 <pre>
 Crypto service defines activities for cryptographic operations
 Activities generate passwords, key pairs, and other cryptographic primitives
-</pre>   
+</pre>
+
+<a name="crypto-v1-crypto-workflows"></a>
+### Workflows
+
+---
+<a name="crypto-v1-generateandstorepassword-workflow"></a>
+### crypto.v1.GenerateAndStorePassword
+
+<pre>
+GenerateAndStorePassword generates a password and stores it in Vault
+Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
+Password is stored with key name "store-password"
+</pre>
+
+**Input:** [crypto.v1.GenerateAndStorePasswordInput](#crypto-v1-generateandstorepasswordinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>vault_path</td>
+<td>string</td>
+<td><pre>
+vault_path is the Vault path to store the password at
+Example: "fabric/org1/ca/tls/root/admin"<br>
+
+json_name: vaultPath
+go_name: VaultPath</pre></td>
+</tr>
+</table>
+
+**Output:** [crypto.v1.GenerateAndStorePasswordOutput](#crypto-v1-generateandstorepasswordoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+secret_ref is the Vault secret reference with path and version<br>
+
+json_name: secretRef
+go_name: SecretRef</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>crypto/generate-store-password/${! vault_path.or("default") }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
+</table>
+
+---
+<a name="crypto-v1-generateandstorekeypair-workflow"></a>
+### crypto.v1.GenerateAndStoreKeyPair
+
+<pre>
+GenerateAndStoreKeyPair generates a key pair and stores it in Vault
+Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
+Keys are stored with names "private" and "public" at the same vault_path
+</pre>
+
+**Input:** [crypto.v1.GenerateAndStoreKeyPairInput](#crypto-v1-generateandstorekeypairinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>vault_path</td>
+<td>string</td>
+<td><pre>
+vault_path is the Vault path to store the key pair at
+Both keys (private and public) are stored at this path
+Example: "fabric/org1/ca/tls/root/keys"<br>
+
+json_name: vaultPath
+go_name: VaultPath</pre></td>
+</tr>
+</table>
+
+**Output:** [crypto.v1.GenerateAndStoreKeyPairOutput](#crypto-v1-generateandstorekeypairoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+secret_ref is the Vault secret reference with path and version<br>
+
+json_name: secretRef
+go_name: SecretRef</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>crypto/generate-store-keypair/${! vault_path.or("default") }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
+</table>    
 
 <a name="crypto-v1-crypto-activities"></a>
 ### Activities
@@ -1125,7 +1252,7 @@ Activities generate passwords, key pairs, and other cryptographic primitives
 
 <pre>
 GeneratePassword generates a secure random password
-Password is 32 characters with mix of uppercase, lowercase, numbers, and special characters
+Password is 32-character base64-URL-encoded random string
 </pre>
 
 **Input:** [crypto.v1.GeneratePasswordInput](#crypto-v1-generatepasswordinput)
@@ -1193,6 +1320,113 @@ go_name: PublicKey</pre></td>
 
 <a name="crypto-v1-messages"></a>
 ## Messages
+
+<a name="crypto-v1-generateandstorekeypairinput"></a>
+### crypto.v1.GenerateAndStoreKeyPairInput
+
+<pre>
+GenerateAndStoreKeyPairInput specifies where to store the generated key pair
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>vault_path</td>
+<td>string</td>
+<td><pre>
+vault_path is the Vault path to store the key pair at
+Both keys (private and public) are stored at this path
+Example: "fabric/org1/ca/tls/root/keys"<br>
+
+json_name: vaultPath
+go_name: VaultPath</pre></td>
+</tr>
+</table>
+
+
+
+<a name="crypto-v1-generateandstorekeypairoutput"></a>
+### crypto.v1.GenerateAndStoreKeyPairOutput
+
+<pre>
+GenerateAndStoreKeyPairOutput returns the Vault secret reference
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+secret_ref is the Vault secret reference with path and version<br>
+
+json_name: secretRef
+go_name: SecretRef</pre></td>
+</tr>
+</table>
+
+
+
+<a name="crypto-v1-generateandstorepasswordinput"></a>
+### crypto.v1.GenerateAndStorePasswordInput
+
+<pre>
+GenerateAndStorePasswordInput specifies where to store the generated password
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>vault_path</td>
+<td>string</td>
+<td><pre>
+vault_path is the Vault path to store the password at
+Example: "fabric/org1/ca/tls/root/admin"<br>
+
+json_name: vaultPath
+go_name: VaultPath</pre></td>
+</tr>
+</table>
+
+
+
+<a name="crypto-v1-generateandstorepasswordoutput"></a>
+### crypto.v1.GenerateAndStorePasswordOutput
+
+<pre>
+GenerateAndStorePasswordOutput returns the Vault secret reference
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+secret_ref is the Vault secret reference with path and version<br>
+
+json_name: secretRef
+go_name: SecretRef</pre></td>
+</tr>
+</table>
+
+
 
 <a name="crypto-v1-generatekeypairinput"></a>
 ### crypto.v1.GenerateKeyPairInput

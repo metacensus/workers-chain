@@ -4,6 +4,7 @@ import (
 	"github.com/metacensus/infra/temporal/lib/workers"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 	clusterfabric "github.com/metacensus/infra/temporal/lib/workflows/cluster/fabric/v1"
+	crypto "github.com/metacensus/infra/temporal/lib/workflows/crypto/v1"
 	fabric "github.com/metacensus/infra/temporal/lib/workflows/fabric/v1"
 	helm "github.com/metacensus/infra/temporal/lib/workflows/helm/v1"
 	kube "github.com/metacensus/infra/temporal/lib/workflows/kube/v1"
@@ -27,6 +28,7 @@ var Module = fx.Module("fabric",
 	helm.Module,
 	kube.Module,
 	vault.Module,
+	crypto.Module,
 	clusterfabric.Module,
 	fabric.Module,
 
@@ -34,6 +36,8 @@ var Module = fx.Module("fabric",
 	fx.Invoke(
 		vault.RegisterActivities,
 		vault.RegisterWorkflows,
+		crypto.RegisterActivities,
+		crypto.RegisterWorkflows,
 		helm.RegisterActivities,
 		kube.RegisterActivities,
 		clusterfabric.RegisterWorkflows,

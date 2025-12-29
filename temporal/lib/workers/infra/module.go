@@ -5,6 +5,7 @@ import (
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 	cell "github.com/metacensus/infra/temporal/lib/workflows/cell/v1"
 	clusterfabric "github.com/metacensus/infra/temporal/lib/workflows/cluster/fabric/v1"
+	crypto "github.com/metacensus/infra/temporal/lib/workflows/crypto/v1"
 	helm "github.com/metacensus/infra/temporal/lib/workflows/helm/v1"
 	kube "github.com/metacensus/infra/temporal/lib/workflows/kube/v1"
 	temporal "github.com/metacensus/infra/temporal/lib/workflows/temporal/v1"
@@ -22,6 +23,7 @@ var Module = fx.Module("infra",
 
 	// Include workflow modules (provides workflows/activities)
 	vault.Module,
+	crypto.Module,
 	helm.Module,
 	kube.Module,
 	temporal.Module, // Provides Client, NamespaceClient, and admin activities/workflows
@@ -33,6 +35,8 @@ var Module = fx.Module("infra",
 		vault.RegisterActivities,
 		vault.RegisterWorkflows,
 		vault.RegisterNexusService,
+		crypto.RegisterActivities,
+		crypto.RegisterWorkflows,
 		helm.RegisterActivities,
 		kube.RegisterActivities,
 		temporal.RegisterActivities,

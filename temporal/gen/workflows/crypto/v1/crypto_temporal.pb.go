@@ -9,22 +9,1241 @@ package cryptov1
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	expression "github.com/cludden/protoc-gen-go-temporal/pkg/expression"
+	helpers "github.com/cludden/protoc-gen-go-temporal/pkg/helpers"
+	enumsv1 "go.temporal.io/api/enums/v1"
 	activity "go.temporal.io/sdk/activity"
+	client "go.temporal.io/sdk/client"
 	converter "go.temporal.io/sdk/converter"
 	temporal "go.temporal.io/sdk/temporal"
+	testsuite "go.temporal.io/sdk/testsuite"
 	worker "go.temporal.io/sdk/worker"
 	workflow "go.temporal.io/sdk/workflow"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	"log/slog"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
 // CryptoTaskQueue is the default task-queue for a crypto.v1.Crypto worker
 var CryptoTaskQueue = "infra"
 
+// crypto.v1.Crypto workflow names
+const (
+	GenerateAndStoreKeyPairWorkflowName  = "crypto.v1.GenerateAndStoreKeyPair"
+	GenerateAndStorePasswordWorkflowName = "crypto.v1.GenerateAndStorePassword"
+)
+
+// crypto.v1.Crypto workflow id expressions
+var (
+	GenerateAndStoreKeyPairIdexpression  = expression.MustParseExpression("crypto/generate-store-keypair/${! vault_path.or(\"default\") }")
+	GenerateAndStorePasswordIdexpression = expression.MustParseExpression("crypto/generate-store-password/${! vault_path.or(\"default\") }")
+)
+
 // crypto.v1.Crypto activity names
 const (
 	GenerateKeyPairActivityName  = "crypto.v1.GenerateKeyPair"
 	GeneratePasswordActivityName = "crypto.v1.GeneratePassword"
 )
+
+// CryptoClient describes a client for a(n) crypto.v1.Crypto worker
+type CryptoClient interface {
+	// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
+	// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
+	// Keys are stored with names "private" and "public" at the same vault_path
+	GenerateAndStoreKeyPair(ctx context.Context, req *GenerateAndStoreKeyPairInput, opts ...*GenerateAndStoreKeyPairOptions) (*GenerateAndStoreKeyPairOutput, error)
+
+	// GenerateAndStoreKeyPairAsync starts a(n) crypto.v1.GenerateAndStoreKeyPair workflow and returns a handle to the workflow run
+	GenerateAndStoreKeyPairAsync(ctx context.Context, req *GenerateAndStoreKeyPairInput, opts ...*GenerateAndStoreKeyPairOptions) (GenerateAndStoreKeyPairRun, error)
+
+	// GetGenerateAndStoreKeyPair retrieves a handle to an existing crypto.v1.GenerateAndStoreKeyPair workflow execution
+	GetGenerateAndStoreKeyPair(ctx context.Context, workflowID string, runID string) GenerateAndStoreKeyPairRun
+
+	// GenerateAndStorePassword generates a password and stores it in Vault
+	// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
+	// Password is stored with key name "store-password"
+	GenerateAndStorePassword(ctx context.Context, req *GenerateAndStorePasswordInput, opts ...*GenerateAndStorePasswordOptions) (*GenerateAndStorePasswordOutput, error)
+
+	// GenerateAndStorePasswordAsync starts a(n) crypto.v1.GenerateAndStorePassword workflow and returns a handle to the workflow run
+	GenerateAndStorePasswordAsync(ctx context.Context, req *GenerateAndStorePasswordInput, opts ...*GenerateAndStorePasswordOptions) (GenerateAndStorePasswordRun, error)
+
+	// GetGenerateAndStorePassword retrieves a handle to an existing crypto.v1.GenerateAndStorePassword workflow execution
+	GetGenerateAndStorePassword(ctx context.Context, workflowID string, runID string) GenerateAndStorePasswordRun
+
+	// CancelWorkflow requests cancellation of an existing workflow execution
+	CancelWorkflow(ctx context.Context, workflowID string, runID string) error
+
+	// TerminateWorkflow an existing workflow execution
+	TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error
+}
+
+// cryptoClient implements a temporal client for a crypto.v1.Crypto service
+type cryptoClient struct {
+	client client.Client
+	log    *slog.Logger
+}
+
+// NewCryptoClient initializes a new crypto.v1.Crypto client
+func NewCryptoClient(c client.Client, options ...*cryptoClientOptions) CryptoClient {
+	var cfg *cryptoClientOptions
+	if len(options) > 0 {
+		cfg = options[0]
+	} else {
+		cfg = NewCryptoClientOptions()
+	}
+	return &cryptoClient{
+		client: c,
+		log:    cfg.getLogger(),
+	}
+}
+
+// NewCryptoClientWithOptions initializes a new Crypto client with the given options
+func NewCryptoClientWithOptions(c client.Client, opts client.Options, options ...*cryptoClientOptions) (CryptoClient, error) {
+	var err error
+	c, err = client.NewClientFromExisting(c, opts)
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client with options: %w", err)
+	}
+	var cfg *cryptoClientOptions
+	if len(options) > 0 {
+		cfg = options[0]
+	} else {
+		cfg = NewCryptoClientOptions()
+	}
+	return &cryptoClient{
+		client: c,
+		log:    cfg.getLogger(),
+	}, nil
+}
+
+// cryptoClientOptions describes optional runtime configuration for a CryptoClient
+type cryptoClientOptions struct {
+	log *slog.Logger
+}
+
+// NewCryptoClientOptions initializes a new cryptoClientOptions value
+func NewCryptoClientOptions() *cryptoClientOptions {
+	return &cryptoClientOptions{}
+}
+
+// WithLogger can be used to override the default logger
+func (opts *cryptoClientOptions) WithLogger(l *slog.Logger) *cryptoClientOptions {
+	if l != nil {
+		opts.log = l
+	}
+	return opts
+}
+
+// getLogger returns the configured logger, or the default logger
+func (opts *cryptoClientOptions) getLogger() *slog.Logger {
+	if opts != nil && opts.log != nil {
+		return opts.log
+	}
+	return slog.Default()
+}
+
+// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
+// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
+// Keys are stored with names "private" and "public" at the same vault_path
+func (c *cryptoClient) GenerateAndStoreKeyPair(ctx context.Context, req *GenerateAndStoreKeyPairInput, options ...*GenerateAndStoreKeyPairOptions) (*GenerateAndStoreKeyPairOutput, error) {
+	run, err := c.GenerateAndStoreKeyPairAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
+// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
+// Keys are stored with names "private" and "public" at the same vault_path
+func (c *cryptoClient) GenerateAndStoreKeyPairAsync(ctx context.Context, req *GenerateAndStoreKeyPairInput, options ...*GenerateAndStoreKeyPairOptions) (GenerateAndStoreKeyPairRun, error) {
+	var o *GenerateAndStoreKeyPairOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewGenerateAndStoreKeyPairOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, GenerateAndStoreKeyPairWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &generateAndStoreKeyPairRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetGenerateAndStoreKeyPair fetches an existing crypto.v1.GenerateAndStoreKeyPair execution
+func (c *cryptoClient) GetGenerateAndStoreKeyPair(ctx context.Context, workflowID string, runID string) GenerateAndStoreKeyPairRun {
+	return &generateAndStoreKeyPairRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// GenerateAndStorePassword generates a password and stores it in Vault
+// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
+// Password is stored with key name "store-password"
+func (c *cryptoClient) GenerateAndStorePassword(ctx context.Context, req *GenerateAndStorePasswordInput, options ...*GenerateAndStorePasswordOptions) (*GenerateAndStorePasswordOutput, error) {
+	run, err := c.GenerateAndStorePasswordAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// GenerateAndStorePassword generates a password and stores it in Vault
+// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
+// Password is stored with key name "store-password"
+func (c *cryptoClient) GenerateAndStorePasswordAsync(ctx context.Context, req *GenerateAndStorePasswordInput, options ...*GenerateAndStorePasswordOptions) (GenerateAndStorePasswordRun, error) {
+	var o *GenerateAndStorePasswordOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewGenerateAndStorePasswordOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, GenerateAndStorePasswordWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &generateAndStorePasswordRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetGenerateAndStorePassword fetches an existing crypto.v1.GenerateAndStorePassword execution
+func (c *cryptoClient) GetGenerateAndStorePassword(ctx context.Context, workflowID string, runID string) GenerateAndStorePasswordRun {
+	return &generateAndStorePasswordRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// CancelWorkflow requests cancellation of an existing workflow execution
+func (c *cryptoClient) CancelWorkflow(ctx context.Context, workflowID string, runID string) error {
+	return c.client.CancelWorkflow(ctx, workflowID, runID)
+}
+
+// TerminateWorkflow terminates an existing workflow execution
+func (c *cryptoClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
+	return c.client.TerminateWorkflow(ctx, workflowID, runID, reason, details...)
+}
+
+// GenerateAndStoreKeyPairOptions provides configuration for a crypto.v1.GenerateAndStoreKeyPair workflow operation
+type GenerateAndStoreKeyPairOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewGenerateAndStoreKeyPairOptions initializes a new GenerateAndStoreKeyPairOptions value
+func NewGenerateAndStoreKeyPairOptions() *GenerateAndStoreKeyPairOptions {
+	return &GenerateAndStoreKeyPairOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *GenerateAndStoreKeyPairOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(GenerateAndStoreKeyPairIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", GenerateAndStoreKeyPairWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = CryptoTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *GenerateAndStoreKeyPairOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *GenerateAndStoreKeyPairOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *GenerateAndStoreKeyPairOptions) WithExecutionTimeout(d time.Duration) *GenerateAndStoreKeyPairOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *GenerateAndStoreKeyPairOptions) WithID(id string) *GenerateAndStoreKeyPairOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *GenerateAndStoreKeyPairOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *GenerateAndStoreKeyPairOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *GenerateAndStoreKeyPairOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *GenerateAndStoreKeyPairOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *GenerateAndStoreKeyPairOptions) WithRunTimeout(d time.Duration) *GenerateAndStoreKeyPairOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *GenerateAndStoreKeyPairOptions) WithSearchAttributes(sa map[string]any) *GenerateAndStoreKeyPairOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *GenerateAndStoreKeyPairOptions) WithTaskTimeout(d time.Duration) *GenerateAndStoreKeyPairOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *GenerateAndStoreKeyPairOptions) WithTaskQueue(tq string) *GenerateAndStoreKeyPairOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *GenerateAndStoreKeyPairOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *GenerateAndStoreKeyPairOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// GenerateAndStoreKeyPairRun describes a(n) crypto.v1.GenerateAndStoreKeyPair workflow run
+type GenerateAndStoreKeyPairRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*GenerateAndStoreKeyPairOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// generateAndStoreKeyPairRun provides an internal implementation of a(n) GenerateAndStoreKeyPairRunRun
+type generateAndStoreKeyPairRun struct {
+	client *cryptoClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *generateAndStoreKeyPairRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *generateAndStoreKeyPairRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *generateAndStoreKeyPairRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *generateAndStoreKeyPairRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *generateAndStoreKeyPairRun) Get(ctx context.Context) (*GenerateAndStoreKeyPairOutput, error) {
+	var resp GenerateAndStoreKeyPairOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *generateAndStoreKeyPairRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+// GenerateAndStorePasswordOptions provides configuration for a crypto.v1.GenerateAndStorePassword workflow operation
+type GenerateAndStorePasswordOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewGenerateAndStorePasswordOptions initializes a new GenerateAndStorePasswordOptions value
+func NewGenerateAndStorePasswordOptions() *GenerateAndStorePasswordOptions {
+	return &GenerateAndStorePasswordOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *GenerateAndStorePasswordOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(GenerateAndStorePasswordIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", GenerateAndStorePasswordWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = CryptoTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *GenerateAndStorePasswordOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *GenerateAndStorePasswordOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *GenerateAndStorePasswordOptions) WithExecutionTimeout(d time.Duration) *GenerateAndStorePasswordOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *GenerateAndStorePasswordOptions) WithID(id string) *GenerateAndStorePasswordOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *GenerateAndStorePasswordOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *GenerateAndStorePasswordOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *GenerateAndStorePasswordOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *GenerateAndStorePasswordOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *GenerateAndStorePasswordOptions) WithRunTimeout(d time.Duration) *GenerateAndStorePasswordOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *GenerateAndStorePasswordOptions) WithSearchAttributes(sa map[string]any) *GenerateAndStorePasswordOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *GenerateAndStorePasswordOptions) WithTaskTimeout(d time.Duration) *GenerateAndStorePasswordOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *GenerateAndStorePasswordOptions) WithTaskQueue(tq string) *GenerateAndStorePasswordOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *GenerateAndStorePasswordOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *GenerateAndStorePasswordOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// GenerateAndStorePasswordRun describes a(n) crypto.v1.GenerateAndStorePassword workflow run
+type GenerateAndStorePasswordRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*GenerateAndStorePasswordOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// generateAndStorePasswordRun provides an internal implementation of a(n) GenerateAndStorePasswordRunRun
+type generateAndStorePasswordRun struct {
+	client *cryptoClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *generateAndStorePasswordRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *generateAndStorePasswordRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *generateAndStorePasswordRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *generateAndStorePasswordRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *generateAndStorePasswordRun) Get(ctx context.Context) (*GenerateAndStorePasswordOutput, error) {
+	var resp GenerateAndStorePasswordOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *generateAndStorePasswordRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+// Reference to generated workflow functions
+var (
+	// cryptoRegistrationMutex is a mutex for registering crypto.v1.Crypto workflows
+	cryptoRegistrationMutex sync.Mutex
+	// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
+	// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
+	// Keys are stored with names "private" and "public" at the same vault_path
+	GenerateAndStoreKeyPairFunction func(workflow.Context, *GenerateAndStoreKeyPairInput) (*GenerateAndStoreKeyPairOutput, error)
+	// GenerateAndStorePassword generates a password and stores it in Vault
+	// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
+	// Password is stored with key name "store-password"
+	GenerateAndStorePasswordFunction func(workflow.Context, *GenerateAndStorePasswordInput) (*GenerateAndStorePasswordOutput, error)
+)
+
+// CryptoWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
+type (
+	// CryptoWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
+	CryptoWorkflowFunctions interface {
+		// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
+		// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
+		// Keys are stored with names "private" and "public" at the same vault_path
+		GenerateAndStoreKeyPair(workflow.Context, *GenerateAndStoreKeyPairInput) (*GenerateAndStoreKeyPairOutput, error)
+		// GenerateAndStorePassword generates a password and stores it in Vault
+		// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
+		// Password is stored with key name "store-password"
+		GenerateAndStorePassword(workflow.Context, *GenerateAndStorePasswordInput) (*GenerateAndStorePasswordOutput, error)
+	}
+	// cryptoWorkflowFunctions provides an internal CryptoWorkflowFunctions implementation
+	cryptoWorkflowFunctions struct{}
+)
+
+func NewCryptoWorkflowFunctions() CryptoWorkflowFunctions {
+	return &cryptoWorkflowFunctions{}
+}
+
+// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
+// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
+// Keys are stored with names "private" and "public" at the same vault_path
+func (f *cryptoWorkflowFunctions) GenerateAndStoreKeyPair(ctx workflow.Context, req *GenerateAndStoreKeyPairInput) (*GenerateAndStoreKeyPairOutput, error) {
+	if GenerateAndStoreKeyPairFunction == nil {
+		return nil, errors.New("GenerateAndStoreKeyPair requires workflow registration via RegisterCryptoWorkflows or RegisterGenerateAndStoreKeyPairWorkflow")
+	}
+	return GenerateAndStoreKeyPairFunction(ctx, req)
+}
+
+// GenerateAndStorePassword generates a password and stores it in Vault
+// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
+// Password is stored with key name "store-password"
+func (f *cryptoWorkflowFunctions) GenerateAndStorePassword(ctx workflow.Context, req *GenerateAndStorePasswordInput) (*GenerateAndStorePasswordOutput, error) {
+	if GenerateAndStorePasswordFunction == nil {
+		return nil, errors.New("GenerateAndStorePassword requires workflow registration via RegisterCryptoWorkflows or RegisterGenerateAndStorePasswordWorkflow")
+	}
+	return GenerateAndStorePasswordFunction(ctx, req)
+}
+
+// CryptoWorkflows provides methods for initializing new crypto.v1.Crypto workflow values
+type CryptoWorkflows interface {
+	// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
+	// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
+	// Keys are stored with names "private" and "public" at the same vault_path
+	GenerateAndStoreKeyPair(ctx workflow.Context, input *GenerateAndStoreKeyPairWorkflowInput) (GenerateAndStoreKeyPairWorkflow, error)
+
+	// GenerateAndStorePassword generates a password and stores it in Vault
+	// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
+	// Password is stored with key name "store-password"
+	GenerateAndStorePassword(ctx workflow.Context, input *GenerateAndStorePasswordWorkflowInput) (GenerateAndStorePasswordWorkflow, error)
+}
+
+// RegisterCryptoWorkflows registers crypto.v1.Crypto workflows with the given worker
+func RegisterCryptoWorkflows(r worker.WorkflowRegistry, workflows CryptoWorkflows) {
+	RegisterGenerateAndStoreKeyPairWorkflow(r, workflows.GenerateAndStoreKeyPair)
+	RegisterGenerateAndStorePasswordWorkflow(r, workflows.GenerateAndStorePassword)
+}
+
+// RegisterGenerateAndStoreKeyPairWorkflow registers a crypto.v1.Crypto.GenerateAndStoreKeyPair workflow with the given worker
+func RegisterGenerateAndStoreKeyPairWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *GenerateAndStoreKeyPairWorkflowInput) (GenerateAndStoreKeyPairWorkflow, error)) {
+	cryptoRegistrationMutex.Lock()
+	defer cryptoRegistrationMutex.Unlock()
+	GenerateAndStoreKeyPairFunction = buildGenerateAndStoreKeyPair(wf)
+	r.RegisterWorkflowWithOptions(GenerateAndStoreKeyPairFunction, workflow.RegisterOptions{Name: GenerateAndStoreKeyPairWorkflowName})
+}
+
+// buildGenerateAndStoreKeyPair converts a GenerateAndStoreKeyPair workflow struct into a valid workflow function
+func buildGenerateAndStoreKeyPair(ctor func(workflow.Context, *GenerateAndStoreKeyPairWorkflowInput) (GenerateAndStoreKeyPairWorkflow, error)) func(workflow.Context, *GenerateAndStoreKeyPairInput) (*GenerateAndStoreKeyPairOutput, error) {
+	return func(ctx workflow.Context, req *GenerateAndStoreKeyPairInput) (*GenerateAndStoreKeyPairOutput, error) {
+		input := &GenerateAndStoreKeyPairWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// GenerateAndStoreKeyPairWorkflowInput describes the input to a(n) crypto.v1.GenerateAndStoreKeyPair workflow constructor
+type GenerateAndStoreKeyPairWorkflowInput struct {
+	Req *GenerateAndStoreKeyPairInput
+}
+
+// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
+// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
+// Keys are stored with names "private" and "public" at the same vault_path
+//
+// workflow details: (name: "crypto.v1.GenerateAndStoreKeyPair", id: "crypto/generate-store-keypair/${! vault_path.or("default") }")
+type GenerateAndStoreKeyPairWorkflow interface {
+	// Execute defines the entrypoint to a(n) crypto.v1.GenerateAndStoreKeyPair workflow
+	Execute(ctx workflow.Context) (*GenerateAndStoreKeyPairOutput, error)
+}
+
+// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
+// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
+// Keys are stored with names "private" and "public" at the same vault_path
+func GenerateAndStoreKeyPairChild(ctx workflow.Context, req *GenerateAndStoreKeyPairInput, options ...*GenerateAndStoreKeyPairChildOptions) (*GenerateAndStoreKeyPairOutput, error) {
+	childRun, err := GenerateAndStoreKeyPairChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
+// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
+// Keys are stored with names "private" and "public" at the same vault_path
+func GenerateAndStoreKeyPairChildAsync(ctx workflow.Context, req *GenerateAndStoreKeyPairInput, options ...*GenerateAndStoreKeyPairChildOptions) (*GenerateAndStoreKeyPairChildRun, error) {
+	var o *GenerateAndStoreKeyPairChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewGenerateAndStoreKeyPairChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &GenerateAndStoreKeyPairChildRun{Future: workflow.ExecuteChildWorkflow(ctx, GenerateAndStoreKeyPairWorkflowName, req)}, nil
+}
+
+// GenerateAndStoreKeyPairChildOptions provides configuration for a child crypto.v1.GenerateAndStoreKeyPair workflow operation
+type GenerateAndStoreKeyPairChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewGenerateAndStoreKeyPairChildOptions initializes a new GenerateAndStoreKeyPairChildOptions value
+func NewGenerateAndStoreKeyPairChildOptions() *GenerateAndStoreKeyPairChildOptions {
+	return &GenerateAndStoreKeyPairChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *GenerateAndStoreKeyPairChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(GenerateAndStoreKeyPairIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", GenerateAndStoreKeyPairWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", GenerateAndStoreKeyPairWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(GenerateAndStoreKeyPairIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", GenerateAndStoreKeyPairWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = CryptoTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	} else if opts.ParentClosePolicy == enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = enumsv1.PARENT_CLOSE_POLICY_REQUEST_CANCEL
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *GenerateAndStoreKeyPairChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *GenerateAndStoreKeyPairChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *GenerateAndStoreKeyPairChildOptions) WithDataConverter(dc converter.DataConverter) *GenerateAndStoreKeyPairChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *GenerateAndStoreKeyPairChildOptions) WithExecutionTimeout(d time.Duration) *GenerateAndStoreKeyPairChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *GenerateAndStoreKeyPairChildOptions) WithID(id string) *GenerateAndStoreKeyPairChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *GenerateAndStoreKeyPairChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *GenerateAndStoreKeyPairChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *GenerateAndStoreKeyPairChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *GenerateAndStoreKeyPairChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *GenerateAndStoreKeyPairChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *GenerateAndStoreKeyPairChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *GenerateAndStoreKeyPairChildOptions) WithRunTimeout(d time.Duration) *GenerateAndStoreKeyPairChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *GenerateAndStoreKeyPairChildOptions) WithSearchAttributes(sa map[string]any) *GenerateAndStoreKeyPairChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *GenerateAndStoreKeyPairChildOptions) WithTaskTimeout(d time.Duration) *GenerateAndStoreKeyPairChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *GenerateAndStoreKeyPairChildOptions) WithTaskQueue(tq string) *GenerateAndStoreKeyPairChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *GenerateAndStoreKeyPairChildOptions) WithWaitForCancellation(wait bool) *GenerateAndStoreKeyPairChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *GenerateAndStoreKeyPairChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *GenerateAndStoreKeyPairChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// GenerateAndStoreKeyPairChildRun describes a child GenerateAndStoreKeyPair workflow run
+type GenerateAndStoreKeyPairChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *GenerateAndStoreKeyPairChildRun) Get(ctx workflow.Context) (*GenerateAndStoreKeyPairOutput, error) {
+	var resp GenerateAndStoreKeyPairOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *GenerateAndStoreKeyPairChildRun) Select(sel workflow.Selector, fn func(*GenerateAndStoreKeyPairChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *GenerateAndStoreKeyPairChildRun) SelectStart(sel workflow.Selector, fn func(*GenerateAndStoreKeyPairChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *GenerateAndStoreKeyPairChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
+// RegisterGenerateAndStorePasswordWorkflow registers a crypto.v1.Crypto.GenerateAndStorePassword workflow with the given worker
+func RegisterGenerateAndStorePasswordWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *GenerateAndStorePasswordWorkflowInput) (GenerateAndStorePasswordWorkflow, error)) {
+	cryptoRegistrationMutex.Lock()
+	defer cryptoRegistrationMutex.Unlock()
+	GenerateAndStorePasswordFunction = buildGenerateAndStorePassword(wf)
+	r.RegisterWorkflowWithOptions(GenerateAndStorePasswordFunction, workflow.RegisterOptions{Name: GenerateAndStorePasswordWorkflowName})
+}
+
+// buildGenerateAndStorePassword converts a GenerateAndStorePassword workflow struct into a valid workflow function
+func buildGenerateAndStorePassword(ctor func(workflow.Context, *GenerateAndStorePasswordWorkflowInput) (GenerateAndStorePasswordWorkflow, error)) func(workflow.Context, *GenerateAndStorePasswordInput) (*GenerateAndStorePasswordOutput, error) {
+	return func(ctx workflow.Context, req *GenerateAndStorePasswordInput) (*GenerateAndStorePasswordOutput, error) {
+		input := &GenerateAndStorePasswordWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// GenerateAndStorePasswordWorkflowInput describes the input to a(n) crypto.v1.GenerateAndStorePassword workflow constructor
+type GenerateAndStorePasswordWorkflowInput struct {
+	Req *GenerateAndStorePasswordInput
+}
+
+// GenerateAndStorePassword generates a password and stores it in Vault
+// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
+// Password is stored with key name "store-password"
+//
+// workflow details: (name: "crypto.v1.GenerateAndStorePassword", id: "crypto/generate-store-password/${! vault_path.or("default") }")
+type GenerateAndStorePasswordWorkflow interface {
+	// Execute defines the entrypoint to a(n) crypto.v1.GenerateAndStorePassword workflow
+	Execute(ctx workflow.Context) (*GenerateAndStorePasswordOutput, error)
+}
+
+// GenerateAndStorePassword generates a password and stores it in Vault
+// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
+// Password is stored with key name "store-password"
+func GenerateAndStorePasswordChild(ctx workflow.Context, req *GenerateAndStorePasswordInput, options ...*GenerateAndStorePasswordChildOptions) (*GenerateAndStorePasswordOutput, error) {
+	childRun, err := GenerateAndStorePasswordChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// GenerateAndStorePassword generates a password and stores it in Vault
+// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
+// Password is stored with key name "store-password"
+func GenerateAndStorePasswordChildAsync(ctx workflow.Context, req *GenerateAndStorePasswordInput, options ...*GenerateAndStorePasswordChildOptions) (*GenerateAndStorePasswordChildRun, error) {
+	var o *GenerateAndStorePasswordChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewGenerateAndStorePasswordChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &GenerateAndStorePasswordChildRun{Future: workflow.ExecuteChildWorkflow(ctx, GenerateAndStorePasswordWorkflowName, req)}, nil
+}
+
+// GenerateAndStorePasswordChildOptions provides configuration for a child crypto.v1.GenerateAndStorePassword workflow operation
+type GenerateAndStorePasswordChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewGenerateAndStorePasswordChildOptions initializes a new GenerateAndStorePasswordChildOptions value
+func NewGenerateAndStorePasswordChildOptions() *GenerateAndStorePasswordChildOptions {
+	return &GenerateAndStorePasswordChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *GenerateAndStorePasswordChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(GenerateAndStorePasswordIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", GenerateAndStorePasswordWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", GenerateAndStorePasswordWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(GenerateAndStorePasswordIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", GenerateAndStorePasswordWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = CryptoTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	} else if opts.ParentClosePolicy == enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = enumsv1.PARENT_CLOSE_POLICY_REQUEST_CANCEL
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *GenerateAndStorePasswordChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *GenerateAndStorePasswordChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *GenerateAndStorePasswordChildOptions) WithDataConverter(dc converter.DataConverter) *GenerateAndStorePasswordChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *GenerateAndStorePasswordChildOptions) WithExecutionTimeout(d time.Duration) *GenerateAndStorePasswordChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *GenerateAndStorePasswordChildOptions) WithID(id string) *GenerateAndStorePasswordChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *GenerateAndStorePasswordChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *GenerateAndStorePasswordChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *GenerateAndStorePasswordChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *GenerateAndStorePasswordChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *GenerateAndStorePasswordChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *GenerateAndStorePasswordChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *GenerateAndStorePasswordChildOptions) WithRunTimeout(d time.Duration) *GenerateAndStorePasswordChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *GenerateAndStorePasswordChildOptions) WithSearchAttributes(sa map[string]any) *GenerateAndStorePasswordChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *GenerateAndStorePasswordChildOptions) WithTaskTimeout(d time.Duration) *GenerateAndStorePasswordChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *GenerateAndStorePasswordChildOptions) WithTaskQueue(tq string) *GenerateAndStorePasswordChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *GenerateAndStorePasswordChildOptions) WithWaitForCancellation(wait bool) *GenerateAndStorePasswordChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *GenerateAndStorePasswordChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *GenerateAndStorePasswordChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// GenerateAndStorePasswordChildRun describes a child GenerateAndStorePassword workflow run
+type GenerateAndStorePasswordChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *GenerateAndStorePasswordChildRun) Get(ctx workflow.Context) (*GenerateAndStorePasswordOutput, error) {
+	var resp GenerateAndStorePasswordOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *GenerateAndStorePasswordChildRun) Select(sel workflow.Selector, fn func(*GenerateAndStorePasswordChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *GenerateAndStorePasswordChildRun) SelectStart(sel workflow.Selector, fn func(*GenerateAndStorePasswordChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *GenerateAndStorePasswordChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
 
 // CryptoActivities describes available worker activities
 type CryptoActivities interface {
@@ -33,7 +1252,7 @@ type CryptoActivities interface {
 	GenerateKeyPair(ctx context.Context, req *GenerateKeyPairInput) (*GenerateKeyPairOutput, error)
 
 	// GeneratePassword generates a secure random password
-	// Password is 32 characters with mix of uppercase, lowercase, numbers, and special characters
+	// Password is 32-character base64-URL-encoded random string
 	GeneratePassword(ctx context.Context, req *GeneratePasswordInput) (*GeneratePasswordOutput, error)
 }
 
@@ -338,13 +1557,13 @@ func (f *GeneratePasswordFuture) Select(sel workflow.Selector, fn func(*Generate
 }
 
 // GeneratePassword generates a secure random password
-// Password is 32 characters with mix of uppercase, lowercase, numbers, and special characters
+// Password is 32-character base64-URL-encoded random string
 func GeneratePassword(ctx workflow.Context, req *GeneratePasswordInput, options ...*GeneratePasswordActivityOptions) (*GeneratePasswordOutput, error) {
 	return GeneratePasswordAsync(ctx, req, options...).Get(ctx)
 }
 
 // GeneratePassword generates a secure random password
-// Password is 32 characters with mix of uppercase, lowercase, numbers, and special characters
+// Password is 32-character base64-URL-encoded random string
 func GeneratePasswordAsync(ctx workflow.Context, req *GeneratePasswordInput, options ...*GeneratePasswordActivityOptions) *GeneratePasswordFuture {
 	var o *GeneratePasswordActivityOptions
 	if len(options) > 0 && options[0] != nil {
@@ -367,13 +1586,13 @@ func GeneratePasswordAsync(ctx workflow.Context, req *GeneratePasswordInput, opt
 }
 
 // GeneratePassword generates a secure random password
-// Password is 32 characters with mix of uppercase, lowercase, numbers, and special characters
+// Password is 32-character base64-URL-encoded random string
 func GeneratePasswordLocal(ctx workflow.Context, req *GeneratePasswordInput, options ...*GeneratePasswordLocalActivityOptions) (*GeneratePasswordOutput, error) {
 	return GeneratePasswordLocalAsync(ctx, req, options...).Get(ctx)
 }
 
 // GeneratePassword generates a secure random password
-// Password is 32 characters with mix of uppercase, lowercase, numbers, and special characters
+// Password is 32-character base64-URL-encoded random string
 func GeneratePasswordLocalAsync(ctx workflow.Context, req *GeneratePasswordInput, options ...*GeneratePasswordLocalActivityOptions) *GeneratePasswordFuture {
 	var o *GeneratePasswordLocalActivityOptions
 	if len(options) > 0 && options[0] != nil {
@@ -569,4 +1788,208 @@ func (o *GeneratePasswordLocalActivityOptions) WithScheduleToCloseTimeout(d time
 func (o *GeneratePasswordLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *GeneratePasswordLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
+}
+
+// TestClient provides a testsuite-compatible Client
+type TestCryptoClient struct {
+	env       *testsuite.TestWorkflowEnvironment
+	workflows CryptoWorkflows
+}
+
+var _ CryptoClient = &TestCryptoClient{}
+
+// NewTestCryptoClient initializes a new TestCryptoClient value
+func NewTestCryptoClient(env *testsuite.TestWorkflowEnvironment, workflows CryptoWorkflows, activities CryptoActivities) *TestCryptoClient {
+	if workflows != nil {
+		RegisterCryptoWorkflows(env, workflows)
+	}
+	if activities != nil {
+		RegisterCryptoActivities(env, activities)
+	}
+	return &TestCryptoClient{env, workflows}
+}
+
+// GenerateAndStoreKeyPair executes a(n) crypto.v1.GenerateAndStoreKeyPair workflow in the test environment
+func (c *TestCryptoClient) GenerateAndStoreKeyPair(ctx context.Context, req *GenerateAndStoreKeyPairInput, opts ...*GenerateAndStoreKeyPairOptions) (*GenerateAndStoreKeyPairOutput, error) {
+	run, err := c.GenerateAndStoreKeyPairAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// GenerateAndStoreKeyPairAsync executes a(n) crypto.v1.GenerateAndStoreKeyPair workflow in the test environment
+func (c *TestCryptoClient) GenerateAndStoreKeyPairAsync(ctx context.Context, req *GenerateAndStoreKeyPairInput, options ...*GenerateAndStoreKeyPairOptions) (GenerateAndStoreKeyPairRun, error) {
+	var o *GenerateAndStoreKeyPairOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewGenerateAndStoreKeyPairOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testGenerateAndStoreKeyPairRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetGenerateAndStoreKeyPair is a noop
+func (c *TestCryptoClient) GetGenerateAndStoreKeyPair(ctx context.Context, workflowID string, runID string) GenerateAndStoreKeyPairRun {
+	return &testGenerateAndStoreKeyPairRun{env: c.env, workflows: c.workflows}
+}
+
+// GenerateAndStorePassword executes a(n) crypto.v1.GenerateAndStorePassword workflow in the test environment
+func (c *TestCryptoClient) GenerateAndStorePassword(ctx context.Context, req *GenerateAndStorePasswordInput, opts ...*GenerateAndStorePasswordOptions) (*GenerateAndStorePasswordOutput, error) {
+	run, err := c.GenerateAndStorePasswordAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// GenerateAndStorePasswordAsync executes a(n) crypto.v1.GenerateAndStorePassword workflow in the test environment
+func (c *TestCryptoClient) GenerateAndStorePasswordAsync(ctx context.Context, req *GenerateAndStorePasswordInput, options ...*GenerateAndStorePasswordOptions) (GenerateAndStorePasswordRun, error) {
+	var o *GenerateAndStorePasswordOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewGenerateAndStorePasswordOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testGenerateAndStorePasswordRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetGenerateAndStorePassword is a noop
+func (c *TestCryptoClient) GetGenerateAndStorePassword(ctx context.Context, workflowID string, runID string) GenerateAndStorePasswordRun {
+	return &testGenerateAndStorePasswordRun{env: c.env, workflows: c.workflows}
+}
+
+// CancelWorkflow requests cancellation of an existing workflow execution
+func (c *TestCryptoClient) CancelWorkflow(ctx context.Context, workflowID string, runID string) error {
+	c.env.CancelWorkflow()
+	return nil
+}
+
+// TerminateWorkflow terminates an existing workflow execution
+func (c *TestCryptoClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
+	return c.CancelWorkflow(ctx, workflowID, runID)
+}
+
+var _ GenerateAndStoreKeyPairRun = &testGenerateAndStoreKeyPairRun{}
+
+// testGenerateAndStoreKeyPairRun provides convenience methods for interacting with a(n) crypto.v1.GenerateAndStoreKeyPair workflow in the test environment
+type testGenerateAndStoreKeyPairRun struct {
+	client    *TestCryptoClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *GenerateAndStoreKeyPairInput
+	workflows CryptoWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testGenerateAndStoreKeyPairRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test crypto.v1.GenerateAndStoreKeyPair workflow result
+func (r *testGenerateAndStoreKeyPairRun) Get(context.Context) (*GenerateAndStoreKeyPairOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(GenerateAndStoreKeyPairWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result GenerateAndStoreKeyPairOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test crypto.v1.GenerateAndStoreKeyPair workflow run's workflow ID
+func (r *testGenerateAndStoreKeyPairRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testGenerateAndStoreKeyPairRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testGenerateAndStoreKeyPairRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testGenerateAndStoreKeyPairRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ GenerateAndStorePasswordRun = &testGenerateAndStorePasswordRun{}
+
+// testGenerateAndStorePasswordRun provides convenience methods for interacting with a(n) crypto.v1.GenerateAndStorePassword workflow in the test environment
+type testGenerateAndStorePasswordRun struct {
+	client    *TestCryptoClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *GenerateAndStorePasswordInput
+	workflows CryptoWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testGenerateAndStorePasswordRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test crypto.v1.GenerateAndStorePassword workflow result
+func (r *testGenerateAndStorePasswordRun) Get(context.Context) (*GenerateAndStorePasswordOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(GenerateAndStorePasswordWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result GenerateAndStorePasswordOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test crypto.v1.GenerateAndStorePassword workflow run's workflow ID
+func (r *testGenerateAndStorePasswordRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testGenerateAndStorePasswordRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testGenerateAndStorePasswordRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testGenerateAndStorePasswordRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }

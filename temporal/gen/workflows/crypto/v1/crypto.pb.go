@@ -8,6 +8,7 @@ package cryptov1
 
 import (
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
+	v1 "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -197,11 +198,198 @@ func (x *GenerateKeyPairOutput) GetPublicKey() []byte {
 	return nil
 }
 
+// GenerateAndStorePasswordInput specifies where to store the generated password
+type GenerateAndStorePasswordInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// vault_path is the Vault path to store the password at
+	// Example: "fabric/org1/ca/tls/root/admin"
+	VaultPath     string `protobuf:"bytes,1,opt,name=vault_path,json=vaultPath,proto3" json:"vault_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateAndStorePasswordInput) Reset() {
+	*x = GenerateAndStorePasswordInput{}
+	mi := &file_crypto_v1_crypto_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateAndStorePasswordInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateAndStorePasswordInput) ProtoMessage() {}
+
+func (x *GenerateAndStorePasswordInput) ProtoReflect() protoreflect.Message {
+	mi := &file_crypto_v1_crypto_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateAndStorePasswordInput.ProtoReflect.Descriptor instead.
+func (*GenerateAndStorePasswordInput) Descriptor() ([]byte, []int) {
+	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GenerateAndStorePasswordInput) GetVaultPath() string {
+	if x != nil {
+		return x.VaultPath
+	}
+	return ""
+}
+
+// GenerateAndStorePasswordOutput returns the Vault secret reference
+type GenerateAndStorePasswordOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// secret_ref is the Vault secret reference with path and version
+	SecretRef     *v1.SecretRef `protobuf:"bytes,1,opt,name=secret_ref,json=secretRef,proto3" json:"secret_ref,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateAndStorePasswordOutput) Reset() {
+	*x = GenerateAndStorePasswordOutput{}
+	mi := &file_crypto_v1_crypto_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateAndStorePasswordOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateAndStorePasswordOutput) ProtoMessage() {}
+
+func (x *GenerateAndStorePasswordOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_crypto_v1_crypto_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateAndStorePasswordOutput.ProtoReflect.Descriptor instead.
+func (*GenerateAndStorePasswordOutput) Descriptor() ([]byte, []int) {
+	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GenerateAndStorePasswordOutput) GetSecretRef() *v1.SecretRef {
+	if x != nil {
+		return x.SecretRef
+	}
+	return nil
+}
+
+// GenerateAndStoreKeyPairInput specifies where to store the generated key pair
+type GenerateAndStoreKeyPairInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// vault_path is the Vault path to store the key pair at
+	// Both keys (private and public) are stored at this path
+	// Example: "fabric/org1/ca/tls/root/keys"
+	VaultPath     string `protobuf:"bytes,1,opt,name=vault_path,json=vaultPath,proto3" json:"vault_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateAndStoreKeyPairInput) Reset() {
+	*x = GenerateAndStoreKeyPairInput{}
+	mi := &file_crypto_v1_crypto_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateAndStoreKeyPairInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateAndStoreKeyPairInput) ProtoMessage() {}
+
+func (x *GenerateAndStoreKeyPairInput) ProtoReflect() protoreflect.Message {
+	mi := &file_crypto_v1_crypto_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateAndStoreKeyPairInput.ProtoReflect.Descriptor instead.
+func (*GenerateAndStoreKeyPairInput) Descriptor() ([]byte, []int) {
+	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GenerateAndStoreKeyPairInput) GetVaultPath() string {
+	if x != nil {
+		return x.VaultPath
+	}
+	return ""
+}
+
+// GenerateAndStoreKeyPairOutput returns the Vault secret reference
+type GenerateAndStoreKeyPairOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// secret_ref is the Vault secret reference with path and version
+	SecretRef     *v1.SecretRef `protobuf:"bytes,1,opt,name=secret_ref,json=secretRef,proto3" json:"secret_ref,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateAndStoreKeyPairOutput) Reset() {
+	*x = GenerateAndStoreKeyPairOutput{}
+	mi := &file_crypto_v1_crypto_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateAndStoreKeyPairOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateAndStoreKeyPairOutput) ProtoMessage() {}
+
+func (x *GenerateAndStoreKeyPairOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_crypto_v1_crypto_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateAndStoreKeyPairOutput.ProtoReflect.Descriptor instead.
+func (*GenerateAndStoreKeyPairOutput) Descriptor() ([]byte, []int) {
+	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GenerateAndStoreKeyPairOutput) GetSecretRef() *v1.SecretRef {
+	if x != nil {
+		return x.SecretRef
+	}
+	return nil
+}
+
 var File_crypto_v1_crypto_proto protoreflect.FileDescriptor
 
 const file_crypto_v1_crypto_proto_rawDesc = "" +
 	"\n" +
-	"\x16crypto/v1/crypto.proto\x12\tcrypto.v1\x1a\x1atemporal/v1/temporal.proto\"\x17\n" +
+	"\x16crypto/v1/crypto.proto\x12\tcrypto.v1\x1a\x1atemporal/v1/temporal.proto\x1a\x14vault/v1/vault.proto\"\x17\n" +
 	"\x15GeneratePasswordInput\"4\n" +
 	"\x16GeneratePasswordOutput\x12\x1a\n" +
 	"\bpassword\x18\x01 \x01(\tR\bpassword\"\x16\n" +
@@ -210,10 +398,24 @@ const file_crypto_v1_crypto_proto_rawDesc = "" +
 	"\vprivate_key\x18\x01 \x01(\fR\n" +
 	"privateKey\x12\x1d\n" +
 	"\n" +
-	"public_key\x18\x02 \x01(\fR\tpublicKey2\x8f\x02\n" +
+	"public_key\x18\x02 \x01(\fR\tpublicKey\">\n" +
+	"\x1dGenerateAndStorePasswordInput\x12\x1d\n" +
+	"\n" +
+	"vault_path\x18\x01 \x01(\tR\tvaultPath\"T\n" +
+	"\x1eGenerateAndStorePasswordOutput\x122\n" +
+	"\n" +
+	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefR\tsecretRef\"=\n" +
+	"\x1cGenerateAndStoreKeyPairInput\x12\x1d\n" +
+	"\n" +
+	"vault_path\x18\x01 \x01(\tR\tvaultPath\"S\n" +
+	"\x1dGenerateAndStoreKeyPairOutput\x122\n" +
+	"\n" +
+	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefR\tsecretRef2\xc8\x05\n" +
 	"\x06Crypto\x12}\n" +
 	"\x10GeneratePassword\x12 .crypto.v1.GeneratePasswordInput\x1a!.crypto.v1.GeneratePasswordOutput\"$\x92\xc4\x03 \x12\x02\b\x1e:\x1acrypto.v1.GeneratePassword\x12y\n" +
-	"\x0fGenerateKeyPair\x12\x1f.crypto.v1.GenerateKeyPairInput\x1a .crypto.v1.GenerateKeyPairOutput\"#\x92\xc4\x03\x1f\x12\x02\b\x1e:\x19crypto.v1.GenerateKeyPair\x1a\v\x8a\xc4\x03\a\n" +
+	"\x0fGenerateKeyPair\x12\x1f.crypto.v1.GenerateKeyPairInput\x1a .crypto.v1.GenerateKeyPairOutput\"#\x92\xc4\x03\x1f\x12\x02\b\x1e:\x19crypto.v1.GenerateKeyPair\x12\xdc\x01\n" +
+	"\x18GenerateAndStorePassword\x12(.crypto.v1.GenerateAndStorePasswordInput\x1a).crypto.v1.GenerateAndStorePasswordOutput\"k\x8a\xc4\x03g*=crypto/generate-store-password/${! vault_path.or(\"default\") }0\x01@\x03r\"crypto.v1.GenerateAndStorePassword\x12\xd7\x01\n" +
+	"\x17GenerateAndStoreKeyPair\x12'.crypto.v1.GenerateAndStoreKeyPairInput\x1a(.crypto.v1.GenerateAndStoreKeyPairOutput\"i\x8a\xc4\x03e*<crypto/generate-store-keypair/${! vault_path.or(\"default\") }0\x01@\x03r!crypto.v1.GenerateAndStoreKeyPair\x1a\v\x8a\xc4\x03\a\n" +
 	"\x05infraB\xa8\x01\n" +
 	"\rcom.crypto.v1B\vCryptoProtoP\x01ZEgithub.com/metacensus/infra/temporal/gen/workflows/crypto/v1;cryptov1\xa2\x02\x03CXX\xaa\x02\tCrypto.V1\xca\x02\tCrypto\\V1\xe2\x02\x15Crypto\\V1\\GPBMetadata\xea\x02\n" +
 	"Crypto::V1b\x06proto3"
@@ -230,23 +432,34 @@ func file_crypto_v1_crypto_proto_rawDescGZIP() []byte {
 	return file_crypto_v1_crypto_proto_rawDescData
 }
 
-var file_crypto_v1_crypto_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_crypto_v1_crypto_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_crypto_v1_crypto_proto_goTypes = []any{
-	(*GeneratePasswordInput)(nil),  // 0: crypto.v1.GeneratePasswordInput
-	(*GeneratePasswordOutput)(nil), // 1: crypto.v1.GeneratePasswordOutput
-	(*GenerateKeyPairInput)(nil),   // 2: crypto.v1.GenerateKeyPairInput
-	(*GenerateKeyPairOutput)(nil),  // 3: crypto.v1.GenerateKeyPairOutput
+	(*GeneratePasswordInput)(nil),          // 0: crypto.v1.GeneratePasswordInput
+	(*GeneratePasswordOutput)(nil),         // 1: crypto.v1.GeneratePasswordOutput
+	(*GenerateKeyPairInput)(nil),           // 2: crypto.v1.GenerateKeyPairInput
+	(*GenerateKeyPairOutput)(nil),          // 3: crypto.v1.GenerateKeyPairOutput
+	(*GenerateAndStorePasswordInput)(nil),  // 4: crypto.v1.GenerateAndStorePasswordInput
+	(*GenerateAndStorePasswordOutput)(nil), // 5: crypto.v1.GenerateAndStorePasswordOutput
+	(*GenerateAndStoreKeyPairInput)(nil),   // 6: crypto.v1.GenerateAndStoreKeyPairInput
+	(*GenerateAndStoreKeyPairOutput)(nil),  // 7: crypto.v1.GenerateAndStoreKeyPairOutput
+	(*v1.SecretRef)(nil),                   // 8: vault.v1.SecretRef
 }
 var file_crypto_v1_crypto_proto_depIdxs = []int32{
-	0, // 0: crypto.v1.Crypto.GeneratePassword:input_type -> crypto.v1.GeneratePasswordInput
-	2, // 1: crypto.v1.Crypto.GenerateKeyPair:input_type -> crypto.v1.GenerateKeyPairInput
-	1, // 2: crypto.v1.Crypto.GeneratePassword:output_type -> crypto.v1.GeneratePasswordOutput
-	3, // 3: crypto.v1.Crypto.GenerateKeyPair:output_type -> crypto.v1.GenerateKeyPairOutput
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	8, // 0: crypto.v1.GenerateAndStorePasswordOutput.secret_ref:type_name -> vault.v1.SecretRef
+	8, // 1: crypto.v1.GenerateAndStoreKeyPairOutput.secret_ref:type_name -> vault.v1.SecretRef
+	0, // 2: crypto.v1.Crypto.GeneratePassword:input_type -> crypto.v1.GeneratePasswordInput
+	2, // 3: crypto.v1.Crypto.GenerateKeyPair:input_type -> crypto.v1.GenerateKeyPairInput
+	4, // 4: crypto.v1.Crypto.GenerateAndStorePassword:input_type -> crypto.v1.GenerateAndStorePasswordInput
+	6, // 5: crypto.v1.Crypto.GenerateAndStoreKeyPair:input_type -> crypto.v1.GenerateAndStoreKeyPairInput
+	1, // 6: crypto.v1.Crypto.GeneratePassword:output_type -> crypto.v1.GeneratePasswordOutput
+	3, // 7: crypto.v1.Crypto.GenerateKeyPair:output_type -> crypto.v1.GenerateKeyPairOutput
+	5, // 8: crypto.v1.Crypto.GenerateAndStorePassword:output_type -> crypto.v1.GenerateAndStorePasswordOutput
+	7, // 9: crypto.v1.Crypto.GenerateAndStoreKeyPair:output_type -> crypto.v1.GenerateAndStoreKeyPairOutput
+	6, // [6:10] is the sub-list for method output_type
+	2, // [2:6] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_crypto_v1_crypto_proto_init() }
@@ -260,7 +473,7 @@ func file_crypto_v1_crypto_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_crypto_v1_crypto_proto_rawDesc), len(file_crypto_v1_crypto_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
