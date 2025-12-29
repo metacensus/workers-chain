@@ -47,17 +47,11 @@ service Postgres {
 message CreateDatabaseInput {
   // database_name is the name of the database to create
   string database_name = 1;
-  
-  // connection_string is the PostgreSQL connection string for admin access
-  // Format: postgres://user:password@host:port/database?sslmode=disable
-  // The database in the connection string should be an existing database (typically "postgres")
-  string connection_string = 2;
 }
 
-// CreateDatabaseOutput returns the created database name
+// CreateDatabaseOutput confirms database creation
 message CreateDatabaseOutput {
-  // database_name is the name of the created database
-  string database_name = 1;
+  // Empty - database creation confirmed by successful return
 }
 
 // ==================== User Messages ====================
@@ -69,16 +63,11 @@ message CreateUserInput {
   
   // password is the password for the user
   string password = 2;
-  
-  // connection_string is the PostgreSQL connection string for admin access
-  // Format: postgres://user:password@host:port/database?sslmode=disable
-  string connection_string = 3;
 }
 
-// CreateUserOutput returns the created username
+// CreateUserOutput confirms user creation
 message CreateUserOutput {
-  // username is the name of the created user
-  string username = 1;
+  // Empty - user creation confirmed by successful return
 }
 
 // ==================== Privilege Messages ====================
@@ -95,21 +84,10 @@ message GrantPrivilegesInput {
   // Common values: "ALL", "SELECT,INSERT,UPDATE,DELETE", "SELECT,INSERT"
   // If empty, defaults to "ALL"
   string privileges = 3;
-  
-  // connection_string is the PostgreSQL connection string for admin access
-  // Format: postgres://user:password@host:port/database?sslmode=disable
-  string connection_string = 4;
 }
 
 // GrantPrivilegesOutput confirms successful privilege grant
 message GrantPrivilegesOutput {
-  // username is the name of the user that was granted privileges
-  string username = 1;
-  
-  // database_name is the name of the database privileges were granted on
-  string database_name = 2;
-  
-  // privileges is the list of privileges that were granted
-  string privileges = 3;
+  // Empty - privilege grant confirmed by successful return
 }
 

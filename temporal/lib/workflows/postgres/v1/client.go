@@ -17,7 +17,18 @@ var (
 
 // PostgresConfig represents PostgreSQL connection configuration
 type PostgresConfig struct {
-	ConnectionString string // PostgreSQL connection string (e.g., "postgres://user:password@host:port/database?sslmode=disable")
+	Host     string // PostgreSQL host (e.g., "localhost")
+	Port     int    // PostgreSQL port (e.g., 5432)
+	User     string // PostgreSQL user for admin access
+	Password string // PostgreSQL password for admin access
+	Database string // PostgreSQL database to connect to (typically "postgres" for admin operations)
+}
+
+// ConnectionString builds a PostgreSQL connection string from the config
+// TODO: Support configurable SSL mode instead of hardcoding sslmode=disable
+func (c *PostgresConfig) ConnectionString() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		c.User, c.Password, c.Host, c.Port, c.Database)
 }
 
 // PostgresClient defines the interface for PostgreSQL operations
@@ -56,13 +67,24 @@ type postgresClient struct {
 	conn *pgx.Conn
 }
 
-// NewPostgresClient creates a new PostgreSQL client with the given connection string
+// NewPostgresClient creates a new PostgreSQL client with the given configuration
 func NewPostgresClient(config PostgresConfig) (PostgresClient, error) {
-	if config.ConnectionString == "" {
-		return nil, errors.New("connection string cannot be empty")
+	// Validate required fields
+	if config.Host == "" {
+		return nil, errors.New("postgres host cannot be empty")
+	}
+	if config.Port == 0 {
+		return nil, errors.New("postgres port cannot be zero")
+	}
+	if config.User == "" {
+		return nil, errors.New("postgres user cannot be empty")
+	}
+	if config.Database == "" {
+		return nil, errors.New("postgres database cannot be empty")
 	}
 
-	conn, err := pgx.Connect(context.Background(), config.ConnectionString)
+	connStr := config.ConnectionString()
+	conn, err := pgx.Connect(context.Background(), connStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to PostgreSQL: %w", err)
 	}

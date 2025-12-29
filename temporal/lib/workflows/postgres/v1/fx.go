@@ -8,8 +8,11 @@ import (
 
 // Module provides postgres v1 activities for dependency injection
 //
-// Note: Activities create PostgreSQL clients from connection strings provided in activity inputs.
-// No module-level configuration is required - each activity call provides its own connection string.
+// Dependency chain:
+//
+//	PostgresConfig (provided by config package or caller)
+//	-> PostgresClient (via NewPostgresClient)
+//	-> pb.PostgresActivities (via NewActivities)
 //
 // Usage in your main fx.App:
 //
@@ -18,15 +21,14 @@ import (
 //	    fx.Invoke(postgresv1.RegisterActivities),
 //	)
 var Module = fx.Options(
+	// Provide PostgresClient from config
+	fx.Provide(NewPostgresClient),
+
 	// Provide Activities implementing pb.PostgresActivities interface
-	// Uses default client factory that creates clients from connection strings in inputs
-	fx.Provide(func() pb.PostgresActivities {
-		return NewActivitiesWithFactory(defaultClientFactory)
-	}),
+	fx.Provide(NewActivities),
 )
 
 // RegisterActivities registers postgres activities with the worker
 func RegisterActivities(w worker.Worker, activities pb.PostgresActivities) {
 	pb.RegisterPostgresActivities(w, activities)
 }
-

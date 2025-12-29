@@ -3165,16 +3165,6 @@ Idempotent: returns success if database already exists
 <th>Description</th>
 </tr>
 <tr>
-<td>connection_string</td>
-<td>string</td>
-<td><pre>
-connection_string is the PostgreSQL connection string for admin access
-Format: postgres://user:password@host:port/database?sslmode=disable
-The database in the connection string should be an existing database (typically "postgres")<br>
-
-json_name: connectionString
-go_name: ConnectionString</pre></td>
-</tr><tr>
 <td>database_name</td>
 <td>string</td>
 <td><pre>
@@ -3187,22 +3177,7 @@ go_name: DatabaseName</pre></td>
 
 **Output:** [postgres.v1.CreateDatabaseOutput](#postgres-v1-createdatabaseoutput)
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>database_name</td>
-<td>string</td>
-<td><pre>
-database_name is the name of the created database<br>
-
-json_name: databaseName
-go_name: DatabaseName</pre></td>
-</tr>
-</table> 
+ 
 
 ---
 <a name="postgres-v1-createuser-activity"></a>
@@ -3222,15 +3197,6 @@ Idempotent: returns success if user already exists
 <th>Description</th>
 </tr>
 <tr>
-<td>connection_string</td>
-<td>string</td>
-<td><pre>
-connection_string is the PostgreSQL connection string for admin access
-Format: postgres://user:password@host:port/database?sslmode=disable<br>
-
-json_name: connectionString
-go_name: ConnectionString</pre></td>
-</tr><tr>
 <td>password</td>
 <td>string</td>
 <td><pre>
@@ -3251,22 +3217,7 @@ go_name: Username</pre></td>
 
 **Output:** [postgres.v1.CreateUserOutput](#postgres-v1-createuseroutput)
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>username</td>
-<td>string</td>
-<td><pre>
-username is the name of the created user<br>
-
-json_name: username
-go_name: Username</pre></td>
-</tr>
-</table> 
+ 
 
 ---
 <a name="postgres-v1-grantprivileges-activity"></a>
@@ -3286,15 +3237,6 @@ Idempotent: can be called multiple times safely
 <th>Description</th>
 </tr>
 <tr>
-<td>connection_string</td>
-<td>string</td>
-<td><pre>
-connection_string is the PostgreSQL connection string for admin access
-Format: postgres://user:password@host:port/database?sslmode=disable<br>
-
-json_name: connectionString
-go_name: ConnectionString</pre></td>
-</tr><tr>
 <td>database_name</td>
 <td>string</td>
 <td><pre>
@@ -3325,38 +3267,7 @@ go_name: Username</pre></td>
 
 **Output:** [postgres.v1.GrantPrivilegesOutput](#postgres-v1-grantprivilegesoutput)
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>database_name</td>
-<td>string</td>
-<td><pre>
-database_name is the name of the database privileges were granted on<br>
-
-json_name: databaseName
-go_name: DatabaseName</pre></td>
-</tr><tr>
-<td>privileges</td>
-<td>string</td>
-<td><pre>
-privileges is the list of privileges that were granted<br>
-
-json_name: privileges
-go_name: Privileges</pre></td>
-</tr><tr>
-<td>username</td>
-<td>string</td>
-<td><pre>
-username is the name of the user that was granted privileges<br>
-
-json_name: username
-go_name: Username</pre></td>
-</tr>
-</table>   
+   
 
 <a name="postgres-v1-messages"></a>
 ## Messages
@@ -3375,16 +3286,6 @@ CreateDatabaseInput specifies parameters for creating a database
 <th>Description</th>
 </tr>
 <tr>
-<td>connection_string</td>
-<td>string</td>
-<td><pre>
-connection_string is the PostgreSQL connection string for admin access
-Format: postgres://user:password@host:port/database?sslmode=disable
-The database in the connection string should be an existing database (typically "postgres")<br>
-
-json_name: connectionString
-go_name: ConnectionString</pre></td>
-</tr><tr>
 <td>database_name</td>
 <td>string</td>
 <td><pre>
@@ -3401,25 +3302,8 @@ go_name: DatabaseName</pre></td>
 ### postgres.v1.CreateDatabaseOutput
 
 <pre>
-CreateDatabaseOutput returns the created database name
+CreateDatabaseOutput confirms database creation
 </pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>database_name</td>
-<td>string</td>
-<td><pre>
-database_name is the name of the created database<br>
-
-json_name: databaseName
-go_name: DatabaseName</pre></td>
-</tr>
-</table>
 
 
 
@@ -3437,15 +3321,6 @@ CreateUserInput specifies parameters for creating a user
 <th>Description</th>
 </tr>
 <tr>
-<td>connection_string</td>
-<td>string</td>
-<td><pre>
-connection_string is the PostgreSQL connection string for admin access
-Format: postgres://user:password@host:port/database?sslmode=disable<br>
-
-json_name: connectionString
-go_name: ConnectionString</pre></td>
-</tr><tr>
 <td>password</td>
 <td>string</td>
 <td><pre>
@@ -3470,25 +3345,8 @@ go_name: Username</pre></td>
 ### postgres.v1.CreateUserOutput
 
 <pre>
-CreateUserOutput returns the created username
+CreateUserOutput confirms user creation
 </pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>username</td>
-<td>string</td>
-<td><pre>
-username is the name of the created user<br>
-
-json_name: username
-go_name: Username</pre></td>
-</tr>
-</table>
 
 
 
@@ -3506,15 +3364,6 @@ GrantPrivilegesInput specifies parameters for granting privileges
 <th>Description</th>
 </tr>
 <tr>
-<td>connection_string</td>
-<td>string</td>
-<td><pre>
-connection_string is the PostgreSQL connection string for admin access
-Format: postgres://user:password@host:port/database?sslmode=disable<br>
-
-json_name: connectionString
-go_name: ConnectionString</pre></td>
-</tr><tr>
 <td>database_name</td>
 <td>string</td>
 <td><pre>
@@ -3551,39 +3400,6 @@ go_name: Username</pre></td>
 <pre>
 GrantPrivilegesOutput confirms successful privilege grant
 </pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>database_name</td>
-<td>string</td>
-<td><pre>
-database_name is the name of the database privileges were granted on<br>
-
-json_name: databaseName
-go_name: DatabaseName</pre></td>
-</tr><tr>
-<td>privileges</td>
-<td>string</td>
-<td><pre>
-privileges is the list of privileges that were granted<br>
-
-json_name: privileges
-go_name: Privileges</pre></td>
-</tr><tr>
-<td>username</td>
-<td>string</td>
-<td><pre>
-username is the name of the user that was granted privileges<br>
-
-json_name: username
-go_name: Username</pre></td>
-</tr>
-</table>
 
 
 

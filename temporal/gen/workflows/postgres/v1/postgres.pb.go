@@ -26,13 +26,9 @@ const (
 type CreateDatabaseInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// database_name is the name of the database to create
-	DatabaseName string `protobuf:"bytes,1,opt,name=database_name,json=databaseName,proto3" json:"database_name,omitempty"`
-	// connection_string is the PostgreSQL connection string for admin access
-	// Format: postgres://user:password@host:port/database?sslmode=disable
-	// The database in the connection string should be an existing database (typically "postgres")
-	ConnectionString string `protobuf:"bytes,2,opt,name=connection_string,json=connectionString,proto3" json:"connection_string,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	DatabaseName  string `protobuf:"bytes,1,opt,name=database_name,json=databaseName,proto3" json:"database_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateDatabaseInput) Reset() {
@@ -72,18 +68,9 @@ func (x *CreateDatabaseInput) GetDatabaseName() string {
 	return ""
 }
 
-func (x *CreateDatabaseInput) GetConnectionString() string {
-	if x != nil {
-		return x.ConnectionString
-	}
-	return ""
-}
-
-// CreateDatabaseOutput returns the created database name
+// CreateDatabaseOutput confirms database creation
 type CreateDatabaseOutput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// database_name is the name of the created database
-	DatabaseName  string `protobuf:"bytes,1,opt,name=database_name,json=databaseName,proto3" json:"database_name,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -118,25 +105,15 @@ func (*CreateDatabaseOutput) Descriptor() ([]byte, []int) {
 	return file_postgres_v1_postgres_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *CreateDatabaseOutput) GetDatabaseName() string {
-	if x != nil {
-		return x.DatabaseName
-	}
-	return ""
-}
-
 // CreateUserInput specifies parameters for creating a user
 type CreateUserInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// username is the name of the user to create
 	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
 	// password is the password for the user
-	Password string `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
-	// connection_string is the PostgreSQL connection string for admin access
-	// Format: postgres://user:password@host:port/database?sslmode=disable
-	ConnectionString string `protobuf:"bytes,3,opt,name=connection_string,json=connectionString,proto3" json:"connection_string,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	Password      string `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateUserInput) Reset() {
@@ -183,18 +160,9 @@ func (x *CreateUserInput) GetPassword() string {
 	return ""
 }
 
-func (x *CreateUserInput) GetConnectionString() string {
-	if x != nil {
-		return x.ConnectionString
-	}
-	return ""
-}
-
-// CreateUserOutput returns the created username
+// CreateUserOutput confirms user creation
 type CreateUserOutput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// username is the name of the created user
-	Username      string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -229,13 +197,6 @@ func (*CreateUserOutput) Descriptor() ([]byte, []int) {
 	return file_postgres_v1_postgres_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *CreateUserOutput) GetUsername() string {
-	if x != nil {
-		return x.Username
-	}
-	return ""
-}
-
 // GrantPrivilegesInput specifies parameters for granting privileges
 type GrantPrivilegesInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -246,12 +207,9 @@ type GrantPrivilegesInput struct {
 	// privileges is a comma-separated list of privileges to grant
 	// Common values: "ALL", "SELECT,INSERT,UPDATE,DELETE", "SELECT,INSERT"
 	// If empty, defaults to "ALL"
-	Privileges string `protobuf:"bytes,3,opt,name=privileges,proto3" json:"privileges,omitempty"`
-	// connection_string is the PostgreSQL connection string for admin access
-	// Format: postgres://user:password@host:port/database?sslmode=disable
-	ConnectionString string `protobuf:"bytes,4,opt,name=connection_string,json=connectionString,proto3" json:"connection_string,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	Privileges    string `protobuf:"bytes,3,opt,name=privileges,proto3" json:"privileges,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GrantPrivilegesInput) Reset() {
@@ -305,22 +263,9 @@ func (x *GrantPrivilegesInput) GetPrivileges() string {
 	return ""
 }
 
-func (x *GrantPrivilegesInput) GetConnectionString() string {
-	if x != nil {
-		return x.ConnectionString
-	}
-	return ""
-}
-
 // GrantPrivilegesOutput confirms successful privilege grant
 type GrantPrivilegesOutput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// username is the name of the user that was granted privileges
-	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
-	// database_name is the name of the database privileges were granted on
-	DatabaseName string `protobuf:"bytes,2,opt,name=database_name,json=databaseName,proto3" json:"database_name,omitempty"`
-	// privileges is the list of privileges that were granted
-	Privileges    string `protobuf:"bytes,3,opt,name=privileges,proto3" json:"privileges,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -355,56 +300,25 @@ func (*GrantPrivilegesOutput) Descriptor() ([]byte, []int) {
 	return file_postgres_v1_postgres_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *GrantPrivilegesOutput) GetUsername() string {
-	if x != nil {
-		return x.Username
-	}
-	return ""
-}
-
-func (x *GrantPrivilegesOutput) GetDatabaseName() string {
-	if x != nil {
-		return x.DatabaseName
-	}
-	return ""
-}
-
-func (x *GrantPrivilegesOutput) GetPrivileges() string {
-	if x != nil {
-		return x.Privileges
-	}
-	return ""
-}
-
 var File_postgres_v1_postgres_proto protoreflect.FileDescriptor
 
 const file_postgres_v1_postgres_proto_rawDesc = "" +
 	"\n" +
-	"\x1apostgres/v1/postgres.proto\x12\vpostgres.v1\x1a\x1atemporal/v1/temporal.proto\"g\n" +
+	"\x1apostgres/v1/postgres.proto\x12\vpostgres.v1\x1a\x1atemporal/v1/temporal.proto\":\n" +
 	"\x13CreateDatabaseInput\x12#\n" +
-	"\rdatabase_name\x18\x01 \x01(\tR\fdatabaseName\x12+\n" +
-	"\x11connection_string\x18\x02 \x01(\tR\x10connectionString\";\n" +
-	"\x14CreateDatabaseOutput\x12#\n" +
-	"\rdatabase_name\x18\x01 \x01(\tR\fdatabaseName\"v\n" +
+	"\rdatabase_name\x18\x01 \x01(\tR\fdatabaseName\"\x16\n" +
+	"\x14CreateDatabaseOutput\"I\n" +
 	"\x0fCreateUserInput\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\x12+\n" +
-	"\x11connection_string\x18\x03 \x01(\tR\x10connectionString\".\n" +
-	"\x10CreateUserOutput\x12\x1a\n" +
-	"\busername\x18\x01 \x01(\tR\busername\"\xa4\x01\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"\x12\n" +
+	"\x10CreateUserOutput\"w\n" +
 	"\x14GrantPrivilegesInput\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12#\n" +
 	"\rdatabase_name\x18\x02 \x01(\tR\fdatabaseName\x12\x1e\n" +
 	"\n" +
 	"privileges\x18\x03 \x01(\tR\n" +
-	"privileges\x12+\n" +
-	"\x11connection_string\x18\x04 \x01(\tR\x10connectionString\"x\n" +
-	"\x15GrantPrivilegesOutput\x12\x1a\n" +
-	"\busername\x18\x01 \x01(\tR\busername\x12#\n" +
-	"\rdatabase_name\x18\x02 \x01(\tR\fdatabaseName\x12\x1e\n" +
-	"\n" +
-	"privileges\x18\x03 \x01(\tR\n" +
-	"privileges2\x86\x03\n" +
+	"privileges\"\x17\n" +
+	"\x15GrantPrivilegesOutput2\x86\x03\n" +
 	"\bPostgres\x12|\n" +
 	"\x0eCreateDatabase\x12 .postgres.v1.CreateDatabaseInput\x1a!.postgres.v1.CreateDatabaseOutput\"%\x92\xc4\x03!\x12\x03\b\xac\x02:\x1apostgres.v1.CreateDatabase\x12l\n" +
 	"\n" +
