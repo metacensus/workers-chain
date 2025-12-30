@@ -1,5 +1,7 @@
 package helm
 
+import "github.com/metacensus/infra/temporal/lib/workers/config"
+
 type ServiceAccountValues struct {
 	Namespace          string
 	ServiceAccountName string
@@ -7,11 +9,11 @@ type ServiceAccountValues struct {
 	CommonLabels       CommonLabels
 }
 
-func NewServiceAccountValues(org string) *ServiceAccountValues {
+func NewServiceAccountValues(orgCfg config.OrgConfig) *ServiceAccountValues {
 	return &ServiceAccountValues{
-		Namespace:          "fabric-" + org,
-		ServiceAccountName: "fabric-worker-" + org,
-		RoleName:           "fabric-worker-" + org,
+		Namespace:          orgCfg.KubernetesNamespace(),
+		ServiceAccountName: orgCfg.WorkerServiceAccountName(),
+		RoleName:           orgCfg.WorkerServiceAccountName(),
 		CommonLabels:       DefaultCommonLabels(),
 	}
 }

@@ -7,6 +7,7 @@ import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	helmpb "github.com/metacensus/infra/temporal/gen/workflows/helm/v1"
 	kubepb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
+	"github.com/metacensus/infra/temporal/lib/workers/config"
 	"github.com/metacensus/infra/temporal/lib/workflows/cluster/fabric/v1/helm"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
@@ -47,8 +48,8 @@ func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNames
 	logger := workflow.GetLogger(ctx)
 	logger.Info("CreateNamespace workflow started", "org", w.input.Org)
 
-	// Build values for Helm chart
-	values := helm.NewNamespaceValues(w.input.Org)
+	orgCfg := config.OrgConfig{OrgID: w.input.Org}
+	values := helm.NewNamespaceValues(orgCfg)
 	namespaceName := values.Name
 
 	// Convert Go struct to protobuf Struct
@@ -128,8 +129,8 @@ func (w *createServiceAccountWorkflow) Execute(ctx workflow.Context) (*pb.Create
 	logger := workflow.GetLogger(ctx)
 	logger.Info("CreateServiceAccount workflow started", "org", w.input.Org)
 
-	// Build values for Helm chart
-	values := helm.NewServiceAccountValues(w.input.Org)
+	orgCfg := config.OrgConfig{OrgID: w.input.Org}
+	values := helm.NewServiceAccountValues(orgCfg)
 	namespaceName := values.Namespace
 
 	// Convert Go struct to protobuf Struct
@@ -215,28 +216,29 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		return nil, fmt.Errorf("component is required")
 	}
 
-	// Determine chart name and build values based on component type
 	var chartName string
 	var componentName string
 	var values interface{}
 	var namespaceName string
 	var deploymentName string
 
+	orgCfg := config.OrgConfig{OrgID: w.input.Org}
+
 	switch w.input.Component {
 	case componentWorker:
 		chartName = chartWorker
 		componentName = componentWorker
-		workerValues := helm.NewWorkerValues(w.input.Org)
+		workerValues := helm.NewWorkerValues(orgCfg)
 		values = workerValues
-		namespaceName = "fabric-" + w.input.Org
-		deploymentName = "fabric-worker-" + w.input.Org
+		namespaceName = orgCfg.KubernetesNamespace()
+		deploymentName = orgCfg.WorkerDeploymentName()
 	case componentCertificateStore:
 		chartName = chartCertificateStore
 		componentName = componentCertificateStore
-		certStoreValues := helm.NewCertificateStoreValues(w.input.Org)
+		certStoreValues := helm.NewCertificateStoreValues(orgCfg)
 		values = certStoreValues
-		namespaceName = "fabric-" + w.input.Org
-		deploymentName = "fabric-postgres-" + w.input.Org
+		namespaceName = orgCfg.KubernetesNamespace()
+		deploymentName = orgCfg.PostgresDeploymentName()
 	default:
 		return nil, fmt.Errorf("unsupported component type: %s", w.input.Component)
 	}

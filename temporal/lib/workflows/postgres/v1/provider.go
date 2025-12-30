@@ -10,8 +10,6 @@ import (
 
 // NewPostgresClientProvider creates a ClientProvider for postgres with Vault-backed credentials
 func NewPostgresClientProvider(providerConfig ProviderConfig, vaultClient vault.VaultClient) *common.ClientProvider[PostgresClient, PostgresConfig] {
-	// Create and return provider
-	// vault.VaultClient directly implements common.VaultClient interface
 	return common.NewClientProvider(
 		providerConfig,
 		vaultClient,
@@ -56,11 +54,10 @@ func (c ProviderConfig) Hydrate(secretData map[string]interface{}) (PostgresConf
 
 // NewProviderConfig creates a ProviderConfig for the given organization
 func NewProviderConfig(orgConfig *config.OrgConfig) ProviderConfig {
-	org := orgConfig.OrgID
 	return ProviderConfig{
-		Host:      fmt.Sprintf("fabric-postgres-%s.fabric-%s.svc.cluster.local", org, org),
+		Host:      orgConfig.PostgresServiceHost(),
 		Port:      5432,
 		Database:  "postgres",
-		VaultPath: fmt.Sprintf("secret/fabric/%s/database/cert-store/credentials", org),
+		VaultPath: orgConfig.VaultSecretPath("database/cert-store/credentials"),
 	}
 }

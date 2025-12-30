@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/spf13/viper"
-	"go.uber.org/fx"
 )
 
 const (
@@ -187,45 +186,57 @@ func GetOrg() *OrgConfig {
 	return orgGlobal
 }
 
-// OrgConfig methods for deriving per-org values
+// ============= Kubernetes Infrastructure =============
 
 func (c OrgConfig) KubernetesNamespace() string {
 	return "fabric-" + c.OrgID
 }
 
+func (c OrgConfig) WorkerServiceAccountName() string {
+	return "fabric-worker-" + c.OrgID
+}
+
+func (c OrgConfig) WorkerDeploymentName() string {
+	return "fabric-worker-" + c.OrgID
+}
+
+func (c OrgConfig) PostgresDeploymentName() string {
+	return "fabric-postgres-" + c.OrgID
+}
+
+func (c OrgConfig) PostgresServiceHost() string {
+	return fmt.Sprintf("fabric-postgres-%s.fabric-%s.svc.cluster.local", c.OrgID, c.OrgID)
+}
+
+// ============= Temporal Orchestration =============
+
 func (c OrgConfig) TemporalNamespace() string {
 	return "fabric-" + c.OrgID
 }
+
+func (c OrgConfig) NexusEndpointBootstrapShard() string {
+	return "fabric-" + c.OrgID + "-BootstrapShard"
+}
+
+// ============= Vault Security/RBAC =============
 
 func (c OrgConfig) VaultBasePath() string {
 	return "fabric/" + c.OrgID
 }
 
-func (c OrgConfig) ServiceAccountName() string {
-	return "fabric-" + c.OrgID
-}
-
-func (c OrgConfig) WorkerDeploymentName() string {
+func (c OrgConfig) WorkerVaultPolicyName() string {
 	return "fabric-" + c.OrgID + "-worker"
 }
 
-// Module exports config providers for infra worker (no OrgConfig)
-var Module = fx.Module("config",
-	fx.Provide(
-		GetTemporal,
-		GetVault,
-		GetWorker,
-		GetKubernetes,
-	),
-)
+func (c OrgConfig) WorkerVaultAuthRole() string {
+	return "fabric-" + c.OrgID + "-worker"
+}
 
-// FabricModule exports config providers for fabric worker (includes OrgConfig)
-var FabricModule = fx.Module("config",
-	fx.Provide(
-		GetTemporal,
-		GetVault,
-		GetWorker,
-		GetKubernetes,
-		GetOrg,
-	),
-)
+// VaultSecretPath constructs a full Vault KV v2 secret path.
+// Example: VaultSecretPath("database/cert-store/credentials") → "secret/fabric/org1/database/cert-store/credentials"
+func (c OrgConfig) VaultSecretPath(subpath string) string {
+	if subpath == "" {
+		return "secret/fabric/" + c.OrgID
+	}
+	return "secret/fabric/" + c.OrgID + "/" + subpath
+}

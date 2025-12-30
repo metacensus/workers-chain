@@ -1,5 +1,7 @@
 package helm
 
+import "github.com/metacensus/infra/temporal/lib/workers/config"
+
 // WorkerValues represents the Helm values for a fabric worker deployment
 type WorkerValues struct {
 	Org            string
@@ -41,12 +43,9 @@ type ProbeConfig struct {
 }
 
 // NewWorkerValues creates WorkerValues with sensible defaults for a fabric worker
-func NewWorkerValues(org string) *WorkerValues {
-	temporalNamespace := "fabric-" + org
-	vaultRole := "fabric-" + org + "-worker"
-
+func NewWorkerValues(orgCfg config.OrgConfig) *WorkerValues {
 	return &WorkerValues{
-		Org: org,
+		Org: orgCfg.OrgID,
 		Image: ImageConfig{
 			Repository: "metacensus/fabric-worker",
 			Tag:        "latest",
@@ -55,12 +54,12 @@ func NewWorkerValues(org string) *WorkerValues {
 		Replicas: 1,
 		Temporal: TemporalConfig{
 			Address:   "temporal-frontend.temporal.svc.cluster.local:7233",
-			Namespace: temporalNamespace,
+			Namespace: orgCfg.TemporalNamespace(),
 			TaskQueue: "infra",
 		},
 		Vault: VaultConfig{
 			Address: "http://vault.secrets.svc.cluster.local:8200",
-			Role:    vaultRole,
+			Role:    orgCfg.WorkerVaultAuthRole(),
 		},
 		LogLevel: "info",
 		HealthCheck: HealthCheckConfig{
@@ -89,5 +88,3 @@ func NewWorkerValues(org string) *WorkerValues {
 		CommonLabels: DefaultCommonLabels(),
 	}
 }
-
-

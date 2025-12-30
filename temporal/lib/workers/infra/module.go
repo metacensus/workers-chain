@@ -15,10 +15,15 @@ import (
 
 // Module provides all dependencies for the infra worker
 var Module = fx.Module("infra",
-	// Load environment config (excludes OrgConfig - not needed for infra worker)
-	config.Module,
+	// Load environment config
+	fx.Provide(
+		config.GetTemporal,
+		config.GetVault,
+		config.GetWorker,
+		config.GetKubernetes,
+	),
 
-	// Provide worker (shared from workers package)
+	// Provide temporal worker
 	fx.Provide(workers.NewWorker),
 
 	// Include workflow modules (provides workflows/activities)

@@ -1,5 +1,7 @@
 package helm
 
+import "github.com/metacensus/infra/temporal/lib/workers/config"
+
 // NamespaceValues represents Helm values for the fabric/namespace chart
 type NamespaceValues struct {
 	Name         string
@@ -7,9 +9,9 @@ type NamespaceValues struct {
 }
 
 // NewNamespaceValues creates values for a fabric namespace
-func NewNamespaceValues(org string) *NamespaceValues {
+func NewNamespaceValues(orgCfg config.OrgConfig) *NamespaceValues {
 	return &NamespaceValues{
-		Name:         "fabric-" + org,
+		Name:         orgCfg.KubernetesNamespace(),
 		CommonLabels: DefaultCommonLabels(),
 	}
 }

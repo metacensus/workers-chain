@@ -15,10 +15,16 @@ import (
 
 // Module provides all dependencies for the fabric worker
 var Module = fx.Module("fabric",
-	// Load environment config (includes OrgConfig - needed for fabric worker)
-	config.FabricModule,
+	// Load environment config
+	fx.Provide(
+		config.GetTemporal,
+		config.GetVault,
+		config.GetWorker,
+		config.GetKubernetes,
+		config.GetOrg,
+	),
 
-	// Provide worker (shared from workers package)
+	// Provide temporal worker
 	fx.Provide(workers.NewWorker),
 
 	// Provide temporal clients (no admin activities/workflows needed)
@@ -30,7 +36,6 @@ var Module = fx.Module("fabric",
 	vault.Module,
 	crypto.Module,
 	clusterfabric.Module,
-	fabric.Module,
 
 	// Register all workflows and activities with the worker
 	fx.Invoke(

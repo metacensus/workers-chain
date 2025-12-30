@@ -1,5 +1,7 @@
 package helm
 
+import "github.com/metacensus/infra/temporal/lib/workers/config"
+
 // CertificateStoreValues represents the Helm values for a certificate store (PostgreSQL) deployment
 type CertificateStoreValues struct {
 	Org            string
@@ -38,9 +40,9 @@ type DBProbeConfig struct {
 }
 
 // NewCertificateStoreValues creates CertificateStoreValues with sensible defaults for PostgreSQL
-func NewCertificateStoreValues(org string) *CertificateStoreValues {
+func NewCertificateStoreValues(orgCfg config.OrgConfig) *CertificateStoreValues {
 	return &CertificateStoreValues{
-		Org: org,
+		Org: orgCfg.OrgID,
 		Image: ImageConfig{
 			Repository: "postgres",
 			Tag:        "16-alpine",
@@ -86,4 +88,3 @@ func NewCertificateStoreValues(org string) *CertificateStoreValues {
 		CommonLabels: DefaultCommonLabels(),
 	}
 }
-
