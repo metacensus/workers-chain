@@ -32,6 +32,7 @@ func TestGenerateAndStorePasswordWorkflow(t *testing.T) {
 			input: &cryptopb.GenerateAndStorePasswordWorkflowInput{
 				Req: &cryptopb.GenerateAndStorePasswordInput{
 					VaultPath: "fabric/org1/ca/tls/root/admin",
+					Username:  "postgres_admin",
 				},
 			},
 			generatePasswordRes: &cryptopb.GeneratePasswordOutput{
@@ -47,11 +48,14 @@ func TestGenerateAndStorePasswordWorkflow(t *testing.T) {
 				if input.GetPath() != "fabric/org1/ca/tls/root/admin" {
 					t.Errorf("path: got %q, want %q", input.GetPath(), "fabric/org1/ca/tls/root/admin")
 				}
-				if len(input.GetData()) != 1 {
-					t.Errorf("data length: got %d, want 1", len(input.GetData()))
+				if len(input.GetData()) != 2 {
+					t.Errorf("data length: got %d, want 2", len(input.GetData()))
 				}
-				if string(input.GetData()["store-password"]) != "test-password-abc123XYZ" {
-					t.Errorf("password: got %q, want %q", input.GetData()["store-password"], "test-password-abc123XYZ")
+				if string(input.GetData()["username"]) != "postgres_admin" {
+					t.Errorf("username: got %q, want %q", input.GetData()["username"], "postgres_admin")
+				}
+				if string(input.GetData()["password"]) != "test-password-abc123XYZ" {
+					t.Errorf("password: got %q, want %q", input.GetData()["password"], "test-password-abc123XYZ")
 				}
 			},
 		},
@@ -60,6 +64,7 @@ func TestGenerateAndStorePasswordWorkflow(t *testing.T) {
 			input: &cryptopb.GenerateAndStorePasswordWorkflowInput{
 				Req: &cryptopb.GenerateAndStorePasswordInput{
 					VaultPath: "fabric/org1/ca/tls/root/admin",
+					Username:  "postgres_admin",
 				},
 			},
 			generatePasswordErr: errActivityFailed,
@@ -70,6 +75,7 @@ func TestGenerateAndStorePasswordWorkflow(t *testing.T) {
 			input: &cryptopb.GenerateAndStorePasswordWorkflowInput{
 				Req: &cryptopb.GenerateAndStorePasswordInput{
 					VaultPath: "fabric/org1/ca/tls/root/admin",
+					Username:  "postgres_admin",
 				},
 			},
 			generatePasswordRes: &cryptopb.GeneratePasswordOutput{

@@ -203,7 +203,10 @@ type GenerateAndStorePasswordInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// vault_path is the Vault path to store the password at
 	// Example: "fabric/org1/ca/tls/root/admin"
-	VaultPath     string `protobuf:"bytes,1,opt,name=vault_path,json=vaultPath,proto3" json:"vault_path,omitempty"`
+	VaultPath string `protobuf:"bytes,1,opt,name=vault_path,json=vaultPath,proto3" json:"vault_path,omitempty"`
+	// username is the username to store alongside the password
+	// Example: "postgres_ca_tls_root"
+	Username      string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -241,6 +244,13 @@ func (*GenerateAndStorePasswordInput) Descriptor() ([]byte, []int) {
 func (x *GenerateAndStorePasswordInput) GetVaultPath() string {
 	if x != nil {
 		return x.VaultPath
+	}
+	return ""
+}
+
+func (x *GenerateAndStorePasswordInput) GetUsername() string {
+	if x != nil {
+		return x.Username
 	}
 	return ""
 }
@@ -398,10 +408,11 @@ const file_crypto_v1_crypto_proto_rawDesc = "" +
 	"\vprivate_key\x18\x01 \x01(\fR\n" +
 	"privateKey\x12\x1d\n" +
 	"\n" +
-	"public_key\x18\x02 \x01(\fR\tpublicKey\">\n" +
+	"public_key\x18\x02 \x01(\fR\tpublicKey\"Z\n" +
 	"\x1dGenerateAndStorePasswordInput\x12\x1d\n" +
 	"\n" +
-	"vault_path\x18\x01 \x01(\tR\tvaultPath\"T\n" +
+	"vault_path\x18\x01 \x01(\tR\tvaultPath\x12\x1a\n" +
+	"\busername\x18\x02 \x01(\tR\busername\"T\n" +
 	"\x1eGenerateAndStorePasswordOutput\x122\n" +
 	"\n" +
 	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefR\tsecretRef\"=\n" +

@@ -1134,7 +1134,7 @@ Activities generate passwords, key pairs, and other cryptographic primitives
 <pre>
 GenerateAndStorePassword generates a password and stores it in Vault
 Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
-Password is stored with key name "store-password"
+Username and password are stored with key names "username" and "password"
 </pre>
 
 **Input:** [crypto.v1.GenerateAndStorePasswordInput](#crypto-v1-generateandstorepasswordinput)
@@ -1146,6 +1146,15 @@ Password is stored with key name "store-password"
 <th>Description</th>
 </tr>
 <tr>
+<td>username</td>
+<td>string</td>
+<td><pre>
+username is the username to store alongside the password
+Example: "postgres_ca_tls_root"<br>
+
+json_name: username
+go_name: Username</pre></td>
+</tr><tr>
 <td>vault_path</td>
 <td>string</td>
 <td><pre>
@@ -1390,6 +1399,15 @@ GenerateAndStorePasswordInput specifies where to store the generated password
 <th>Description</th>
 </tr>
 <tr>
+<td>username</td>
+<td>string</td>
+<td><pre>
+username is the username to store alongside the password
+Example: "postgres_ca_tls_root"<br>
+
+json_name: username
+go_name: Username</pre></td>
+</tr><tr>
 <td>vault_path</td>
 <td>string</td>
 <td><pre>

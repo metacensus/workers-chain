@@ -40,10 +40,12 @@ type generateAndStorePasswordWorkflow struct {
 	input *cryptopb.GenerateAndStorePasswordWorkflowInput
 }
 
-// Execute orchestrates password generation and storage in Vault
+// Execute orchestrates password generation and storage in Vault along with username
 func (w *generateAndStorePasswordWorkflow) Execute(ctx workflow.Context) (*cryptopb.GenerateAndStorePasswordOutput, error) {
 	logger := workflow.GetLogger(ctx)
-	logger.Info("GenerateAndStorePassword workflow started", "vault_path", w.input.Req.GetVaultPath())
+	logger.Info("GenerateAndStorePassword workflow started", 
+		"vault_path", w.input.Req.GetVaultPath(),
+		"username", w.input.Req.GetUsername())
 
 	// Set up activity options
 	ao := workflow.ActivityOptions{
@@ -66,23 +68,27 @@ func (w *generateAndStorePasswordWorkflow) Execute(ctx workflow.Context) (*crypt
 		return nil, fmt.Errorf("%w: failed to generate password: %w", ErrGenerateAndStorePassword, err)
 	}
 
-	// Step 2: Store password in Vault with key name "store-password"
-	logger.Info("Storing password in Vault", "vault_path", w.input.Req.GetVaultPath())
+	// Step 2: Store username and password in Vault with key names "username" and "password"
+	logger.Info("Storing username and password in Vault", 
+		"vault_path", w.input.Req.GetVaultPath(),
+		"username", w.input.Req.GetUsername())
 	var storeOutput *vaultpb.StoreSecretOutput
 	err = workflow.ExecuteActivity(activityCtx, vaultpb.StoreSecretActivityName,
 		&vaultpb.StoreSecretInput{
 			Path: w.input.Req.GetVaultPath(),
 			Data: map[string][]byte{
-				"store-password": []byte(passwordOutput.GetPassword()),
+				"username": []byte(w.input.Req.GetUsername()),
+				"password": []byte(passwordOutput.GetPassword()),
 			},
 		}).Get(ctx, &storeOutput)
 	if err != nil {
-		return nil, fmt.Errorf("%w: failed to store password: %w", ErrGenerateAndStorePassword, err)
+		return nil, fmt.Errorf("%w: failed to store username and password: %w", ErrGenerateAndStorePassword, err)
 	}
 
 	logger.Info("GenerateAndStorePassword workflow completed successfully",
 		"vault_path", storeOutput.SecretRef.GetPath(),
-		"version", storeOutput.SecretRef.GetVersion())
+		"version", storeOutput.SecretRef.GetVersion(),
+		"username", w.input.Req.GetUsername())
 
 	return &cryptopb.GenerateAndStorePasswordOutput{
 		SecretRef: storeOutput.GetSecretRef(),

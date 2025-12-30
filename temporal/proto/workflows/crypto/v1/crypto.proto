@@ -37,7 +37,7 @@ service Crypto {
 
   // GenerateAndStorePassword generates a password and stores it in Vault
   // Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
-  // Password is stored with key name "store-password"
+  // Username and password are stored with key names "username" and "password"
   rpc GenerateAndStorePassword(GenerateAndStorePasswordInput) returns (GenerateAndStorePasswordOutput) {
     option (temporal.v1.workflow) = {
       name: "crypto.v1.GenerateAndStorePassword"
@@ -96,6 +96,10 @@ message GenerateAndStorePasswordInput {
   // vault_path is the Vault path to store the password at
   // Example: "fabric/org1/ca/tls/root/admin"
   string vault_path = 1;
+  
+  // username is the username to store alongside the password
+  // Example: "postgres_ca_tls_root"
+  string username = 2;
 }
 
 // GenerateAndStorePasswordOutput returns the Vault secret reference

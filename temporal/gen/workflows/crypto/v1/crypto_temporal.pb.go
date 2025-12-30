@@ -64,7 +64,7 @@ type CryptoClient interface {
 
 	// GenerateAndStorePassword generates a password and stores it in Vault
 	// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
-	// Password is stored with key name "store-password"
+	// Username and password are stored with key names "username" and "password"
 	GenerateAndStorePassword(ctx context.Context, req *GenerateAndStorePasswordInput, opts ...*GenerateAndStorePasswordOptions) (*GenerateAndStorePasswordOutput, error)
 
 	// GenerateAndStorePasswordAsync starts a(n) crypto.v1.GenerateAndStorePassword workflow and returns a handle to the workflow run
@@ -193,7 +193,7 @@ func (c *cryptoClient) GetGenerateAndStoreKeyPair(ctx context.Context, workflowI
 
 // GenerateAndStorePassword generates a password and stores it in Vault
 // Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
-// Password is stored with key name "store-password"
+// Username and password are stored with key names "username" and "password"
 func (c *cryptoClient) GenerateAndStorePassword(ctx context.Context, req *GenerateAndStorePasswordInput, options ...*GenerateAndStorePasswordOptions) (*GenerateAndStorePasswordOutput, error) {
 	run, err := c.GenerateAndStorePasswordAsync(ctx, req, options...)
 	if err != nil {
@@ -204,7 +204,7 @@ func (c *cryptoClient) GenerateAndStorePassword(ctx context.Context, req *Genera
 
 // GenerateAndStorePassword generates a password and stores it in Vault
 // Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
-// Password is stored with key name "store-password"
+// Username and password are stored with key names "username" and "password"
 func (c *cryptoClient) GenerateAndStorePasswordAsync(ctx context.Context, req *GenerateAndStorePasswordInput, options ...*GenerateAndStorePasswordOptions) (GenerateAndStorePasswordRun, error) {
 	var o *GenerateAndStorePasswordOptions
 	if len(options) > 0 && options[0] != nil {
@@ -623,7 +623,7 @@ var (
 	GenerateAndStoreKeyPairFunction func(workflow.Context, *GenerateAndStoreKeyPairInput) (*GenerateAndStoreKeyPairOutput, error)
 	// GenerateAndStorePassword generates a password and stores it in Vault
 	// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
-	// Password is stored with key name "store-password"
+	// Username and password are stored with key names "username" and "password"
 	GenerateAndStorePasswordFunction func(workflow.Context, *GenerateAndStorePasswordInput) (*GenerateAndStorePasswordOutput, error)
 )
 
@@ -637,7 +637,7 @@ type (
 		GenerateAndStoreKeyPair(workflow.Context, *GenerateAndStoreKeyPairInput) (*GenerateAndStoreKeyPairOutput, error)
 		// GenerateAndStorePassword generates a password and stores it in Vault
 		// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
-		// Password is stored with key name "store-password"
+		// Username and password are stored with key names "username" and "password"
 		GenerateAndStorePassword(workflow.Context, *GenerateAndStorePasswordInput) (*GenerateAndStorePasswordOutput, error)
 	}
 	// cryptoWorkflowFunctions provides an internal CryptoWorkflowFunctions implementation
@@ -660,7 +660,7 @@ func (f *cryptoWorkflowFunctions) GenerateAndStoreKeyPair(ctx workflow.Context, 
 
 // GenerateAndStorePassword generates a password and stores it in Vault
 // Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
-// Password is stored with key name "store-password"
+// Username and password are stored with key names "username" and "password"
 func (f *cryptoWorkflowFunctions) GenerateAndStorePassword(ctx workflow.Context, req *GenerateAndStorePasswordInput) (*GenerateAndStorePasswordOutput, error) {
 	if GenerateAndStorePasswordFunction == nil {
 		return nil, errors.New("GenerateAndStorePassword requires workflow registration via RegisterCryptoWorkflows or RegisterGenerateAndStorePasswordWorkflow")
@@ -677,7 +677,7 @@ type CryptoWorkflows interface {
 
 	// GenerateAndStorePassword generates a password and stores it in Vault
 	// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
-	// Password is stored with key name "store-password"
+	// Username and password are stored with key names "username" and "password"
 	GenerateAndStorePassword(ctx workflow.Context, input *GenerateAndStorePasswordWorkflowInput) (GenerateAndStorePasswordWorkflow, error)
 }
 
@@ -1000,7 +1000,7 @@ type GenerateAndStorePasswordWorkflowInput struct {
 
 // GenerateAndStorePassword generates a password and stores it in Vault
 // Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
-// Password is stored with key name "store-password"
+// Username and password are stored with key names "username" and "password"
 //
 // workflow details: (name: "crypto.v1.GenerateAndStorePassword", id: "crypto/generate-store-password/${! vault_path.or("default") }")
 type GenerateAndStorePasswordWorkflow interface {
@@ -1010,7 +1010,7 @@ type GenerateAndStorePasswordWorkflow interface {
 
 // GenerateAndStorePassword generates a password and stores it in Vault
 // Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
-// Password is stored with key name "store-password"
+// Username and password are stored with key names "username" and "password"
 func GenerateAndStorePasswordChild(ctx workflow.Context, req *GenerateAndStorePasswordInput, options ...*GenerateAndStorePasswordChildOptions) (*GenerateAndStorePasswordOutput, error) {
 	childRun, err := GenerateAndStorePasswordChildAsync(ctx, req, options...)
 	if err != nil {
@@ -1021,7 +1021,7 @@ func GenerateAndStorePasswordChild(ctx workflow.Context, req *GenerateAndStorePa
 
 // GenerateAndStorePassword generates a password and stores it in Vault
 // Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
-// Password is stored with key name "store-password"
+// Username and password are stored with key names "username" and "password"
 func GenerateAndStorePasswordChildAsync(ctx workflow.Context, req *GenerateAndStorePasswordInput, options ...*GenerateAndStorePasswordChildOptions) (*GenerateAndStorePasswordChildRun, error) {
 	var o *GenerateAndStorePasswordChildOptions
 	if len(options) > 0 && options[0] != nil {
