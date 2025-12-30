@@ -6,6 +6,7 @@ import (
 	"time"
 
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
+	cryptopb "github.com/metacensus/infra/temporal/gen/workflows/crypto/v1"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	"github.com/metacensus/infra/temporal/gen/workflows/vault/v1/vaultv1nexustemporal"
@@ -118,10 +119,60 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 	logger := workflow.GetLogger(ctx)
 	logger.Info("Deploying certificate store", "org", w.orgConfig.OrgID)
 
-	// Deploy PostgreSQL StatefulSet for certificate storage
-	_, err := clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
+	// Build naming helper for certificate store
+	certStore := NewCertificateStore(w.orgConfig)
+
+	// Step 1: Request Vault access via Nexus call to infra worker
+	// This creates the policy and auth role needed for the certificate store pod to access its secrets
+	logger.Info("Creating Vault access for certificate store",
+		"org", w.orgConfig.OrgID,
+		"policyName", certStore.PolicyName(),
+	)
+	vaultClient := vaultv1nexustemporal.NewVaultNexusClient(vaultCreateAccessNexusEndpoint)
+	_, err := vaultClient.CreateAccess(ctx, &vaultpb.CreateAccessInput{
+		PolicyName:          certStore.PolicyName(),
+		PolicyDocument:      buildCertificateStorePolicy(certStore),
+		AuthRoleName:        certStore.AuthRoleName(),
+		ServiceAccountName:  certStore.ServiceAccountName(),
+		KubernetesNamespace: certStore.KubernetesNamespace(),
+	}, workflow.NexusOperationOptions{
+		ScheduleToCloseTimeout: 5 * time.Minute,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateVaultAccess, err)
+	}
+
+	logger.Info("Vault access created for certificate store",
+		"org", w.orgConfig.OrgID,
+		"policyName", certStore.PolicyName(),
+	)
+
+	// Step 2: Generate PostgreSQL credentials (username + password)
+	logger.Info("Generating PostgreSQL credentials for certificate store",
+		"org", w.orgConfig.OrgID,
+		"vaultPath", certStore.PostgresCredentialsPath(),
+	)
+	_, err = cryptopb.GenerateAndStorePasswordChild(ctx, &cryptopb.GenerateAndStorePasswordInput{
+		VaultPath: certStore.PostgresCredentialsPath(),
+		Username:  "postgres",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate postgres credentials: %w", err)
+	}
+
+	logger.Info("PostgreSQL credentials generated and stored",
+		"org", w.orgConfig.OrgID,
+		"vaultPath", certStore.PostgresCredentialsPath(),
+	)
+
+	// Step 3: Deploy PostgreSQL StatefulSet for certificate storage
+	logger.Info("Deploying certificate store StatefulSet",
+		"org", w.orgConfig.OrgID,
+		"component", certStore.ComponentName(),
+	)
+	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
 		Org:       w.orgConfig.OrgID,
-		Component: "certificate-store",
+		Component: certStore.ComponentName(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create certificate store deployment: %w", err)
@@ -220,6 +271,31 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 	// TODO: Bootstrap root CA admin
 
 	return &pb.DeployRootCertificateAuthorityOutput{}, nil
+}
+
+// buildCertificateStorePolicy creates a Vault policy document for the certificate store.
+// The policy grants read access to the certificate store's secrets (postgres credentials).
+func buildCertificateStorePolicy(cs *FabricCertificateStore) *vaultpb.PolicyDocument {
+	return &vaultpb.PolicyDocument{
+		Rules: []*vaultpb.PolicyRule{
+			// KV v2 data path - read access to certificate store secrets
+			{
+				Path: cs.VaultSecretDataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+					vaultpb.Capability_CAPABILITY_LIST,
+				},
+			},
+			// KV v2 metadata path - list and read metadata
+			{
+				Path: cs.VaultSecretMetadataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_LIST,
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+		},
+	}
 }
 
 // buildRootCertificateAuthorityPolicy creates a Vault policy document for a root CA.

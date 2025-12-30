@@ -36,6 +36,7 @@ var Module = fx.Module("fabric",
 	vault.Module,
 	crypto.Module,
 	clusterfabric.Module,
+	fabric.Module,
 
 	// Register all workflows and activities with the worker
 	fx.Invoke(
