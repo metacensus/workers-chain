@@ -1,6 +1,7 @@
 package postgres_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -18,6 +19,21 @@ var (
 	errClientConnectionRefused = errors.New("connection refused")
 	errClientQueryFailed       = errors.New("query failed")
 )
+
+// mockClientProvider is a test helper that wraps a PostgresClient in a provider interface
+// This allows tests to inject mock clients without needing Vault
+type mockClientProvider struct {
+	client postgresv1.PostgresClient
+}
+
+func newMockClientProvider(client postgresv1.PostgresClient) *mockClientProvider {
+	return &mockClientProvider{client: client}
+}
+
+// GetClient returns the mock client immediately without any Vault interaction
+func (m *mockClientProvider) GetClient(ctx context.Context) (postgresv1.PostgresClient, error) {
+	return m.client, nil
+}
 
 // TestConvertPrivilegesToSQL tests the privilege conversion helper function
 func TestConvertPrivilegesToSQL(t *testing.T) {
@@ -203,7 +219,8 @@ func TestCreateDatabaseActivity(t *testing.T) {
 				tt.setupMock(mockClient)
 			}
 
-			activities := postgresv1.NewActivities(mockClient)
+			provider := newMockClientProvider(mockClient)
+			activities := postgresv1.NewActivities(provider)
 			env.RegisterActivity(activities.CreateDatabase)
 
 			// Execute activity
@@ -299,7 +316,8 @@ func TestCreateUserActivity(t *testing.T) {
 				tt.setupMock(mockClient)
 			}
 
-			activities := postgresv1.NewActivities(mockClient)
+			provider := newMockClientProvider(mockClient)
+			activities := postgresv1.NewActivities(provider)
 			env.RegisterActivity(activities.CreateUser)
 
 			// Execute activity
@@ -449,7 +467,8 @@ func TestGrantPrivilegesActivity(t *testing.T) {
 				tt.setupMock(mockClient)
 			}
 
-			activities := postgresv1.NewActivities(mockClient)
+			provider := newMockClientProvider(mockClient)
+			activities := postgresv1.NewActivities(provider)
 			env.RegisterActivity(activities.GrantPrivileges)
 
 			// Execute activity

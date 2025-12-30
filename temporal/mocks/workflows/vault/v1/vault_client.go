@@ -68,6 +68,65 @@ func (_c *MockVaultClient_Delete_Call) RunAndReturn(run func(context.Context, st
 	return _c
 }
 
+// FetchSecret provides a mock function with given fields: ctx, path
+func (_m *MockVaultClient) FetchSecret(ctx context.Context, path string) (map[string]interface{}, error) {
+	ret := _m.Called(ctx, path)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FetchSecret")
+	}
+
+	var r0 map[string]interface{}
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (map[string]interface{}, error)); ok {
+		return rf(ctx, path)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) map[string]interface{}); ok {
+		r0 = rf(ctx, path)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]interface{})
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, path)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockVaultClient_FetchSecret_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FetchSecret'
+type MockVaultClient_FetchSecret_Call struct {
+	*mock.Call
+}
+
+// FetchSecret is a helper method to define mock.On call
+//   - ctx context.Context
+//   - path string
+func (_e *MockVaultClient_Expecter) FetchSecret(ctx interface{}, path interface{}) *MockVaultClient_FetchSecret_Call {
+	return &MockVaultClient_FetchSecret_Call{Call: _e.mock.On("FetchSecret", ctx, path)}
+}
+
+func (_c *MockVaultClient_FetchSecret_Call) Run(run func(ctx context.Context, path string)) *MockVaultClient_FetchSecret_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockVaultClient_FetchSecret_Call) Return(_a0 map[string]interface{}, _a1 error) *MockVaultClient_FetchSecret_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockVaultClient_FetchSecret_Call) RunAndReturn(run func(context.Context, string) (map[string]interface{}, error)) *MockVaultClient_FetchSecret_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Read provides a mock function with given fields: ctx, path
 func (_m *MockVaultClient) Read(ctx context.Context, path string) (map[string]any, error) {
 	ret := _m.Called(ctx, path)

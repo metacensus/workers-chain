@@ -19,15 +19,21 @@ var (
 	ErrGrantPrivileges        = errors.New("grant privileges")
 )
 
+// ClientProvider is an interface for getting postgres clients
+// This allows for easier testing by injecting mock providers
+type ClientProvider interface {
+	GetClient(ctx context.Context) (PostgresClient, error)
+}
+
 // Activities implements the PostgresActivities interface from generated code
 type Activities struct {
-	client PostgresClient
+	clientProvider ClientProvider
 }
 
 // NewActivities creates a new Activities instance
-func NewActivities(client PostgresClient) *Activities {
+func NewActivities(clientProvider ClientProvider) *Activities {
 	return &Activities{
-		client: client,
+		clientProvider: clientProvider,
 	}
 }
 
@@ -43,8 +49,14 @@ func (a *Activities) CreateDatabase(ctx context.Context, req *pb.CreateDatabaseI
 		return nil, errors.New("database name cannot be empty")
 	}
 
+	// Get postgres client (fetches credentials from Vault on first call)
+	client, err := a.clientProvider.GetClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get postgres client: %w", err)
+	}
+
 	// Check if database already exists
-	exists, err := a.databaseExists(ctx, a.client, req.DatabaseName)
+	exists, err := a.databaseExists(ctx, client, req.DatabaseName)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCheckDatabaseExistence, err)
 	}
@@ -60,7 +72,7 @@ func (a *Activities) CreateDatabase(ctx context.Context, req *pb.CreateDatabaseI
 	escapedName := escapeIdentifier(req.DatabaseName)
 	createSQL := fmt.Sprintf("CREATE DATABASE %s", escapedName)
 
-	if err := a.client.Exec(ctx, createSQL); err != nil {
+	if err := client.Exec(ctx, createSQL); err != nil {
 		// Check if error is because database already exists (race condition)
 		if strings.Contains(err.Error(), "already exists") {
 			logger.Info("Database already exists (race condition)", "database_name", req.DatabaseName)
@@ -88,8 +100,14 @@ func (a *Activities) CreateUser(ctx context.Context, req *pb.CreateUserInput) (*
 		return nil, errors.New("password cannot be empty")
 	}
 
+	// Get postgres client (fetches credentials from Vault on first call)
+	client, err := a.clientProvider.GetClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get postgres client: %w", err)
+	}
+
 	// Check if user already exists
-	exists, err := a.userExists(ctx, a.client, req.Username)
+	exists, err := a.userExists(ctx, client, req.Username)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCheckUserExistence, err)
 	}
@@ -105,7 +123,7 @@ func (a *Activities) CreateUser(ctx context.Context, req *pb.CreateUserInput) (*
 	escapedPassword := escapeStringLiteral(req.Password)
 	createSQL := fmt.Sprintf("CREATE ROLE %s WITH LOGIN PASSWORD %s", escapedUsername, escapedPassword)
 
-	if err := a.client.Exec(ctx, createSQL); err != nil {
+	if err := client.Exec(ctx, createSQL); err != nil {
 		// Check if error is because user already exists (race condition)
 		if strings.Contains(err.Error(), "already exists") {
 			logger.Info("User already exists (race condition)", "username", req.Username)
@@ -135,6 +153,12 @@ func (a *Activities) GrantPrivileges(ctx context.Context, req *pb.GrantPrivilege
 		return nil, errors.New("database name cannot be empty")
 	}
 
+	// Get postgres client (fetches credentials from Vault on first call)
+	client, err := a.clientProvider.GetClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get postgres client: %w", err)
+	}
+
 	// Convert enum privileges to PostgreSQL privilege strings
 	privilegesStr := ConvertPrivilegesToSQL(req.Privileges)
 
@@ -144,7 +168,7 @@ func (a *Activities) GrantPrivileges(ctx context.Context, req *pb.GrantPrivilege
 	escapedDatabaseName := escapeIdentifier(req.DatabaseName)
 	grantSQL := fmt.Sprintf("GRANT %s ON DATABASE %s TO %s", privilegesStr, escapedDatabaseName, escapedUsername)
 
-	if err := a.client.Exec(ctx, grantSQL); err != nil {
+	if err := client.Exec(ctx, grantSQL); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrGrantPrivileges, err)
 	}
 

@@ -12,15 +12,14 @@ import (
 
 // Sentinel errors for vault activities
 var (
-	ErrCreateAuthRole      = errors.New("create auth role")
-	ErrDeleteAuthRole      = errors.New("delete auth role")
-	ErrConvertPolicyToHCL  = errors.New("convert policy to HCL")
-	ErrCreatePolicy        = errors.New("create policy")
-	ErrDeletePolicy        = errors.New("delete policy")
-	ErrStoreSecret         = errors.New("store secret")
-	ErrFetchSecret         = errors.New("fetch secret")
-	ErrDeleteSecret        = errors.New("delete secret")
-	ErrInvalidResponseData = errors.New("invalid response data format")
+	ErrCreateAuthRole     = errors.New("create auth role")
+	ErrDeleteAuthRole     = errors.New("delete auth role")
+	ErrConvertPolicyToHCL = errors.New("convert policy to HCL")
+	ErrCreatePolicy       = errors.New("create policy")
+	ErrDeletePolicy       = errors.New("delete policy")
+	ErrStoreSecret        = errors.New("store secret")
+	ErrFetchSecret        = errors.New("fetch secret")
+	ErrDeleteSecret       = errors.New("delete secret")
 )
 
 // Vault path components
@@ -284,15 +283,11 @@ func (a *Activities) FetchSecret(ctx context.Context, req *pb.FetchSecretInput) 
 	logger := activity.GetLogger(ctx)
 	logger.Info("Fetching secret", "path", req.Path)
 
-	// Vault KV v2 path structure: <mount>/data/<path>
-	vaultPath := fmt.Sprintf("secret/data/%s", req.Path)
+	// TODO: Support version parameter (req.Version) - client.FetchSecret currently doesn't support versioning
+	// For now, we always fetch the latest version
 
-	// Add version parameter to path if specified
-	if req.Version > 0 {
-		vaultPath = fmt.Sprintf("%s?version=%d", vaultPath, req.Version)
-	}
-
-	result, err := a.client.Read(ctx, vaultPath)
+	// Use the client's FetchSecret method which handles KV v2 unwrapping
+	secretData, err := a.client.FetchSecret(ctx, req.Path)
 	if err != nil {
 		// Check if it's a not found error
 		if errors.Is(err, ErrNotFound) {
@@ -302,26 +297,7 @@ func (a *Activities) FetchSecret(ctx context.Context, req *pb.FetchSecretInput) 
 		return nil, fmt.Errorf("%w: %w", ErrFetchSecret, err)
 	}
 
-	// Parse Vault KV v2 response structure: {data: {data: {...}, metadata: {version: N}}}
-	dataSection, ok := result[vaultFieldData].(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("%w: invalid response format", ErrInvalidResponseData)
-	}
-
-	secretData, ok := dataSection[vaultFieldData].(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("%w: invalid data format", ErrInvalidResponseData)
-	}
-
-	// Extract version from metadata if available
-	version := req.Version
-	if metadata, ok := dataSection[vaultFieldMetadata].(map[string]any); ok {
-		if v, ok := metadata[vaultFieldVersion].(float64); ok {
-			version = int64(v)
-		}
-	}
-
-	// Convert strings to bytes
+	// Convert strings to bytes for the protobuf response
 	data := make(map[string][]byte)
 	for k, v := range secretData {
 		if strVal, ok := v.(string); ok {
@@ -336,7 +312,7 @@ func (a *Activities) FetchSecret(ctx context.Context, req *pb.FetchSecretInput) 
 	return &pb.FetchSecretOutput{
 		SecretRef: &pb.SecretRef{
 			Path:    req.Path,
-			Version: version,
+			Version: 0, // TODO: Extract version from metadata when client supports it
 		},
 		Data: data,
 	}, nil

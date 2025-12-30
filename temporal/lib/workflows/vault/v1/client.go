@@ -16,9 +16,10 @@ import (
 
 // Sentinel errors for Vault API responses
 var (
-	ErrNotFound     = errors.New("vault: not found")
-	ErrUnauthorized = errors.New("vault: unauthorized")
-	ErrForbidden    = errors.New("vault: forbidden")
+	ErrNotFound           = errors.New("vault: not found")
+	ErrUnauthorized       = errors.New("vault: unauthorized")
+	ErrForbidden          = errors.New("vault: forbidden")
+	ErrInvalidResponseData = errors.New("vault: invalid response data")
 )
 
 // VaultClient defines generic path-based operations for Vault
@@ -31,6 +32,11 @@ type VaultClient interface {
 
 	// Delete performs a DELETE request to the given path
 	Delete(ctx context.Context, path string) error
+
+	// FetchSecret fetches a secret from KV v2 secrets engine and unwraps the response
+	// path should be the logical path without the mount prefix (e.g., "fabric/org1/credentials")
+	// Returns the unwrapped secret data as map[string]interface{}
+	FetchSecret(ctx context.Context, path string) (map[string]interface{}, error)
 }
 
 // vaultClient implements VaultClient
@@ -137,6 +143,34 @@ func (vc *vaultClient) Delete(ctx context.Context, path string) error {
 	}
 
 	return nil
+}
+
+// FetchSecret fetches a secret from KV v2 secrets engine and unwraps the response
+// path should be the logical path without the mount prefix (e.g., "fabric/org1/credentials")
+// Returns the unwrapped secret data as map[string]interface{}
+func (vc *vaultClient) FetchSecret(ctx context.Context, path string) (map[string]interface{}, error) {
+	// Vault KV v2 path structure: <mount>/data/<path>
+	// We assume "secret" mount by default
+	kvv2Path := fmt.Sprintf("secret/data/%s", path)
+
+	// Read from Vault using the low-level Read method
+	result, err := vc.Read(ctx, kvv2Path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse Vault KV v2 response structure: {data: {data: {...}, metadata: {version: N}}}
+	dataSection, ok := result["data"].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("%w: missing 'data' field in response", ErrInvalidResponseData)
+	}
+
+	secretData, ok := dataSection["data"].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("%w: missing 'data.data' field in response", ErrInvalidResponseData)
+	}
+
+	return secretData, nil
 }
 
 // buildURL constructs the full Vault API URL from a path

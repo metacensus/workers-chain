@@ -10,8 +10,10 @@ import (
 //
 // Dependency chain:
 //
-//	PostgresConfig (provided by config package or caller)
-//	-> PostgresClient (via NewPostgresClient)
+//	config.OrgConfig (provided by config module)
+//	-> ProviderConfig (via NewProviderConfig)
+//	vault.VaultClient (provided by vault module)
+//	-> ClientProvider (via NewPostgresClientProvider)
 //	-> pb.PostgresActivities (via NewActivities)
 //
 // Usage in your main fx.App:
@@ -21,8 +23,11 @@ import (
 //	    fx.Invoke(postgresv1.RegisterActivities),
 //	)
 var Module = fx.Options(
-	// Provide PostgresClient from config
-	fx.Provide(NewPostgresClient),
+	// Provide ProviderConfig (built from OrgConfig)
+	fx.Provide(NewProviderConfig),
+
+	// Provide ClientProvider that fetches credentials from Vault
+	fx.Provide(NewPostgresClientProvider),
 
 	// Provide Activities implementing pb.PostgresActivities interface
 	fx.Provide(NewActivities),
