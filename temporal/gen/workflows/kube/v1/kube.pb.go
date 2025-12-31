@@ -980,9 +980,8 @@ func (x *DeleteSummary) GetFailed() int32 {
 // GetStatusInput queries the status of deployed resources
 type GetStatusInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// resources to check status for
-	// Each resource's YAML must include namespace (or be cluster-scoped)
-	Resources     map[string]*Resource `protobuf:"bytes,1,rep,name=resources,json=Resources,proto3" json:"Resources" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
+	// resources to check status for (by resource identifier, not full YAML)
+	Resources     map[string]*ResourceIdentifier `protobuf:"bytes,1,rep,name=resources,json=Resources,proto3" json:"Resources" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1017,7 +1016,7 @@ func (*GetStatusInput) Descriptor() ([]byte, []int) {
 	return file_kube_v1_kube_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *GetStatusInput) GetResources() map[string]*Resource {
+func (x *GetStatusInput) GetResources() map[string]*ResourceIdentifier {
 	if x != nil {
 		return x.Resources
 	}
@@ -1025,15 +1024,13 @@ func (x *GetStatusInput) GetResources() map[string]*Resource {
 }
 
 // GetStatusOutput represents the current status of resources
+// Activity fails with error if any resources are not ready
 type GetStatusOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// results contains status for each resource
-	// Keys match resource_id from GetStatusInput
-	Results map[string]*ResourceStatus `protobuf:"bytes,1,rep,name=results,json=Results,proto3" json:"Results" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
-	// overall_status is a summary: "ready", "pending", "degraded", "error", "unknown"
-	OverallStatus string `protobuf:"bytes,2,opt,name=overall_status,json=OverallStatus,proto3" json:"OverallStatus" validate:"required"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// resources_ready lists resource IDs that are ready
+	ResourcesReady []string `protobuf:"bytes,1,rep,name=resources_ready,json=ResourcesReady,proto3" json:"ResourcesReady" validate:"required"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetStatusOutput) Reset() {
@@ -1066,18 +1063,11 @@ func (*GetStatusOutput) Descriptor() ([]byte, []int) {
 	return file_kube_v1_kube_proto_rawDescGZIP(), []int{18}
 }
 
-func (x *GetStatusOutput) GetResults() map[string]*ResourceStatus {
+func (x *GetStatusOutput) GetResourcesReady() []string {
 	if x != nil {
-		return x.Results
+		return x.ResourcesReady
 	}
 	return nil
-}
-
-func (x *GetStatusOutput) GetOverallStatus() string {
-	if x != nil {
-		return x.OverallStatus
-	}
-	return ""
 }
 
 // ResourceIdentifier uniquely identifies a Kubernetes resource
@@ -1342,18 +1332,14 @@ const file_kube_v1_kube_proto_rawDesc = "" +
 	"\rDeleteSummary\x12=\n" +
 	"\x05total\x18\x01 \x01(\x05B'ʵ\x03#\xa2\x01 json:\"Total\" validate:\"required\"R\x05Total\x12C\n" +
 	"\adeleted\x18\x02 \x01(\x05B)ʵ\x03%\xa2\x01\"json:\"Deleted\" validate:\"required\"R\aDeleted\x12@\n" +
-	"\x06failed\x18\x03 \x01(\x05B(ʵ\x03$\xa2\x01!json:\"Failed\" validate:\"required\"R\x06Failed\"\xd4\x01\n" +
+	"\x06failed\x18\x03 \x01(\x05B(ʵ\x03$\xa2\x01!json:\"Failed\" validate:\"required\"R\x06Failed\"\xde\x01\n" +
 	"\x0eGetStatusInput\x12q\n" +
-	"\tresources\x18\x01 \x03(\v2&.kube.v1.GetStatusInput.ResourcesEntryB+ʵ\x03'\xa2\x01$json:\"Resources\" validate:\"required\"R\tResources\x1aO\n" +
+	"\tresources\x18\x01 \x03(\v2&.kube.v1.GetStatusInput.ResourcesEntryB+ʵ\x03'\xa2\x01$json:\"Resources\" validate:\"required\"R\tResources\x1aY\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12'\n" +
-	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xaa\x02\n" +
-	"\x0fGetStatusOutput\x12j\n" +
-	"\aresults\x18\x01 \x03(\v2%.kube.v1.GetStatusOutput.ResultsEntryB)ʵ\x03%\xa2\x01\"json:\"Results\" validate:\"required\"R\aResults\x12V\n" +
-	"\x0eoverall_status\x18\x02 \x01(\tB/ʵ\x03+\xa2\x01(json:\"OverallStatus\" validate:\"required\"R\rOverallStatus\x1aS\n" +
-	"\fResultsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12-\n" +
-	"\x05value\x18\x02 \x01(\v2\x17.kube.v1.ResourceStatusR\x05value:\x028\x01\"\xb1\x02\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x121\n" +
+	"\x05value\x18\x02 \x01(\v2\x1b.kube.v1.ResourceIdentifierR\x05value:\x028\x01\"l\n" +
+	"\x0fGetStatusOutput\x12Y\n" +
+	"\x0fresources_ready\x18\x01 \x03(\tB0ʵ\x03,\xa2\x01)json:\"ResourcesReady\" validate:\"required\"R\x0eResourcesReady\"\xb1\x02\n" +
 	"\x12ResourceIdentifier\x12M\n" +
 	"\vapi_version\x18\x01 \x01(\tB,ʵ\x03(\xa2\x01%json:\"ApiVersion\" validate:\"required\"R\n" +
 	"ApiVersion\x12:\n" +
@@ -1390,7 +1376,7 @@ func file_kube_v1_kube_proto_rawDescGZIP() []byte {
 	return file_kube_v1_kube_proto_rawDescData
 }
 
-var file_kube_v1_kube_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+var file_kube_v1_kube_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_kube_v1_kube_proto_goTypes = []any{
 	(*Resource)(nil),           // 0: kube.v1.Resource
 	(*CreateInput)(nil),        // 1: kube.v1.CreateInput
@@ -1422,7 +1408,6 @@ var file_kube_v1_kube_proto_goTypes = []any{
 	nil,                        // 27: kube.v1.DeleteInput.ResourcesEntry
 	nil,                        // 28: kube.v1.DeleteOutput.ResultsEntry
 	nil,                        // 29: kube.v1.GetStatusInput.ResourcesEntry
-	nil,                        // 30: kube.v1.GetStatusOutput.ResultsEntry
 }
 var file_kube_v1_kube_proto_depIdxs = []int32{
 	21, // 0: kube.v1.CreateInput.resources:type_name -> kube.v1.CreateInput.ResourcesEntry
@@ -1441,32 +1426,30 @@ var file_kube_v1_kube_proto_depIdxs = []int32{
 	28, // 13: kube.v1.DeleteOutput.results:type_name -> kube.v1.DeleteOutput.ResultsEntry
 	16, // 14: kube.v1.DeleteOutput.summary:type_name -> kube.v1.DeleteSummary
 	29, // 15: kube.v1.GetStatusInput.resources:type_name -> kube.v1.GetStatusInput.ResourcesEntry
-	30, // 16: kube.v1.GetStatusOutput.results:type_name -> kube.v1.GetStatusOutput.ResultsEntry
-	0,  // 17: kube.v1.CreateInput.ResourcesEntry.value:type_name -> kube.v1.Resource
-	3,  // 18: kube.v1.CreateOutput.ResultsEntry.value:type_name -> kube.v1.CreateResult
-	0,  // 19: kube.v1.UpdateInput.ResourcesEntry.value:type_name -> kube.v1.Resource
-	7,  // 20: kube.v1.UpdateOutput.ResultsEntry.value:type_name -> kube.v1.UpdateResult
-	0,  // 21: kube.v1.ApplyInput.ResourcesEntry.value:type_name -> kube.v1.Resource
-	11, // 22: kube.v1.ApplyOutput.ResultsEntry.value:type_name -> kube.v1.ApplyResult
-	0,  // 23: kube.v1.DeleteInput.ResourcesEntry.value:type_name -> kube.v1.Resource
-	15, // 24: kube.v1.DeleteOutput.ResultsEntry.value:type_name -> kube.v1.DeleteResult
-	0,  // 25: kube.v1.GetStatusInput.ResourcesEntry.value:type_name -> kube.v1.Resource
-	20, // 26: kube.v1.GetStatusOutput.ResultsEntry.value:type_name -> kube.v1.ResourceStatus
-	1,  // 27: kube.v1.Kubernetes.Create:input_type -> kube.v1.CreateInput
-	5,  // 28: kube.v1.Kubernetes.Update:input_type -> kube.v1.UpdateInput
-	9,  // 29: kube.v1.Kubernetes.Apply:input_type -> kube.v1.ApplyInput
-	13, // 30: kube.v1.Kubernetes.Delete:input_type -> kube.v1.DeleteInput
-	17, // 31: kube.v1.Kubernetes.GetStatus:input_type -> kube.v1.GetStatusInput
-	2,  // 32: kube.v1.Kubernetes.Create:output_type -> kube.v1.CreateOutput
-	6,  // 33: kube.v1.Kubernetes.Update:output_type -> kube.v1.UpdateOutput
-	10, // 34: kube.v1.Kubernetes.Apply:output_type -> kube.v1.ApplyOutput
-	14, // 35: kube.v1.Kubernetes.Delete:output_type -> kube.v1.DeleteOutput
-	18, // 36: kube.v1.Kubernetes.GetStatus:output_type -> kube.v1.GetStatusOutput
-	32, // [32:37] is the sub-list for method output_type
-	27, // [27:32] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	0,  // 16: kube.v1.CreateInput.ResourcesEntry.value:type_name -> kube.v1.Resource
+	3,  // 17: kube.v1.CreateOutput.ResultsEntry.value:type_name -> kube.v1.CreateResult
+	0,  // 18: kube.v1.UpdateInput.ResourcesEntry.value:type_name -> kube.v1.Resource
+	7,  // 19: kube.v1.UpdateOutput.ResultsEntry.value:type_name -> kube.v1.UpdateResult
+	0,  // 20: kube.v1.ApplyInput.ResourcesEntry.value:type_name -> kube.v1.Resource
+	11, // 21: kube.v1.ApplyOutput.ResultsEntry.value:type_name -> kube.v1.ApplyResult
+	0,  // 22: kube.v1.DeleteInput.ResourcesEntry.value:type_name -> kube.v1.Resource
+	15, // 23: kube.v1.DeleteOutput.ResultsEntry.value:type_name -> kube.v1.DeleteResult
+	19, // 24: kube.v1.GetStatusInput.ResourcesEntry.value:type_name -> kube.v1.ResourceIdentifier
+	1,  // 25: kube.v1.Kubernetes.Create:input_type -> kube.v1.CreateInput
+	5,  // 26: kube.v1.Kubernetes.Update:input_type -> kube.v1.UpdateInput
+	9,  // 27: kube.v1.Kubernetes.Apply:input_type -> kube.v1.ApplyInput
+	13, // 28: kube.v1.Kubernetes.Delete:input_type -> kube.v1.DeleteInput
+	17, // 29: kube.v1.Kubernetes.GetStatus:input_type -> kube.v1.GetStatusInput
+	2,  // 30: kube.v1.Kubernetes.Create:output_type -> kube.v1.CreateOutput
+	6,  // 31: kube.v1.Kubernetes.Update:output_type -> kube.v1.UpdateOutput
+	10, // 32: kube.v1.Kubernetes.Apply:output_type -> kube.v1.ApplyOutput
+	14, // 33: kube.v1.Kubernetes.Delete:output_type -> kube.v1.DeleteOutput
+	18, // 34: kube.v1.Kubernetes.GetStatus:output_type -> kube.v1.GetStatusOutput
+	30, // [30:35] is the sub-list for method output_type
+	25, // [25:30] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_kube_v1_kube_proto_init() }
@@ -1480,7 +1463,7 @@ func file_kube_v1_kube_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_kube_v1_kube_proto_rawDesc), len(file_kube_v1_kube_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   31,
+			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 
+	kubev1 "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 )
 
@@ -82,6 +83,17 @@ func (cs CertificateStoreConfig) Port() int {
 // PostgreSQL requires connecting to an existing database; "postgres" is the default.
 func (cs CertificateStoreConfig) AdminDatabase() string {
 	return "postgres"
+}
+
+// ResourceIdentifier returns the Kubernetes resource identifier for waiting on deployment readiness.
+// The certificate store is deployed as a StatefulSet.
+func (cs CertificateStoreConfig) ResourceIdentifier() *kubev1.ResourceIdentifier {
+	return &kubev1.ResourceIdentifier{
+		ApiVersion: "apps/v1",
+		Kind:       "StatefulSet",
+		Name:       cs.ComponentName(),
+		Namespace:  cs.KubernetesNamespace(),
+	}
 }
 
 // ------------ Vault Properties ------------

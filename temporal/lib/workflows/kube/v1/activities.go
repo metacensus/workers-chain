@@ -312,13 +312,13 @@ func (a *Activities) deleteSingleResource(ctx context.Context, resourceID string
 }
 
 // GetStatus retrieves the current status of deployed resources
+// Returns error if any resources are not ready (for use with activity retry policies)
 func (a *Activities) GetStatus(ctx context.Context, req *pb.GetStatusInput) (*pb.GetStatusOutput, error) {
 	logger := activity.GetLogger(ctx)
 	logger.Info("Getting resource status", "resource_count", len(req.GetResources()))
 
 	response := &pb.GetStatusOutput{
-		Results:       make(map[string]*pb.ResourceStatus),
-		OverallStatus: "unknown",
+		ResourcesReady: []string{},
 	}
 
 	if len(req.GetResources()) == 0 {
@@ -326,72 +326,40 @@ func (a *Activities) GetStatus(ctx context.Context, req *pb.GetStatusInput) (*pb
 		return response, nil
 	}
 
-	allReady := true
-	anyDegraded := false
-	anyError := false
+	var notReadyResources []string
 
-	for resourceID, resource := range req.GetResources() {
-		status := a.getStatusForResource(ctx, resourceID, resource)
-		response.Results[resourceID] = status
+	for resourceID, resourceIdentifier := range req.GetResources() {
+		status, err := a.getResourceStatus(ctx, resourceIdentifier)
+		if err != nil {
+			logger.Warn("Failed to get resource status",
+				"resource_id", resourceID,
+				"kind", resourceIdentifier.Kind,
+				"name", resourceIdentifier.Name,
+				"error", err)
+			notReadyResources = append(notReadyResources,
+				fmt.Sprintf("%s/%s (error: %v)", resourceIdentifier.Kind, resourceIdentifier.Name, err))
+			continue
+		}
 
-		// Track overall status
-		switch status.Status {
-		case StatusReady:
-			// Good
-		case StatusDegraded, StatusPending:
-			allReady = false
-			anyDegraded = true
-		default:
-			allReady = false
-			anyError = true
+		if status.Status == StatusReady {
+			response.ResourcesReady = append(response.ResourcesReady, resourceID)
+		} else {
+			notReadyResources = append(notReadyResources,
+				fmt.Sprintf("%s/%s (status: %s)", resourceIdentifier.Kind, resourceIdentifier.Name, status.Status))
 		}
 	}
 
-	// Determine overall status
-	if anyError {
-		response.OverallStatus = StatusError
-	} else if allReady {
-		response.OverallStatus = StatusReady
-	} else if anyDegraded {
-		response.OverallStatus = StatusDegraded
-	} else {
-		response.OverallStatus = StatusPending
+	// Return error if not all resources are ready (triggers activity retry)
+	if len(notReadyResources) > 0 {
+		logger.Info("Resources not ready, will retry",
+			"not_ready", notReadyResources,
+			"ready_count", len(response.ResourcesReady),
+			"total_count", len(req.GetResources()))
+		return response, fmt.Errorf("resources not ready: %v", notReadyResources)
 	}
 
-	logger.Info("Status retrieved",
-		"overall_status", response.OverallStatus,
-		"resource_count", len(response.Results))
-
+	logger.Info("All resources ready", "resource_count", len(response.ResourcesReady))
 	return response, nil
-}
-
-// getStatusForResource retrieves the status for a single resource
-func (a *Activities) getStatusForResource(ctx context.Context, resourceID string, resource *pb.Resource) *pb.ResourceStatus {
-	logger := activity.GetLogger(ctx)
-
-	// Parse resource to extract resource identifier
-	id, _, err := a.parseResource(resourceID, resource)
-	if err != nil {
-		logger.Error("Failed to parse resource for status check", "resource_id", resourceID, "error", err)
-		return &pb.ResourceStatus{
-			Status:  StatusError,
-			Message: err.Error(),
-		}
-	}
-
-	status, err := a.getResourceStatus(ctx, id)
-	if err != nil {
-		logger.Error("Failed to get resource status", "resource_id", resourceID, "error", err)
-		return &pb.ResourceStatus{
-			Kind:      id.Kind,
-			Name:      id.Name,
-			Namespace: id.Namespace,
-			Status:    StatusError,
-			Message:   err.Error(),
-		}
-	}
-
-	return status
 }
 
 // parseResource parses YAML and extracts resource identifier and object

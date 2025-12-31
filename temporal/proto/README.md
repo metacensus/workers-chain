@@ -121,8 +121,8 @@
     - [kube.v1.GetStatusInput](#kube-v1-getstatusinput)
     - [kube.v1.GetStatusInput.ResourcesEntry](#kube-v1-getstatusinput-resourcesentry)
     - [kube.v1.GetStatusOutput](#kube-v1-getstatusoutput)
-    - [kube.v1.GetStatusOutput.ResultsEntry](#kube-v1-getstatusoutput-resultsentry)
     - [kube.v1.Resource](#kube-v1-resource)
+    - [kube.v1.ResourceIdentifier](#kube-v1-resourceidentifier)
     - [kube.v1.ResourceStatus](#kube-v1-resourcestatus)
     - [kube.v1.UpdateInput](#kube-v1-updateinput)
     - [kube.v1.UpdateInput.ResourcesEntry](#kube-v1-updateinput-resourcesentry)
@@ -2737,8 +2737,7 @@ GetStatus retrieves the current status of deployed resources
 <td>resources</td>
 <td><a href="#kube-v1-getstatusinput-resourcesentry">kube.v1.GetStatusInput.ResourcesEntry</a></td>
 <td><pre>
-resources to check status for
-Each resource's YAML must include namespace (or be cluster-scoped)<br>
+resources to check status for (by resource identifier, not full YAML)<br>
 
 json_name: Resources
 go_name: Resources
@@ -2755,24 +2754,14 @@ go_tags: json:"Resources" validate:"required"</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>overall_status</td>
+<td>resources_ready</td>
 <td>string</td>
 <td><pre>
-overall_status is a summary: "ready", "pending", "degraded", "error", "unknown"<br>
+resources_ready lists resource IDs that are ready<br>
 
-json_name: OverallStatus
-go_name: OverallStatus
-go_tags: json:"OverallStatus" validate:"required"</pre></td>
-</tr><tr>
-<td>results</td>
-<td><a href="#kube-v1-getstatusoutput-resultsentry">kube.v1.GetStatusOutput.ResultsEntry</a></td>
-<td><pre>
-results contains status for each resource
-Keys match resource_id from GetStatusInput<br>
-
-json_name: Results
-go_name: Results
-go_tags: json:"Results" validate:"required"</pre></td>
+json_name: ResourcesReady
+go_name: ResourcesReady
+go_tags: json:"ResourcesReady" validate:"required"</pre></td>
 </tr>
 </table>   
 
@@ -3392,8 +3381,7 @@ GetStatusInput queries the status of deployed resources
 <td>resources</td>
 <td><a href="#kube-v1-getstatusinput-resourcesentry">kube.v1.GetStatusInput.ResourcesEntry</a></td>
 <td><pre>
-resources to check status for
-Each resource's YAML must include namespace (or be cluster-scoped)<br>
+resources to check status for (by resource identifier, not full YAML)<br>
 
 json_name: Resources
 go_name: Resources
@@ -3420,7 +3408,7 @@ json_name: key
 go_name: Key</pre></td>
 </tr><tr>
 <td>value</td>
-<td><a href="#kube-v1-resource">kube.v1.Resource</a></td>
+<td><a href="#kube-v1-resourceidentifier">kube.v1.ResourceIdentifier</a></td>
 <td><pre>
 json_name: value
 go_name: Value</pre></td>
@@ -3434,6 +3422,7 @@ go_name: Value</pre></td>
 
 <pre>
 GetStatusOutput represents the current status of resources
+Activity fails with error if any resources are not ready
 </pre>
 
 <table>
@@ -3443,50 +3432,14 @@ GetStatusOutput represents the current status of resources
 <th>Description</th>
 </tr>
 <tr>
-<td>overall_status</td>
+<td>resources_ready</td>
 <td>string</td>
 <td><pre>
-overall_status is a summary: "ready", "pending", "degraded", "error", "unknown"<br>
+resources_ready lists resource IDs that are ready<br>
 
-json_name: OverallStatus
-go_name: OverallStatus
-go_tags: json:"OverallStatus" validate:"required"</pre></td>
-</tr><tr>
-<td>results</td>
-<td><a href="#kube-v1-getstatusoutput-resultsentry">kube.v1.GetStatusOutput.ResultsEntry</a></td>
-<td><pre>
-results contains status for each resource
-Keys match resource_id from GetStatusInput<br>
-
-json_name: Results
-go_name: Results
-go_tags: json:"Results" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="kube-v1-getstatusoutput-resultsentry"></a>
-### kube.v1.GetStatusOutput.ResultsEntry
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>key</td>
-<td>string</td>
-<td><pre>
-json_name: key
-go_name: Key</pre></td>
-</tr><tr>
-<td>value</td>
-<td><a href="#kube-v1-resourcestatus">kube.v1.ResourceStatus</a></td>
-<td><pre>
-json_name: value
-go_name: Value</pre></td>
+json_name: ResourcesReady
+go_name: ResourcesReady
+go_tags: json:"ResourcesReady" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3516,6 +3469,61 @@ Activities parse this to extract kind, name, namespace, apiVersion<br>
 json_name: ManifestYaml
 go_name: ManifestYaml
 go_tags: json:"ManifestYaml" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="kube-v1-resourceidentifier"></a>
+### kube.v1.ResourceIdentifier
+
+<pre>
+ResourceIdentifier uniquely identifies a Kubernetes resource
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>api_version</td>
+<td>string</td>
+<td><pre>
+api_version is the Kubernetes API version (e.g., "apps/v1", "v1")<br>
+
+json_name: ApiVersion
+go_name: ApiVersion
+go_tags: json:"ApiVersion" validate:"required"</pre></td>
+</tr><tr>
+<td>kind</td>
+<td>string</td>
+<td><pre>
+kind is the Kubernetes resource kind (e.g., "Deployment", "Service", "Pod")<br>
+
+json_name: Kind
+go_name: Kind
+go_tags: json:"Kind" validate:"required"</pre></td>
+</tr><tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the resource name<br>
+
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+namespace is the resource namespace
+Empty for cluster-scoped resources<br>
+
+json_name: Namespace
+go_name: Namespace
+go_tags: json:"Namespace,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 

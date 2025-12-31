@@ -326,27 +326,20 @@ message DeleteSummary {
 
 // GetStatusInput queries the status of deployed resources
 message GetStatusInput {
-  // resources to check status for
-  // Each resource's YAML must include namespace (or be cluster-scoped)
-  map<string, Resource> resources = 1 [
+  // resources to check status for (by resource identifier, not full YAML)
+  map<string, ResourceIdentifier> resources = 1 [
     json_name = "Resources",
     (go.field).tags = 'json:"Resources" validate:"required"'
   ];
 }
 
 // GetStatusOutput represents the current status of resources
+// Activity fails with error if any resources are not ready
 message GetStatusOutput {
-  // results contains status for each resource
-  // Keys match resource_id from GetStatusInput
-  map<string, ResourceStatus> results = 1 [
-    json_name = "Results",
-    (go.field).tags = 'json:"Results" validate:"required"'
-  ];
-  
-  // overall_status is a summary: "ready", "pending", "degraded", "error", "unknown"
-  string overall_status = 2 [
-    json_name = "OverallStatus",
-    (go.field).tags = 'json:"OverallStatus" validate:"required"'
+  // resources_ready lists resource IDs that are ready
+  repeated string resources_ready = 1 [
+    json_name = "ResourcesReady",
+    (go.field).tags = 'json:"ResourcesReady" validate:"required"'
   ];
 }
 
@@ -424,4 +417,3 @@ message ResourceStatus {
     (go.field).tags = 'json:"Message,omitempty" validate:"omitempty"'
   ];
 }
-

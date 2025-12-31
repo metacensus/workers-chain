@@ -495,19 +495,21 @@ func TestDeleteActivity(t *testing.T) {
 
 func TestGetStatusActivity(t *testing.T) {
 	tests := []struct {
-		name          string
-		resources     map[string]*pb.Resource
-		statusResults map[string]*kube.ResourceStatus
-		clientErr     error
-		expectErr     bool
-		expectOverall string
-		expectCount   int
+		name              string
+		resources         map[string]*pb.ResourceIdentifier
+		statusResults     map[string]*kube.ResourceStatus
+		clientErr         error
+		expectErr         bool
+		expectReadyCount  int
 	}{
 		{
 			name: "success - all resources ready",
-			resources: map[string]*pb.Resource{
+			resources: map[string]*pb.ResourceIdentifier{
 				"service-1": {
-					ManifestYaml: validServiceManifestYAML(),
+					ApiVersion: "v1",
+					Kind:       "Service",
+					Name:       "test-service",
+					Namespace:  "default",
 				},
 			},
 			statusResults: map[string]*kube.ResourceStatus{
@@ -518,15 +520,17 @@ func TestGetStatusActivity(t *testing.T) {
 					ReadyReplicas:   1,
 				},
 			},
-			expectErr:     false,
-			expectOverall: kube.StatusReady,
-			expectCount:   1,
+			expectErr:        false,
+			expectReadyCount: 1,
 		},
 		{
-			name: "success - resources pending",
-			resources: map[string]*pb.Resource{
+			name: "error - resources pending (not ready)",
+			resources: map[string]*pb.ResourceIdentifier{
 				"deployment-1": {
-					ManifestYaml: validDeploymentManifestYAML(),
+					ApiVersion: "apps/v1",
+					Kind:       "Deployment",
+					Name:       "test-deployment",
+					Namespace:  "default",
 				},
 			},
 			statusResults: map[string]*kube.ResourceStatus{
@@ -537,18 +541,23 @@ func TestGetStatusActivity(t *testing.T) {
 					ReadyReplicas:   0,
 				},
 			},
-			expectErr:     false,
-			expectOverall: kube.StatusDegraded, // Pending is treated as degraded in overall status
-			expectCount:   1,
+			expectErr:        true, // Activity fails if resources not ready
+			expectReadyCount: 0,
 		},
 		{
-			name: "success - mixed status (ready and pending)",
-			resources: map[string]*pb.Resource{
+			name: "error - mixed status (some ready, some not)",
+			resources: map[string]*pb.ResourceIdentifier{
 				"service-1": {
-					ManifestYaml: validServiceManifestYAML(),
+					ApiVersion: "v1",
+					Kind:       "Service",
+					Name:       "test-service",
+					Namespace:  "default",
 				},
 				"deployment-1": {
-					ManifestYaml: validDeploymentManifestYAML(),
+					ApiVersion: "apps/v1",
+					Kind:       "Deployment",
+					Name:       "test-deployment",
+					Namespace:  "default",
 				},
 			},
 			statusResults: map[string]*kube.ResourceStatus{
@@ -561,16 +570,59 @@ func TestGetStatusActivity(t *testing.T) {
 					Message: "0/1 replicas ready",
 				},
 			},
-			expectErr:     false,
-			expectOverall: kube.StatusDegraded, // Mixed status (some ready, some not) = degraded
-			expectCount:   2,
+			expectErr:        true, // Activity fails if any resource not ready
+			expectReadyCount: 1,    // One resource is ready
 		},
 		{
-			name:          "error - no manifests",
-			resources:     map[string]*pb.Resource{},
-			expectErr:     false, // Should return empty response with unknown status
-			expectOverall: "unknown",
-			expectCount:   0,
+			name: "success - multiple resources all ready",
+			resources: map[string]*pb.ResourceIdentifier{
+				"service-1": {
+					ApiVersion: "v1",
+					Kind:       "Service",
+					Name:       "test-service",
+					Namespace:  "default",
+				},
+				"deployment-1": {
+					ApiVersion: "apps/v1",
+					Kind:       "Deployment",
+					Name:       "test-deployment",
+					Namespace:  "default",
+				},
+			},
+			statusResults: map[string]*kube.ResourceStatus{
+				"service-1": {
+					Ready:   true,
+					Message: "ready",
+				},
+				"deployment-1": {
+					Ready:           true,
+					Message:         "1/1 replicas ready",
+					DesiredReplicas: 1,
+					ReadyReplicas:   1,
+				},
+			},
+			expectErr:        false,
+			expectReadyCount: 2,
+		},
+		{
+			name:             "success - no resources",
+			resources:        map[string]*pb.ResourceIdentifier{},
+			expectErr:        false,
+			expectReadyCount: 0,
+		},
+		{
+			name: "error - client error getting status",
+			resources: map[string]*pb.ResourceIdentifier{
+				"service-1": {
+					ApiVersion: "v1",
+					Kind:       "Service",
+					Name:       "test-service",
+					Namespace:  "default",
+				},
+			},
+			clientErr:        errClientForbidden,
+			expectErr:        true,
+			expectReadyCount: 0,
 		},
 	}
 
@@ -581,49 +633,29 @@ func TestGetStatusActivity(t *testing.T) {
 
 			mockClient := kubemocks.NewMockKubeClient(t)
 
-			// Set up specific expectations based on scenario
-			if len(tt.resources) > 0 {
-				// Get the statuses from statusResults map (order might vary, but that's OK for this test)
-				var firstStatus, secondStatus *kube.ResourceStatus
-				count := 0
-				for _, status := range tt.statusResults {
-					if count == 0 {
-						firstStatus = status
-					} else if count == 1 {
-						secondStatus = status
+			// Set up mock expectations based on scenario
+			if len(tt.resources) > 0 && tt.clientErr == nil {
+				// Set up GetResourceStatus for each resource
+				for resourceID := range tt.resources {
+					status := tt.statusResults[resourceID]
+					if status == nil {
+						// Default status if not specified
+						status = &kube.ResourceStatus{
+							Ready:   true,
+							Message: "ready",
+						}
 					}
-					count++
-				}
-
-				// If no statuses specified, use default
-				if firstStatus == nil {
-					firstStatus = &kube.ResourceStatus{
-						Ready:           true,
-						Message:         "ready",
-						DesiredReplicas: 1,
-						ReadyReplicas:   1,
-					}
-				}
-
-				// Set up mock to return statuses in sequence
-				if len(tt.resources) == 1 {
 					mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
-						Return(firstStatus, nil)
-				} else if len(tt.resources) == 2 && secondStatus != nil {
-					mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
-						Return(firstStatus, nil).
+						Return(status, nil).
 						Once()
-					mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
-						Return(secondStatus, nil).
-						Once()
-				} else {
-					// For other cases, just return first status for all
-					mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
-						Return(firstStatus, nil).
-						Times(len(tt.resources))
 				}
+			} else if tt.clientErr != nil {
+				// Client error scenario
+				mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+					Return(nil, tt.clientErr).
+					Once()
 			}
-			// For empty manifests, no GetResourceStatus calls
+			// For empty resources, no GetResourceStatus calls
 
 			activities := kube.NewActivities(mockClient)
 			env.RegisterActivity(activities.GetStatus)
@@ -635,6 +667,7 @@ func TestGetStatusActivity(t *testing.T) {
 				if err == nil {
 					t.Fatal("expected error, got nil")
 				}
+				// Error case - activity failed, we're done
 			} else {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
@@ -643,11 +676,8 @@ func TestGetStatusActivity(t *testing.T) {
 				if err := res.Get(&result); err != nil {
 					t.Fatalf("failed to get activity result: %v", err)
 				}
-				if len(result.Results) != tt.expectCount {
-					t.Errorf("result count: got %d, want %d", len(result.Results), tt.expectCount)
-				}
-				if result.OverallStatus != tt.expectOverall {
-					t.Errorf("overall status: got %q, want %q", result.OverallStatus, tt.expectOverall)
+				if len(result.ResourcesReady) != tt.expectReadyCount {
+					t.Errorf("ready count: got %d, want %d", len(result.ResourcesReady), tt.expectReadyCount)
 				}
 			}
 		})

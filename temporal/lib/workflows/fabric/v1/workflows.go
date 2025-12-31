@@ -8,6 +8,7 @@ import (
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	cryptopb "github.com/metacensus/infra/temporal/gen/workflows/crypto/v1"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
+	kubepb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
 	postgrespb "github.com/metacensus/infra/temporal/gen/workflows/postgres/v1"
 	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	"github.com/metacensus/infra/temporal/gen/workflows/vault/v1/vaultv1nexustemporal"
@@ -201,7 +202,30 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 		return nil, fmt.Errorf("failed to create certificate store deployment: %w", err)
 	}
 
-	logger.Info("Certificate store deployed successfully", "org", w.orgConfig.OrgID)
+	// Step 4: Wait for certificate store to be ready
+	// Use activity retry policy to poll until ready (GetStatus fails if not ready)
+	logger.Info("Waiting for certificate store to be ready", "org", w.orgConfig.OrgID)
+	waitOptions := workflow.ActivityOptions{
+		StartToCloseTimeout: 10 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    5 * time.Second,  // Start checking after 5s
+			BackoffCoefficient: 1.0,              // No backoff - consistent 5s interval
+			MaximumInterval:    5 * time.Second,  // Keep at 5s
+			MaximumAttempts:    120,              // 120 * 5s = 10 minutes max
+		},
+	}
+	waitCtx := workflow.WithActivityOptions(ctx, waitOptions)
+
+	err = workflow.ExecuteActivity(waitCtx, kubepb.GetStatusActivityName, &kubepb.GetStatusInput{
+		Resources: map[string]*kubepb.ResourceIdentifier{
+			"certificate-store": certStore.ResourceIdentifier(),
+		},
+	}).Get(waitCtx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("certificate store did not become ready: %w", err)
+	}
+
+	logger.Info("Certificate store deployed and ready", "org", w.orgConfig.OrgID)
 	return &pb.DeployCertificateStoreOutput{}, nil
 }
 
