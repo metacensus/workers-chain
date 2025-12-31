@@ -3,7 +3,7 @@ Shared helper functions for Certificate Store chart
 */}}
 
 {{- define "certificate-store.name" -}}
-fabric-postgres-{{ .Values.org }}
+certificate-store
 {{- end }}
 
 {{- define "certificate-store.namespace" -}}
@@ -11,7 +11,7 @@ fabric-{{ .Values.org }}
 {{- end }}
 
 {{- define "certificate-store.serviceName" -}}
-fabric-postgres-{{ .Values.org }}
+certificate-store
 {{- end }}
 
 {{- define "certificate-store.commonLabels" -}}

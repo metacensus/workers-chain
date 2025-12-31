@@ -1796,11 +1796,52 @@ isolated database to store issued certificates and revocation information.
 
 **Input:** [fabric.v1.CreateCertificateDatabaseInput](#fabric-v1-createcertificatedatabaseinput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is for a TLS or Org certificate authority
+Valid values: "tls" or "org"<br>
 
+json_name: certType
+go_name: CertType</pre></td>
+</tr><tr>
+<td>certificate_authority_id</td>
+<td>string</td>
+<td><pre>
+certificate_authority_id identifies which CA this database is for
+Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs<br>
+
+json_name: certificateAuthorityId
+go_name: CertificateAuthorityId</pre></td>
+</tr>
+</table>
 
 **Output:** [fabric.v1.CreateCertificateDatabaseOutput](#fabric-v1-createcertificatedatabaseoutput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>credentials_ref</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+credentials_ref is the Vault reference to retrieve the username and password
+The database name can be derived from cert_type and certificate_authority_id using fabric config<br>
 
+json_name: credentialsRef
+go_name: CredentialsRef</pre></td>
+</tr>
+</table>
 
 **Defaults:**
 
@@ -1858,8 +1899,34 @@ Empty for now - will be populated as implementation progresses
 
 <pre>
 CreateCertificateDatabaseInput specifies the parameters for creating a certificate database
-Empty for now - will be populated as implementation progresses
 </pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is for a TLS or Org certificate authority
+Valid values: "tls" or "org"<br>
+
+json_name: certType
+go_name: CertType</pre></td>
+</tr><tr>
+<td>certificate_authority_id</td>
+<td>string</td>
+<td><pre>
+certificate_authority_id identifies which CA this database is for
+Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs<br>
+
+json_name: certificateAuthorityId
+go_name: CertificateAuthorityId</pre></td>
+</tr>
+</table>
 
 
 
@@ -1868,8 +1935,25 @@ Empty for now - will be populated as implementation progresses
 
 <pre>
 CreateCertificateDatabaseOutput indicates the result of certificate database creation
-Empty for now - will be populated as implementation progresses
 </pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>credentials_ref</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+credentials_ref is the Vault reference to retrieve the username and password
+The database name can be derived from cert_type and certificate_authority_id using fabric config<br>
+
+json_name: credentialsRef
+go_name: CredentialsRef</pre></td>
+</tr>
+</table>
 
 
 

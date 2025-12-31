@@ -4,17 +4,16 @@ import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1temporal"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
+	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/fx"
 )
 
 // Module provides fabric v1 workflows for dependency injection
-// Requires OrgConfig to be provided by the caller
 var Module = fx.Options(
 	// Provide Workflows implementing pb.FabricWorkflows interface
-	// OrgConfig is provided by the fabric worker bootstrap
-	fx.Provide(func(orgConfig *config.OrgConfig) pb.FabricWorkflows {
-		return NewWorkflows(*orgConfig)
+	fx.Provide(func(orgConfig *config.OrgConfig, fabricConfig fabricconfig.FabricConfig) pb.FabricWorkflows {
+		return NewWorkflows(*orgConfig, fabricConfig)
 	}),
 )
 

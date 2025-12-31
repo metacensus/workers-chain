@@ -16,8 +16,11 @@ replicas: {{.Replicas}}
 # Database configuration
 database:
   name: {{.Database.Name}}
-  user: {{.Database.User}}
-  password: "{{.Database.Password}}"
+
+# Vault configuration for CSI driver
+vault:
+  roleName: "{{.Vault.RoleName}}"
+  secretPath: "{{.Vault.SecretPath}}"
 
 # Service configuration
 service:

@@ -21,6 +21,7 @@ spec:
       labels:
         {{- include "certificate-store.commonLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "certificate-store.name" . }}
       containers:
       - name: postgres
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -34,7 +35,10 @@ spec:
         - name: POSTGRES_DB
           value: {{ .Values.database.name | quote }}
         - name: POSTGRES_USER
-          value: {{ .Values.database.user | quote }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "certificate-store.name" . }}-secret
+              key: username
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -49,7 +53,7 @@ spec:
             command:
             - /bin/sh
             - -c
-            - pg_isready -U {{ .Values.database.user }}
+            - pg_isready -U $POSTGRES_USER
           initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
           timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
@@ -58,13 +62,23 @@ spec:
             command:
             - /bin/sh
             - -c
-            - pg_isready -U {{ .Values.database.user }}
+            - pg_isready -U $POSTGRES_USER
           initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
           timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
         volumeMounts:
         - name: data
           mountPath: {{ .Values.persistence.mountPath }}
+        - name: vault-secrets
+          mountPath: /mnt/secrets-store
+          readOnly: true
+      volumes:
+      - name: vault-secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: {{ include "certificate-store.name" . }}-vault
   volumeClaimTemplates:
   - metadata:
       name: data

@@ -10,6 +10,7 @@ import (
 	_ "github.com/alta/protopatch/patch/gopb"
 	_ "github.com/bergundy/nexus-proto-annotations/go/nexus/v1"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
+	v1 "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -434,11 +435,16 @@ func (*DeployCertificateAuthorityOutput) Descriptor() ([]byte, []int) {
 }
 
 // CreateCertificateDatabaseInput specifies the parameters for creating a certificate database
-// Empty for now - will be populated as implementation progresses
 type CreateCertificateDatabaseInput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// cert_type specifies whether this is for a TLS or Org certificate authority
+	// Valid values: "tls" or "org"
+	CertType string `protobuf:"bytes,1,opt,name=cert_type,json=certType,proto3" json:"cert_type,omitempty"`
+	// certificate_authority_id identifies which CA this database is for
+	// Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs
+	CertificateAuthorityId string `protobuf:"bytes,2,opt,name=certificate_authority_id,json=certificateAuthorityId,proto3" json:"certificate_authority_id,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *CreateCertificateDatabaseInput) Reset() {
@@ -471,12 +477,28 @@ func (*CreateCertificateDatabaseInput) Descriptor() ([]byte, []int) {
 	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{10}
 }
 
+func (x *CreateCertificateDatabaseInput) GetCertType() string {
+	if x != nil {
+		return x.CertType
+	}
+	return ""
+}
+
+func (x *CreateCertificateDatabaseInput) GetCertificateAuthorityId() string {
+	if x != nil {
+		return x.CertificateAuthorityId
+	}
+	return ""
+}
+
 // CreateCertificateDatabaseOutput indicates the result of certificate database creation
-// Empty for now - will be populated as implementation progresses
 type CreateCertificateDatabaseOutput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// credentials_ref is the Vault reference to retrieve the username and password
+	// The database name can be derived from cert_type and certificate_authority_id using fabric config
+	CredentialsRef *v1.SecretRef `protobuf:"bytes,1,opt,name=credentials_ref,json=credentialsRef,proto3" json:"credentials_ref,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreateCertificateDatabaseOutput) Reset() {
@@ -509,11 +531,18 @@ func (*CreateCertificateDatabaseOutput) Descriptor() ([]byte, []int) {
 	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{11}
 }
 
+func (x *CreateCertificateDatabaseOutput) GetCredentialsRef() *v1.SecretRef {
+	if x != nil {
+		return x.CredentialsRef
+	}
+	return nil
+}
+
 var File_fabric_v1_fabric_proto protoreflect.FileDescriptor
 
 const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\n" +
-	"\x16fabric/v1/fabric.proto\x12\tfabric.v1\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\x15\n" +
+	"\x16fabric/v1/fabric.proto\x12\tfabric.v1\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\x1a\x14vault/v1/vault.proto\"\x15\n" +
 	"\x13BootstrapShardInput\"\x16\n" +
 	"\x14BootstrapShardOutput\"&\n" +
 	"$BootstrapCertificateAuthoritiesInput\"'\n" +
@@ -526,9 +555,12 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x1fDeployCertificateAuthorityInput\x12G\n" +
 	"\tcert_type\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"CertType\" validate:\"required\"R\bCertType\x124\n" +
 	"\x02id\x18\x02 \x01(\tB$ʵ\x03 \xa2\x01\x1djson:\"Id\" validate:\"required\"R\x02Id\"\"\n" +
-	" DeployCertificateAuthorityOutput\" \n" +
-	"\x1eCreateCertificateDatabaseInput\"!\n" +
-	"\x1fCreateCertificateDatabaseOutput2\xe9\t\n" +
+	" DeployCertificateAuthorityOutput\"w\n" +
+	"\x1eCreateCertificateDatabaseInput\x12\x1b\n" +
+	"\tcert_type\x18\x01 \x01(\tR\bcertType\x128\n" +
+	"\x18certificate_authority_id\x18\x02 \x01(\tR\x16certificateAuthorityId\"_\n" +
+	"\x1fCreateCertificateDatabaseOutput\x12<\n" +
+	"\x0fcredentials_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefR\x0ecredentialsRef2\xe9\t\n" +
 	"\x06Fabric\x12\x8b\x01\n" +
 	"\x0eBootstrapShard\x12\x1e.fabric.v1.BootstrapShardInput\x1a\x1f.fabric.v1.BootstrapShardOutput\"8\x8a\xc4\x034*\x16fabric/bootstrap-shard0\x01r\x18fabric.v1.BootstrapShard\x12\xe1\x01\n" +
 	"\x1fBootstrapCertificateAuthorities\x12/.fabric.v1.BootstrapCertificateAuthoritiesInput\x1a0.fabric.v1.BootstrapCertificateAuthoritiesOutput\"[\x8a\xc4\x03W*(fabric/bootstrap-certificate-authorities0\x01r)fabric.v1.BootstrapCertificateAuthorities\x12\xb4\x01\n" +
@@ -566,25 +598,27 @@ var file_fabric_v1_fabric_proto_goTypes = []any{
 	(*DeployCertificateAuthorityOutput)(nil),      // 9: fabric.v1.DeployCertificateAuthorityOutput
 	(*CreateCertificateDatabaseInput)(nil),        // 10: fabric.v1.CreateCertificateDatabaseInput
 	(*CreateCertificateDatabaseOutput)(nil),       // 11: fabric.v1.CreateCertificateDatabaseOutput
+	(*v1.SecretRef)(nil),                          // 12: vault.v1.SecretRef
 }
 var file_fabric_v1_fabric_proto_depIdxs = []int32{
-	0,  // 0: fabric.v1.Fabric.BootstrapShard:input_type -> fabric.v1.BootstrapShardInput
-	2,  // 1: fabric.v1.Fabric.BootstrapCertificateAuthorities:input_type -> fabric.v1.BootstrapCertificateAuthoritiesInput
-	4,  // 2: fabric.v1.Fabric.DeployCertificateStore:input_type -> fabric.v1.DeployCertificateStoreInput
-	6,  // 3: fabric.v1.Fabric.DeployRootCertificateAuthority:input_type -> fabric.v1.DeployRootCertificateAuthorityInput
-	8,  // 4: fabric.v1.Fabric.DeployCertificateAuthority:input_type -> fabric.v1.DeployCertificateAuthorityInput
-	10, // 5: fabric.v1.Fabric.CreateCertificateDatabase:input_type -> fabric.v1.CreateCertificateDatabaseInput
-	1,  // 6: fabric.v1.Fabric.BootstrapShard:output_type -> fabric.v1.BootstrapShardOutput
-	3,  // 7: fabric.v1.Fabric.BootstrapCertificateAuthorities:output_type -> fabric.v1.BootstrapCertificateAuthoritiesOutput
-	5,  // 8: fabric.v1.Fabric.DeployCertificateStore:output_type -> fabric.v1.DeployCertificateStoreOutput
-	7,  // 9: fabric.v1.Fabric.DeployRootCertificateAuthority:output_type -> fabric.v1.DeployRootCertificateAuthorityOutput
-	9,  // 10: fabric.v1.Fabric.DeployCertificateAuthority:output_type -> fabric.v1.DeployCertificateAuthorityOutput
-	11, // 11: fabric.v1.Fabric.CreateCertificateDatabase:output_type -> fabric.v1.CreateCertificateDatabaseOutput
-	6,  // [6:12] is the sub-list for method output_type
-	0,  // [0:6] is the sub-list for method input_type
-	0,  // [0:0] is the sub-list for extension type_name
-	0,  // [0:0] is the sub-list for extension extendee
-	0,  // [0:0] is the sub-list for field type_name
+	12, // 0: fabric.v1.CreateCertificateDatabaseOutput.credentials_ref:type_name -> vault.v1.SecretRef
+	0,  // 1: fabric.v1.Fabric.BootstrapShard:input_type -> fabric.v1.BootstrapShardInput
+	2,  // 2: fabric.v1.Fabric.BootstrapCertificateAuthorities:input_type -> fabric.v1.BootstrapCertificateAuthoritiesInput
+	4,  // 3: fabric.v1.Fabric.DeployCertificateStore:input_type -> fabric.v1.DeployCertificateStoreInput
+	6,  // 4: fabric.v1.Fabric.DeployRootCertificateAuthority:input_type -> fabric.v1.DeployRootCertificateAuthorityInput
+	8,  // 5: fabric.v1.Fabric.DeployCertificateAuthority:input_type -> fabric.v1.DeployCertificateAuthorityInput
+	10, // 6: fabric.v1.Fabric.CreateCertificateDatabase:input_type -> fabric.v1.CreateCertificateDatabaseInput
+	1,  // 7: fabric.v1.Fabric.BootstrapShard:output_type -> fabric.v1.BootstrapShardOutput
+	3,  // 8: fabric.v1.Fabric.BootstrapCertificateAuthorities:output_type -> fabric.v1.BootstrapCertificateAuthoritiesOutput
+	5,  // 9: fabric.v1.Fabric.DeployCertificateStore:output_type -> fabric.v1.DeployCertificateStoreOutput
+	7,  // 10: fabric.v1.Fabric.DeployRootCertificateAuthority:output_type -> fabric.v1.DeployRootCertificateAuthorityOutput
+	9,  // 11: fabric.v1.Fabric.DeployCertificateAuthority:output_type -> fabric.v1.DeployCertificateAuthorityOutput
+	11, // 12: fabric.v1.Fabric.CreateCertificateDatabase:output_type -> fabric.v1.CreateCertificateDatabaseOutput
+	7,  // [7:13] is the sub-list for method output_type
+	1,  // [1:7] is the sub-list for method input_type
+	1,  // [1:1] is the sub-list for extension type_name
+	1,  // [1:1] is the sub-list for extension extendee
+	0,  // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_fabric_v1_fabric_proto_init() }

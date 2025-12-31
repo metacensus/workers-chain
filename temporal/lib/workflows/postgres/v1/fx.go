@@ -2,6 +2,8 @@ package postgres
 
 import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/postgres/v1"
+	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
+	vault "github.com/metacensus/infra/temporal/lib/workflows/vault/v1"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/fx"
 )
@@ -10,8 +12,8 @@ import (
 //
 // Dependency chain:
 //
-//	config.OrgConfig (provided by config module)
-//	-> ProviderConfig (via NewProviderConfig)
+//	fabricconfig.CertificateStoreConfig (provided by fabric worker module)
+//	-> CertStorePostgresConfig (via NewCertStorePostgresConfig)
 //	vault.VaultClient (provided by vault module)
 //	-> ClientProvider (via NewPostgresClientProvider)
 //	-> pb.PostgresActivities (via NewActivities)
@@ -23,17 +25,22 @@ import (
 //	    fx.Invoke(postgresv1.RegisterActivities),
 //	)
 var Module = fx.Options(
-	// Provide ProviderConfig (built from OrgConfig)
-	fx.Provide(NewProviderConfig),
+	// Wrap CertificateStoreConfig in postgres-specific alias type
+	fx.Provide(func(certStoreConfig fabricconfig.CertificateStoreConfig) CertStorePostgresConfig {
+		return NewCertStorePostgresConfig(certStoreConfig)
+	}),
 
 	// Provide ClientProvider that fetches credentials from Vault
-	fx.Provide(NewPostgresClientProvider),
+	fx.Provide(func(config CertStorePostgresConfig, vaultClient vault.VaultClient) ClientProvider {
+		return NewPostgresClientProvider(config, vaultClient)
+	}),
 
 	// Provide Activities implementing pb.PostgresActivities interface
-	fx.Provide(NewActivities),
+	fx.Provide(func(clientProvider ClientProvider) pb.PostgresActivities {
+		return NewActivities(clientProvider)
+	}),
 )
 
-// RegisterActivities registers postgres activities with the worker
 func RegisterActivities(w worker.Worker, activities pb.PostgresActivities) {
 	pb.RegisterPostgresActivities(w, activities)
 }

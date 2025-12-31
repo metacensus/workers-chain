@@ -349,7 +349,8 @@ func kindToResource(kind string) string {
 		"ClusterRoleBinding":    "clusterrolebindings",
 		"Ingress":               "ingresses",
 		"NetworkPolicy":         "networkpolicies",
-		"Endpoints":             "endpoints", // Already plural
+		"Endpoints":             "endpoints",
+		"SecretProviderClass":   "secretproviderclasses", // Vault CSI driver
 	}
 
 	if resource, ok := commonResources[kind]; ok {

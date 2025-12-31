@@ -200,14 +200,6 @@ func (c OrgConfig) WorkerDeploymentName() string {
 	return "fabric-worker-" + c.OrgID
 }
 
-func (c OrgConfig) PostgresDeploymentName() string {
-	return "fabric-postgres-" + c.OrgID
-}
-
-func (c OrgConfig) PostgresServiceHost() string {
-	return fmt.Sprintf("fabric-postgres-%s.fabric-%s.svc.cluster.local", c.OrgID, c.OrgID)
-}
-
 // ============= Temporal Orchestration =============
 
 func (c OrgConfig) TemporalNamespace() string {

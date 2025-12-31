@@ -7,6 +7,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v
 import "nexus/v1/options.proto";
 import "patch/go.proto";
 import "temporal/v1/temporal.proto";
+import "vault/v1/vault.proto";
 
 // Fabric service defines workflows for manipulating a Fabric shard
 // These workflows run on the fabric worker in the org-specific Temporal namespace
@@ -174,15 +175,21 @@ message DeployCertificateAuthorityOutput {
 // ==================== CreateCertificateDatabase Workflow Messages ====================
 
 // CreateCertificateDatabaseInput specifies the parameters for creating a certificate database
-// Empty for now - will be populated as implementation progresses
 message CreateCertificateDatabaseInput {
-  // Empty for now
+  // cert_type specifies whether this is for a TLS or Org certificate authority
+  // Valid values: "tls" or "org"
+  string cert_type = 1;
+  
+  // certificate_authority_id identifies which CA this database is for
+  // Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs
+  string certificate_authority_id = 2;
 }
 
 // CreateCertificateDatabaseOutput indicates the result of certificate database creation
-// Empty for now - will be populated as implementation progresses
 message CreateCertificateDatabaseOutput {
-  // Empty for now
+  // credentials_ref is the Vault reference to retrieve the username and password
+  // The database name can be derived from cert_type and certificate_authority_id using fabric config
+  vault.v1.SecretRef credentials_ref = 1;
 }
 
 

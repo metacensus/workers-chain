@@ -8,6 +8,7 @@ import (
 	helmpb "github.com/metacensus/infra/temporal/gen/workflows/helm/v1"
 	kubepb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
+	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	"github.com/metacensus/infra/temporal/lib/workflows/cluster/fabric/v1/helm"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
@@ -235,10 +236,13 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 	case componentCertificateStore:
 		chartName = chartCertificateStore
 		componentName = componentCertificateStore
-		certStoreValues := helm.NewCertificateStoreValues(orgCfg)
+		// Create config objects to get consistent configuration values
+		fabricCfg := fabricconfig.NewFabricConfig(orgCfg)
+		certStoreConfig := fabricCfg.CertificateStore()
+		certStoreValues := helm.NewCertificateStoreValues(certStoreConfig)
 		values = certStoreValues
-		namespaceName = orgCfg.KubernetesNamespace()
-		deploymentName = orgCfg.PostgresDeploymentName()
+		namespaceName = certStoreConfig.KubernetesNamespace() // Use from certStoreConfig which embeds OrgConfig
+		deploymentName = componentCertificateStore            // Matches helm chart: {{ include "certificate-store.name" . }}
 	default:
 		return nil, fmt.Errorf("unsupported component type: %s", w.input.Component)
 	}

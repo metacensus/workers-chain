@@ -1,6 +1,8 @@
 package helm
 
-import "github.com/metacensus/infra/temporal/lib/workers/config"
+import (
+	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
+)
 
 // CertificateStoreValues represents the Helm values for a certificate store (PostgreSQL) deployment
 type CertificateStoreValues struct {
@@ -8,6 +10,7 @@ type CertificateStoreValues struct {
 	Image          ImageConfig
 	Replicas       int
 	Database       DatabaseConfig
+	Vault          CertStoreVaultConfig
 	Service        ServiceConfig
 	Persistence    PersistenceConfig
 	Resources      ResourceConfig
@@ -18,9 +21,13 @@ type CertificateStoreValues struct {
 
 // DatabaseConfig represents PostgreSQL database configuration
 type DatabaseConfig struct {
-	Name     string
-	User     string
-	Password string
+	Name string
+}
+
+// CertStoreVaultConfig represents Vault CSI driver configuration for certificate store
+type CertStoreVaultConfig struct {
+	RoleName   string
+	SecretPath string
 }
 
 // PersistenceConfig represents persistent volume configuration
@@ -39,10 +46,11 @@ type DBProbeConfig struct {
 	TimeoutSeconds      int
 }
 
-// NewCertificateStoreValues creates CertificateStoreValues with sensible defaults for PostgreSQL
-func NewCertificateStoreValues(orgCfg config.OrgConfig) *CertificateStoreValues {
+// NewCertificateStoreValues creates CertificateStoreValues from CertificateStoreConfig
+// This ensures consistency between Helm values and workflow/activity configuration
+func NewCertificateStoreValues(certStoreConfig fabricconfig.CertificateStoreConfig) *CertificateStoreValues {
 	return &CertificateStoreValues{
-		Org: orgCfg.OrgID,
+		Org: certStoreConfig.OrgID,
 		Image: ImageConfig{
 			Repository: "postgres",
 			Tag:        "16-alpine",
@@ -50,13 +58,15 @@ func NewCertificateStoreValues(orgCfg config.OrgConfig) *CertificateStoreValues 
 		},
 		Replicas: 1, // Start with single instance; can scale later
 		Database: DatabaseConfig{
-			Name:     "fabricca",
-			User:     "fabricca",
-			Password: "changeme", // TODO: Generate secure password via crypto workflow
+			Name: certStoreConfig.AdminDatabase(),
+		},
+		Vault: CertStoreVaultConfig{
+			RoleName:   certStoreConfig.AuthRoleName(),
+			SecretPath: "secret/data/" + certStoreConfig.VaultAdminCredentialsPath(),
 		},
 		Service: ServiceConfig{
 			Type: "ClusterIP",
-			Port: 5432,
+			Port: certStoreConfig.Port(),
 		},
 		Persistence: PersistenceConfig{
 			Enabled:      true,

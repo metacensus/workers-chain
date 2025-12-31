@@ -8,6 +8,7 @@ import (
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
+	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	fabric "github.com/metacensus/infra/temporal/lib/workflows/fabric/v1"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/testsuite"
@@ -89,24 +90,25 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 
 			// Mock CreateDeployment child workflow
 			if tt.validateDeploymentInput {
-				// Validate that correct component is passed
-				env.OnWorkflow(clusterpb.CreateDeploymentWorkflowName, mock.Anything,
-					mock.MatchedBy(func(input *clusterpb.CreateDeploymentInput) bool {
-						return input.Org == tt.org && input.Component == "certificate-store"
-					})).Return(&clusterpb.CreateDeploymentOutput{
-					DeploymentName: "fabric-postgres-" + tt.org,
-				}, tt.createDeploymentErr)
+			// Validate that correct component is passed
+			env.OnWorkflow(clusterpb.CreateDeploymentWorkflowName, mock.Anything,
+				mock.MatchedBy(func(input *clusterpb.CreateDeploymentInput) bool {
+					return input.Org == tt.org && input.Component == "certificate-store"
+				})).Return(&clusterpb.CreateDeploymentOutput{
+				DeploymentName: "certificate-store",
+			}, tt.createDeploymentErr)
 			} else {
 				mockChildWorkflow[clusterpb.CreateDeploymentOutput](env, clusterpb.CreateDeploymentWorkflowName, tt.createDeploymentErr)
 			}
 
-			// Execute workflow
-			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployCertificateStoreInput) (*pb.DeployCertificateStoreOutput, error) {
-				workflows := fabric.NewWorkflows(orgConfig)
-				wf, err := workflows.DeployCertificateStore(ctx, &pb.DeployCertificateStoreWorkflowInput{Req: input})
-				if err != nil {
-					return nil, err
-				}
+		// Execute workflow
+		env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployCertificateStoreInput) (*pb.DeployCertificateStoreOutput, error) {
+			fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
+			workflows := fabric.NewWorkflows(orgConfig, fabricConfig)
+			wf, err := workflows.DeployCertificateStore(ctx, &pb.DeployCertificateStoreWorkflowInput{Req: input})
+			if err != nil {
+				return nil, err
+			}
 				return wf.Execute(ctx)
 			}, &pb.DeployCertificateStoreInput{})
 
@@ -160,13 +162,14 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 			// TODO: Mock postgres activities and crypto workflows when implemented
 			// For now, the workflow only logs
 
-			// Execute workflow
-			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.CreateCertificateDatabaseInput) (*pb.CreateCertificateDatabaseOutput, error) {
-				workflows := fabric.NewWorkflows(orgConfig)
-				wf, err := workflows.CreateCertificateDatabase(ctx, &pb.CreateCertificateDatabaseWorkflowInput{Req: input})
-				if err != nil {
-					return nil, err
-				}
+		// Execute workflow
+		env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.CreateCertificateDatabaseInput) (*pb.CreateCertificateDatabaseOutput, error) {
+			fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
+			workflows := fabric.NewWorkflows(orgConfig, fabricConfig)
+			wf, err := workflows.CreateCertificateDatabase(ctx, &pb.CreateCertificateDatabaseWorkflowInput{Req: input})
+			if err != nil {
+				return nil, err
+			}
 				return wf.Execute(ctx)
 			}, &pb.CreateCertificateDatabaseInput{})
 

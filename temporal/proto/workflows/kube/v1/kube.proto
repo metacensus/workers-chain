@@ -35,6 +35,7 @@ service Kubernetes {
     };
   }
 
+
   // Apply deploys resources to the cluster (create or update)
   rpc Apply(ApplyInput) returns (ApplyOutput) {
     // Activity execution metadata
