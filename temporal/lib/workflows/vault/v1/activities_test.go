@@ -105,14 +105,7 @@ func TestFetchSecretActivity(t *testing.T) {
 				Version: 0, // Latest
 			},
 			mockData: map[string]any{
-				"data": map[string]any{
-					"data": map[string]any{
-						"key": "value",
-					},
-					"metadata": map[string]any{
-						"version": float64(5),
-					},
-				},
+				"key": "value",
 			},
 		},
 		{
@@ -122,14 +115,7 @@ func TestFetchSecretActivity(t *testing.T) {
 				Version: 3,
 			},
 			mockData: map[string]any{
-				"data": map[string]any{
-					"data": map[string]any{
-						"key": "value",
-					},
-					"metadata": map[string]any{
-						"version": float64(3),
-					},
-				},
+				"key": "value",
 			},
 		},
 		{
@@ -147,25 +133,18 @@ func TestFetchSecretActivity(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestActivityEnvironment()
 
-			mockClient := vaultmocks.NewMockVaultClient(t)
+		mockClient := vaultmocks.NewMockVaultClient(t)
 
-			// Setup mock based on whether we expect an error
-			if tt.clientErr != nil {
-				mockClient.EXPECT().
-					Read(mock.Anything, mock.MatchedBy(func(path string) bool {
-						return path == fmt.Sprintf("secret/data/%s", tt.input.Path) ||
-							path == fmt.Sprintf("secret/data/%s?version=%d", tt.input.Path, tt.input.Version)
-					})).
-					Return(nil, tt.clientErr)
-			} else {
-				mockClient.EXPECT().
-					Read(mock.Anything, mock.MatchedBy(func(path string) bool {
-						// Match either with or without version param
-						return path == fmt.Sprintf("secret/data/%s", tt.input.Path) ||
-							path == fmt.Sprintf("secret/data/%s?version=%d", tt.input.Path, tt.input.Version)
-					})).
-					Return(tt.mockData, nil)
-			}
+		// Setup mock based on whether we expect an error
+		if tt.clientErr != nil {
+			mockClient.EXPECT().
+				FetchSecret(mock.Anything, tt.input.Path).
+				Return(nil, tt.clientErr)
+		} else {
+			mockClient.EXPECT().
+				FetchSecret(mock.Anything, tt.input.Path).
+				Return(tt.mockData, nil)
+		}
 
 			activities := NewActivities(mockClient)
 			env.RegisterActivity(activities.FetchSecret)
