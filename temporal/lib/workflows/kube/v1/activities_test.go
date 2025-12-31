@@ -495,12 +495,12 @@ func TestDeleteActivity(t *testing.T) {
 
 func TestGetStatusActivity(t *testing.T) {
 	tests := []struct {
-		name              string
-		resources         map[string]*pb.ResourceIdentifier
-		statusResults     map[string]*kube.ResourceStatus
-		clientErr         error
-		expectErr         bool
-		expectReadyCount  int
+		name             string
+		resources        map[string]*pb.ResourceIdentifier
+		statusResults    map[string]*kube.ResourceStatus
+		clientErr        error
+		expectErr        bool
+		expectReadyCount int
 	}{
 		{
 			name: "success - all resources ready",

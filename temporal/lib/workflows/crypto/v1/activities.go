@@ -98,4 +98,3 @@ func (a *Activities) GenerateKeyPair(ctx context.Context, req *pb.GenerateKeyPai
 		PublicKey:  publicKeyPEM,
 	}, nil
 }
-

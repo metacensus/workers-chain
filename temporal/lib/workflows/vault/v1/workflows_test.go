@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
-	vaultmocks "github.com/metacensus/infra/temporal/mocks/workflows/vault/v1"
 	"github.com/metacensus/infra/temporal/lib/workflows/vault/v1"
+	vaultmocks "github.com/metacensus/infra/temporal/mocks/workflows/vault/v1"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/testsuite"
@@ -107,39 +107,39 @@ func TestCreateAccessWorkflow(t *testing.T) {
 			// Mock vault activities
 			mockActivities := vaultmocks.NewMockVaultActivities(t)
 
-		// Mock CreatePolicy activity
-		mockActivities.EXPECT().
-			CreatePolicy(mock.Anything, mock.MatchedBy(func(input *pb.CreatePolicyInput) bool {
-				return input.GetName() == tt.input.Req.GetPolicyName() &&
-					// Document structure is equivalent (same rules and capabilities)
-					len(input.GetDocument().GetRules()) == len(tt.input.Req.GetPolicyDocument().GetRules())
-			})).
-			Return(tt.createPolicyRes, tt.createPolicyErr).
-			Maybe()
-
-		// Mock CreateAuthRole activity - only called if CreatePolicy succeeds
-		if tt.createPolicyErr == nil {
+			// Mock CreatePolicy activity
 			mockActivities.EXPECT().
-				CreateAuthRole(mock.Anything, mock.MatchedBy(func(input *pb.CreateAuthRoleInput) bool {
-					// Verify the policy name from CreatePolicy is included
-					expectedPolicyNames := []string{tt.createPolicyRes.GetName()}
-					
-					if len(input.GetPolicyNames()) != len(expectedPolicyNames) {
-						return false
-					}
-					for i, expected := range expectedPolicyNames {
-						if i >= len(input.GetPolicyNames()) || input.GetPolicyNames()[i] != expected {
+				CreatePolicy(mock.Anything, mock.MatchedBy(func(input *pb.CreatePolicyInput) bool {
+					return input.GetName() == tt.input.Req.GetPolicyName() &&
+						// Document structure is equivalent (same rules and capabilities)
+						len(input.GetDocument().GetRules()) == len(tt.input.Req.GetPolicyDocument().GetRules())
+				})).
+				Return(tt.createPolicyRes, tt.createPolicyErr).
+				Maybe()
+
+			// Mock CreateAuthRole activity - only called if CreatePolicy succeeds
+			if tt.createPolicyErr == nil {
+				mockActivities.EXPECT().
+					CreateAuthRole(mock.Anything, mock.MatchedBy(func(input *pb.CreateAuthRoleInput) bool {
+						// Verify the policy name from CreatePolicy is included
+						expectedPolicyNames := []string{tt.createPolicyRes.GetName()}
+
+						if len(input.GetPolicyNames()) != len(expectedPolicyNames) {
 							return false
 						}
-					}
-					
-					return input.GetRoleName() == tt.input.Req.GetAuthRoleName() &&
-						input.GetServiceAccountName() == tt.input.Req.GetServiceAccountName() &&
-						input.GetKubernetesNamespace() == tt.input.Req.GetKubernetesNamespace()
-				})).
-				Return(tt.createAuthRoleRes, tt.createAuthRoleErr).
-				Maybe()
-		}
+						for i, expected := range expectedPolicyNames {
+							if i >= len(input.GetPolicyNames()) || input.GetPolicyNames()[i] != expected {
+								return false
+							}
+						}
+
+						return input.GetRoleName() == tt.input.Req.GetAuthRoleName() &&
+							input.GetServiceAccountName() == tt.input.Req.GetServiceAccountName() &&
+							input.GetKubernetesNamespace() == tt.input.Req.GetKubernetesNamespace()
+					})).
+					Return(tt.createAuthRoleRes, tt.createAuthRoleErr).
+					Maybe()
+			}
 
 			pb.RegisterVaultActivities(env, mockActivities)
 
@@ -177,4 +177,3 @@ func TestCreateAccessWorkflow(t *testing.T) {
 		})
 	}
 }
-

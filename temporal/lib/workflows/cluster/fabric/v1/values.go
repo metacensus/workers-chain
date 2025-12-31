@@ -30,4 +30,3 @@ func ToProtoStruct(v interface{}) (*structpb.Struct, error) {
 
 	return s, nil
 }
-

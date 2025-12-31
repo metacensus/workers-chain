@@ -5,13 +5,12 @@ go 1.24.0
 toolchain go1.24.5
 
 require (
+	github.com/alta/protopatch v0.5.3
 	github.com/aws/aws-sdk-go-v2 v1.39.3
 	github.com/aws/aws-sdk-go-v2/config v1.31.13
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.88.5
 	github.com/bergundy/nexus-proto-annotations v0.1.0
 	github.com/cludden/protoc-gen-go-temporal v1.17.7
-	github.com/golang/mock v1.7.0-rc.1
-	github.com/hyperledger/fabric-ca v1.5.15
 	github.com/jackc/pgx/v5 v5.7.1
 	github.com/spf13/viper v1.20.0
 	github.com/stretchr/testify v1.11.1
@@ -40,7 +39,6 @@ require (
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/PaesslerAG/gval v1.2.2 // indirect
 	github.com/PaesslerAG/jsonpath v0.1.1 // indirect
-	github.com/alta/protopatch v0.5.3 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.2 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.17 // indirect
@@ -58,8 +56,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.7 // indirect
 	github.com/aws/smithy-go v1.23.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/bergundy/protoc-gen-go-nexus v0.0.9 // indirect
-	github.com/bergundy/protoc-gen-go-nexus-temporal v0.0.4 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -74,7 +70,6 @@ require (
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/cpuguy83/dockercfg v0.3.2 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.0 // indirect
-	github.com/dave/jennifer v1.7.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/docker v28.3.3+incompatible // indirect
 	github.com/docker/go-connections v0.6.0 // indirect
@@ -84,7 +79,6 @@ require (
 	github.com/evanphx/json-patch v5.9.11+incompatible // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/generikvault/gvalstrings v0.0.0-20180926130504-471f38f0112a // indirect
@@ -100,6 +94,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gofrs/uuid v4.4.0+incompatible // indirect
+	github.com/golang/mock v1.7.0-rc.1 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect

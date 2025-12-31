@@ -100,25 +100,25 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 
 			// Mock CreateDeployment child workflow
 			if tt.validateDeploymentInput {
-			// Validate that correct component is passed
-			env.OnWorkflow(clusterpb.CreateDeploymentWorkflowName, mock.Anything,
-				mock.MatchedBy(func(input *clusterpb.CreateDeploymentInput) bool {
-					return input.Org == tt.org && input.Component == "certificate-store"
-				})).Return(&clusterpb.CreateDeploymentOutput{
-				DeploymentName: "certificate-store",
-			}, tt.createDeploymentErr)
+				// Validate that correct component is passed
+				env.OnWorkflow(clusterpb.CreateDeploymentWorkflowName, mock.Anything,
+					mock.MatchedBy(func(input *clusterpb.CreateDeploymentInput) bool {
+						return input.Org == tt.org && input.Component == "certificate-store"
+					})).Return(&clusterpb.CreateDeploymentOutput{
+					DeploymentName: "certificate-store",
+				}, tt.createDeploymentErr)
 			} else {
 				mockChildWorkflow[clusterpb.CreateDeploymentOutput](env, clusterpb.CreateDeploymentWorkflowName, tt.createDeploymentErr)
 			}
 
-		// Execute workflow
-		env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployCertificateStoreInput) (*pb.DeployCertificateStoreOutput, error) {
-			fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
-			workflows := fabric.NewWorkflows(orgConfig, fabricConfig)
-			wf, err := workflows.DeployCertificateStore(ctx, &pb.DeployCertificateStoreWorkflowInput{Req: input})
-			if err != nil {
-				return nil, err
-			}
+			// Execute workflow
+			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployCertificateStoreInput) (*pb.DeployCertificateStoreOutput, error) {
+				fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
+				workflows := fabric.NewWorkflows(orgConfig, fabricConfig)
+				wf, err := workflows.DeployCertificateStore(ctx, &pb.DeployCertificateStoreWorkflowInput{Req: input})
+				if err != nil {
+					return nil, err
+				}
 				return wf.Execute(ctx)
 			}, &pb.DeployCertificateStoreInput{})
 
@@ -147,18 +147,18 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 
 func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 	tests := []struct {
-		name                           string
-		org                            string
-		certType                       string
-		caID                           string
-		createDatabaseErr              error
-		generatePasswordErr            error
-		fetchSecretErr                 error
-		fetchSecretData                map[string][]byte
-		createUserErr                  error
-		grantPrivilegesErr             error
-		expectedErr                    error // nil = success
-		validateCredentialsRef         bool
+		name                   string
+		org                    string
+		certType               string
+		caID                   string
+		createDatabaseErr      error
+		generatePasswordErr    error
+		fetchSecretErr         error
+		fetchSecretData        map[string][]byte
+		createUserErr          error
+		grantPrivilegesErr     error
+		expectedErr            error // nil = success
+		validateCredentialsRef bool
 	}{
 		{
 			name:     "success - certificate database created for tls root CA",
@@ -293,7 +293,7 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 						shouldMock = false
 					}
 				}
-				
+
 				if shouldMock {
 					env.OnWorkflow(cryptopb.GenerateAndStorePasswordWorkflowName, mock.Anything, mock.Anything).
 						Return(&cryptopb.GenerateAndStorePasswordOutput{
@@ -317,7 +317,7 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 							CreateDatabase(mock.Anything, mock.Anything).
 							Return(nil, tt.createDatabaseErr).
 							Maybe()
-					} else if tt.expectedErr == nil || 
+					} else if tt.expectedErr == nil ||
 						!strings.Contains(tt.expectedErr.Error(), "failed to create database") {
 						mockPostgresActivities.EXPECT().
 							CreateDatabase(mock.Anything, mock.Anything).

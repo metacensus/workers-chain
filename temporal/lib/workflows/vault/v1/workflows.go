@@ -86,8 +86,8 @@ func (w *createAccessWorkflow) Execute(ctx workflow.Context) (*pb.CreateAccessOu
 		"auth_role_name", authRoleOutput.GetName())
 
 	return &pb.CreateAccessOutput{
-		PolicyName:    policyOutput.GetName(),
-		AuthRoleName:  authRoleOutput.GetName(),
+		PolicyName:   policyOutput.GetName(),
+		AuthRoleName: authRoleOutput.GetName(),
 	}, nil
 }
 
@@ -97,4 +97,3 @@ func TestCreateAccessWorkflow(ctx workflow.Context, input *pb.CreateAccessWorkfl
 	w := &createAccessWorkflow{input: input}
 	return w.Execute(ctx)
 }
-

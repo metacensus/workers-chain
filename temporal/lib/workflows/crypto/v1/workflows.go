@@ -43,7 +43,7 @@ type generateAndStorePasswordWorkflow struct {
 // Execute orchestrates password generation and storage in Vault along with username
 func (w *generateAndStorePasswordWorkflow) Execute(ctx workflow.Context) (*cryptopb.GenerateAndStorePasswordOutput, error) {
 	logger := workflow.GetLogger(ctx)
-	logger.Info("GenerateAndStorePassword workflow started", 
+	logger.Info("GenerateAndStorePassword workflow started",
 		"vault_path", w.input.Req.GetVaultPath(),
 		"username", w.input.Req.GetUsername())
 
@@ -69,7 +69,7 @@ func (w *generateAndStorePasswordWorkflow) Execute(ctx workflow.Context) (*crypt
 	}
 
 	// Step 2: Store username and password in Vault with key names "username" and "password"
-	logger.Info("Storing username and password in Vault", 
+	logger.Info("Storing username and password in Vault",
 		"vault_path", w.input.Req.GetVaultPath(),
 		"username", w.input.Req.GetUsername())
 	var storeOutput *vaultpb.StoreSecretOutput
@@ -161,4 +161,3 @@ func TestGenerateAndStoreKeyPairWorkflow(ctx workflow.Context, input *cryptopb.G
 	w := &generateAndStoreKeyPairWorkflow{input: input}
 	return w.Execute(ctx)
 }
-

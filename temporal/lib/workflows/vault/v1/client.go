@@ -16,9 +16,9 @@ import (
 
 // Sentinel errors for Vault API responses
 var (
-	ErrNotFound           = errors.New("vault: not found")
-	ErrUnauthorized       = errors.New("vault: unauthorized")
-	ErrForbidden          = errors.New("vault: forbidden")
+	ErrNotFound            = errors.New("vault: not found")
+	ErrUnauthorized        = errors.New("vault: unauthorized")
+	ErrForbidden           = errors.New("vault: forbidden")
 	ErrInvalidResponseData = errors.New("vault: invalid response data")
 )
 

@@ -12,7 +12,7 @@ import (
 
 // Sentinel errors for temporal workflows
 var (
-	ErrRegisterNamespaceWorkflow = errors.New("register namespace workflow failed")
+	ErrRegisterNamespaceWorkflow  = errors.New("register namespace workflow failed")
 	ErrNamespaceActivationTimeout = errors.New("namespace activation timeout")
 )
 

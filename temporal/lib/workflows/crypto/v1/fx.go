@@ -28,4 +28,3 @@ func RegisterActivities(w worker.Worker, activities pb.CryptoActivities) {
 func RegisterWorkflows(w worker.Worker, workflows pb.CryptoWorkflows) {
 	pb.RegisterCryptoWorkflows(w, workflows)
 }
-
