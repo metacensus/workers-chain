@@ -5,6 +5,7 @@ package vault.v1;
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/vault/v1;vaultv1";
 
 import "nexus/v1/options.proto";
+import "patch/go.proto";
 import "temporal/v1/temporal.proto";
 
 // Vault service defines activities related to secret and auth management
@@ -89,7 +90,7 @@ service Vault {
     // This workflow orchestrates CreatePolicy and CreateAuthRole activities
     option (temporal.v1.workflow) = {
       name: "vault.v1.CreateAccess"
-      id: 'vault/create-access/${! policy_name.or("default") }'
+      id: 'vault/create-access/${! AuthRoleName.or("default") }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
     };
@@ -101,28 +102,46 @@ service Vault {
 // CreateAuthRoleInput specifies parameters for creating an auth role in Vault
 message CreateAuthRoleInput {
   // role_name is the name of the Kubernetes auth role to create
-  string role_name = 1;
+  string role_name = 1 [
+    json_name = "RoleName",
+    (go.field).tags = 'json:"RoleName" validate:"required"'
+  ];
   
   // service_account_name is the Kubernetes service account that can authenticate
-  string service_account_name = 2;
+  string service_account_name = 2 [
+    json_name = "ServiceAccountName",
+    (go.field).tags = 'json:"ServiceAccountName" validate:"required"'
+  ];
   
   // kubernetes_namespace is the Kubernetes namespace where the service account exists
-  string kubernetes_namespace = 3;
+  string kubernetes_namespace = 3 [
+    json_name = "KubernetesNamespace",
+    (go.field).tags = 'json:"KubernetesNamespace" validate:"required"'
+  ];
   
   // policy_names is a list of Vault policy names to bind to this role
-  repeated string policy_names = 4;
+  repeated string policy_names = 4 [
+    json_name = "PolicyNames",
+    (go.field).tags = 'json:"PolicyNames" validate:"required"'
+  ];
 }
 
 // CreateAuthRoleOutput returns the created role name
 message CreateAuthRoleOutput {
   // name is the name of the created Kubernetes auth role
-  string name = 1;
+  string name = 1 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
 }
 
 // DeleteAuthRoleInput specifies which auth role to delete
 message DeleteAuthRoleInput {
   // name is the name of the Kubernetes auth role to delete
-  string name = 1;
+  string name = 1 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
 }
 
 // DeleteAuthRoleOutput confirms successful auth role deletion
@@ -150,37 +169,58 @@ enum Capability {
 // PolicyRule defines a single path and its allowed capabilities
 message PolicyRule {
   // path is the Vault path pattern (e.g., "secret/data/myapp/*")
-  string path = 1;
+  string path = 1 [
+    json_name = "Path",
+    (go.field).tags = 'json:"Path" validate:"required"'
+  ];
   
   // capabilities are the allowed capabilities for this path
-  repeated Capability capabilities = 2;
+  repeated Capability capabilities = 2 [
+    json_name = "Capabilities",
+    (go.field).tags = 'json:"Capabilities" validate:"required"'
+  ];
 }
 
 // PolicyDocument contains structured policy rules
 message PolicyDocument {
   // rules is a list of path-capability mappings
-  repeated PolicyRule rules = 1;
+  repeated PolicyRule rules = 1 [
+    json_name = "Rules",
+    (go.field).tags = 'json:"Rules" validate:"required"'
+  ];
 }
 
 // CreatePolicyInput specifies parameters for creating a Vault policy
 message CreatePolicyInput {
   // name is the name of the policy
-  string name = 1;
+  string name = 1 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
   
   // document contains the structured policy rules
-  PolicyDocument document = 2;
+  PolicyDocument document = 2 [
+    json_name = "Document",
+    (go.field).tags = 'json:"Document" validate:"required"'
+  ];
 }
 
 // CreatePolicyOutput returns the created policy name
 message CreatePolicyOutput {
   // name is the name of the created policy
-  string name = 1;
+  string name = 1 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
 }
 
 // DeletePolicyInput specifies which policy to delete
 message DeletePolicyInput {
   // name is the name of the policy to delete
-  string name = 1;
+  string name = 1 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
 }
 
 // DeletePolicyOutput confirms successful policy deletion
@@ -192,42 +232,72 @@ message DeletePolicyOutput {
 
 // SecretRef is a reference to a secret in Vault
 message SecretRef {
-  string path = 1;
+  string path = 1 [
+    json_name = "Path",
+    (go.field).tags = 'json:"Path" validate:"required"'
+  ];
   // version is the specific version referenced. Set to 0 or omit for latest version
-  int64 version = 2;
+  int64 version = 2 [
+    json_name = "Version",
+    (go.field).tags = 'json:"Version,omitempty" validate:"omitempty"'
+  ];
 }
 
 // StoreSecretInput specifies parameters for storing a secret in Vault
 message StoreSecretInput {
   // path is the Vault path to store the secret at
-  string path = 1;
+  string path = 1 [
+    json_name = "Path",
+    (go.field).tags = 'json:"Path" validate:"required"'
+  ];
   // data is the secret key-value pairs to store
-  map<string, bytes> data = 2;
+  map<string, bytes> data = 2 [
+    json_name = "Data",
+    (go.field).tags = 'json:"Data" validate:"required"'
+  ];
 }
 
 // StoreSecretOutput returns the secret reference with version information
 message StoreSecretOutput {
-  SecretRef secret_ref = 1;  // Reference including actual version assigned by Vault
+  SecretRef secret_ref = 1 [
+    json_name = "SecretRef",
+    (go.field).tags = 'json:"SecretRef" validate:"required"'
+  ];  // Reference including actual version assigned by Vault
 }
 
 // FetchSecretInput specifies which secret to retrieve
 message FetchSecretInput {
   // path is the Vault path to fetch the secret from
-  string path = 1;
+  string path = 1 [
+    json_name = "Path",
+    (go.field).tags = 'json:"Path" validate:"required"'
+  ];
   // version is the specific version to fetch (0 or omit for latest)
-  int64 version = 2;
+  int64 version = 2 [
+    json_name = "Version",
+    (go.field).tags = 'json:"Version,omitempty" validate:"omitempty"'
+  ];
 }
 
 // FetchSecretOutput returns the fetched secret with all its data
 message FetchSecretOutput {
-  SecretRef secret_ref = 1;
-  map<string, bytes> data = 2;
+  SecretRef secret_ref = 1 [
+    json_name = "SecretRef",
+    (go.field).tags = 'json:"SecretRef" validate:"required"'
+  ];
+  map<string, bytes> data = 2 [
+    json_name = "Data",
+    (go.field).tags = 'json:"Data" validate:"required"'
+  ];
 }
 
 // DeleteSecretInput specifies which secret to delete
 message DeleteSecretInput {
   // path is the Vault path of the secret to delete
-  string path = 1;
+  string path = 1 [
+    json_name = "Path",
+    (go.field).tags = 'json:"Path" validate:"required"'
+  ];
 }
 
 // DeleteSecretOutput confirms successful secret deletion
@@ -241,27 +311,48 @@ message DeleteSecretOutput {
 message CreateAccessInput {
   // Policy configuration
   // policy_name is the name of the policy to create
-  string policy_name = 1;
+  string policy_name = 1 [
+    json_name = "PolicyName",
+    (go.field).tags = 'json:"PolicyName" validate:"required"'
+  ];
   
   // policy_document is the structured policy content
-  PolicyDocument policy_document = 2;
+  PolicyDocument policy_document = 2 [
+    json_name = "PolicyDocument",
+    (go.field).tags = 'json:"PolicyDocument" validate:"required"'
+  ];
 
   // Auth role configuration
   // auth_role_name is the name of the Kubernetes auth role to create
-  string auth_role_name = 3;
+  string auth_role_name = 3 [
+    json_name = "AuthRoleName",
+    (go.field).tags = 'json:"AuthRoleName" validate:"required"'
+  ];
   
   // service_account_name is the Kubernetes service account that can authenticate
-  string service_account_name = 4;
+  string service_account_name = 4 [
+    json_name = "ServiceAccountName",
+    (go.field).tags = 'json:"ServiceAccountName" validate:"required"'
+  ];
   
   // kubernetes_namespace is the Kubernetes namespace where the service account exists
-  string kubernetes_namespace = 5;
+  string kubernetes_namespace = 5 [
+    json_name = "KubernetesNamespace",
+    (go.field).tags = 'json:"KubernetesNamespace" validate:"required"'
+  ];
 }
 
 // CreateAccessOutput returns the created policy and auth role names
 message CreateAccessOutput {
   // policy_name is the name of the created policy
-  string policy_name = 1;
+  string policy_name = 1 [
+    json_name = "PolicyName",
+    (go.field).tags = 'json:"PolicyName" validate:"required"'
+  ];
   
   // auth_role_name is the name of the created Kubernetes auth role
-  string auth_role_name = 2;
+  string auth_role_name = 2 [
+    json_name = "AuthRoleName",
+    (go.field).tags = 'json:"AuthRoleName" validate:"required"'
+  ];
 } 

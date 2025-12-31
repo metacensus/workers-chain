@@ -7,6 +7,7 @@
 package vaultv1
 
 import (
+	_ "github.com/alta/protopatch/patch/gopb"
 	_ "github.com/bergundy/nexus-proto-annotations/go/nexus/v1"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -101,13 +102,13 @@ func (Capability) EnumDescriptor() ([]byte, []int) {
 type CreateAuthRoleInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// role_name is the name of the Kubernetes auth role to create
-	RoleName string `protobuf:"bytes,1,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
+	RoleName string `protobuf:"bytes,1,opt,name=role_name,json=RoleName,proto3" json:"RoleName" validate:"required"`
 	// service_account_name is the Kubernetes service account that can authenticate
-	ServiceAccountName string `protobuf:"bytes,2,opt,name=service_account_name,json=serviceAccountName,proto3" json:"service_account_name,omitempty"`
+	ServiceAccountName string `protobuf:"bytes,2,opt,name=service_account_name,json=ServiceAccountName,proto3" json:"ServiceAccountName" validate:"required"`
 	// kubernetes_namespace is the Kubernetes namespace where the service account exists
-	KubernetesNamespace string `protobuf:"bytes,3,opt,name=kubernetes_namespace,json=kubernetesNamespace,proto3" json:"kubernetes_namespace,omitempty"`
+	KubernetesNamespace string `protobuf:"bytes,3,opt,name=kubernetes_namespace,json=KubernetesNamespace,proto3" json:"KubernetesNamespace" validate:"required"`
 	// policy_names is a list of Vault policy names to bind to this role
-	PolicyNames   []string `protobuf:"bytes,4,rep,name=policy_names,json=policyNames,proto3" json:"policy_names,omitempty"`
+	PolicyNames   []string `protobuf:"bytes,4,rep,name=policy_names,json=PolicyNames,proto3" json:"PolicyNames" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -174,7 +175,7 @@ func (x *CreateAuthRoleInput) GetPolicyNames() []string {
 type CreateAuthRoleOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// name is the name of the created Kubernetes auth role
-	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name          string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -220,7 +221,7 @@ func (x *CreateAuthRoleOutput) GetName() string {
 type DeleteAuthRoleInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// name is the name of the Kubernetes auth role to delete
-	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name          string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -303,9 +304,9 @@ func (*DeleteAuthRoleOutput) Descriptor() ([]byte, []int) {
 type PolicyRule struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// path is the Vault path pattern (e.g., "secret/data/myapp/*")
-	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Path string `protobuf:"bytes,1,opt,name=path,json=Path,proto3" json:"Path" validate:"required"`
 	// capabilities are the allowed capabilities for this path
-	Capabilities  []Capability `protobuf:"varint,2,rep,packed,name=capabilities,proto3,enum=vault.v1.Capability" json:"capabilities,omitempty"`
+	Capabilities  []Capability `protobuf:"varint,2,rep,packed,name=capabilities,json=Capabilities,proto3,enum=vault.v1.Capability" json:"Capabilities" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -358,7 +359,7 @@ func (x *PolicyRule) GetCapabilities() []Capability {
 type PolicyDocument struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// rules is a list of path-capability mappings
-	Rules         []*PolicyRule `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
+	Rules         []*PolicyRule `protobuf:"bytes,1,rep,name=rules,json=Rules,proto3" json:"Rules" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -404,9 +405,9 @@ func (x *PolicyDocument) GetRules() []*PolicyRule {
 type CreatePolicyInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// name is the name of the policy
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	// document contains the structured policy rules
-	Document      *PolicyDocument `protobuf:"bytes,2,opt,name=document,proto3" json:"document,omitempty"`
+	Document      *PolicyDocument `protobuf:"bytes,2,opt,name=document,json=Document,proto3" json:"Document" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -459,7 +460,7 @@ func (x *CreatePolicyInput) GetDocument() *PolicyDocument {
 type CreatePolicyOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// name is the name of the created policy
-	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name          string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -505,7 +506,7 @@ func (x *CreatePolicyOutput) GetName() string {
 type DeletePolicyInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// name is the name of the policy to delete
-	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name          string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -587,9 +588,9 @@ func (*DeletePolicyOutput) Descriptor() ([]byte, []int) {
 // SecretRef is a reference to a secret in Vault
 type SecretRef struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	Path  string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Path  string                 `protobuf:"bytes,1,opt,name=path,json=Path,proto3" json:"Path" validate:"required"`
 	// version is the specific version referenced. Set to 0 or omit for latest version
-	Version       int64 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	Version       int64 `protobuf:"varint,2,opt,name=version,json=Version,proto3" json:"Version,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -642,9 +643,9 @@ func (x *SecretRef) GetVersion() int64 {
 type StoreSecretInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// path is the Vault path to store the secret at
-	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Path string `protobuf:"bytes,1,opt,name=path,json=Path,proto3" json:"Path" validate:"required"`
 	// data is the secret key-value pairs to store
-	Data          map[string][]byte `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Data          map[string][]byte `protobuf:"bytes,2,rep,name=data,json=Data,proto3" json:"Data" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -696,7 +697,7 @@ func (x *StoreSecretInput) GetData() map[string][]byte {
 // StoreSecretOutput returns the secret reference with version information
 type StoreSecretOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SecretRef     *SecretRef             `protobuf:"bytes,1,opt,name=secret_ref,json=secretRef,proto3" json:"secret_ref,omitempty"` // Reference including actual version assigned by Vault
+	SecretRef     *SecretRef             `protobuf:"bytes,1,opt,name=secret_ref,json=SecretRef,proto3" json:"SecretRef" validate:"required"` // Reference including actual version assigned by Vault
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -742,9 +743,9 @@ func (x *StoreSecretOutput) GetSecretRef() *SecretRef {
 type FetchSecretInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// path is the Vault path to fetch the secret from
-	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Path string `protobuf:"bytes,1,opt,name=path,json=Path,proto3" json:"Path" validate:"required"`
 	// version is the specific version to fetch (0 or omit for latest)
-	Version       int64 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	Version       int64 `protobuf:"varint,2,opt,name=version,json=Version,proto3" json:"Version,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -796,8 +797,8 @@ func (x *FetchSecretInput) GetVersion() int64 {
 // FetchSecretOutput returns the fetched secret with all its data
 type FetchSecretOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SecretRef     *SecretRef             `protobuf:"bytes,1,opt,name=secret_ref,json=secretRef,proto3" json:"secret_ref,omitempty"`
-	Data          map[string][]byte      `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	SecretRef     *SecretRef             `protobuf:"bytes,1,opt,name=secret_ref,json=SecretRef,proto3" json:"SecretRef" validate:"required"`
+	Data          map[string][]byte      `protobuf:"bytes,2,rep,name=data,json=Data,proto3" json:"Data" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -850,7 +851,7 @@ func (x *FetchSecretOutput) GetData() map[string][]byte {
 type DeleteSecretInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// path is the Vault path of the secret to delete
-	Path          string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Path          string `protobuf:"bytes,1,opt,name=path,json=Path,proto3" json:"Path" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -934,16 +935,16 @@ type CreateAccessInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Policy configuration
 	// policy_name is the name of the policy to create
-	PolicyName string `protobuf:"bytes,1,opt,name=policy_name,json=policyName,proto3" json:"policy_name,omitempty"`
+	PolicyName string `protobuf:"bytes,1,opt,name=policy_name,json=PolicyName,proto3" json:"PolicyName" validate:"required"`
 	// policy_document is the structured policy content
-	PolicyDocument *PolicyDocument `protobuf:"bytes,2,opt,name=policy_document,json=policyDocument,proto3" json:"policy_document,omitempty"`
+	PolicyDocument *PolicyDocument `protobuf:"bytes,2,opt,name=policy_document,json=PolicyDocument,proto3" json:"PolicyDocument" validate:"required"`
 	// Auth role configuration
 	// auth_role_name is the name of the Kubernetes auth role to create
-	AuthRoleName string `protobuf:"bytes,3,opt,name=auth_role_name,json=authRoleName,proto3" json:"auth_role_name,omitempty"`
+	AuthRoleName string `protobuf:"bytes,3,opt,name=auth_role_name,json=AuthRoleName,proto3" json:"AuthRoleName" validate:"required"`
 	// service_account_name is the Kubernetes service account that can authenticate
-	ServiceAccountName string `protobuf:"bytes,4,opt,name=service_account_name,json=serviceAccountName,proto3" json:"service_account_name,omitempty"`
+	ServiceAccountName string `protobuf:"bytes,4,opt,name=service_account_name,json=ServiceAccountName,proto3" json:"ServiceAccountName" validate:"required"`
 	// kubernetes_namespace is the Kubernetes namespace where the service account exists
-	KubernetesNamespace string `protobuf:"bytes,5,opt,name=kubernetes_namespace,json=kubernetesNamespace,proto3" json:"kubernetes_namespace,omitempty"`
+	KubernetesNamespace string `protobuf:"bytes,5,opt,name=kubernetes_namespace,json=KubernetesNamespace,proto3" json:"KubernetesNamespace" validate:"required"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -1017,9 +1018,9 @@ func (x *CreateAccessInput) GetKubernetesNamespace() string {
 type CreateAccessOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// policy_name is the name of the created policy
-	PolicyName string `protobuf:"bytes,1,opt,name=policy_name,json=policyName,proto3" json:"policy_name,omitempty"`
+	PolicyName string `protobuf:"bytes,1,opt,name=policy_name,json=PolicyName,proto3" json:"PolicyName" validate:"required"`
 	// auth_role_name is the name of the created Kubernetes auth role
-	AuthRoleName  string `protobuf:"bytes,2,opt,name=auth_role_name,json=authRoleName,proto3" json:"auth_role_name,omitempty"`
+	AuthRoleName  string `protobuf:"bytes,2,opt,name=auth_role_name,json=AuthRoleName,proto3" json:"AuthRoleName" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1072,67 +1073,67 @@ var File_vault_v1_vault_proto protoreflect.FileDescriptor
 
 const file_vault_v1_vault_proto_rawDesc = "" +
 	"\n" +
-	"\x14vault/v1/vault.proto\x12\bvault.v1\x1a\x16nexus/v1/options.proto\x1a\x1atemporal/v1/temporal.proto\"\xba\x01\n" +
-	"\x13CreateAuthRoleInput\x12\x1b\n" +
-	"\trole_name\x18\x01 \x01(\tR\broleName\x120\n" +
-	"\x14service_account_name\x18\x02 \x01(\tR\x12serviceAccountName\x121\n" +
-	"\x14kubernetes_namespace\x18\x03 \x01(\tR\x13kubernetesNamespace\x12!\n" +
-	"\fpolicy_names\x18\x04 \x03(\tR\vpolicyNames\"*\n" +
-	"\x14CreateAuthRoleOutput\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\")\n" +
-	"\x13DeleteAuthRoleInput\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"\x16\n" +
-	"\x14DeleteAuthRoleOutput\"Z\n" +
+	"\x14vault/v1/vault.proto\x12\bvault.v1\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\x82\x03\n" +
+	"\x13CreateAuthRoleInput\x12G\n" +
+	"\trole_name\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"RoleName\" validate:\"required\"R\bRoleName\x12f\n" +
+	"\x14service_account_name\x18\x02 \x01(\tB4ʵ\x030\xa2\x01-json:\"ServiceAccountName\" validate:\"required\"R\x12ServiceAccountName\x12h\n" +
+	"\x14kubernetes_namespace\x18\x03 \x01(\tB5ʵ\x031\xa2\x01.json:\"KubernetesNamespace\" validate:\"required\"R\x13KubernetesNamespace\x12P\n" +
+	"\fpolicy_names\x18\x04 \x03(\tB-ʵ\x03)\xa2\x01&json:\"PolicyNames\" validate:\"required\"R\vPolicyNames\"R\n" +
+	"\x14CreateAuthRoleOutput\x12:\n" +
+	"\x04name\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\"Q\n" +
+	"\x13DeleteAuthRoleInput\x12:\n" +
+	"\x04name\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\"\x16\n" +
+	"\x14DeleteAuthRoleOutput\"\xb2\x01\n" +
 	"\n" +
-	"PolicyRule\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\x128\n" +
-	"\fcapabilities\x18\x02 \x03(\x0e2\x14.vault.v1.CapabilityR\fcapabilities\"<\n" +
-	"\x0ePolicyDocument\x12*\n" +
-	"\x05rules\x18\x01 \x03(\v2\x14.vault.v1.PolicyRuleR\x05rules\"]\n" +
-	"\x11CreatePolicyInput\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x124\n" +
-	"\bdocument\x18\x02 \x01(\v2\x18.vault.v1.PolicyDocumentR\bdocument\"(\n" +
-	"\x12CreatePolicyOutput\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"'\n" +
-	"\x11DeletePolicyInput\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"\x14\n" +
-	"\x12DeletePolicyOutput\"9\n" +
-	"\tSecretRef\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\x03R\aversion\"\x99\x01\n" +
-	"\x10StoreSecretInput\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\x128\n" +
-	"\x04data\x18\x02 \x03(\v2$.vault.v1.StoreSecretInput.DataEntryR\x04data\x1a7\n" +
+	"PolicyRule\x12:\n" +
+	"\x04path\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Path\" validate:\"required\"R\x04Path\x12h\n" +
+	"\fcapabilities\x18\x02 \x03(\x0e2\x14.vault.v1.CapabilityB.ʵ\x03*\xa2\x01'json:\"Capabilities\" validate:\"required\"R\fCapabilities\"e\n" +
+	"\x0ePolicyDocument\x12S\n" +
+	"\x05rules\x18\x01 \x03(\v2\x14.vault.v1.PolicyRuleB'ʵ\x03#\xa2\x01 json:\"Rules\" validate:\"required\"R\x05Rules\"\xb1\x01\n" +
+	"\x11CreatePolicyInput\x12:\n" +
+	"\x04name\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\x12`\n" +
+	"\bdocument\x18\x02 \x01(\v2\x18.vault.v1.PolicyDocumentB*ʵ\x03&\xa2\x01#json:\"Document\" validate:\"required\"R\bDocument\"P\n" +
+	"\x12CreatePolicyOutput\x12:\n" +
+	"\x04name\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\"O\n" +
+	"\x11DeletePolicyInput\x12:\n" +
+	"\x04name\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\"\x14\n" +
+	"\x12DeletePolicyOutput\"\x97\x01\n" +
+	"\tSecretRef\x12:\n" +
+	"\x04path\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Path\" validate:\"required\"R\x04Path\x12N\n" +
+	"\aversion\x18\x02 \x01(\x03B4ʵ\x030\xa2\x01-json:\"Version,omitempty\" validate:\"omitempty\"R\aVersion\"\xe9\x01\n" +
+	"\x10StoreSecretInput\x12:\n" +
+	"\x04path\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Path\" validate:\"required\"R\x04Path\x12`\n" +
+	"\x04data\x18\x02 \x03(\v2$.vault.v1.StoreSecretInput.DataEntryB&ʵ\x03\"\xa2\x01\x1fjson:\"Data\" validate:\"required\"R\x04Data\x1a7\n" +
 	"\tDataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\"G\n" +
-	"\x11StoreSecretOutput\x122\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\"t\n" +
+	"\x11StoreSecretOutput\x12_\n" +
 	"\n" +
-	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefR\tsecretRef\"@\n" +
-	"\x10FetchSecretInput\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\x03R\aversion\"\xbb\x01\n" +
-	"\x11FetchSecretOutput\x122\n" +
+	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefB+ʵ\x03'\xa2\x01$json:\"SecretRef\" validate:\"required\"R\tSecretRef\"\x9e\x01\n" +
+	"\x10FetchSecretInput\x12:\n" +
+	"\x04path\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Path\" validate:\"required\"R\x04Path\x12N\n" +
+	"\aversion\x18\x02 \x01(\x03B4ʵ\x030\xa2\x01-json:\"Version,omitempty\" validate:\"omitempty\"R\aVersion\"\x90\x02\n" +
+	"\x11FetchSecretOutput\x12_\n" +
 	"\n" +
-	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefR\tsecretRef\x129\n" +
-	"\x04data\x18\x02 \x03(\v2%.vault.v1.FetchSecretOutput.DataEntryR\x04data\x1a7\n" +
+	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefB+ʵ\x03'\xa2\x01$json:\"SecretRef\" validate:\"required\"R\tSecretRef\x12a\n" +
+	"\x04data\x18\x02 \x03(\v2%.vault.v1.FetchSecretOutput.DataEntryB&ʵ\x03\"\xa2\x01\x1fjson:\"Data\" validate:\"required\"R\x04Data\x1a7\n" +
 	"\tDataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\"'\n" +
-	"\x11DeleteSecretInput\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\"\x14\n" +
-	"\x12DeleteSecretOutput\"\x82\x02\n" +
-	"\x11CreateAccessInput\x12\x1f\n" +
-	"\vpolicy_name\x18\x01 \x01(\tR\n" +
-	"policyName\x12A\n" +
-	"\x0fpolicy_document\x18\x02 \x01(\v2\x18.vault.v1.PolicyDocumentR\x0epolicyDocument\x12$\n" +
-	"\x0eauth_role_name\x18\x03 \x01(\tR\fauthRoleName\x120\n" +
-	"\x14service_account_name\x18\x04 \x01(\tR\x12serviceAccountName\x121\n" +
-	"\x14kubernetes_namespace\x18\x05 \x01(\tR\x13kubernetesNamespace\"[\n" +
-	"\x12CreateAccessOutput\x12\x1f\n" +
-	"\vpolicy_name\x18\x01 \x01(\tR\n" +
-	"policyName\x12$\n" +
-	"\x0eauth_role_name\x18\x02 \x01(\tR\fauthRoleName*\x89\x02\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\"O\n" +
+	"\x11DeleteSecretInput\x12:\n" +
+	"\x04path\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Path\" validate:\"required\"R\x04Path\"\x14\n" +
+	"\x12DeleteSecretOutput\"\xff\x03\n" +
+	"\x11CreateAccessInput\x12M\n" +
+	"\vpolicy_name\x18\x01 \x01(\tB,ʵ\x03(\xa2\x01%json:\"PolicyName\" validate:\"required\"R\n" +
+	"PolicyName\x12s\n" +
+	"\x0fpolicy_document\x18\x02 \x01(\v2\x18.vault.v1.PolicyDocumentB0ʵ\x03,\xa2\x01)json:\"PolicyDocument\" validate:\"required\"R\x0ePolicyDocument\x12T\n" +
+	"\x0eauth_role_name\x18\x03 \x01(\tB.ʵ\x03*\xa2\x01'json:\"AuthRoleName\" validate:\"required\"R\fAuthRoleName\x12f\n" +
+	"\x14service_account_name\x18\x04 \x01(\tB4ʵ\x030\xa2\x01-json:\"ServiceAccountName\" validate:\"required\"R\x12ServiceAccountName\x12h\n" +
+	"\x14kubernetes_namespace\x18\x05 \x01(\tB5ʵ\x031\xa2\x01.json:\"KubernetesNamespace\" validate:\"required\"R\x13KubernetesNamespace\"\xb9\x01\n" +
+	"\x12CreateAccessOutput\x12M\n" +
+	"\vpolicy_name\x18\x01 \x01(\tB,ʵ\x03(\xa2\x01%json:\"PolicyName\" validate:\"required\"R\n" +
+	"PolicyName\x12T\n" +
+	"\x0eauth_role_name\x18\x02 \x01(\tB.ʵ\x03*\xa2\x01'json:\"AuthRoleName\" validate:\"required\"R\fAuthRoleName*\x89\x02\n" +
 	"\n" +
 	"Capability\x12\x1a\n" +
 	"\x16CAPABILITY_UNSPECIFIED\x10\x00\x12\x15\n" +
@@ -1146,7 +1147,7 @@ const file_vault_v1_vault_proto_rawDesc = "" +
 	"\x0fCAPABILITY_DENY\x10\b\x12\x18\n" +
 	"\x14CAPABILITY_SUBSCRIBE\x10\t\x12\x16\n" +
 	"\x12CAPABILITY_RECOVER\x10\n" +
-	"2\xaf\b\n" +
+	"2\xb0\b\n" +
 	"\x05Vault\x12\x81\x01\n" +
 	"\x0eCreateAuthRole\x12\x1d.vault.v1.CreateAuthRoleInput\x1a\x1e.vault.v1.CreateAuthRoleOutput\"0\x92\xc4\x03\x1e\x12\x03\b\xac\x02:\x17vault.v1.CreateAuthRole҂\x04\n" +
 	"\x12\bactivity\x12\x81\x01\n" +
@@ -1161,8 +1162,8 @@ const file_vault_v1_vault_proto_rawDesc = "" +
 	"\vFetchSecret\x12\x1a.vault.v1.FetchSecretInput\x1a\x1b.vault.v1.FetchSecretOutput\",\x92\xc4\x03\x1a\x12\x02\b<:\x14vault.v1.FetchSecret҂\x04\n" +
 	"\x12\bactivity\x12y\n" +
 	"\fDeleteSecret\x12\x1b.vault.v1.DeleteSecretInput\x1a\x1c.vault.v1.DeleteSecretOutput\".\x92\xc4\x03\x1c\x12\x03\b\xac\x02:\x15vault.v1.DeleteSecret҂\x04\n" +
-	"\x12\bactivity\x12\x9f\x01\n" +
-	"\fCreateAccess\x12\x1b.vault.v1.CreateAccessInput\x1a\x1c.vault.v1.CreateAccessOutput\"T\x8a\xc4\x03P*3vault/create-access/${! policy_name.or(\"default\") }0\x01@\x03r\x15vault.v1.CreateAccess\x1a\x1e\x8a\xc4\x03\a\n" +
+	"\x12\bactivity\x12\xa0\x01\n" +
+	"\fCreateAccess\x12\x1b.vault.v1.CreateAccessInput\x1a\x1c.vault.v1.CreateAccessOutput\"U\x8a\xc4\x03Q*4vault/create-access/${! AuthRoleName.or(\"default\") }0\x01@\x03r\x15vault.v1.CreateAccess\x1a\x1e\x8a\xc4\x03\a\n" +
 	"\x05infraʂ\x04\x0f\x12\rnexus-enabledB\xa0\x01\n" +
 	"\fcom.vault.v1B\n" +
 	"VaultProtoP\x01ZCgithub.com/metacensus/infra/temporal/gen/workflows/vault/v1;vaultv1\xa2\x02\x03VXX\xaa\x02\bVault.V1\xca\x02\bVault\\V1\xe2\x02\x14Vault\\V1\\GPBMetadata\xea\x02\tVault::V1b\x06proto3"

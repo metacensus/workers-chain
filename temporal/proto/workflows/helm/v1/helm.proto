@@ -5,6 +5,7 @@ package helm.v1;
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/helm/v1;helmv1";
 
 import "google/protobuf/struct.proto";
+import "patch/go.proto";
 import "temporal/v1/temporal.proto";
 
 // Helm service defines activities for rendering Helm charts into Kubernetes manifests
@@ -38,43 +39,73 @@ service Helm {
 // RenderChartInput specifies which chart to render and with what values
 message RenderChartInput {
   // chart_name is the chart name to render
-  string chart_name = 1;
+  string chart_name = 1 [
+    json_name = "ChartName",
+    (go.field).tags = 'json:"ChartName" validate:"required"'
+  ];
 
   // values_yaml is Helm values as a YAML string (merged with chart defaults)
-  string values_yaml = 2;
+  string values_yaml = 2 [
+    json_name = "ValuesYaml",
+    (go.field).tags = 'json:"ValuesYaml" validate:"required"'
+  ];
 
   // namespace is the Kubernetes namespace for template context (optional)
-  optional string namespace = 3;
+  optional string namespace = 3 [
+    json_name = "Namespace",
+    (go.field).tags = 'json:"Namespace,omitempty" validate:"omitempty"'
+  ];
 }
 
 // RenderChartWithTemplateInput specifies a chart to render after populating a values template
 message RenderChartWithTemplateInput {
   // chart_name is the chart name to render
-  string chart_name = 1;
+  string chart_name = 1 [
+    json_name = "ChartName",
+    (go.field).tags = 'json:"ChartName" validate:"required"'
+  ];
 
   // component is the component type whose values template to load and render
-  string component = 2;
+  string component = 2 [
+    json_name = "Component",
+    (go.field).tags = 'json:"Component" validate:"required"'
+  ];
 
   // values is a structured map of template variables for rendering
-  google.protobuf.Struct values = 3;
+  google.protobuf.Struct values = 3 [
+    json_name = "Values",
+    (go.field).tags = 'json:"Values" validate:"required"'
+  ];
 
   // namespace is the Kubernetes namespace for template context (optional)
-  optional string namespace = 4;
+  optional string namespace = 4 [
+    json_name = "Namespace",
+    (go.field).tags = 'json:"Namespace,omitempty" validate:"omitempty"'
+  ];
 }
 
 // RenderChartOutput represents the rendered resources from a chart
 message RenderChartOutput {
   // resources is a map of resource_id → rendered resource
   // Key is caller-defined (e.g., "deployment-api", "service-api")
-  map<string, Resource> resources = 1;
+  map<string, Resource> resources = 1 [
+    json_name = "Resources",
+    (go.field).tags = 'json:"Resources" validate:"required"'
+  ];
 
   // failures is a map of resource_id → error message for resources that failed to parse
-  map<string, string> failures = 2;
+  map<string, string> failures = 2 [
+    json_name = "Failures",
+    (go.field).tags = 'json:"Failures" validate:"required"'
+  ];
 }
 
 // Resource represents a single rendered Kubernetes resource as YAML
 message Resource {
   // manifest_yaml is the complete YAML definition of the resource
-  bytes manifest_yaml = 1;
+  bytes manifest_yaml = 1 [
+    json_name = "ManifestYaml",
+    (go.field).tags = 'json:"ManifestYaml" validate:"required"'
+  ];
 }
 

@@ -7,6 +7,7 @@
 package fabricv1
 
 import (
+	_ "github.com/alta/protopatch/patch/gopb"
 	_ "github.com/bergundy/nexus-proto-annotations/go/nexus/v1"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -256,7 +257,7 @@ type DeployRootCertificateAuthorityInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// cert_type specifies whether this is a TLS or Org certificate authority
 	// Valid values: "tls" (for secure communication), "org" (for Fabric MSP identity)
-	CertType      string `protobuf:"bytes,1,opt,name=cert_type,json=certType,proto3" json:"cert_type,omitempty"`
+	CertType      string `protobuf:"bytes,1,opt,name=cert_type,json=CertType,proto3" json:"CertType" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -341,11 +342,11 @@ type DeployCertificateAuthorityInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// cert_type specifies whether this is a TLS or Org certificate authority
 	// Valid values: "tls" or "org"
-	CertType string `protobuf:"bytes,1,opt,name=cert_type,json=certType,proto3" json:"cert_type,omitempty"`
+	CertType string `protobuf:"bytes,1,opt,name=cert_type,json=CertType,proto3" json:"CertType" validate:"required"`
 	// id is a unique identifier for this intermediate CA instance.
 	// This enables rotation by deploying a new intermediate CA with a different ID
 	// while the old one is still active, then switching over and revoking the old one.
-	Id            string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	Id            string `protobuf:"bytes,2,opt,name=id,json=Id,proto3" json:"Id" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -512,28 +513,28 @@ var File_fabric_v1_fabric_proto protoreflect.FileDescriptor
 
 const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\n" +
-	"\x16fabric/v1/fabric.proto\x12\tfabric.v1\x1a\x16nexus/v1/options.proto\x1a\x1atemporal/v1/temporal.proto\"\x15\n" +
+	"\x16fabric/v1/fabric.proto\x12\tfabric.v1\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\x15\n" +
 	"\x13BootstrapShardInput\"\x16\n" +
 	"\x14BootstrapShardOutput\"&\n" +
 	"$BootstrapCertificateAuthoritiesInput\"'\n" +
 	"%BootstrapCertificateAuthoritiesOutput\"\x1d\n" +
 	"\x1bDeployCertificateStoreInput\"\x1e\n" +
-	"\x1cDeployCertificateStoreOutput\"B\n" +
-	"#DeployRootCertificateAuthorityInput\x12\x1b\n" +
-	"\tcert_type\x18\x01 \x01(\tR\bcertType\"&\n" +
-	"$DeployRootCertificateAuthorityOutput\"N\n" +
-	"\x1fDeployCertificateAuthorityInput\x12\x1b\n" +
-	"\tcert_type\x18\x01 \x01(\tR\bcertType\x12\x0e\n" +
-	"\x02id\x18\x02 \x01(\tR\x02id\"\"\n" +
+	"\x1cDeployCertificateStoreOutput\"n\n" +
+	"#DeployRootCertificateAuthorityInput\x12G\n" +
+	"\tcert_type\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"CertType\" validate:\"required\"R\bCertType\"&\n" +
+	"$DeployRootCertificateAuthorityOutput\"\xa0\x01\n" +
+	"\x1fDeployCertificateAuthorityInput\x12G\n" +
+	"\tcert_type\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"CertType\" validate:\"required\"R\bCertType\x124\n" +
+	"\x02id\x18\x02 \x01(\tB$ʵ\x03 \xa2\x01\x1djson:\"Id\" validate:\"required\"R\x02Id\"\"\n" +
 	" DeployCertificateAuthorityOutput\" \n" +
 	"\x1eCreateCertificateDatabaseInput\"!\n" +
-	"\x1fCreateCertificateDatabaseOutput2\xeb\t\n" +
+	"\x1fCreateCertificateDatabaseOutput2\xe9\t\n" +
 	"\x06Fabric\x12\x8b\x01\n" +
 	"\x0eBootstrapShard\x12\x1e.fabric.v1.BootstrapShardInput\x1a\x1f.fabric.v1.BootstrapShardOutput\"8\x8a\xc4\x034*\x16fabric/bootstrap-shard0\x01r\x18fabric.v1.BootstrapShard\x12\xe1\x01\n" +
 	"\x1fBootstrapCertificateAuthorities\x12/.fabric.v1.BootstrapCertificateAuthoritiesInput\x1a0.fabric.v1.BootstrapCertificateAuthoritiesOutput\"[\x8a\xc4\x03W*(fabric/bootstrap-certificate-authorities0\x01r)fabric.v1.BootstrapCertificateAuthorities\x12\xb4\x01\n" +
-	"\x16DeployCertificateStore\x12&.fabric.v1.DeployCertificateStoreInput\x1a'.fabric.v1.DeployCertificateStoreOutput\"I\x8a\xc4\x03E*\x1ffabric/deploy-certificate-store0\x01r fabric.v1.DeployCertificateStore\x12\xed\x01\n" +
-	"\x1eDeployRootCertificateAuthority\x12..fabric.v1.DeployRootCertificateAuthorityInput\x1a/.fabric.v1.DeployRootCertificateAuthorityOutput\"j\x8a\xc4\x03f*8fabric/deploy-certificate-authority/${! cert_type }/root0\x01r(fabric.v1.DeployRootCertificateAuthority\x12\xe1\x01\n" +
-	"\x1aDeployCertificateAuthority\x12*.fabric.v1.DeployCertificateAuthorityInput\x1a+.fabric.v1.DeployCertificateAuthorityOutput\"j\x8a\xc4\x03f*<fabric/deploy-certificate-authority/${! cert_type }/${! id }0\x01r$fabric.v1.DeployCertificateAuthority\x12\xc3\x01\n" +
+	"\x16DeployCertificateStore\x12&.fabric.v1.DeployCertificateStoreInput\x1a'.fabric.v1.DeployCertificateStoreOutput\"I\x8a\xc4\x03E*\x1ffabric/deploy-certificate-store0\x01r fabric.v1.DeployCertificateStore\x12\xec\x01\n" +
+	"\x1eDeployRootCertificateAuthority\x12..fabric.v1.DeployRootCertificateAuthorityInput\x1a/.fabric.v1.DeployRootCertificateAuthorityOutput\"i\x8a\xc4\x03e*7fabric/deploy-certificate-authority/${! CertType }/root0\x01r(fabric.v1.DeployRootCertificateAuthority\x12\xe0\x01\n" +
+	"\x1aDeployCertificateAuthority\x12*.fabric.v1.DeployCertificateAuthorityInput\x1a+.fabric.v1.DeployCertificateAuthorityOutput\"i\x8a\xc4\x03e*;fabric/deploy-certificate-authority/${! CertType }/${! Id }0\x01r$fabric.v1.DeployCertificateAuthority\x12\xc3\x01\n" +
 	"\x19CreateCertificateDatabase\x12).fabric.v1.CreateCertificateDatabaseInput\x1a*.fabric.v1.CreateCertificateDatabaseOutput\"O\x8a\xc4\x03K*\"fabric/create-certificate-database0\x01r#fabric.v1.CreateCertificateDatabase\x1a\x1e\x8a\xc4\x03\a\n" +
 	"\x05infraʂ\x04\x0f\x12\rnexus-enabledB\xa8\x01\n" +
 	"\rcom.fabric.v1B\vFabricProtoP\x01ZEgithub.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1\xa2\x02\x03FXX\xaa\x02\tFabric.V1\xca\x02\tFabric\\V1\xe2\x02\x15Fabric\\V1\\GPBMetadata\xea\x02\n" +

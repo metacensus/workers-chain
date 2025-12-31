@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	expression "github.com/cludden/protoc-gen-go-temporal/pkg/expression"
 	helpers "github.com/cludden/protoc-gen-go-temporal/pkg/helpers"
 	enumsv1 "go.temporal.io/api/enums/v1"
 	client "go.temporal.io/sdk/client"
@@ -33,6 +34,12 @@ var CellTaskQueue = "infra"
 const (
 	BootstrapInfraWorkflowName  = "cell.v1.BootstrapInfra"
 	InitFabricShardWorkflowName = "cell.v1.InitFabricShard"
+)
+
+// cell.v1.Cell workflow id expressions
+var (
+	BootstrapInfraIdexpression  = expression.MustParseExpression("cell/bootstrap-infra")
+	InitFabricShardIdexpression = expression.MustParseExpression("cell/init-fabric-shard/${! Org }")
 )
 
 // CellClient describes a client for a(n) cell.v1.Cell worker
@@ -299,6 +306,12 @@ func (o *BootstrapInfraOptions) Build(req protoreflect.Message) (client.StartWor
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(BootstrapInfraIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", BootstrapInfraWorkflowName, err)
+		}
+		opts.ID = id
 	}
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
@@ -476,6 +489,12 @@ func (o *InitFabricShardOptions) Build(req protoreflect.Message) (client.StartWo
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(InitFabricShardIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", InitFabricShardWorkflowName, err)
+		}
+		opts.ID = id
 	}
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
@@ -799,7 +818,7 @@ type BootstrapInfraWorkflowInput struct {
 // This workflow runs once at platform bootstrap time and sets up the Nexus
 // communication layer needed for workflows in different namespaces to call services.
 //
-// workflow details: (name: "cell.v1.BootstrapInfra")
+// workflow details: (name: "cell.v1.BootstrapInfra", id: "cell/bootstrap-infra")
 type BootstrapInfraWorkflow interface {
 	// Execute defines the entrypoint to a(n) cell.v1.BootstrapInfra workflow
 	Execute(ctx workflow.Context) (*BootstrapInfraOutput, error)
@@ -872,6 +891,28 @@ func (o *BootstrapInfraChildOptions) Build(ctx workflow.Context, req protoreflec
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(BootstrapInfraIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", BootstrapInfraWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", BootstrapInfraWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(BootstrapInfraIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", BootstrapInfraWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
 	}
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
@@ -1072,7 +1113,7 @@ type InitFabricShardWorkflowInput struct {
 // Phase 1 (central): Sets up infrastructure prerequisites
 // Phase 2 (fabric worker): Initiated via Nexus, deploys Fabric components (CAs, peers, orderers)
 //
-// workflow details: (name: "cell.v1.InitFabricShard")
+// workflow details: (name: "cell.v1.InitFabricShard", id: "cell/init-fabric-shard/${! Org }")
 type InitFabricShardWorkflow interface {
 	// Execute defines the entrypoint to a(n) cell.v1.InitFabricShard workflow
 	Execute(ctx workflow.Context) (*InitFabricShardOutput, error)
@@ -1157,6 +1198,28 @@ func (o *InitFabricShardChildOptions) Build(ctx workflow.Context, req protorefle
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(InitFabricShardIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", InitFabricShardWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", InitFabricShardWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(InitFabricShardIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", InitFabricShardWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
 	}
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v

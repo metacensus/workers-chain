@@ -5,6 +5,7 @@ package temporal.v1;
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/temporal/v1;temporalv1";
 
 import "google/protobuf/duration.proto";
+import "patch/go.proto";
 import "temporal/v1/temporal.proto";
 
 // Admin service defines workflows and activities for Temporal namespace management
@@ -21,6 +22,7 @@ service Admin {
     // Workflow execution metadata
     option (temporal.v1.workflow) = {
       name: "temporal.v1.CreateNamespace"
+      id: 'temporal/create-namespace/${! Name }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -94,17 +96,26 @@ enum NamespaceState {
 message CreateNamespaceInput {
   // name is the name of the namespace to create (e.g., "fabric-org1", "tenant-acme")
   // This will be used as the workflow ID to ensure idempotency
-  string name = 1;
+  string name = 1 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
 
   // retention is the duration to retain workflow history
   // If not set, defaults to 30 days (2592000 seconds)
-  optional google.protobuf.Duration retention = 2;
+  optional google.protobuf.Duration retention = 2 [
+    json_name = "Retention",
+    (go.field).tags = 'json:"Retention,omitempty" validate:"omitempty"'
+  ];
 }
 
 // CreateNamespaceOutput indicates successful namespace creation
 message CreateNamespaceOutput {
   // name echoes back the created namespace name
-  string name = 1;
+  string name = 1 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
 }
 
 // ==================== RegisterNamespace Activity Messages ====================
@@ -112,11 +123,17 @@ message CreateNamespaceOutput {
 // RegisterNamespaceInput specifies parameters for the RegisterNamespace activity
 message RegisterNamespaceInput {
   // name is the name of the namespace to create
-  string name = 1;
+  string name = 1 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
 
   // retention is the duration to retain workflow history
   // If not set, defaults to 30 days (2592000 seconds)
-  optional google.protobuf.Duration retention = 2;
+  optional google.protobuf.Duration retention = 2 [
+    json_name = "Retention",
+    (go.field).tags = 'json:"Retention,omitempty" validate:"omitempty"'
+  ];
 }
 
 // RegisterNamespaceOutput indicates successful namespace registration
@@ -129,16 +146,25 @@ message RegisterNamespaceOutput {
 // DescribeNamespaceInput specifies which namespace to describe
 message DescribeNamespaceInput {
   // name is the name of the namespace to describe
-  string name = 1;
+  string name = 1 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
 }
 
 // DescribeNamespaceOutput returns the current state of a namespace
 message DescribeNamespaceOutput {
   // name is the name of the described namespace
-  string name = 1;
+  string name = 1 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
 
   // state is the current lifecycle state of the namespace
-  NamespaceState state = 2;
+  NamespaceState state = 2 [
+    json_name = "State",
+    (go.field).tags = 'json:"State" validate:"required"'
+  ];
 }
 
 // ==================== Nexus Endpoint Configuration ====================
@@ -146,45 +172,75 @@ message DescribeNamespaceOutput {
 // Endpoint defines a Nexus endpoint configuration
 message Endpoint {
   // id: server-generated unique endpoint identifier
-  string id = 1;
+  string id = 1 [
+    json_name = "Id",
+    (go.field).tags = 'json:"Id" validate:"required"'
+  ];
 
   // name: endpoint name (e.g., "CreateScopedIdentityAccess")
-  string name = 2;
+  string name = 2 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
 
   // namespace: Temporal namespace to route requests to
-  string namespace = 3;
+  string namespace = 3 [
+    json_name = "Namespace",
+    (go.field).tags = 'json:"Namespace" validate:"required"'
+  ];
 
   // task_queue: task queue within target namespace
-  string task_queue = 4;
+  string task_queue = 4 [
+    json_name = "TaskQueue",
+    (go.field).tags = 'json:"TaskQueue" validate:"required"'
+  ];
 }
 
 // ==================== CreateNexusEndpoint Activity Messages ====================
 
 message CreateNexusEndpointInput {
   // name: endpoint name
-  string name = 1;
+  string name = 1 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
 
   // namespace: Temporal namespace to route to
-  string namespace = 2;
+  string namespace = 2 [
+    json_name = "Namespace",
+    (go.field).tags = 'json:"Namespace" validate:"required"'
+  ];
 
   // task_queue: task queue within target namespace
-  string task_queue = 3;
+  string task_queue = 3 [
+    json_name = "TaskQueue",
+    (go.field).tags = 'json:"TaskQueue" validate:"required"'
+  ];
 }
 
 message CreateNexusEndpointOutput {
   // id: server-generated unique endpoint identifier
-  string id = 1;
+  string id = 1 [
+    json_name = "Id",
+    (go.field).tags = 'json:"Id" validate:"required"'
+  ];
 }
 
 // ==================== DescribeNexusEndpoint Activity Messages ====================
 
 message DescribeNexusEndpointInput {
   // id: endpoint identifier to describe
-  string id = 1;
+  string id = 1 [
+    json_name = "Id",
+    (go.field).tags = 'json:"Id" validate:"required"'
+  ];
 }
 
 message DescribeNexusEndpointOutput {
-  Endpoint endpoint = 1;
+  Endpoint endpoint = 1 [
+    json_name = "Endpoint",
+    (go.field).tags = 'json:"Endpoint" validate:"required"'
+  ];
 }
 
 // ==================== UpdateNexusEndpoint Activity Messages ====================
@@ -193,7 +249,10 @@ message DescribeNexusEndpointOutput {
 message UpdateNexusEndpointInput {
   // endpoint: complete endpoint configuration for update
   // Must include id, namespace, and task_queue
-  Endpoint endpoint = 1;
+  Endpoint endpoint = 1 [
+    json_name = "Endpoint",
+    (go.field).tags = 'json:"Endpoint" validate:"required"'
+  ];
 }
 
 message UpdateNexusEndpointOutput {

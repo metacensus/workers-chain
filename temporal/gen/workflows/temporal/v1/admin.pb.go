@@ -7,6 +7,7 @@
 package temporalv1
 
 import (
+	_ "github.com/alta/protopatch/patch/gopb"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -78,10 +79,10 @@ type CreateNamespaceInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// name is the name of the namespace to create (e.g., "fabric-org1", "tenant-acme")
 	// This will be used as the workflow ID to ensure idempotency
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	// retention is the duration to retain workflow history
 	// If not set, defaults to 30 days (2592000 seconds)
-	Retention     *durationpb.Duration `protobuf:"bytes,2,opt,name=retention,proto3,oneof" json:"retention,omitempty"`
+	Retention     *durationpb.Duration `protobuf:"bytes,2,opt,name=retention,json=Retention,proto3,oneof" json:"Retention,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -134,7 +135,7 @@ func (x *CreateNamespaceInput) GetRetention() *durationpb.Duration {
 type CreateNamespaceOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// name echoes back the created namespace name
-	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name          string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -180,10 +181,10 @@ func (x *CreateNamespaceOutput) GetName() string {
 type RegisterNamespaceInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// name is the name of the namespace to create
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	// retention is the duration to retain workflow history
 	// If not set, defaults to 30 days (2592000 seconds)
-	Retention     *durationpb.Duration `protobuf:"bytes,2,opt,name=retention,proto3,oneof" json:"retention,omitempty"`
+	Retention     *durationpb.Duration `protobuf:"bytes,2,opt,name=retention,json=Retention,proto3,oneof" json:"Retention,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -273,7 +274,7 @@ func (*RegisterNamespaceOutput) Descriptor() ([]byte, []int) {
 type DescribeNamespaceInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// name is the name of the namespace to describe
-	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name          string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -319,9 +320,9 @@ func (x *DescribeNamespaceInput) GetName() string {
 type DescribeNamespaceOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// name is the name of the described namespace
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	// state is the current lifecycle state of the namespace
-	State         NamespaceState `protobuf:"varint,2,opt,name=state,proto3,enum=temporal.v1.NamespaceState" json:"state,omitempty"`
+	State         NamespaceState `protobuf:"varint,2,opt,name=state,json=State,proto3,enum=temporal.v1.NamespaceState" json:"State" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -374,13 +375,13 @@ func (x *DescribeNamespaceOutput) GetState() NamespaceState {
 type Endpoint struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// id: server-generated unique endpoint identifier
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,json=Id,proto3" json:"Id" validate:"required"`
 	// name: endpoint name (e.g., "CreateScopedIdentityAccess")
-	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	// namespace: Temporal namespace to route requests to
-	Namespace string `protobuf:"bytes,3,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Namespace string `protobuf:"bytes,3,opt,name=namespace,json=Namespace,proto3" json:"Namespace" validate:"required"`
 	// task_queue: task queue within target namespace
-	TaskQueue     string `protobuf:"bytes,4,opt,name=task_queue,json=taskQueue,proto3" json:"task_queue,omitempty"`
+	TaskQueue     string `protobuf:"bytes,4,opt,name=task_queue,json=TaskQueue,proto3" json:"TaskQueue" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -446,11 +447,11 @@ func (x *Endpoint) GetTaskQueue() string {
 type CreateNexusEndpointInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// name: endpoint name
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	// namespace: Temporal namespace to route to
-	Namespace string `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Namespace string `protobuf:"bytes,2,opt,name=namespace,json=Namespace,proto3" json:"Namespace" validate:"required"`
 	// task_queue: task queue within target namespace
-	TaskQueue     string `protobuf:"bytes,3,opt,name=task_queue,json=taskQueue,proto3" json:"task_queue,omitempty"`
+	TaskQueue     string `protobuf:"bytes,3,opt,name=task_queue,json=TaskQueue,proto3" json:"TaskQueue" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -509,7 +510,7 @@ func (x *CreateNexusEndpointInput) GetTaskQueue() string {
 type CreateNexusEndpointOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// id: server-generated unique endpoint identifier
-	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            string `protobuf:"bytes,1,opt,name=id,json=Id,proto3" json:"Id" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -554,7 +555,7 @@ func (x *CreateNexusEndpointOutput) GetId() string {
 type DescribeNexusEndpointInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// id: endpoint identifier to describe
-	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            string `protobuf:"bytes,1,opt,name=id,json=Id,proto3" json:"Id" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -598,7 +599,7 @@ func (x *DescribeNexusEndpointInput) GetId() string {
 
 type DescribeNexusEndpointOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Endpoint      *Endpoint              `protobuf:"bytes,1,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	Endpoint      *Endpoint              `protobuf:"bytes,1,opt,name=endpoint,json=Endpoint,proto3" json:"Endpoint" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -645,7 +646,7 @@ type UpdateNexusEndpointInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// endpoint: complete endpoint configuration for update
 	// Must include id, namespace, and task_queue
-	Endpoint      *Endpoint `protobuf:"bytes,1,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	Endpoint      *Endpoint `protobuf:"bytes,1,opt,name=endpoint,json=Endpoint,proto3" json:"Endpoint" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -727,53 +728,53 @@ var File_temporal_v1_admin_proto protoreflect.FileDescriptor
 
 const file_temporal_v1_admin_proto_rawDesc = "" +
 	"\n" +
-	"\x17temporal/v1/admin.proto\x12\vtemporal.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x1atemporal/v1/temporal.proto\"v\n" +
-	"\x14CreateNamespaceInput\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12<\n" +
-	"\tretention\x18\x02 \x01(\v2\x19.google.protobuf.DurationH\x00R\tretention\x88\x01\x01B\f\n" +
+	"\x17temporal/v1/admin.proto\x12\vtemporal.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\xd6\x01\n" +
+	"\x14CreateNamespaceInput\x12:\n" +
+	"\x04name\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\x12t\n" +
+	"\tretention\x18\x02 \x01(\v2\x19.google.protobuf.DurationB6ʵ\x032\xa2\x01/json:\"Retention,omitempty\" validate:\"omitempty\"H\x00R\tRetention\x88\x01\x01B\f\n" +
 	"\n" +
-	"_retention\"+\n" +
-	"\x15CreateNamespaceOutput\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"x\n" +
-	"\x16RegisterNamespaceInput\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12<\n" +
-	"\tretention\x18\x02 \x01(\v2\x19.google.protobuf.DurationH\x00R\tretention\x88\x01\x01B\f\n" +
+	"_retention\"S\n" +
+	"\x15CreateNamespaceOutput\x12:\n" +
+	"\x04name\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\"\xd8\x01\n" +
+	"\x16RegisterNamespaceInput\x12:\n" +
+	"\x04name\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\x12t\n" +
+	"\tretention\x18\x02 \x01(\v2\x19.google.protobuf.DurationB6ʵ\x032\xa2\x01/json:\"Retention,omitempty\" validate:\"omitempty\"H\x00R\tRetention\x88\x01\x01B\f\n" +
 	"\n" +
 	"_retention\"\x19\n" +
-	"\x17RegisterNamespaceOutput\",\n" +
-	"\x16DescribeNamespaceInput\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"`\n" +
-	"\x17DescribeNamespaceOutput\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x121\n" +
-	"\x05state\x18\x02 \x01(\x0e2\x1b.temporal.v1.NamespaceStateR\x05state\"k\n" +
-	"\bEndpoint\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1c\n" +
-	"\tnamespace\x18\x03 \x01(\tR\tnamespace\x12\x1d\n" +
+	"\x17RegisterNamespaceOutput\"T\n" +
+	"\x16DescribeNamespaceInput\x12:\n" +
+	"\x04name\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\"\xb1\x01\n" +
+	"\x17DescribeNamespaceOutput\x12:\n" +
+	"\x04name\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\x12Z\n" +
+	"\x05state\x18\x02 \x01(\x0e2\x1b.temporal.v1.NamespaceStateB'ʵ\x03#\xa2\x01 json:\"State\" validate:\"required\"R\x05State\"\x93\x02\n" +
+	"\bEndpoint\x124\n" +
+	"\x02id\x18\x01 \x01(\tB$ʵ\x03 \xa2\x01\x1djson:\"Id\" validate:\"required\"R\x02Id\x12:\n" +
+	"\x04name\x18\x02 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\x12I\n" +
+	"\tnamespace\x18\x03 \x01(\tB+ʵ\x03'\xa2\x01$json:\"Namespace\" validate:\"required\"R\tNamespace\x12J\n" +
 	"\n" +
-	"task_queue\x18\x04 \x01(\tR\ttaskQueue\"k\n" +
-	"\x18CreateNexusEndpointInput\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1c\n" +
-	"\tnamespace\x18\x02 \x01(\tR\tnamespace\x12\x1d\n" +
+	"task_queue\x18\x04 \x01(\tB+ʵ\x03'\xa2\x01$json:\"TaskQueue\" validate:\"required\"R\tTaskQueue\"\xed\x01\n" +
+	"\x18CreateNexusEndpointInput\x12:\n" +
+	"\x04name\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\x12I\n" +
+	"\tnamespace\x18\x02 \x01(\tB+ʵ\x03'\xa2\x01$json:\"Namespace\" validate:\"required\"R\tNamespace\x12J\n" +
 	"\n" +
-	"task_queue\x18\x03 \x01(\tR\ttaskQueue\"+\n" +
-	"\x19CreateNexusEndpointOutput\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\",\n" +
-	"\x1aDescribeNexusEndpointInput\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"P\n" +
-	"\x1bDescribeNexusEndpointOutput\x121\n" +
-	"\bendpoint\x18\x01 \x01(\v2\x15.temporal.v1.EndpointR\bendpoint\"M\n" +
-	"\x18UpdateNexusEndpointInput\x121\n" +
-	"\bendpoint\x18\x01 \x01(\v2\x15.temporal.v1.EndpointR\bendpoint\"\x1b\n" +
+	"task_queue\x18\x03 \x01(\tB+ʵ\x03'\xa2\x01$json:\"TaskQueue\" validate:\"required\"R\tTaskQueue\"Q\n" +
+	"\x19CreateNexusEndpointOutput\x124\n" +
+	"\x02id\x18\x01 \x01(\tB$ʵ\x03 \xa2\x01\x1djson:\"Id\" validate:\"required\"R\x02Id\"R\n" +
+	"\x1aDescribeNexusEndpointInput\x124\n" +
+	"\x02id\x18\x01 \x01(\tB$ʵ\x03 \xa2\x01\x1djson:\"Id\" validate:\"required\"R\x02Id\"|\n" +
+	"\x1bDescribeNexusEndpointOutput\x12]\n" +
+	"\bendpoint\x18\x01 \x01(\v2\x15.temporal.v1.EndpointB*ʵ\x03&\xa2\x01#json:\"Endpoint\" validate:\"required\"R\bEndpoint\"y\n" +
+	"\x18UpdateNexusEndpointInput\x12]\n" +
+	"\bendpoint\x18\x01 \x01(\v2\x15.temporal.v1.EndpointB*ʵ\x03&\xa2\x01#json:\"Endpoint\" validate:\"required\"R\bEndpoint\"\x1b\n" +
 	"\x19UpdateNexusEndpointOutput*A\n" +
 	"\x0eNamespaceState\x12\x0f\n" +
 	"\vUNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
 	"REGISTERED\x10\x01\x12\x0e\n" +
 	"\n" +
-	"DEPRECATED\x10\x022\xe8\x06\n" +
-	"\x05Admin\x12}\n" +
-	"\x0fCreateNamespace\x12!.temporal.v1.CreateNamespaceInput\x1a\".temporal.v1.CreateNamespaceOutput\"#\x8a\xc4\x03\x1f0\x01r\x1btemporal.v1.CreateNamespace\x12\x88\x01\n" +
+	"DEPRECATED\x10\x022\x8f\a\n" +
+	"\x05Admin\x12\xa3\x01\n" +
+	"\x0fCreateNamespace\x12!.temporal.v1.CreateNamespaceInput\x1a\".temporal.v1.CreateNamespaceOutput\"I\x8a\xc4\x03E*$temporal/create-namespace/${! Name }0\x01r\x1btemporal.v1.CreateNamespace\x12\x88\x01\n" +
 	"\x11RegisterNamespace\x12#.temporal.v1.RegisterNamespaceInput\x1a$.temporal.v1.RegisterNamespaceOutput\"(\x92\xc4\x03$\x12\x03\b\xac\x02:\x1dtemporal.v1.RegisterNamespace\x12\x87\x01\n" +
 	"\x11DescribeNamespace\x12#.temporal.v1.DescribeNamespaceInput\x1a$.temporal.v1.DescribeNamespaceOutput\"'\x92\xc4\x03#\x12\x02\b<:\x1dtemporal.v1.DescribeNamespace\x12\x90\x01\n" +
 	"\x13CreateNexusEndpoint\x12%.temporal.v1.CreateNexusEndpointInput\x1a&.temporal.v1.CreateNexusEndpointOutput\"*\x92\xc4\x03&\x12\x03\b\xac\x02:\x1ftemporal.v1.CreateNexusEndpoint\x12\x97\x01\n" +

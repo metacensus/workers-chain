@@ -7,6 +7,7 @@
 package cryptov1
 
 import (
+	_ "github.com/alta/protopatch/patch/gopb"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	v1 "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -64,7 +65,7 @@ func (*GeneratePasswordInput) Descriptor() ([]byte, []int) {
 type GeneratePasswordOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// password is the generated secure random password
-	Password      string `protobuf:"bytes,1,opt,name=password,proto3" json:"password,omitempty"`
+	Password      string `protobuf:"bytes,1,opt,name=password,json=Password,proto3" json:"Password" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -147,9 +148,9 @@ func (*GenerateKeyPairInput) Descriptor() ([]byte, []int) {
 type GenerateKeyPairOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// private_key is the PEM-encoded private key
-	PrivateKey []byte `protobuf:"bytes,1,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
+	PrivateKey []byte `protobuf:"bytes,1,opt,name=private_key,json=PrivateKey,proto3" json:"PrivateKey" validate:"required"`
 	// public_key is the PEM-encoded public key
-	PublicKey     []byte `protobuf:"bytes,2,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	PublicKey     []byte `protobuf:"bytes,2,opt,name=public_key,json=PublicKey,proto3" json:"PublicKey" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -203,10 +204,10 @@ type GenerateAndStorePasswordInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// vault_path is the Vault path to store the password at
 	// Example: "fabric/org1/ca/tls/root/admin"
-	VaultPath string `protobuf:"bytes,1,opt,name=vault_path,json=vaultPath,proto3" json:"vault_path,omitempty"`
+	VaultPath string `protobuf:"bytes,1,opt,name=vault_path,json=VaultPath,proto3" json:"VaultPath" validate:"required"`
 	// username is the username to store alongside the password
 	// Example: "postgres_ca_tls_root"
-	Username      string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	Username      string `protobuf:"bytes,2,opt,name=username,json=Username,proto3" json:"Username" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -259,7 +260,7 @@ func (x *GenerateAndStorePasswordInput) GetUsername() string {
 type GenerateAndStorePasswordOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// secret_ref is the Vault secret reference with path and version
-	SecretRef     *v1.SecretRef `protobuf:"bytes,1,opt,name=secret_ref,json=secretRef,proto3" json:"secret_ref,omitempty"`
+	SecretRef     *v1.SecretRef `protobuf:"bytes,1,opt,name=secret_ref,json=SecretRef,proto3" json:"SecretRef" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -307,7 +308,7 @@ type GenerateAndStoreKeyPairInput struct {
 	// vault_path is the Vault path to store the key pair at
 	// Both keys (private and public) are stored at this path
 	// Example: "fabric/org1/ca/tls/root/keys"
-	VaultPath     string `protobuf:"bytes,1,opt,name=vault_path,json=vaultPath,proto3" json:"vault_path,omitempty"`
+	VaultPath     string `protobuf:"bytes,1,opt,name=vault_path,json=VaultPath,proto3" json:"VaultPath" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -353,7 +354,7 @@ func (x *GenerateAndStoreKeyPairInput) GetVaultPath() string {
 type GenerateAndStoreKeyPairOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// secret_ref is the Vault secret reference with path and version
-	SecretRef     *v1.SecretRef `protobuf:"bytes,1,opt,name=secret_ref,json=secretRef,proto3" json:"secret_ref,omitempty"`
+	SecretRef     *v1.SecretRef `protobuf:"bytes,1,opt,name=secret_ref,json=SecretRef,proto3" json:"SecretRef" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -399,34 +400,34 @@ var File_crypto_v1_crypto_proto protoreflect.FileDescriptor
 
 const file_crypto_v1_crypto_proto_rawDesc = "" +
 	"\n" +
-	"\x16crypto/v1/crypto.proto\x12\tcrypto.v1\x1a\x1atemporal/v1/temporal.proto\x1a\x14vault/v1/vault.proto\"\x17\n" +
-	"\x15GeneratePasswordInput\"4\n" +
-	"\x16GeneratePasswordOutput\x12\x1a\n" +
-	"\bpassword\x18\x01 \x01(\tR\bpassword\"\x16\n" +
-	"\x14GenerateKeyPairInput\"W\n" +
-	"\x15GenerateKeyPairOutput\x12\x1f\n" +
-	"\vprivate_key\x18\x01 \x01(\fR\n" +
-	"privateKey\x12\x1d\n" +
+	"\x16crypto/v1/crypto.proto\x12\tcrypto.v1\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\x1a\x14vault/v1/vault.proto\"\x17\n" +
+	"\x15GeneratePasswordInput\"`\n" +
+	"\x16GeneratePasswordOutput\x12F\n" +
+	"\bpassword\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"Password\" validate:\"required\"R\bPassword\"\x16\n" +
+	"\x14GenerateKeyPairInput\"\xb2\x01\n" +
+	"\x15GenerateKeyPairOutput\x12M\n" +
+	"\vprivate_key\x18\x01 \x01(\fB,ʵ\x03(\xa2\x01%json:\"PrivateKey\" validate:\"required\"R\n" +
+	"PrivateKey\x12J\n" +
 	"\n" +
-	"public_key\x18\x02 \x01(\fR\tpublicKey\"Z\n" +
-	"\x1dGenerateAndStorePasswordInput\x12\x1d\n" +
+	"public_key\x18\x02 \x01(\fB+ʵ\x03'\xa2\x01$json:\"PublicKey\" validate:\"required\"R\tPublicKey\"\xb3\x01\n" +
+	"\x1dGenerateAndStorePasswordInput\x12J\n" +
 	"\n" +
-	"vault_path\x18\x01 \x01(\tR\tvaultPath\x12\x1a\n" +
-	"\busername\x18\x02 \x01(\tR\busername\"T\n" +
-	"\x1eGenerateAndStorePasswordOutput\x122\n" +
+	"vault_path\x18\x01 \x01(\tB+ʵ\x03'\xa2\x01$json:\"VaultPath\" validate:\"required\"R\tVaultPath\x12F\n" +
+	"\busername\x18\x02 \x01(\tB*ʵ\x03&\xa2\x01#json:\"Username\" validate:\"required\"R\bUsername\"\x81\x01\n" +
+	"\x1eGenerateAndStorePasswordOutput\x12_\n" +
 	"\n" +
-	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefR\tsecretRef\"=\n" +
-	"\x1cGenerateAndStoreKeyPairInput\x12\x1d\n" +
+	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefB+ʵ\x03'\xa2\x01$json:\"SecretRef\" validate:\"required\"R\tSecretRef\"j\n" +
+	"\x1cGenerateAndStoreKeyPairInput\x12J\n" +
 	"\n" +
-	"vault_path\x18\x01 \x01(\tR\tvaultPath\"S\n" +
-	"\x1dGenerateAndStoreKeyPairOutput\x122\n" +
+	"vault_path\x18\x01 \x01(\tB+ʵ\x03'\xa2\x01$json:\"VaultPath\" validate:\"required\"R\tVaultPath\"\x80\x01\n" +
+	"\x1dGenerateAndStoreKeyPairOutput\x12_\n" +
 	"\n" +
-	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefR\tsecretRef2\xc8\x05\n" +
+	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefB+ʵ\x03'\xa2\x01$json:\"SecretRef\" validate:\"required\"R\tSecretRef2\xc6\x05\n" +
 	"\x06Crypto\x12}\n" +
 	"\x10GeneratePassword\x12 .crypto.v1.GeneratePasswordInput\x1a!.crypto.v1.GeneratePasswordOutput\"$\x92\xc4\x03 \x12\x02\b\x1e:\x1acrypto.v1.GeneratePassword\x12y\n" +
-	"\x0fGenerateKeyPair\x12\x1f.crypto.v1.GenerateKeyPairInput\x1a .crypto.v1.GenerateKeyPairOutput\"#\x92\xc4\x03\x1f\x12\x02\b\x1e:\x19crypto.v1.GenerateKeyPair\x12\xdc\x01\n" +
-	"\x18GenerateAndStorePassword\x12(.crypto.v1.GenerateAndStorePasswordInput\x1a).crypto.v1.GenerateAndStorePasswordOutput\"k\x8a\xc4\x03g*=crypto/generate-store-password/${! vault_path.or(\"default\") }0\x01@\x03r\"crypto.v1.GenerateAndStorePassword\x12\xd7\x01\n" +
-	"\x17GenerateAndStoreKeyPair\x12'.crypto.v1.GenerateAndStoreKeyPairInput\x1a(.crypto.v1.GenerateAndStoreKeyPairOutput\"i\x8a\xc4\x03e*<crypto/generate-store-keypair/${! vault_path.or(\"default\") }0\x01@\x03r!crypto.v1.GenerateAndStoreKeyPair\x1a\v\x8a\xc4\x03\a\n" +
+	"\x0fGenerateKeyPair\x12\x1f.crypto.v1.GenerateKeyPairInput\x1a .crypto.v1.GenerateKeyPairOutput\"#\x92\xc4\x03\x1f\x12\x02\b\x1e:\x19crypto.v1.GenerateKeyPair\x12\xdb\x01\n" +
+	"\x18GenerateAndStorePassword\x12(.crypto.v1.GenerateAndStorePasswordInput\x1a).crypto.v1.GenerateAndStorePasswordOutput\"j\x8a\xc4\x03f*<crypto/generate-store-password/${! VaultPath.or(\"default\") }0\x01@\x03r\"crypto.v1.GenerateAndStorePassword\x12\xd6\x01\n" +
+	"\x17GenerateAndStoreKeyPair\x12'.crypto.v1.GenerateAndStoreKeyPairInput\x1a(.crypto.v1.GenerateAndStoreKeyPairOutput\"h\x8a\xc4\x03d*;crypto/generate-store-keypair/${! VaultPath.or(\"default\") }0\x01@\x03r!crypto.v1.GenerateAndStoreKeyPair\x1a\v\x8a\xc4\x03\a\n" +
 	"\x05infraB\xa8\x01\n" +
 	"\rcom.crypto.v1B\vCryptoProtoP\x01ZEgithub.com/metacensus/infra/temporal/gen/workflows/crypto/v1;cryptov1\xa2\x02\x03CXX\xaa\x02\tCrypto.V1\xca\x02\tCrypto\\V1\xe2\x02\x15Crypto\\V1\\GPBMetadata\xea\x02\n" +
 	"Crypto::V1b\x06proto3"

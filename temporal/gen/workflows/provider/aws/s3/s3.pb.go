@@ -7,6 +7,7 @@
 package s3v1
 
 import (
+	_ "github.com/alta/protopatch/patch/gopb"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -26,17 +27,17 @@ const (
 type S3Object struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// bucket is the S3 bucket name
-	Bucket string `protobuf:"bytes,1,opt,name=bucket,proto3" json:"bucket,omitempty"`
+	Bucket string `protobuf:"bytes,1,opt,name=bucket,json=Bucket,proto3" json:"Bucket" validate:"required"`
 	// key is the S3 object key (path)
-	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Key string `protobuf:"bytes,2,opt,name=key,json=Key,proto3" json:"Key" validate:"required"`
 	// data is the object contents (for reads, populated from S3; for writes, content to upload)
-	Data []byte `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	Data []byte `protobuf:"bytes,3,opt,name=data,json=Data,proto3" json:"Data,omitempty" validate:"omitempty"`
 	// content_type is the MIME type of the object (optional for reads, used for writes)
-	ContentType string `protobuf:"bytes,4,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	ContentType string `protobuf:"bytes,4,opt,name=content_type,json=ContentType,proto3" json:"ContentType,omitempty" validate:"omitempty"`
 	// etag is the entity tag (version identifier) of the object (populated by S3 on read/write)
-	Etag string `protobuf:"bytes,5,opt,name=etag,proto3" json:"etag,omitempty"`
+	Etag string `protobuf:"bytes,5,opt,name=etag,json=Etag,proto3" json:"Etag,omitempty" validate:"omitempty"`
 	// version_id is the version ID of the object (if versioning is enabled, populated by S3)
-	VersionId     string `protobuf:"bytes,6,opt,name=version_id,json=versionId,proto3" json:"version_id,omitempty"`
+	VersionId     string `protobuf:"bytes,6,opt,name=version_id,json=VersionId,proto3" json:"VersionId,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -118,9 +119,9 @@ func (x *S3Object) GetVersionId() string {
 type S3ObjectRef struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// bucket is the S3 bucket name
-	Bucket string `protobuf:"bytes,1,opt,name=bucket,proto3" json:"bucket,omitempty"`
+	Bucket string `protobuf:"bytes,1,opt,name=bucket,json=Bucket,proto3" json:"Bucket" validate:"required"`
 	// key is the S3 object key (path)
-	Key           string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Key           string `protobuf:"bytes,2,opt,name=key,json=Key,proto3" json:"Key" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -173,9 +174,9 @@ func (x *S3ObjectRef) GetKey() string {
 type S3DeleteOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// delete_marker indicates if a delete marker was created (for versioned buckets)
-	DeleteMarker bool `protobuf:"varint,1,opt,name=delete_marker,json=deleteMarker,proto3" json:"delete_marker,omitempty"`
+	DeleteMarker bool `protobuf:"varint,1,opt,name=delete_marker,json=DeleteMarker,proto3" json:"DeleteMarker" validate:"required"`
 	// version_id is the version ID involved in the deletion
-	VersionId     string `protobuf:"bytes,2,opt,name=version_id,json=versionId,proto3" json:"version_id,omitempty"`
+	VersionId     string `protobuf:"bytes,2,opt,name=version_id,json=VersionId,proto3" json:"VersionId,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -228,22 +229,22 @@ var File_provider_aws_s3_s3_proto protoreflect.FileDescriptor
 
 const file_provider_aws_s3_s3_proto_rawDesc = "" +
 	"\n" +
-	"\x18provider/aws/s3/s3.proto\x12\taws.s3.v1\x1a\x1atemporal/v1/temporal.proto\"\x9e\x01\n" +
-	"\bS3Object\x12\x16\n" +
-	"\x06bucket\x18\x01 \x01(\tR\x06bucket\x12\x10\n" +
-	"\x03key\x18\x02 \x01(\tR\x03key\x12\x12\n" +
-	"\x04data\x18\x03 \x01(\fR\x04data\x12!\n" +
-	"\fcontent_type\x18\x04 \x01(\tR\vcontentType\x12\x12\n" +
-	"\x04etag\x18\x05 \x01(\tR\x04etag\x12\x1d\n" +
+	"\x18provider/aws/s3/s3.proto\x12\taws.s3.v1\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\xc7\x03\n" +
+	"\bS3Object\x12@\n" +
+	"\x06bucket\x18\x01 \x01(\tB(ʵ\x03$\xa2\x01!json:\"Bucket\" validate:\"required\"R\x06Bucket\x127\n" +
+	"\x03key\x18\x02 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Key\" validate:\"required\"R\x03Key\x12E\n" +
+	"\x04data\x18\x03 \x01(\fB1ʵ\x03-\xa2\x01*json:\"Data,omitempty\" validate:\"omitempty\"R\x04Data\x12[\n" +
+	"\fcontent_type\x18\x04 \x01(\tB8ʵ\x034\xa2\x011json:\"ContentType,omitempty\" validate:\"omitempty\"R\vContentType\x12E\n" +
+	"\x04etag\x18\x05 \x01(\tB1ʵ\x03-\xa2\x01*json:\"Etag,omitempty\" validate:\"omitempty\"R\x04Etag\x12U\n" +
 	"\n" +
-	"version_id\x18\x06 \x01(\tR\tversionId\"7\n" +
-	"\vS3ObjectRef\x12\x16\n" +
-	"\x06bucket\x18\x01 \x01(\tR\x06bucket\x12\x10\n" +
-	"\x03key\x18\x02 \x01(\tR\x03key\"T\n" +
-	"\x0eS3DeleteOutput\x12#\n" +
-	"\rdelete_marker\x18\x01 \x01(\bR\fdeleteMarker\x12\x1d\n" +
+	"version_id\x18\x06 \x01(\tB6ʵ\x032\xa2\x01/json:\"VersionId,omitempty\" validate:\"omitempty\"R\tVersionId\"\x88\x01\n" +
+	"\vS3ObjectRef\x12@\n" +
+	"\x06bucket\x18\x01 \x01(\tB(ʵ\x03$\xa2\x01!json:\"Bucket\" validate:\"required\"R\x06Bucket\x127\n" +
+	"\x03key\x18\x02 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Key\" validate:\"required\"R\x03Key\"\xbc\x01\n" +
+	"\x0eS3DeleteOutput\x12S\n" +
+	"\rdelete_marker\x18\x01 \x01(\bB.ʵ\x03*\xa2\x01'json:\"DeleteMarker\" validate:\"required\"R\fDeleteMarker\x12U\n" +
 	"\n" +
-	"version_id\x18\x02 \x01(\tR\tversionId2\xad\x02\n" +
+	"version_id\x18\x02 \x01(\tB6ʵ\x032\xa2\x01/json:\"VersionId,omitempty\" validate:\"omitempty\"R\tVersionId2\xad\x02\n" +
 	"\n" +
 	"S3Provider\x12X\n" +
 	"\tGetObject\x12\x16.aws.s3.v1.S3ObjectRef\x1a\x13.aws.s3.v1.S3Object\"\x1e\x92\xc4\x03\x1a\x12\x03\b\xac\x02:\x13aws.s3.v1.GetObject\x12U\n" +

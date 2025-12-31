@@ -39,8 +39,8 @@ const (
 
 // crypto.v1.Crypto workflow id expressions
 var (
-	GenerateAndStoreKeyPairIdexpression  = expression.MustParseExpression("crypto/generate-store-keypair/${! vault_path.or(\"default\") }")
-	GenerateAndStorePasswordIdexpression = expression.MustParseExpression("crypto/generate-store-password/${! vault_path.or(\"default\") }")
+	GenerateAndStoreKeyPairIdexpression  = expression.MustParseExpression("crypto/generate-store-keypair/${! VaultPath.or(\"default\") }")
+	GenerateAndStorePasswordIdexpression = expression.MustParseExpression("crypto/generate-store-password/${! VaultPath.or(\"default\") }")
 )
 
 // crypto.v1.Crypto activity names
@@ -53,7 +53,7 @@ const (
 type CryptoClient interface {
 	// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 	// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
-	// Keys are stored with names "private" and "public" at the same vault_path
+	// Keys are stored with names "private" and "public" at the same VaultPath
 	GenerateAndStoreKeyPair(ctx context.Context, req *GenerateAndStoreKeyPairInput, opts ...*GenerateAndStoreKeyPairOptions) (*GenerateAndStoreKeyPairOutput, error)
 
 	// GenerateAndStoreKeyPairAsync starts a(n) crypto.v1.GenerateAndStoreKeyPair workflow and returns a handle to the workflow run
@@ -147,7 +147,7 @@ func (opts *cryptoClientOptions) getLogger() *slog.Logger {
 
 // GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 // Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
-// Keys are stored with names "private" and "public" at the same vault_path
+// Keys are stored with names "private" and "public" at the same VaultPath
 func (c *cryptoClient) GenerateAndStoreKeyPair(ctx context.Context, req *GenerateAndStoreKeyPairInput, options ...*GenerateAndStoreKeyPairOptions) (*GenerateAndStoreKeyPairOutput, error) {
 	run, err := c.GenerateAndStoreKeyPairAsync(ctx, req, options...)
 	if err != nil {
@@ -158,7 +158,7 @@ func (c *cryptoClient) GenerateAndStoreKeyPair(ctx context.Context, req *Generat
 
 // GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 // Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
-// Keys are stored with names "private" and "public" at the same vault_path
+// Keys are stored with names "private" and "public" at the same VaultPath
 func (c *cryptoClient) GenerateAndStoreKeyPairAsync(ctx context.Context, req *GenerateAndStoreKeyPairInput, options ...*GenerateAndStoreKeyPairOptions) (GenerateAndStoreKeyPairRun, error) {
 	var o *GenerateAndStoreKeyPairOptions
 	if len(options) > 0 && options[0] != nil {
@@ -619,7 +619,7 @@ var (
 	cryptoRegistrationMutex sync.Mutex
 	// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 	// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
-	// Keys are stored with names "private" and "public" at the same vault_path
+	// Keys are stored with names "private" and "public" at the same VaultPath
 	GenerateAndStoreKeyPairFunction func(workflow.Context, *GenerateAndStoreKeyPairInput) (*GenerateAndStoreKeyPairOutput, error)
 	// GenerateAndStorePassword generates a password and stores it in Vault
 	// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
@@ -633,7 +633,7 @@ type (
 	CryptoWorkflowFunctions interface {
 		// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 		// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
-		// Keys are stored with names "private" and "public" at the same vault_path
+		// Keys are stored with names "private" and "public" at the same VaultPath
 		GenerateAndStoreKeyPair(workflow.Context, *GenerateAndStoreKeyPairInput) (*GenerateAndStoreKeyPairOutput, error)
 		// GenerateAndStorePassword generates a password and stores it in Vault
 		// Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
@@ -650,7 +650,7 @@ func NewCryptoWorkflowFunctions() CryptoWorkflowFunctions {
 
 // GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 // Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
-// Keys are stored with names "private" and "public" at the same vault_path
+// Keys are stored with names "private" and "public" at the same VaultPath
 func (f *cryptoWorkflowFunctions) GenerateAndStoreKeyPair(ctx workflow.Context, req *GenerateAndStoreKeyPairInput) (*GenerateAndStoreKeyPairOutput, error) {
 	if GenerateAndStoreKeyPairFunction == nil {
 		return nil, errors.New("GenerateAndStoreKeyPair requires workflow registration via RegisterCryptoWorkflows or RegisterGenerateAndStoreKeyPairWorkflow")
@@ -672,7 +672,7 @@ func (f *cryptoWorkflowFunctions) GenerateAndStorePassword(ctx workflow.Context,
 type CryptoWorkflows interface {
 	// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 	// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
-	// Keys are stored with names "private" and "public" at the same vault_path
+	// Keys are stored with names "private" and "public" at the same VaultPath
 	GenerateAndStoreKeyPair(ctx workflow.Context, input *GenerateAndStoreKeyPairWorkflowInput) (GenerateAndStoreKeyPairWorkflow, error)
 
 	// GenerateAndStorePassword generates a password and stores it in Vault
@@ -721,9 +721,9 @@ type GenerateAndStoreKeyPairWorkflowInput struct {
 
 // GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 // Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
-// Keys are stored with names "private" and "public" at the same vault_path
+// Keys are stored with names "private" and "public" at the same VaultPath
 //
-// workflow details: (name: "crypto.v1.GenerateAndStoreKeyPair", id: "crypto/generate-store-keypair/${! vault_path.or("default") }")
+// workflow details: (name: "crypto.v1.GenerateAndStoreKeyPair", id: "crypto/generate-store-keypair/${! VaultPath.or("default") }")
 type GenerateAndStoreKeyPairWorkflow interface {
 	// Execute defines the entrypoint to a(n) crypto.v1.GenerateAndStoreKeyPair workflow
 	Execute(ctx workflow.Context) (*GenerateAndStoreKeyPairOutput, error)
@@ -731,7 +731,7 @@ type GenerateAndStoreKeyPairWorkflow interface {
 
 // GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 // Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
-// Keys are stored with names "private" and "public" at the same vault_path
+// Keys are stored with names "private" and "public" at the same VaultPath
 func GenerateAndStoreKeyPairChild(ctx workflow.Context, req *GenerateAndStoreKeyPairInput, options ...*GenerateAndStoreKeyPairChildOptions) (*GenerateAndStoreKeyPairOutput, error) {
 	childRun, err := GenerateAndStoreKeyPairChildAsync(ctx, req, options...)
 	if err != nil {
@@ -742,7 +742,7 @@ func GenerateAndStoreKeyPairChild(ctx workflow.Context, req *GenerateAndStoreKey
 
 // GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 // Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
-// Keys are stored with names "private" and "public" at the same vault_path
+// Keys are stored with names "private" and "public" at the same VaultPath
 func GenerateAndStoreKeyPairChildAsync(ctx workflow.Context, req *GenerateAndStoreKeyPairInput, options ...*GenerateAndStoreKeyPairChildOptions) (*GenerateAndStoreKeyPairChildRun, error) {
 	var o *GenerateAndStoreKeyPairChildOptions
 	if len(options) > 0 && options[0] != nil {
@@ -1002,7 +1002,7 @@ type GenerateAndStorePasswordWorkflowInput struct {
 // Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
 // Username and password are stored with key names "username" and "password"
 //
-// workflow details: (name: "crypto.v1.GenerateAndStorePassword", id: "crypto/generate-store-password/${! vault_path.or("default") }")
+// workflow details: (name: "crypto.v1.GenerateAndStorePassword", id: "crypto/generate-store-password/${! VaultPath.or("default") }")
 type GenerateAndStorePasswordWorkflow interface {
 	// Execute defines the entrypoint to a(n) crypto.v1.GenerateAndStorePassword workflow
 	Execute(ctx workflow.Context) (*GenerateAndStorePasswordOutput, error)

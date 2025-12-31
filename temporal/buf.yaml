@@ -4,6 +4,7 @@ modules:
 deps:
   - buf.build/bergundy/nexus
   - buf.build/cludden/protoc-gen-go-temporal
+  - buf.build/alta/protopatch
 lint:
   use:
     - STANDARD

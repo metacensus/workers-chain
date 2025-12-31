@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	expression "github.com/cludden/protoc-gen-go-temporal/pkg/expression"
 	helpers "github.com/cludden/protoc-gen-go-temporal/pkg/helpers"
 	enumsv1 "go.temporal.io/api/enums/v1"
 	client "go.temporal.io/sdk/client"
@@ -34,6 +35,13 @@ const (
 	CreateDeploymentWorkflowName     = "cluster.fabric.v1.CreateDeployment"
 	CreateNamespaceWorkflowName      = "cluster.fabric.v1.CreateNamespace"
 	CreateServiceAccountWorkflowName = "cluster.fabric.v1.CreateServiceAccount"
+)
+
+// cluster.fabric.v1.Cluster workflow id expressions
+var (
+	CreateDeploymentIdexpression     = expression.MustParseExpression("cluster/fabric/create-deployment/${! Org }/${! Component }")
+	CreateNamespaceIdexpression      = expression.MustParseExpression("cluster/fabric/create-namespace/${! Org }")
+	CreateServiceAccountIdexpression = expression.MustParseExpression("cluster/fabric/create-service-account/${! Org }")
 )
 
 // ClusterClient describes a client for a(n) cluster.fabric.v1.Cluster worker
@@ -309,6 +317,12 @@ func (o *CreateDeploymentOptions) Build(req protoreflect.Message) (client.StartW
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(CreateDeploymentIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateDeploymentWorkflowName, err)
+		}
+		opts.ID = id
 	}
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
@@ -486,6 +500,12 @@ func (o *CreateNamespaceOptions) Build(req protoreflect.Message) (client.StartWo
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(CreateNamespaceIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateNamespaceWorkflowName, err)
+		}
+		opts.ID = id
 	}
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
@@ -663,6 +683,12 @@ func (o *CreateServiceAccountOptions) Build(req protoreflect.Message) (client.St
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(CreateServiceAccountIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateServiceAccountWorkflowName, err)
+		}
+		opts.ID = id
 	}
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
@@ -941,7 +967,7 @@ type CreateDeploymentWorkflowInput struct {
 // CreateDeployment orchestrates the deployment of a single resource to Kubernetes
 // This workflow renders a Helm chart with provided values and applies it to the cluster
 //
-// workflow details: (name: "cluster.fabric.v1.CreateDeployment")
+// workflow details: (name: "cluster.fabric.v1.CreateDeployment", id: "cluster/fabric/create-deployment/${! Org }/${! Component }")
 type CreateDeploymentWorkflow interface {
 	// Execute defines the entrypoint to a(n) cluster.fabric.v1.CreateDeployment workflow
 	Execute(ctx workflow.Context) (*CreateDeploymentOutput, error)
@@ -1004,6 +1030,28 @@ func (o *CreateDeploymentChildOptions) Build(ctx workflow.Context, req protorefl
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(CreateDeploymentIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateDeploymentWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateDeploymentWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(CreateDeploymentIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateDeploymentWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
 	}
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
@@ -1193,7 +1241,7 @@ type CreateNamespaceWorkflowInput struct {
 // CreateNamespace orchestrates the creation of a Kubernetes namespace
 // This workflow combines Helm chart rendering with Kubernetes resource application
 //
-// workflow details: (name: "cluster.fabric.v1.CreateNamespace")
+// workflow details: (name: "cluster.fabric.v1.CreateNamespace", id: "cluster/fabric/create-namespace/${! Org }")
 type CreateNamespaceWorkflow interface {
 	// Execute defines the entrypoint to a(n) cluster.fabric.v1.CreateNamespace workflow
 	Execute(ctx workflow.Context) (*CreateNamespaceOutput, error)
@@ -1256,6 +1304,28 @@ func (o *CreateNamespaceChildOptions) Build(ctx workflow.Context, req protorefle
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(CreateNamespaceIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateNamespaceWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateNamespaceWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(CreateNamespaceIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateNamespaceWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
 	}
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
@@ -1446,7 +1516,7 @@ type CreateServiceAccountWorkflowInput struct {
 // This workflow renders a Helm chart template for service account configuration,
 // then applies the resulting resources to the cluster
 //
-// workflow details: (name: "cluster.fabric.v1.CreateServiceAccount")
+// workflow details: (name: "cluster.fabric.v1.CreateServiceAccount", id: "cluster/fabric/create-service-account/${! Org }")
 type CreateServiceAccountWorkflow interface {
 	// Execute defines the entrypoint to a(n) cluster.fabric.v1.CreateServiceAccount workflow
 	Execute(ctx workflow.Context) (*CreateServiceAccountOutput, error)
@@ -1511,6 +1581,28 @@ func (o *CreateServiceAccountChildOptions) Build(ctx workflow.Context, req proto
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(CreateServiceAccountIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateServiceAccountWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateServiceAccountWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(CreateServiceAccountIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateServiceAccountWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
 	}
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v

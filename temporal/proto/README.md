@@ -254,16 +254,18 @@ GetObject retrieves an object from S3
 <td><pre>
 bucket is the S3 bucket name<br>
 
-json_name: bucket
-go_name: Bucket</pre></td>
+json_name: Bucket
+go_name: Bucket
+go_tags: json:"Bucket" validate:"required"</pre></td>
 </tr><tr>
 <td>key</td>
 <td>string</td>
 <td><pre>
 key is the S3 object key (path)<br>
 
-json_name: key
-go_name: Key</pre></td>
+json_name: Key
+go_name: Key
+go_tags: json:"Key" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -281,48 +283,54 @@ go_name: Key</pre></td>
 <td><pre>
 bucket is the S3 bucket name<br>
 
-json_name: bucket
-go_name: Bucket</pre></td>
+json_name: Bucket
+go_name: Bucket
+go_tags: json:"Bucket" validate:"required"</pre></td>
 </tr><tr>
 <td>content_type</td>
 <td>string</td>
 <td><pre>
 content_type is the MIME type of the object (optional for reads, used for writes)<br>
 
-json_name: contentType
-go_name: ContentType</pre></td>
+json_name: ContentType
+go_name: ContentType
+go_tags: json:"ContentType,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>data</td>
 <td>bytes</td>
 <td><pre>
 data is the object contents (for reads, populated from S3; for writes, content to upload)<br>
 
-json_name: data
-go_name: Data</pre></td>
+json_name: Data
+go_name: Data
+go_tags: json:"Data,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>etag</td>
 <td>string</td>
 <td><pre>
 etag is the entity tag (version identifier) of the object (populated by S3 on read/write)<br>
 
-json_name: etag
-go_name: Etag</pre></td>
+json_name: Etag
+go_name: Etag
+go_tags: json:"Etag,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>key</td>
 <td>string</td>
 <td><pre>
 key is the S3 object key (path)<br>
 
-json_name: key
-go_name: Key</pre></td>
+json_name: Key
+go_name: Key
+go_tags: json:"Key" validate:"required"</pre></td>
 </tr><tr>
 <td>version_id</td>
 <td>string</td>
 <td><pre>
 version_id is the version ID of the object (if versioning is enabled, populated by S3)<br>
 
-json_name: versionId
-go_name: VersionId</pre></td>
+json_name: VersionId
+go_name: VersionId
+go_tags: json:"VersionId,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table> 
 
@@ -348,48 +356,54 @@ PutObject writes an object to S3
 <td><pre>
 bucket is the S3 bucket name<br>
 
-json_name: bucket
-go_name: Bucket</pre></td>
+json_name: Bucket
+go_name: Bucket
+go_tags: json:"Bucket" validate:"required"</pre></td>
 </tr><tr>
 <td>content_type</td>
 <td>string</td>
 <td><pre>
 content_type is the MIME type of the object (optional for reads, used for writes)<br>
 
-json_name: contentType
-go_name: ContentType</pre></td>
+json_name: ContentType
+go_name: ContentType
+go_tags: json:"ContentType,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>data</td>
 <td>bytes</td>
 <td><pre>
 data is the object contents (for reads, populated from S3; for writes, content to upload)<br>
 
-json_name: data
-go_name: Data</pre></td>
+json_name: Data
+go_name: Data
+go_tags: json:"Data,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>etag</td>
 <td>string</td>
 <td><pre>
 etag is the entity tag (version identifier) of the object (populated by S3 on read/write)<br>
 
-json_name: etag
-go_name: Etag</pre></td>
+json_name: Etag
+go_name: Etag
+go_tags: json:"Etag,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>key</td>
 <td>string</td>
 <td><pre>
 key is the S3 object key (path)<br>
 
-json_name: key
-go_name: Key</pre></td>
+json_name: Key
+go_name: Key
+go_tags: json:"Key" validate:"required"</pre></td>
 </tr><tr>
 <td>version_id</td>
 <td>string</td>
 <td><pre>
 version_id is the version ID of the object (if versioning is enabled, populated by S3)<br>
 
-json_name: versionId
-go_name: VersionId</pre></td>
+json_name: VersionId
+go_name: VersionId
+go_tags: json:"VersionId,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 
@@ -407,48 +421,54 @@ go_name: VersionId</pre></td>
 <td><pre>
 bucket is the S3 bucket name<br>
 
-json_name: bucket
-go_name: Bucket</pre></td>
+json_name: Bucket
+go_name: Bucket
+go_tags: json:"Bucket" validate:"required"</pre></td>
 </tr><tr>
 <td>content_type</td>
 <td>string</td>
 <td><pre>
 content_type is the MIME type of the object (optional for reads, used for writes)<br>
 
-json_name: contentType
-go_name: ContentType</pre></td>
+json_name: ContentType
+go_name: ContentType
+go_tags: json:"ContentType,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>data</td>
 <td>bytes</td>
 <td><pre>
 data is the object contents (for reads, populated from S3; for writes, content to upload)<br>
 
-json_name: data
-go_name: Data</pre></td>
+json_name: Data
+go_name: Data
+go_tags: json:"Data,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>etag</td>
 <td>string</td>
 <td><pre>
 etag is the entity tag (version identifier) of the object (populated by S3 on read/write)<br>
 
-json_name: etag
-go_name: Etag</pre></td>
+json_name: Etag
+go_name: Etag
+go_tags: json:"Etag,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>key</td>
 <td>string</td>
 <td><pre>
 key is the S3 object key (path)<br>
 
-json_name: key
-go_name: Key</pre></td>
+json_name: Key
+go_name: Key
+go_tags: json:"Key" validate:"required"</pre></td>
 </tr><tr>
 <td>version_id</td>
 <td>string</td>
 <td><pre>
 version_id is the version ID of the object (if versioning is enabled, populated by S3)<br>
 
-json_name: versionId
-go_name: VersionId</pre></td>
+json_name: VersionId
+go_name: VersionId
+go_tags: json:"VersionId,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table> 
 
@@ -474,16 +494,18 @@ DeleteObject deletes an object from S3
 <td><pre>
 bucket is the S3 bucket name<br>
 
-json_name: bucket
-go_name: Bucket</pre></td>
+json_name: Bucket
+go_name: Bucket
+go_tags: json:"Bucket" validate:"required"</pre></td>
 </tr><tr>
 <td>key</td>
 <td>string</td>
 <td><pre>
 key is the S3 object key (path)<br>
 
-json_name: key
-go_name: Key</pre></td>
+json_name: Key
+go_name: Key
+go_tags: json:"Key" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -501,16 +523,18 @@ go_name: Key</pre></td>
 <td><pre>
 delete_marker indicates if a delete marker was created (for versioned buckets)<br>
 
-json_name: deleteMarker
-go_name: DeleteMarker</pre></td>
+json_name: DeleteMarker
+go_name: DeleteMarker
+go_tags: json:"DeleteMarker" validate:"required"</pre></td>
 </tr><tr>
 <td>version_id</td>
 <td>string</td>
 <td><pre>
 version_id is the version ID involved in the deletion<br>
 
-json_name: versionId
-go_name: VersionId</pre></td>
+json_name: VersionId
+go_name: VersionId
+go_tags: json:"VersionId,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>   
 
@@ -536,16 +560,18 @@ S3DeleteOutput represents the result of a delete operation
 <td><pre>
 delete_marker indicates if a delete marker was created (for versioned buckets)<br>
 
-json_name: deleteMarker
-go_name: DeleteMarker</pre></td>
+json_name: DeleteMarker
+go_name: DeleteMarker
+go_tags: json:"DeleteMarker" validate:"required"</pre></td>
 </tr><tr>
 <td>version_id</td>
 <td>string</td>
 <td><pre>
 version_id is the version ID involved in the deletion<br>
 
-json_name: versionId
-go_name: VersionId</pre></td>
+json_name: VersionId
+go_name: VersionId
+go_tags: json:"VersionId,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 
@@ -570,48 +596,54 @@ S3Object represents a complete S3 object with metadata
 <td><pre>
 bucket is the S3 bucket name<br>
 
-json_name: bucket
-go_name: Bucket</pre></td>
+json_name: Bucket
+go_name: Bucket
+go_tags: json:"Bucket" validate:"required"</pre></td>
 </tr><tr>
 <td>content_type</td>
 <td>string</td>
 <td><pre>
 content_type is the MIME type of the object (optional for reads, used for writes)<br>
 
-json_name: contentType
-go_name: ContentType</pre></td>
+json_name: ContentType
+go_name: ContentType
+go_tags: json:"ContentType,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>data</td>
 <td>bytes</td>
 <td><pre>
 data is the object contents (for reads, populated from S3; for writes, content to upload)<br>
 
-json_name: data
-go_name: Data</pre></td>
+json_name: Data
+go_name: Data
+go_tags: json:"Data,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>etag</td>
 <td>string</td>
 <td><pre>
 etag is the entity tag (version identifier) of the object (populated by S3 on read/write)<br>
 
-json_name: etag
-go_name: Etag</pre></td>
+json_name: Etag
+go_name: Etag
+go_tags: json:"Etag,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>key</td>
 <td>string</td>
 <td><pre>
 key is the S3 object key (path)<br>
 
-json_name: key
-go_name: Key</pre></td>
+json_name: Key
+go_name: Key
+go_tags: json:"Key" validate:"required"</pre></td>
 </tr><tr>
 <td>version_id</td>
 <td>string</td>
 <td><pre>
 version_id is the version ID of the object (if versioning is enabled, populated by S3)<br>
 
-json_name: versionId
-go_name: VersionId</pre></td>
+json_name: VersionId
+go_name: VersionId
+go_tags: json:"VersionId,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 
@@ -637,16 +669,18 @@ Used for operations that only need bucket and key (read, delete)
 <td><pre>
 bucket is the S3 bucket name<br>
 
-json_name: bucket
-go_name: Bucket</pre></td>
+json_name: Bucket
+go_name: Bucket
+go_tags: json:"Bucket" validate:"required"</pre></td>
 </tr><tr>
 <td>key</td>
 <td>string</td>
 <td><pre>
 key is the S3 object key (path)<br>
 
-json_name: key
-go_name: Key</pre></td>
+json_name: Key
+go_name: Key
+go_tags: json:"Key" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -695,6 +729,7 @@ communication layer needed for workflows in different namespaces to call service
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>cell/bootstrap-infra</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -733,8 +768,9 @@ Phase 2 (fabric worker): Initiated via Nexus, deploys Fabric components (CAs, pe
 org is the organization identifier (e.g., "org1", "acme-corp")
 Used to derive namespace names: Temporal namespace "fabric-{org}", K8s namespace "fabric-{org}"<br>
 
-json_name: org
-go_name: Org</pre></td>
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -746,6 +782,7 @@ go_name: Org</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>cell/init-fabric-shard/${! Org }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>     
 
@@ -790,8 +827,9 @@ InitFabricShardInput specifies the parameters for initializing a Fabric shard
 org is the organization identifier (e.g., "org1", "acme-corp")
 Used to derive namespace names: Temporal namespace "fabric-{org}", K8s namespace "fabric-{org}"<br>
 
-json_name: org
-go_name: Org</pre></td>
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -848,8 +886,9 @@ This workflow combines Helm chart rendering with Kubernetes resource application
 org is the organization identifier (e.g., "org1")
 The namespace will be named "fabric-{org}"<br>
 
-json_name: org
-go_name: Org</pre></td>
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -867,8 +906,9 @@ go_name: Org</pre></td>
 <td><pre>
 namespace_name is the created namespace (e.g., "fabric-org1")<br>
 
-json_name: namespaceName
-go_name: NamespaceName</pre></td>
+json_name: NamespaceName
+go_name: NamespaceName
+go_tags: json:"NamespaceName" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -876,6 +916,7 @@ go_name: NamespaceName</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>cluster/fabric/create-namespace/${! Org }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -901,8 +942,9 @@ then applies the resulting resources to the cluster
 <td>org</td>
 <td>string</td>
 <td><pre>
-json_name: org
-go_name: Org</pre></td>
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -914,6 +956,7 @@ go_name: Org</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>cluster/fabric/create-service-account/${! Org }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -942,8 +985,9 @@ component specifies which type of deployment to create
 Currently supported: "worker", "certificate-store"
 Future components: "peer", "orderer", "ca", "couchdb"<br>
 
-json_name: component
-go_name: Component</pre></td>
+json_name: Component
+go_name: Component
+go_tags: json:"Component" validate:"required"</pre></td>
 </tr><tr>
 <td>org</td>
 <td>string</td>
@@ -951,8 +995,9 @@ go_name: Component</pre></td>
 org is the organization identifier (e.g., "org1")
 Used to derive namespace names, service account names, etc.<br>
 
-json_name: org
-go_name: Org</pre></td>
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -970,8 +1015,9 @@ go_name: Org</pre></td>
 <td><pre>
 deployment_name is the name of the created deployment<br>
 
-json_name: deploymentName
-go_name: DeploymentName</pre></td>
+json_name: DeploymentName
+go_name: DeploymentName
+go_tags: json:"DeploymentName" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -979,6 +1025,7 @@ go_name: DeploymentName</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>cluster/fabric/create-deployment/${! Org }/${! Component }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>     
 
@@ -1002,8 +1049,9 @@ component specifies which type of deployment to create
 Currently supported: "worker", "certificate-store"
 Future components: "peer", "orderer", "ca", "couchdb"<br>
 
-json_name: component
-go_name: Component</pre></td>
+json_name: Component
+go_name: Component
+go_tags: json:"Component" validate:"required"</pre></td>
 </tr><tr>
 <td>org</td>
 <td>string</td>
@@ -1011,8 +1059,9 @@ go_name: Component</pre></td>
 org is the organization identifier (e.g., "org1")
 Used to derive namespace names, service account names, etc.<br>
 
-json_name: org
-go_name: Org</pre></td>
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1033,8 +1082,9 @@ go_name: Org</pre></td>
 <td><pre>
 deployment_name is the name of the created deployment<br>
 
-json_name: deploymentName
-go_name: DeploymentName</pre></td>
+json_name: DeploymentName
+go_name: DeploymentName
+go_tags: json:"DeploymentName" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1056,8 +1106,9 @@ go_name: DeploymentName</pre></td>
 org is the organization identifier (e.g., "org1")
 The namespace will be named "fabric-{org}"<br>
 
-json_name: org
-go_name: Org</pre></td>
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1078,8 +1129,9 @@ go_name: Org</pre></td>
 <td><pre>
 namespace_name is the created namespace (e.g., "fabric-org1")<br>
 
-json_name: namespaceName
-go_name: NamespaceName</pre></td>
+json_name: NamespaceName
+go_name: NamespaceName
+go_tags: json:"NamespaceName" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1098,8 +1150,9 @@ go_name: NamespaceName</pre></td>
 <td>org</td>
 <td>string</td>
 <td><pre>
-json_name: org
-go_name: Org</pre></td>
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1152,8 +1205,9 @@ Username and password are stored with key names "username" and "password"
 username is the username to store alongside the password
 Example: "postgres_ca_tls_root"<br>
 
-json_name: username
-go_name: Username</pre></td>
+json_name: Username
+go_name: Username
+go_tags: json:"Username" validate:"required"</pre></td>
 </tr><tr>
 <td>vault_path</td>
 <td>string</td>
@@ -1161,8 +1215,9 @@ go_name: Username</pre></td>
 vault_path is the Vault path to store the password at
 Example: "fabric/org1/ca/tls/root/admin"<br>
 
-json_name: vaultPath
-go_name: VaultPath</pre></td>
+json_name: VaultPath
+go_name: VaultPath
+go_tags: json:"VaultPath" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1180,8 +1235,9 @@ go_name: VaultPath</pre></td>
 <td><pre>
 secret_ref is the Vault secret reference with path and version<br>
 
-json_name: secretRef
-go_name: SecretRef</pre></td>
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1189,7 +1245,7 @@ go_name: SecretRef</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>crypto/generate-store-password/${! vault_path.or("default") }</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>crypto/generate-store-password/${! VaultPath.or("default") }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 <tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
 </table>
@@ -1201,7 +1257,7 @@ go_name: SecretRef</pre></td>
 <pre>
 GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
-Keys are stored with names "private" and "public" at the same vault_path
+Keys are stored with names "private" and "public" at the same VaultPath
 </pre>
 
 **Input:** [crypto.v1.GenerateAndStoreKeyPairInput](#crypto-v1-generateandstorekeypairinput)
@@ -1220,8 +1276,9 @@ vault_path is the Vault path to store the key pair at
 Both keys (private and public) are stored at this path
 Example: "fabric/org1/ca/tls/root/keys"<br>
 
-json_name: vaultPath
-go_name: VaultPath</pre></td>
+json_name: VaultPath
+go_name: VaultPath
+go_tags: json:"VaultPath" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1239,8 +1296,9 @@ go_name: VaultPath</pre></td>
 <td><pre>
 secret_ref is the Vault secret reference with path and version<br>
 
-json_name: secretRef
-go_name: SecretRef</pre></td>
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1248,7 +1306,7 @@ go_name: SecretRef</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>crypto/generate-store-keypair/${! vault_path.or("default") }</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>crypto/generate-store-keypair/${! VaultPath.or("default") }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 <tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
 </table>    
@@ -1283,8 +1341,9 @@ Password is 32-character base64-URL-encoded random string
 <td><pre>
 password is the generated secure random password<br>
 
-json_name: password
-go_name: Password</pre></td>
+json_name: Password
+go_name: Password
+go_tags: json:"Password" validate:"required"</pre></td>
 </tr>
 </table> 
 
@@ -1315,16 +1374,18 @@ Key is 256-bit ECDSA (P-256 curve)
 <td><pre>
 private_key is the PEM-encoded private key<br>
 
-json_name: privateKey
-go_name: PrivateKey</pre></td>
+json_name: PrivateKey
+go_name: PrivateKey
+go_tags: json:"PrivateKey" validate:"required"</pre></td>
 </tr><tr>
 <td>public_key</td>
 <td>bytes</td>
 <td><pre>
 public_key is the PEM-encoded public key<br>
 
-json_name: publicKey
-go_name: PublicKey</pre></td>
+json_name: PublicKey
+go_name: PublicKey
+go_tags: json:"PublicKey" validate:"required"</pre></td>
 </tr>
 </table>   
 
@@ -1352,8 +1413,9 @@ vault_path is the Vault path to store the key pair at
 Both keys (private and public) are stored at this path
 Example: "fabric/org1/ca/tls/root/keys"<br>
 
-json_name: vaultPath
-go_name: VaultPath</pre></td>
+json_name: VaultPath
+go_name: VaultPath
+go_tags: json:"VaultPath" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1378,8 +1440,9 @@ GenerateAndStoreKeyPairOutput returns the Vault secret reference
 <td><pre>
 secret_ref is the Vault secret reference with path and version<br>
 
-json_name: secretRef
-go_name: SecretRef</pre></td>
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1405,8 +1468,9 @@ GenerateAndStorePasswordInput specifies where to store the generated password
 username is the username to store alongside the password
 Example: "postgres_ca_tls_root"<br>
 
-json_name: username
-go_name: Username</pre></td>
+json_name: Username
+go_name: Username
+go_tags: json:"Username" validate:"required"</pre></td>
 </tr><tr>
 <td>vault_path</td>
 <td>string</td>
@@ -1414,8 +1478,9 @@ go_name: Username</pre></td>
 vault_path is the Vault path to store the password at
 Example: "fabric/org1/ca/tls/root/admin"<br>
 
-json_name: vaultPath
-go_name: VaultPath</pre></td>
+json_name: VaultPath
+go_name: VaultPath
+go_tags: json:"VaultPath" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1440,8 +1505,9 @@ GenerateAndStorePasswordOutput returns the Vault secret reference
 <td><pre>
 secret_ref is the Vault secret reference with path and version<br>
 
-json_name: secretRef
-go_name: SecretRef</pre></td>
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1475,16 +1541,18 @@ GenerateKeyPairOutput contains the generated key pair
 <td><pre>
 private_key is the PEM-encoded private key<br>
 
-json_name: privateKey
-go_name: PrivateKey</pre></td>
+json_name: PrivateKey
+go_name: PrivateKey
+go_tags: json:"PrivateKey" validate:"required"</pre></td>
 </tr><tr>
 <td>public_key</td>
 <td>bytes</td>
 <td><pre>
 public_key is the PEM-encoded public key<br>
 
-json_name: publicKey
-go_name: PublicKey</pre></td>
+json_name: PublicKey
+go_name: PublicKey
+go_tags: json:"PublicKey" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1518,8 +1586,9 @@ GeneratePasswordOutput contains the generated password
 <td><pre>
 password is the generated secure random password<br>
 
-json_name: password
-go_name: Password</pre></td>
+json_name: Password
+go_name: Password
+go_tags: json:"Password" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1644,8 +1713,9 @@ and is used to issue intermediate CAs for org and TLS identities.
 cert_type specifies whether this is a TLS or Org certificate authority
 Valid values: "tls" (for secure communication), "org" (for Fabric MSP identity)<br>
 
-json_name: certType
-go_name: CertType</pre></td>
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1657,7 +1727,7 @@ go_name: CertType</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/deploy-certificate-authority/${! cert_type }/root</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-certificate-authority/${! CertType }/root</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -1685,8 +1755,9 @@ for the Fabric organization. Intermediate CAs are deployed for both "org" and "t
 cert_type specifies whether this is a TLS or Org certificate authority
 Valid values: "tls" or "org"<br>
 
-json_name: certType
-go_name: CertType</pre></td>
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required"</pre></td>
 </tr><tr>
 <td>id</td>
 <td>string</td>
@@ -1695,8 +1766,9 @@ id is a unique identifier for this intermediate CA instance.
 This enables rotation by deploying a new intermediate CA with a different ID
 while the old one is still active, then switching over and revoking the old one.<br>
 
-json_name: id
-go_name: Id</pre></td>
+json_name: Id
+go_name: Id
+go_tags: json:"Id" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1708,7 +1780,7 @@ go_name: Id</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/deploy-certificate-authority/${! cert_type }/${! id }</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-certificate-authority/${! CertType }/${! Id }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -1821,8 +1893,9 @@ DeployCertificateAuthorityInput specifies the parameters for deploying an interm
 cert_type specifies whether this is a TLS or Org certificate authority
 Valid values: "tls" or "org"<br>
 
-json_name: certType
-go_name: CertType</pre></td>
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required"</pre></td>
 </tr><tr>
 <td>id</td>
 <td>string</td>
@@ -1831,8 +1904,9 @@ id is a unique identifier for this intermediate CA instance.
 This enables rotation by deploying a new intermediate CA with a different ID
 while the old one is still active, then switching over and revoking the old one.<br>
 
-json_name: id
-go_name: Id</pre></td>
+json_name: Id
+go_name: Id
+go_tags: json:"Id" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1888,8 +1962,9 @@ DeployRootCertificateAuthorityInput specifies the parameters for deploying the r
 cert_type specifies whether this is a TLS or Org certificate authority
 Valid values: "tls" (for secure communication), "org" (for Fabric MSP identity)<br>
 
-json_name: certType
-go_name: CertType</pre></td>
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1944,24 +2019,27 @@ RenderChart renders a Helm chart with given values and returns parsed resources
 <td><pre>
 chart_name is the chart name to render<br>
 
-json_name: chartName
-go_name: ChartName</pre></td>
+json_name: ChartName
+go_name: ChartName
+go_tags: json:"ChartName" validate:"required"</pre></td>
 </tr><tr>
 <td>namespace</td>
 <td>string</td>
 <td><pre>
 namespace is the Kubernetes namespace for template context (optional)<br>
 
-json_name: namespace
-go_name: Namespace</pre></td>
+json_name: Namespace
+go_name: Namespace
+go_tags: json:"Namespace,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>values_yaml</td>
 <td>string</td>
 <td><pre>
 values_yaml is Helm values as a YAML string (merged with chart defaults)<br>
 
-json_name: valuesYaml
-go_name: ValuesYaml</pre></td>
+json_name: ValuesYaml
+go_name: ValuesYaml
+go_tags: json:"ValuesYaml" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1979,8 +2057,9 @@ go_name: ValuesYaml</pre></td>
 <td><pre>
 failures is a map of resource_id → error message for resources that failed to parse<br>
 
-json_name: failures
-go_name: Failures</pre></td>
+json_name: Failures
+go_name: Failures
+go_tags: json:"Failures" validate:"required"</pre></td>
 </tr><tr>
 <td>resources</td>
 <td><a href="#helm-v1-renderchartoutput-resourcesentry">helm.v1.RenderChartOutput.ResourcesEntry</a></td>
@@ -1988,8 +2067,9 @@ go_name: Failures</pre></td>
 resources is a map of resource_id → rendered resource
 Key is caller-defined (e.g., "deployment-api", "service-api")<br>
 
-json_name: resources
-go_name: Resources</pre></td>
+json_name: Resources
+go_name: Resources
+go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
 </table> 
 
@@ -2015,32 +2095,36 @@ RenderChartWithTemplate renders a Helm chart after populating a values template
 <td><pre>
 chart_name is the chart name to render<br>
 
-json_name: chartName
-go_name: ChartName</pre></td>
+json_name: ChartName
+go_name: ChartName
+go_tags: json:"ChartName" validate:"required"</pre></td>
 </tr><tr>
 <td>component</td>
 <td>string</td>
 <td><pre>
 component is the component type whose values template to load and render<br>
 
-json_name: component
-go_name: Component</pre></td>
+json_name: Component
+go_name: Component
+go_tags: json:"Component" validate:"required"</pre></td>
 </tr><tr>
 <td>namespace</td>
 <td>string</td>
 <td><pre>
 namespace is the Kubernetes namespace for template context (optional)<br>
 
-json_name: namespace
-go_name: Namespace</pre></td>
+json_name: Namespace
+go_name: Namespace
+go_tags: json:"Namespace,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>values</td>
 <td><a href="#google-protobuf-struct">google.protobuf.Struct</a></td>
 <td><pre>
 values is a structured map of template variables for rendering<br>
 
-json_name: values
-go_name: Values</pre></td>
+json_name: Values
+go_name: Values
+go_tags: json:"Values" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2058,8 +2142,9 @@ go_name: Values</pre></td>
 <td><pre>
 failures is a map of resource_id → error message for resources that failed to parse<br>
 
-json_name: failures
-go_name: Failures</pre></td>
+json_name: Failures
+go_name: Failures
+go_tags: json:"Failures" validate:"required"</pre></td>
 </tr><tr>
 <td>resources</td>
 <td><a href="#helm-v1-renderchartoutput-resourcesentry">helm.v1.RenderChartOutput.ResourcesEntry</a></td>
@@ -2067,8 +2152,9 @@ go_name: Failures</pre></td>
 resources is a map of resource_id → rendered resource
 Key is caller-defined (e.g., "deployment-api", "service-api")<br>
 
-json_name: resources
-go_name: Resources</pre></td>
+json_name: Resources
+go_name: Resources
+go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
 </table>   
 
@@ -2094,24 +2180,27 @@ RenderChartInput specifies which chart to render and with what values
 <td><pre>
 chart_name is the chart name to render<br>
 
-json_name: chartName
-go_name: ChartName</pre></td>
+json_name: ChartName
+go_name: ChartName
+go_tags: json:"ChartName" validate:"required"</pre></td>
 </tr><tr>
 <td>namespace</td>
 <td>string</td>
 <td><pre>
 namespace is the Kubernetes namespace for template context (optional)<br>
 
-json_name: namespace
-go_name: Namespace</pre></td>
+json_name: Namespace
+go_name: Namespace
+go_tags: json:"Namespace,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>values_yaml</td>
 <td>string</td>
 <td><pre>
 values_yaml is Helm values as a YAML string (merged with chart defaults)<br>
 
-json_name: valuesYaml
-go_name: ValuesYaml</pre></td>
+json_name: ValuesYaml
+go_name: ValuesYaml
+go_tags: json:"ValuesYaml" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2136,8 +2225,9 @@ RenderChartOutput represents the rendered resources from a chart
 <td><pre>
 failures is a map of resource_id → error message for resources that failed to parse<br>
 
-json_name: failures
-go_name: Failures</pre></td>
+json_name: Failures
+go_name: Failures
+go_tags: json:"Failures" validate:"required"</pre></td>
 </tr><tr>
 <td>resources</td>
 <td><a href="#helm-v1-renderchartoutput-resourcesentry">helm.v1.RenderChartOutput.ResourcesEntry</a></td>
@@ -2145,8 +2235,9 @@ go_name: Failures</pre></td>
 resources is a map of resource_id → rendered resource
 Key is caller-defined (e.g., "deployment-api", "service-api")<br>
 
-json_name: resources
-go_name: Resources</pre></td>
+json_name: Resources
+go_name: Resources
+go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2223,32 +2314,36 @@ RenderChartWithTemplateInput specifies a chart to render after populating a valu
 <td><pre>
 chart_name is the chart name to render<br>
 
-json_name: chartName
-go_name: ChartName</pre></td>
+json_name: ChartName
+go_name: ChartName
+go_tags: json:"ChartName" validate:"required"</pre></td>
 </tr><tr>
 <td>component</td>
 <td>string</td>
 <td><pre>
 component is the component type whose values template to load and render<br>
 
-json_name: component
-go_name: Component</pre></td>
+json_name: Component
+go_name: Component
+go_tags: json:"Component" validate:"required"</pre></td>
 </tr><tr>
 <td>namespace</td>
 <td>string</td>
 <td><pre>
 namespace is the Kubernetes namespace for template context (optional)<br>
 
-json_name: namespace
-go_name: Namespace</pre></td>
+json_name: Namespace
+go_name: Namespace
+go_tags: json:"Namespace,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>values</td>
 <td><a href="#google-protobuf-struct">google.protobuf.Struct</a></td>
 <td><pre>
 values is a structured map of template variables for rendering<br>
 
-json_name: values
-go_name: Values</pre></td>
+json_name: Values
+go_name: Values
+go_tags: json:"Values" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2273,8 +2368,9 @@ Resource represents a single rendered Kubernetes resource as YAML
 <td><pre>
 manifest_yaml is the complete YAML definition of the resource<br>
 
-json_name: manifestYaml
-go_name: ManifestYaml</pre></td>
+json_name: ManifestYaml
+go_name: ManifestYaml
+go_tags: json:"ManifestYaml" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2322,8 +2418,9 @@ resources is a map of resource_id → resource
 resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
 Each resource's YAML must include namespace (or be cluster-scoped)<br>
 
-json_name: resources
-go_name: Resources</pre></td>
+json_name: Resources
+go_name: Resources
+go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2342,16 +2439,18 @@ go_name: Resources</pre></td>
 results contains the outcome for each resource
 Keys match the resource_id from CreateInput<br>
 
-json_name: results
-go_name: Results</pre></td>
+json_name: Results
+go_name: Results
+go_tags: json:"Results" validate:"required"</pre></td>
 </tr><tr>
 <td>summary</td>
 <td><a href="#kube-v1-createsummary">kube.v1.CreateSummary</a></td>
 <td><pre>
 summary provides high-level statistics<br>
 
-json_name: summary
-go_name: Summary</pre></td>
+json_name: Summary
+go_name: Summary
+go_tags: json:"Summary" validate:"required"</pre></td>
 </tr>
 </table> 
 
@@ -2379,8 +2478,9 @@ resources is a map of resource_id → resource
 resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
 Each resource's YAML must include namespace (or be cluster-scoped)<br>
 
-json_name: resources
-go_name: Resources</pre></td>
+json_name: Resources
+go_name: Resources
+go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2399,16 +2499,18 @@ go_name: Resources</pre></td>
 results contains the outcome for each resource
 Keys match the resource_id from UpdateInput<br>
 
-json_name: results
-go_name: Results</pre></td>
+json_name: Results
+go_name: Results
+go_tags: json:"Results" validate:"required"</pre></td>
 </tr><tr>
 <td>summary</td>
 <td><a href="#kube-v1-updatesummary">kube.v1.UpdateSummary</a></td>
 <td><pre>
 summary provides high-level statistics<br>
 
-json_name: summary
-go_name: Summary</pre></td>
+json_name: Summary
+go_name: Summary
+go_tags: json:"Summary" validate:"required"</pre></td>
 </tr>
 </table> 
 
@@ -2436,8 +2538,9 @@ resources is a map of resource_id → resource
 resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
 Each resource's YAML must include namespace (or be cluster-scoped)<br>
 
-json_name: resources
-go_name: Resources</pre></td>
+json_name: Resources
+go_name: Resources
+go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2456,16 +2559,18 @@ go_name: Resources</pre></td>
 results contains the outcome for each resource
 Keys match the resource_id from ApplyInput<br>
 
-json_name: results
-go_name: Results</pre></td>
+json_name: Results
+go_name: Results
+go_tags: json:"Results" validate:"required"</pre></td>
 </tr><tr>
 <td>summary</td>
 <td><a href="#kube-v1-applysummary">kube.v1.ApplySummary</a></td>
 <td><pre>
 summary provides high-level statistics<br>
 
-json_name: summary
-go_name: Summary</pre></td>
+json_name: Summary
+go_name: Summary
+go_tags: json:"Summary" validate:"required"</pre></td>
 </tr>
 </table> 
 
@@ -2493,8 +2598,9 @@ resources to delete
 Keys are resource_id (same as ApplyInput)
 Each resource's YAML must include namespace (or be cluster-scoped)<br>
 
-json_name: resources
-go_name: Resources</pre></td>
+json_name: Resources
+go_name: Resources
+go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2512,16 +2618,18 @@ go_name: Resources</pre></td>
 <td><pre>
 results contains the outcome for each resource<br>
 
-json_name: results
-go_name: Results</pre></td>
+json_name: Results
+go_name: Results
+go_tags: json:"Results" validate:"required"</pre></td>
 </tr><tr>
 <td>summary</td>
 <td><a href="#kube-v1-deletesummary">kube.v1.DeleteSummary</a></td>
 <td><pre>
 summary provides high-level statistics<br>
 
-json_name: summary
-go_name: Summary</pre></td>
+json_name: Summary
+go_name: Summary
+go_tags: json:"Summary" validate:"required"</pre></td>
 </tr>
 </table> 
 
@@ -2548,8 +2656,9 @@ GetStatus retrieves the current status of deployed resources
 resources to check status for
 Each resource's YAML must include namespace (or be cluster-scoped)<br>
 
-json_name: resources
-go_name: Resources</pre></td>
+json_name: Resources
+go_name: Resources
+go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2567,8 +2676,9 @@ go_name: Resources</pre></td>
 <td><pre>
 overall_status is a summary: "ready", "pending", "degraded", "error", "unknown"<br>
 
-json_name: overallStatus
-go_name: OverallStatus</pre></td>
+json_name: OverallStatus
+go_name: OverallStatus
+go_tags: json:"OverallStatus" validate:"required"</pre></td>
 </tr><tr>
 <td>results</td>
 <td><a href="#kube-v1-getstatusoutput-resultsentry">kube.v1.GetStatusOutput.ResultsEntry</a></td>
@@ -2576,8 +2686,9 @@ go_name: OverallStatus</pre></td>
 results contains status for each resource
 Keys match resource_id from GetStatusInput<br>
 
-json_name: results
-go_name: Results</pre></td>
+json_name: Results
+go_name: Results
+go_tags: json:"Results" validate:"required"</pre></td>
 </tr>
 </table>   
 
@@ -2605,8 +2716,9 @@ resources is a map of resource_id → resource
 resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
 Each resource's YAML must include namespace (or be cluster-scoped)<br>
 
-json_name: resources
-go_name: Resources</pre></td>
+json_name: Resources
+go_name: Resources
+go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2658,16 +2770,18 @@ ApplyOutput represents the result of applying resources
 results contains the outcome for each resource
 Keys match the resource_id from ApplyInput<br>
 
-json_name: results
-go_name: Results</pre></td>
+json_name: Results
+go_name: Results
+go_tags: json:"Results" validate:"required"</pre></td>
 </tr><tr>
 <td>summary</td>
 <td><a href="#kube-v1-applysummary">kube.v1.ApplySummary</a></td>
 <td><pre>
 summary provides high-level statistics<br>
 
-json_name: summary
-go_name: Summary</pre></td>
+json_name: Summary
+go_name: Summary
+go_tags: json:"Summary" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2718,24 +2832,27 @@ ApplyResult represents the outcome of applying a single resource
 <td><pre>
 error_message contains error details (if failed)<br>
 
-json_name: errorMessage
-go_name: ErrorMessage</pre></td>
+json_name: ErrorMessage
+go_name: ErrorMessage
+go_tags: json:"ErrorMessage,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>resource_id</td>
 <td>string</td>
 <td><pre>
 resource_id identifies which resource this result is for<br>
 
-json_name: resourceId
-go_name: ResourceId</pre></td>
+json_name: ResourceId
+go_name: ResourceId
+go_tags: json:"ResourceId" validate:"required"</pre></td>
 </tr><tr>
 <td>resource_status</td>
 <td><a href="#kube-v1-resourcestatus">kube.v1.ResourceStatus</a></td>
 <td><pre>
 resource_status contains current state (if applied successfully)<br>
 
-json_name: resourceStatus
-go_name: ResourceStatus</pre></td>
+json_name: ResourceStatus
+go_name: ResourceStatus
+go_tags: json:"ResourceStatus,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 
@@ -2758,20 +2875,23 @@ ApplySummary provides aggregate statistics
 <td>applied</td>
 <td>int32</td>
 <td><pre>
-json_name: applied
-go_name: Applied</pre></td>
+json_name: Applied
+go_name: Applied
+go_tags: json:"Applied" validate:"required"</pre></td>
 </tr><tr>
 <td>failed</td>
 <td>int32</td>
 <td><pre>
-json_name: failed
-go_name: Failed</pre></td>
+json_name: Failed
+go_name: Failed
+go_tags: json:"Failed" validate:"required"</pre></td>
 </tr><tr>
 <td>total</td>
 <td>int32</td>
 <td><pre>
-json_name: total
-go_name: Total</pre></td>
+json_name: Total
+go_name: Total
+go_tags: json:"Total" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2798,8 +2918,9 @@ resources is a map of resource_id → resource
 resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
 Each resource's YAML must include namespace (or be cluster-scoped)<br>
 
-json_name: resources
-go_name: Resources</pre></td>
+json_name: Resources
+go_name: Resources
+go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2851,16 +2972,18 @@ CreateOutput represents the result of creating resources
 results contains the outcome for each resource
 Keys match the resource_id from CreateInput<br>
 
-json_name: results
-go_name: Results</pre></td>
+json_name: Results
+go_name: Results
+go_tags: json:"Results" validate:"required"</pre></td>
 </tr><tr>
 <td>summary</td>
 <td><a href="#kube-v1-createsummary">kube.v1.CreateSummary</a></td>
 <td><pre>
 summary provides high-level statistics<br>
 
-json_name: summary
-go_name: Summary</pre></td>
+json_name: Summary
+go_name: Summary
+go_tags: json:"Summary" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2911,24 +3034,27 @@ CreateResult represents the outcome of creating a single resource
 <td><pre>
 error_message contains error details (if failed)<br>
 
-json_name: errorMessage
-go_name: ErrorMessage</pre></td>
+json_name: ErrorMessage
+go_name: ErrorMessage
+go_tags: json:"ErrorMessage,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>resource_id</td>
 <td>string</td>
 <td><pre>
 resource_id identifies which resource this result is for<br>
 
-json_name: resourceId
-go_name: ResourceId</pre></td>
+json_name: ResourceId
+go_name: ResourceId
+go_tags: json:"ResourceId" validate:"required"</pre></td>
 </tr><tr>
 <td>resource_status</td>
 <td><a href="#kube-v1-resourcestatus">kube.v1.ResourceStatus</a></td>
 <td><pre>
 resource_status contains current state (if created successfully)<br>
 
-json_name: resourceStatus
-go_name: ResourceStatus</pre></td>
+json_name: ResourceStatus
+go_name: ResourceStatus
+go_tags: json:"ResourceStatus,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 
@@ -2951,20 +3077,23 @@ CreateSummary provides aggregate statistics
 <td>created</td>
 <td>int32</td>
 <td><pre>
-json_name: created
-go_name: Created</pre></td>
+json_name: Created
+go_name: Created
+go_tags: json:"Created" validate:"required"</pre></td>
 </tr><tr>
 <td>failed</td>
 <td>int32</td>
 <td><pre>
-json_name: failed
-go_name: Failed</pre></td>
+json_name: Failed
+go_name: Failed
+go_tags: json:"Failed" validate:"required"</pre></td>
 </tr><tr>
 <td>total</td>
 <td>int32</td>
 <td><pre>
-json_name: total
-go_name: Total</pre></td>
+json_name: Total
+go_name: Total
+go_tags: json:"Total" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2991,8 +3120,9 @@ resources to delete
 Keys are resource_id (same as ApplyInput)
 Each resource's YAML must include namespace (or be cluster-scoped)<br>
 
-json_name: resources
-go_name: Resources</pre></td>
+json_name: Resources
+go_name: Resources
+go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3043,16 +3173,18 @@ DeleteOutput represents the result of deleting resources
 <td><pre>
 results contains the outcome for each resource<br>
 
-json_name: results
-go_name: Results</pre></td>
+json_name: Results
+go_name: Results
+go_tags: json:"Results" validate:"required"</pre></td>
 </tr><tr>
 <td>summary</td>
 <td><a href="#kube-v1-deletesummary">kube.v1.DeleteSummary</a></td>
 <td><pre>
 summary provides high-level statistics<br>
 
-json_name: summary
-go_name: Summary</pre></td>
+json_name: Summary
+go_name: Summary
+go_tags: json:"Summary" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3103,16 +3235,18 @@ DeleteResult represents the outcome of deleting a single resource
 <td><pre>
 error_message contains error details (if failed)<br>
 
-json_name: errorMessage
-go_name: ErrorMessage</pre></td>
+json_name: ErrorMessage
+go_name: ErrorMessage
+go_tags: json:"ErrorMessage,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>resource_id</td>
 <td>string</td>
 <td><pre>
 resource_id identifies which resource this result is for<br>
 
-json_name: resourceId
-go_name: ResourceId</pre></td>
+json_name: ResourceId
+go_name: ResourceId
+go_tags: json:"ResourceId" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3135,20 +3269,23 @@ DeleteSummary provides aggregate statistics
 <td>deleted</td>
 <td>int32</td>
 <td><pre>
-json_name: deleted
-go_name: Deleted</pre></td>
+json_name: Deleted
+go_name: Deleted
+go_tags: json:"Deleted" validate:"required"</pre></td>
 </tr><tr>
 <td>failed</td>
 <td>int32</td>
 <td><pre>
-json_name: failed
-go_name: Failed</pre></td>
+json_name: Failed
+go_name: Failed
+go_tags: json:"Failed" validate:"required"</pre></td>
 </tr><tr>
 <td>total</td>
 <td>int32</td>
 <td><pre>
-json_name: total
-go_name: Total</pre></td>
+json_name: Total
+go_name: Total
+go_tags: json:"Total" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3174,8 +3311,9 @@ GetStatusInput queries the status of deployed resources
 resources to check status for
 Each resource's YAML must include namespace (or be cluster-scoped)<br>
 
-json_name: resources
-go_name: Resources</pre></td>
+json_name: Resources
+go_name: Resources
+go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3226,8 +3364,9 @@ GetStatusOutput represents the current status of resources
 <td><pre>
 overall_status is a summary: "ready", "pending", "degraded", "error", "unknown"<br>
 
-json_name: overallStatus
-go_name: OverallStatus</pre></td>
+json_name: OverallStatus
+go_name: OverallStatus
+go_tags: json:"OverallStatus" validate:"required"</pre></td>
 </tr><tr>
 <td>results</td>
 <td><a href="#kube-v1-getstatusoutput-resultsentry">kube.v1.GetStatusOutput.ResultsEntry</a></td>
@@ -3235,8 +3374,9 @@ go_name: OverallStatus</pre></td>
 results contains status for each resource
 Keys match resource_id from GetStatusInput<br>
 
-json_name: results
-go_name: Results</pre></td>
+json_name: Results
+go_name: Results
+go_tags: json:"Results" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3289,8 +3429,9 @@ Activities parse the YAML to extract metadata before applying
 manifest_yaml is the complete YAML definition of the resource
 Activities parse this to extract kind, name, namespace, apiVersion<br>
 
-json_name: manifestYaml
-go_name: ManifestYaml</pre></td>
+json_name: ManifestYaml
+go_name: ManifestYaml
+go_tags: json:"ManifestYaml" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3316,40 +3457,45 @@ ResourceStatus represents the status of a single Kubernetes resource
 desired_replicas is the desired number of replicas
 Only populated for workload resources<br>
 
-json_name: desiredReplicas
-go_name: DesiredReplicas</pre></td>
+json_name: DesiredReplicas
+go_name: DesiredReplicas
+go_tags: json:"DesiredReplicas,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>kind</td>
 <td>string</td>
 <td><pre>
 kind is the Kubernetes resource kind (e.g., "Deployment", "Pod", "Service")<br>
 
-json_name: kind
-go_name: Kind</pre></td>
+json_name: Kind
+go_name: Kind
+go_tags: json:"Kind" validate:"required"</pre></td>
 </tr><tr>
 <td>message</td>
 <td>string</td>
 <td><pre>
 message provides additional context (error messages, warnings, etc.)<br>
 
-json_name: message
-go_name: Message</pre></td>
+json_name: Message
+go_name: Message
+go_tags: json:"Message,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>name</td>
 <td>string</td>
 <td><pre>
 name is the resource name<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr><tr>
 <td>namespace</td>
 <td>string</td>
 <td><pre>
 namespace is the resource namespace<br>
 
-json_name: namespace
-go_name: Namespace</pre></td>
+json_name: Namespace
+go_name: Namespace
+go_tags: json:"Namespace" validate:"required"</pre></td>
 </tr><tr>
 <td>ready_replicas</td>
 <td>int32</td>
@@ -3357,16 +3503,18 @@ go_name: Namespace</pre></td>
 ready_replicas is the number of ready replicas (for Deployments, StatefulSets, etc.)
 Only populated for workload resources<br>
 
-json_name: readyReplicas
-go_name: ReadyReplicas</pre></td>
+json_name: ReadyReplicas
+go_name: ReadyReplicas
+go_tags: json:"ReadyReplicas,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>status</td>
 <td>string</td>
 <td><pre>
 status is the current status (e.g., "ready", "pending", "error", "unknown")<br>
 
-json_name: status
-go_name: Status</pre></td>
+json_name: Status
+go_name: Status
+go_tags: json:"Status" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3393,8 +3541,9 @@ resources is a map of resource_id → resource
 resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
 Each resource's YAML must include namespace (or be cluster-scoped)<br>
 
-json_name: resources
-go_name: Resources</pre></td>
+json_name: Resources
+go_name: Resources
+go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3446,16 +3595,18 @@ UpdateOutput represents the result of updating resources
 results contains the outcome for each resource
 Keys match the resource_id from UpdateInput<br>
 
-json_name: results
-go_name: Results</pre></td>
+json_name: Results
+go_name: Results
+go_tags: json:"Results" validate:"required"</pre></td>
 </tr><tr>
 <td>summary</td>
 <td><a href="#kube-v1-updatesummary">kube.v1.UpdateSummary</a></td>
 <td><pre>
 summary provides high-level statistics<br>
 
-json_name: summary
-go_name: Summary</pre></td>
+json_name: Summary
+go_name: Summary
+go_tags: json:"Summary" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3506,24 +3657,27 @@ UpdateResult represents the outcome of updating a single resource
 <td><pre>
 error_message contains error details (if failed)<br>
 
-json_name: errorMessage
-go_name: ErrorMessage</pre></td>
+json_name: ErrorMessage
+go_name: ErrorMessage
+go_tags: json:"ErrorMessage,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>resource_id</td>
 <td>string</td>
 <td><pre>
 resource_id identifies which resource this result is for<br>
 
-json_name: resourceId
-go_name: ResourceId</pre></td>
+json_name: ResourceId
+go_name: ResourceId
+go_tags: json:"ResourceId" validate:"required"</pre></td>
 </tr><tr>
 <td>resource_status</td>
 <td><a href="#kube-v1-resourcestatus">kube.v1.ResourceStatus</a></td>
 <td><pre>
 resource_status contains current state (if updated successfully)<br>
 
-json_name: resourceStatus
-go_name: ResourceStatus</pre></td>
+json_name: ResourceStatus
+go_name: ResourceStatus
+go_tags: json:"ResourceStatus,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 
@@ -3546,20 +3700,23 @@ UpdateSummary provides aggregate statistics
 <td>failed</td>
 <td>int32</td>
 <td><pre>
-json_name: failed
-go_name: Failed</pre></td>
+json_name: Failed
+go_name: Failed
+go_tags: json:"Failed" validate:"required"</pre></td>
 </tr><tr>
 <td>total</td>
 <td>int32</td>
 <td><pre>
-json_name: total
-go_name: Total</pre></td>
+json_name: Total
+go_name: Total
+go_tags: json:"Total" validate:"required"</pre></td>
 </tr><tr>
 <td>updated</td>
 <td>int32</td>
 <td><pre>
-json_name: updated
-go_name: Updated</pre></td>
+json_name: Updated
+go_name: Updated
+go_tags: json:"Updated" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3604,8 +3761,9 @@ Idempotent: returns success if database already exists
 <td><pre>
 database_name is the name of the database to create<br>
 
-json_name: databaseName
-go_name: DatabaseName</pre></td>
+json_name: DatabaseName
+go_name: DatabaseName
+go_tags: json:"DatabaseName" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3636,16 +3794,18 @@ Idempotent: returns success if user already exists
 <td><pre>
 password is the password for the user<br>
 
-json_name: password
-go_name: Password</pre></td>
+json_name: Password
+go_name: Password
+go_tags: json:"Password" validate:"required"</pre></td>
 </tr><tr>
 <td>username</td>
 <td>string</td>
 <td><pre>
 username is the name of the user to create<br>
 
-json_name: username
-go_name: Username</pre></td>
+json_name: Username
+go_name: Username
+go_tags: json:"Username" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3676,8 +3836,9 @@ Idempotent: can be called multiple times safely
 <td><pre>
 database_name is the name of the database to grant privileges on<br>
 
-json_name: databaseName
-go_name: DatabaseName</pre></td>
+json_name: DatabaseName
+go_name: DatabaseName
+go_tags: json:"DatabaseName" validate:"required"</pre></td>
 </tr><tr>
 <td>privileges</td>
 <td><a href="#postgres-v1-privilege">postgres.v1.Privilege</a></td>
@@ -3685,16 +3846,18 @@ go_name: DatabaseName</pre></td>
 privileges is a list of privileges to grant
 If empty, defaults to [PRIVILEGE_ALL]<br>
 
-json_name: privileges
-go_name: Privileges</pre></td>
+json_name: Privileges
+go_name: Privileges
+go_tags: json:"Privileges,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>username</td>
 <td>string</td>
 <td><pre>
 username is the name of the user to grant privileges to<br>
 
-json_name: username
-go_name: Username</pre></td>
+json_name: Username
+go_name: Username
+go_tags: json:"Username" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3724,8 +3887,9 @@ CreateDatabaseInput specifies parameters for creating a database
 <td><pre>
 database_name is the name of the database to create<br>
 
-json_name: databaseName
-go_name: DatabaseName</pre></td>
+json_name: DatabaseName
+go_name: DatabaseName
+go_tags: json:"DatabaseName" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3759,16 +3923,18 @@ CreateUserInput specifies parameters for creating a user
 <td><pre>
 password is the password for the user<br>
 
-json_name: password
-go_name: Password</pre></td>
+json_name: Password
+go_name: Password
+go_tags: json:"Password" validate:"required"</pre></td>
 </tr><tr>
 <td>username</td>
 <td>string</td>
 <td><pre>
 username is the name of the user to create<br>
 
-json_name: username
-go_name: Username</pre></td>
+json_name: Username
+go_name: Username
+go_tags: json:"Username" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3802,8 +3968,9 @@ GrantPrivilegesInput specifies parameters for granting privileges
 <td><pre>
 database_name is the name of the database to grant privileges on<br>
 
-json_name: databaseName
-go_name: DatabaseName</pre></td>
+json_name: DatabaseName
+go_name: DatabaseName
+go_tags: json:"DatabaseName" validate:"required"</pre></td>
 </tr><tr>
 <td>privileges</td>
 <td><a href="#postgres-v1-privilege">postgres.v1.Privilege</a></td>
@@ -3811,16 +3978,18 @@ go_name: DatabaseName</pre></td>
 privileges is a list of privileges to grant
 If empty, defaults to [PRIVILEGE_ALL]<br>
 
-json_name: privileges
-go_name: Privileges</pre></td>
+json_name: Privileges
+go_name: Privileges
+go_tags: json:"Privileges,omitempty" validate:"omitempty"</pre></td>
 </tr><tr>
 <td>username</td>
 <td>string</td>
 <td><pre>
 username is the name of the user to grant privileges to<br>
 
-json_name: username
-go_name: Username</pre></td>
+json_name: Username
+go_name: Username
+go_tags: json:"Username" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3930,8 +4099,9 @@ and requires polling to verify the namespace is active before returning.
 name is the name of the namespace to create (e.g., "fabric-org1", "tenant-acme")
 This will be used as the workflow ID to ensure idempotency<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr><tr>
 <td>retention</td>
 <td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
@@ -3939,8 +4109,9 @@ go_name: Name</pre></td>
 retention is the duration to retain workflow history
 If not set, defaults to 30 days (2592000 seconds)<br>
 
-json_name: retention
-go_name: Retention</pre></td>
+json_name: Retention
+go_name: Retention
+go_tags: json:"Retention,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 
@@ -3958,8 +4129,9 @@ go_name: Retention</pre></td>
 <td><pre>
 name echoes back the created namespace name<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3967,6 +4139,7 @@ go_name: Name</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>temporal/create-namespace/${! Name }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>    
 
@@ -3996,8 +4169,9 @@ Idempotent: returns success if namespace already exists
 <td><pre>
 name is the name of the namespace to create<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr><tr>
 <td>retention</td>
 <td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
@@ -4005,8 +4179,9 @@ go_name: Name</pre></td>
 retention is the duration to retain workflow history
 If not set, defaults to 30 days (2592000 seconds)<br>
 
-json_name: retention
-go_name: Retention</pre></td>
+json_name: Retention
+go_name: Retention
+go_tags: json:"Retention,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 
@@ -4037,8 +4212,9 @@ Used by the workflow to poll until namespace is active
 <td><pre>
 name is the name of the namespace to describe<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4056,16 +4232,18 @@ go_name: Name</pre></td>
 <td><pre>
 name is the name of the described namespace<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr><tr>
 <td>state</td>
 <td><a href="#temporal-v1-namespacestate">temporal.v1.NamespaceState</a></td>
 <td><pre>
 state is the current lifecycle state of the namespace<br>
 
-json_name: state
-go_name: State</pre></td>
+json_name: State
+go_name: State
+go_tags: json:"State" validate:"required"</pre></td>
 </tr>
 </table> 
 
@@ -4094,24 +4272,27 @@ Idempotent: returns success if endpoint already exists with same configuration.
 <td><pre>
 name: endpoint name<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr><tr>
 <td>namespace</td>
 <td>string</td>
 <td><pre>
 namespace: Temporal namespace to route to<br>
 
-json_name: namespace
-go_name: Namespace</pre></td>
+json_name: Namespace
+go_name: Namespace
+go_tags: json:"Namespace" validate:"required"</pre></td>
 </tr><tr>
 <td>task_queue</td>
 <td>string</td>
 <td><pre>
 task_queue: task queue within target namespace<br>
 
-json_name: taskQueue
-go_name: TaskQueue</pre></td>
+json_name: TaskQueue
+go_name: TaskQueue
+go_tags: json:"TaskQueue" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4129,8 +4310,9 @@ go_name: TaskQueue</pre></td>
 <td><pre>
 id: server-generated unique endpoint identifier<br>
 
-json_name: id
-go_name: Id</pre></td>
+json_name: Id
+go_name: Id
+go_tags: json:"Id" validate:"required"</pre></td>
 </tr>
 </table> 
 
@@ -4157,8 +4339,9 @@ Used to fetch existing ACL before updating (for ACL update workflows)
 <td><pre>
 id: endpoint identifier to describe<br>
 
-json_name: id
-go_name: Id</pre></td>
+json_name: Id
+go_name: Id
+go_tags: json:"Id" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4174,8 +4357,9 @@ go_name: Id</pre></td>
 <td>endpoint</td>
 <td><a href="#temporal-v1-endpoint">temporal.v1.Endpoint</a></td>
 <td><pre>
-json_name: endpoint
-go_name: Endpoint</pre></td>
+json_name: Endpoint
+go_name: Endpoint
+go_tags: json:"Endpoint" validate:"required"</pre></td>
 </tr>
 </table> 
 
@@ -4204,8 +4388,9 @@ Caller must provide the complete desired configuration.
 endpoint: complete endpoint configuration for update
 Must include id, namespace, and task_queue<br>
 
-json_name: endpoint
-go_name: Endpoint</pre></td>
+json_name: Endpoint
+go_name: Endpoint
+go_tags: json:"Endpoint" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4236,8 +4421,9 @@ CreateNamespaceInput specifies parameters for creating a Temporal namespace
 name is the name of the namespace to create (e.g., "fabric-org1", "tenant-acme")
 This will be used as the workflow ID to ensure idempotency<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr><tr>
 <td>retention</td>
 <td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
@@ -4245,8 +4431,9 @@ go_name: Name</pre></td>
 retention is the duration to retain workflow history
 If not set, defaults to 30 days (2592000 seconds)<br>
 
-json_name: retention
-go_name: Retention</pre></td>
+json_name: Retention
+go_name: Retention
+go_tags: json:"Retention,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 
@@ -4271,8 +4458,9 @@ CreateNamespaceOutput indicates successful namespace creation
 <td><pre>
 name echoes back the created namespace name<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4293,24 +4481,27 @@ go_name: Name</pre></td>
 <td><pre>
 name: endpoint name<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr><tr>
 <td>namespace</td>
 <td>string</td>
 <td><pre>
 namespace: Temporal namespace to route to<br>
 
-json_name: namespace
-go_name: Namespace</pre></td>
+json_name: Namespace
+go_name: Namespace
+go_tags: json:"Namespace" validate:"required"</pre></td>
 </tr><tr>
 <td>task_queue</td>
 <td>string</td>
 <td><pre>
 task_queue: task queue within target namespace<br>
 
-json_name: taskQueue
-go_name: TaskQueue</pre></td>
+json_name: TaskQueue
+go_name: TaskQueue
+go_tags: json:"TaskQueue" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4331,8 +4522,9 @@ go_name: TaskQueue</pre></td>
 <td><pre>
 id: server-generated unique endpoint identifier<br>
 
-json_name: id
-go_name: Id</pre></td>
+json_name: Id
+go_name: Id
+go_tags: json:"Id" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4357,8 +4549,9 @@ DescribeNamespaceInput specifies which namespace to describe
 <td><pre>
 name is the name of the namespace to describe<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4383,16 +4576,18 @@ DescribeNamespaceOutput returns the current state of a namespace
 <td><pre>
 name is the name of the described namespace<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr><tr>
 <td>state</td>
 <td><a href="#temporal-v1-namespacestate">temporal.v1.NamespaceState</a></td>
 <td><pre>
 state is the current lifecycle state of the namespace<br>
 
-json_name: state
-go_name: State</pre></td>
+json_name: State
+go_name: State
+go_tags: json:"State" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4413,8 +4608,9 @@ go_name: State</pre></td>
 <td><pre>
 id: endpoint identifier to describe<br>
 
-json_name: id
-go_name: Id</pre></td>
+json_name: Id
+go_name: Id
+go_tags: json:"Id" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4433,8 +4629,9 @@ go_name: Id</pre></td>
 <td>endpoint</td>
 <td><a href="#temporal-v1-endpoint">temporal.v1.Endpoint</a></td>
 <td><pre>
-json_name: endpoint
-go_name: Endpoint</pre></td>
+json_name: Endpoint
+go_name: Endpoint
+go_tags: json:"Endpoint" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4459,32 +4656,36 @@ Endpoint defines a Nexus endpoint configuration
 <td><pre>
 id: server-generated unique endpoint identifier<br>
 
-json_name: id
-go_name: Id</pre></td>
+json_name: Id
+go_name: Id
+go_tags: json:"Id" validate:"required"</pre></td>
 </tr><tr>
 <td>name</td>
 <td>string</td>
 <td><pre>
 name: endpoint name (e.g., "CreateScopedIdentityAccess")<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr><tr>
 <td>namespace</td>
 <td>string</td>
 <td><pre>
 namespace: Temporal namespace to route requests to<br>
 
-json_name: namespace
-go_name: Namespace</pre></td>
+json_name: Namespace
+go_name: Namespace
+go_tags: json:"Namespace" validate:"required"</pre></td>
 </tr><tr>
 <td>task_queue</td>
 <td>string</td>
 <td><pre>
 task_queue: task queue within target namespace<br>
 
-json_name: taskQueue
-go_name: TaskQueue</pre></td>
+json_name: TaskQueue
+go_name: TaskQueue
+go_tags: json:"TaskQueue" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4530,8 +4731,9 @@ RegisterNamespaceInput specifies parameters for the RegisterNamespace activity
 <td><pre>
 name is the name of the namespace to create<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr><tr>
 <td>retention</td>
 <td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
@@ -4539,8 +4741,9 @@ go_name: Name</pre></td>
 retention is the duration to retain workflow history
 If not set, defaults to 30 days (2592000 seconds)<br>
 
-json_name: retention
-go_name: Retention</pre></td>
+json_name: Retention
+go_name: Retention
+go_tags: json:"Retention,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 
@@ -4575,8 +4778,9 @@ RegisterNamespaceOutput indicates successful namespace registration
 endpoint: complete endpoint configuration for update
 Must include id, namespace, and task_queue<br>
 
-json_name: endpoint
-go_name: Endpoint</pre></td>
+json_name: Endpoint
+go_name: Endpoint
+go_tags: json:"Endpoint" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4626,24 +4830,27 @@ Access Management
 Auth role configuration
 auth_role_name is the name of the Kubernetes auth role to create<br>
 
-json_name: authRoleName
-go_name: AuthRoleName</pre></td>
+json_name: AuthRoleName
+go_name: AuthRoleName
+go_tags: json:"AuthRoleName" validate:"required"</pre></td>
 </tr><tr>
 <td>kubernetes_namespace</td>
 <td>string</td>
 <td><pre>
 kubernetes_namespace is the Kubernetes namespace where the service account exists<br>
 
-json_name: kubernetesNamespace
-go_name: KubernetesNamespace</pre></td>
+json_name: KubernetesNamespace
+go_name: KubernetesNamespace
+go_tags: json:"KubernetesNamespace" validate:"required"</pre></td>
 </tr><tr>
 <td>policy_document</td>
 <td><a href="#vault-v1-policydocument">vault.v1.PolicyDocument</a></td>
 <td><pre>
 policy_document is the structured policy content<br>
 
-json_name: policyDocument
-go_name: PolicyDocument</pre></td>
+json_name: PolicyDocument
+go_name: PolicyDocument
+go_tags: json:"PolicyDocument" validate:"required"</pre></td>
 </tr><tr>
 <td>policy_name</td>
 <td>string</td>
@@ -4651,16 +4858,18 @@ go_name: PolicyDocument</pre></td>
 Policy configuration
 policy_name is the name of the policy to create<br>
 
-json_name: policyName
-go_name: PolicyName</pre></td>
+json_name: PolicyName
+go_name: PolicyName
+go_tags: json:"PolicyName" validate:"required"</pre></td>
 </tr><tr>
 <td>service_account_name</td>
 <td>string</td>
 <td><pre>
 service_account_name is the Kubernetes service account that can authenticate<br>
 
-json_name: serviceAccountName
-go_name: ServiceAccountName</pre></td>
+json_name: ServiceAccountName
+go_name: ServiceAccountName
+go_tags: json:"ServiceAccountName" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4678,16 +4887,18 @@ go_name: ServiceAccountName</pre></td>
 <td><pre>
 auth_role_name is the name of the created Kubernetes auth role<br>
 
-json_name: authRoleName
-go_name: AuthRoleName</pre></td>
+json_name: AuthRoleName
+go_name: AuthRoleName
+go_tags: json:"AuthRoleName" validate:"required"</pre></td>
 </tr><tr>
 <td>policy_name</td>
 <td>string</td>
 <td><pre>
 policy_name is the name of the created policy<br>
 
-json_name: policyName
-go_name: PolicyName</pre></td>
+json_name: PolicyName
+go_name: PolicyName
+go_tags: json:"PolicyName" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4695,7 +4906,7 @@ go_name: PolicyName</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>vault/create-access/${! policy_name.or("default") }</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>vault/create-access/${! AuthRoleName.or("default") }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 <tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
 </table>    
@@ -4725,32 +4936,36 @@ Auth Role Management
 <td><pre>
 kubernetes_namespace is the Kubernetes namespace where the service account exists<br>
 
-json_name: kubernetesNamespace
-go_name: KubernetesNamespace</pre></td>
+json_name: KubernetesNamespace
+go_name: KubernetesNamespace
+go_tags: json:"KubernetesNamespace" validate:"required"</pre></td>
 </tr><tr>
 <td>policy_names</td>
 <td>string</td>
 <td><pre>
 policy_names is a list of Vault policy names to bind to this role<br>
 
-json_name: policyNames
-go_name: PolicyNames</pre></td>
+json_name: PolicyNames
+go_name: PolicyNames
+go_tags: json:"PolicyNames" validate:"required"</pre></td>
 </tr><tr>
 <td>role_name</td>
 <td>string</td>
 <td><pre>
 role_name is the name of the Kubernetes auth role to create<br>
 
-json_name: roleName
-go_name: RoleName</pre></td>
+json_name: RoleName
+go_name: RoleName
+go_tags: json:"RoleName" validate:"required"</pre></td>
 </tr><tr>
 <td>service_account_name</td>
 <td>string</td>
 <td><pre>
 service_account_name is the Kubernetes service account that can authenticate<br>
 
-json_name: serviceAccountName
-go_name: ServiceAccountName</pre></td>
+json_name: ServiceAccountName
+go_name: ServiceAccountName
+go_tags: json:"ServiceAccountName" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4768,8 +4983,9 @@ go_name: ServiceAccountName</pre></td>
 <td><pre>
 name is the name of the created Kubernetes auth role<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
 </table> 
 
@@ -4793,8 +5009,9 @@ go_name: Name</pre></td>
 <td><pre>
 name is the name of the Kubernetes auth role to delete<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4824,16 +5041,18 @@ Policy Management
 <td><pre>
 document contains the structured policy rules<br>
 
-json_name: document
-go_name: Document</pre></td>
+json_name: Document
+go_name: Document
+go_tags: json:"Document" validate:"required"</pre></td>
 </tr><tr>
 <td>name</td>
 <td>string</td>
 <td><pre>
 name is the name of the policy<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4851,8 +5070,9 @@ go_name: Name</pre></td>
 <td><pre>
 name is the name of the created policy<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
 </table> 
 
@@ -4876,8 +5096,9 @@ go_name: Name</pre></td>
 <td><pre>
 name is the name of the policy to delete<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4907,16 +5128,18 @@ Secret Management
 <td><pre>
 data is the secret key-value pairs to store<br>
 
-json_name: data
-go_name: Data</pre></td>
+json_name: Data
+go_name: Data
+go_tags: json:"Data" validate:"required"</pre></td>
 </tr><tr>
 <td>path</td>
 <td>string</td>
 <td><pre>
 path is the Vault path to store the secret at<br>
 
-json_name: path
-go_name: Path</pre></td>
+json_name: Path
+go_name: Path
+go_tags: json:"Path" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4932,8 +5155,9 @@ go_name: Path</pre></td>
 <td>secret_ref</td>
 <td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
 <td><pre>
-json_name: secretRef
-go_name: SecretRef</pre></td>
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
 </tr>
 </table> 
 
@@ -4957,16 +5181,18 @@ go_name: SecretRef</pre></td>
 <td><pre>
 path is the Vault path to fetch the secret from<br>
 
-json_name: path
-go_name: Path</pre></td>
+json_name: Path
+go_name: Path
+go_tags: json:"Path" validate:"required"</pre></td>
 </tr><tr>
 <td>version</td>
 <td>int64</td>
 <td><pre>
 version is the specific version to fetch (0 or omit for latest)<br>
 
-json_name: version
-go_name: Version</pre></td>
+json_name: Version
+go_name: Version
+go_tags: json:"Version,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 
@@ -4982,14 +5208,16 @@ go_name: Version</pre></td>
 <td>data</td>
 <td><a href="#vault-v1-fetchsecretoutput-dataentry">vault.v1.FetchSecretOutput.DataEntry</a></td>
 <td><pre>
-json_name: data
-go_name: Data</pre></td>
+json_name: Data
+go_name: Data
+go_tags: json:"Data" validate:"required"</pre></td>
 </tr><tr>
 <td>secret_ref</td>
 <td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
 <td><pre>
-json_name: secretRef
-go_name: SecretRef</pre></td>
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
 </tr>
 </table> 
 
@@ -5013,8 +5241,9 @@ go_name: SecretRef</pre></td>
 <td><pre>
 path is the Vault path of the secret to delete<br>
 
-json_name: path
-go_name: Path</pre></td>
+json_name: Path
+go_name: Path
+go_tags: json:"Path" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5090,24 +5319,27 @@ CreateAccessInput specifies parameters for creating both a policy and auth role
 Auth role configuration
 auth_role_name is the name of the Kubernetes auth role to create<br>
 
-json_name: authRoleName
-go_name: AuthRoleName</pre></td>
+json_name: AuthRoleName
+go_name: AuthRoleName
+go_tags: json:"AuthRoleName" validate:"required"</pre></td>
 </tr><tr>
 <td>kubernetes_namespace</td>
 <td>string</td>
 <td><pre>
 kubernetes_namespace is the Kubernetes namespace where the service account exists<br>
 
-json_name: kubernetesNamespace
-go_name: KubernetesNamespace</pre></td>
+json_name: KubernetesNamespace
+go_name: KubernetesNamespace
+go_tags: json:"KubernetesNamespace" validate:"required"</pre></td>
 </tr><tr>
 <td>policy_document</td>
 <td><a href="#vault-v1-policydocument">vault.v1.PolicyDocument</a></td>
 <td><pre>
 policy_document is the structured policy content<br>
 
-json_name: policyDocument
-go_name: PolicyDocument</pre></td>
+json_name: PolicyDocument
+go_name: PolicyDocument
+go_tags: json:"PolicyDocument" validate:"required"</pre></td>
 </tr><tr>
 <td>policy_name</td>
 <td>string</td>
@@ -5115,16 +5347,18 @@ go_name: PolicyDocument</pre></td>
 Policy configuration
 policy_name is the name of the policy to create<br>
 
-json_name: policyName
-go_name: PolicyName</pre></td>
+json_name: PolicyName
+go_name: PolicyName
+go_tags: json:"PolicyName" validate:"required"</pre></td>
 </tr><tr>
 <td>service_account_name</td>
 <td>string</td>
 <td><pre>
 service_account_name is the Kubernetes service account that can authenticate<br>
 
-json_name: serviceAccountName
-go_name: ServiceAccountName</pre></td>
+json_name: ServiceAccountName
+go_name: ServiceAccountName
+go_tags: json:"ServiceAccountName" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5149,16 +5383,18 @@ CreateAccessOutput returns the created policy and auth role names
 <td><pre>
 auth_role_name is the name of the created Kubernetes auth role<br>
 
-json_name: authRoleName
-go_name: AuthRoleName</pre></td>
+json_name: AuthRoleName
+go_name: AuthRoleName
+go_tags: json:"AuthRoleName" validate:"required"</pre></td>
 </tr><tr>
 <td>policy_name</td>
 <td>string</td>
 <td><pre>
 policy_name is the name of the created policy<br>
 
-json_name: policyName
-go_name: PolicyName</pre></td>
+json_name: PolicyName
+go_name: PolicyName
+go_tags: json:"PolicyName" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5183,32 +5419,36 @@ CreateAuthRoleInput specifies parameters for creating an auth role in Vault
 <td><pre>
 kubernetes_namespace is the Kubernetes namespace where the service account exists<br>
 
-json_name: kubernetesNamespace
-go_name: KubernetesNamespace</pre></td>
+json_name: KubernetesNamespace
+go_name: KubernetesNamespace
+go_tags: json:"KubernetesNamespace" validate:"required"</pre></td>
 </tr><tr>
 <td>policy_names</td>
 <td>string</td>
 <td><pre>
 policy_names is a list of Vault policy names to bind to this role<br>
 
-json_name: policyNames
-go_name: PolicyNames</pre></td>
+json_name: PolicyNames
+go_name: PolicyNames
+go_tags: json:"PolicyNames" validate:"required"</pre></td>
 </tr><tr>
 <td>role_name</td>
 <td>string</td>
 <td><pre>
 role_name is the name of the Kubernetes auth role to create<br>
 
-json_name: roleName
-go_name: RoleName</pre></td>
+json_name: RoleName
+go_name: RoleName
+go_tags: json:"RoleName" validate:"required"</pre></td>
 </tr><tr>
 <td>service_account_name</td>
 <td>string</td>
 <td><pre>
 service_account_name is the Kubernetes service account that can authenticate<br>
 
-json_name: serviceAccountName
-go_name: ServiceAccountName</pre></td>
+json_name: ServiceAccountName
+go_name: ServiceAccountName
+go_tags: json:"ServiceAccountName" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5233,8 +5473,9 @@ CreateAuthRoleOutput returns the created role name
 <td><pre>
 name is the name of the created Kubernetes auth role<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5259,16 +5500,18 @@ CreatePolicyInput specifies parameters for creating a Vault policy
 <td><pre>
 document contains the structured policy rules<br>
 
-json_name: document
-go_name: Document</pre></td>
+json_name: Document
+go_name: Document
+go_tags: json:"Document" validate:"required"</pre></td>
 </tr><tr>
 <td>name</td>
 <td>string</td>
 <td><pre>
 name is the name of the policy<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5293,8 +5536,9 @@ CreatePolicyOutput returns the created policy name
 <td><pre>
 name is the name of the created policy<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5319,8 +5563,9 @@ DeleteAuthRoleInput specifies which auth role to delete
 <td><pre>
 name is the name of the Kubernetes auth role to delete<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5354,8 +5599,9 @@ DeletePolicyInput specifies which policy to delete
 <td><pre>
 name is the name of the policy to delete<br>
 
-json_name: name
-go_name: Name</pre></td>
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5389,8 +5635,9 @@ DeleteSecretInput specifies which secret to delete
 <td><pre>
 path is the Vault path of the secret to delete<br>
 
-json_name: path
-go_name: Path</pre></td>
+json_name: Path
+go_name: Path
+go_tags: json:"Path" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5424,16 +5671,18 @@ FetchSecretInput specifies which secret to retrieve
 <td><pre>
 path is the Vault path to fetch the secret from<br>
 
-json_name: path
-go_name: Path</pre></td>
+json_name: Path
+go_name: Path
+go_tags: json:"Path" validate:"required"</pre></td>
 </tr><tr>
 <td>version</td>
 <td>int64</td>
 <td><pre>
 version is the specific version to fetch (0 or omit for latest)<br>
 
-json_name: version
-go_name: Version</pre></td>
+json_name: Version
+go_name: Version
+go_tags: json:"Version,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 
@@ -5456,14 +5705,16 @@ FetchSecretOutput returns the fetched secret with all its data
 <td>data</td>
 <td><a href="#vault-v1-fetchsecretoutput-dataentry">vault.v1.FetchSecretOutput.DataEntry</a></td>
 <td><pre>
-json_name: data
-go_name: Data</pre></td>
+json_name: Data
+go_name: Data
+go_tags: json:"Data" validate:"required"</pre></td>
 </tr><tr>
 <td>secret_ref</td>
 <td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
 <td><pre>
-json_name: secretRef
-go_name: SecretRef</pre></td>
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5514,8 +5765,9 @@ PolicyDocument contains structured policy rules
 <td><pre>
 rules is a list of path-capability mappings<br>
 
-json_name: rules
-go_name: Rules</pre></td>
+json_name: Rules
+go_name: Rules
+go_tags: json:"Rules" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5540,16 +5792,18 @@ PolicyRule defines a single path and its allowed capabilities
 <td><pre>
 capabilities are the allowed capabilities for this path<br>
 
-json_name: capabilities
-go_name: Capabilities</pre></td>
+json_name: Capabilities
+go_name: Capabilities
+go_tags: json:"Capabilities" validate:"required"</pre></td>
 </tr><tr>
 <td>path</td>
 <td>string</td>
 <td><pre>
 path is the Vault path pattern (e.g., "secret/data/myapp/*")<br>
 
-json_name: path
-go_name: Path</pre></td>
+json_name: Path
+go_name: Path
+go_tags: json:"Path" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5572,16 +5826,18 @@ SecretRef is a reference to a secret in Vault
 <td>path</td>
 <td>string</td>
 <td><pre>
-json_name: path
-go_name: Path</pre></td>
+json_name: Path
+go_name: Path
+go_tags: json:"Path" validate:"required"</pre></td>
 </tr><tr>
 <td>version</td>
 <td>int64</td>
 <td><pre>
 version is the specific version referenced. Set to 0 or omit for latest version<br>
 
-json_name: version
-go_name: Version</pre></td>
+json_name: Version
+go_name: Version
+go_tags: json:"Version,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 
@@ -5606,16 +5862,18 @@ StoreSecretInput specifies parameters for storing a secret in Vault
 <td><pre>
 data is the secret key-value pairs to store<br>
 
-json_name: data
-go_name: Data</pre></td>
+json_name: Data
+go_name: Data
+go_tags: json:"Data" validate:"required"</pre></td>
 </tr><tr>
 <td>path</td>
 <td>string</td>
 <td><pre>
 path is the Vault path to store the secret at<br>
 
-json_name: path
-go_name: Path</pre></td>
+json_name: Path
+go_name: Path
+go_tags: json:"Path" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5664,8 +5922,9 @@ StoreSecretOutput returns the secret reference with version information
 <td>secret_ref</td>
 <td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
 <td><pre>
-json_name: secretRef
-go_name: SecretRef</pre></td>
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
 </tr>
 </table>
 

@@ -7,6 +7,7 @@
 package clusterfabricv1
 
 import (
+	_ "github.com/alta/protopatch/patch/gopb"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -26,7 +27,7 @@ type CreateNamespaceInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// org is the organization identifier (e.g., "org1")
 	// The namespace will be named "fabric-{org}"
-	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	Org           string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -71,7 +72,7 @@ func (x *CreateNamespaceInput) GetOrg() string {
 type CreateNamespaceOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// namespace_name is the created namespace (e.g., "fabric-org1")
-	NamespaceName string `protobuf:"bytes,1,opt,name=namespace_name,json=namespaceName,proto3" json:"namespace_name,omitempty"`
+	NamespaceName string `protobuf:"bytes,1,opt,name=namespace_name,json=NamespaceName,proto3" json:"NamespaceName" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -115,7 +116,7 @@ func (x *CreateNamespaceOutput) GetNamespaceName() string {
 
 type CreateServiceAccountInput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Org           string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	Org           string                 `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -197,11 +198,11 @@ type CreateDeploymentInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// org is the organization identifier (e.g., "org1")
 	// Used to derive namespace names, service account names, etc.
-	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
 	// component specifies which type of deployment to create
 	// Currently supported: "worker", "certificate-store"
 	// Future components: "peer", "orderer", "ca", "couchdb"
-	Component     string `protobuf:"bytes,2,opt,name=component,proto3" json:"component,omitempty"`
+	Component     string `protobuf:"bytes,2,opt,name=component,json=Component,proto3" json:"Component" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -253,7 +254,7 @@ func (x *CreateDeploymentInput) GetComponent() string {
 type CreateDeploymentOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// deployment_name is the name of the created deployment
-	DeploymentName string `protobuf:"bytes,1,opt,name=deployment_name,json=deploymentName,proto3" json:"deployment_name,omitempty"`
+	DeploymentName string `protobuf:"bytes,1,opt,name=deployment_name,json=DeploymentName,proto3" json:"DeploymentName" validate:"required"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -299,23 +300,23 @@ var File_cluster_fabric_v1_cluster_proto protoreflect.FileDescriptor
 
 const file_cluster_fabric_v1_cluster_proto_rawDesc = "" +
 	"\n" +
-	"\x1fcluster/fabric/v1/cluster.proto\x12\x11cluster.fabric.v1\x1a\x1atemporal/v1/temporal.proto\"(\n" +
-	"\x14CreateNamespaceInput\x12\x10\n" +
-	"\x03org\x18\x01 \x01(\tR\x03org\">\n" +
-	"\x15CreateNamespaceOutput\x12%\n" +
-	"\x0enamespace_name\x18\x01 \x01(\tR\rnamespaceName\"-\n" +
-	"\x19CreateServiceAccountInput\x12\x10\n" +
-	"\x03org\x18\x01 \x01(\tR\x03org\"\x1c\n" +
-	"\x1aCreateServiceAccountOutput\"G\n" +
-	"\x15CreateDeploymentInput\x12\x10\n" +
-	"\x03org\x18\x01 \x01(\tR\x03org\x12\x1c\n" +
-	"\tcomponent\x18\x02 \x01(\tR\tcomponent\"A\n" +
-	"\x16CreateDeploymentOutput\x12'\n" +
-	"\x0fdeployment_name\x18\x01 \x01(\tR\x0edeploymentName2\xe4\x03\n" +
-	"\aCluster\x12\x8f\x01\n" +
-	"\x0fCreateNamespace\x12'.cluster.fabric.v1.CreateNamespaceInput\x1a(.cluster.fabric.v1.CreateNamespaceOutput\")\x8a\xc4\x03%0\x01r!cluster.fabric.v1.CreateNamespace\x12\xa3\x01\n" +
-	"\x14CreateServiceAccount\x12,.cluster.fabric.v1.CreateServiceAccountInput\x1a-.cluster.fabric.v1.CreateServiceAccountOutput\".\x8a\xc4\x03*0\x01r&cluster.fabric.v1.CreateServiceAccount\x12\x93\x01\n" +
-	"\x10CreateDeployment\x12(.cluster.fabric.v1.CreateDeploymentInput\x1a).cluster.fabric.v1.CreateDeploymentOutput\"*\x8a\xc4\x03&0\x01r\"cluster.fabric.v1.CreateDeployment\x1a\v\x8a\xc4\x03\a\n" +
+	"\x1fcluster/fabric/v1/cluster.proto\x12\x11cluster.fabric.v1\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"O\n" +
+	"\x14CreateNamespaceInput\x127\n" +
+	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\"o\n" +
+	"\x15CreateNamespaceOutput\x12V\n" +
+	"\x0enamespace_name\x18\x01 \x01(\tB/ʵ\x03+\xa2\x01(json:\"NamespaceName\" validate:\"required\"R\rNamespaceName\"T\n" +
+	"\x19CreateServiceAccountInput\x127\n" +
+	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\"\x1c\n" +
+	"\x1aCreateServiceAccountOutput\"\x9b\x01\n" +
+	"\x15CreateDeploymentInput\x127\n" +
+	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12I\n" +
+	"\tcomponent\x18\x02 \x01(\tB+ʵ\x03'\xa2\x01$json:\"Component\" validate:\"required\"R\tComponent\"s\n" +
+	"\x16CreateDeploymentOutput\x12Y\n" +
+	"\x0fdeployment_name\x18\x01 \x01(\tB0ʵ\x03,\xa2\x01)json:\"DeploymentName\" validate:\"required\"R\x0eDeploymentName2\xfc\x04\n" +
+	"\aCluster\x12\xba\x01\n" +
+	"\x0fCreateNamespace\x12'.cluster.fabric.v1.CreateNamespaceInput\x1a(.cluster.fabric.v1.CreateNamespaceOutput\"T\x8a\xc4\x03P*)cluster/fabric/create-namespace/${! Org }0\x01r!cluster.fabric.v1.CreateNamespace\x12\xd4\x01\n" +
+	"\x14CreateServiceAccount\x12,.cluster.fabric.v1.CreateServiceAccountInput\x1a-.cluster.fabric.v1.CreateServiceAccountOutput\"_\x8a\xc4\x03[*/cluster/fabric/create-service-account/${! Org }0\x01r&cluster.fabric.v1.CreateServiceAccount\x12\xcf\x01\n" +
+	"\x10CreateDeployment\x12(.cluster.fabric.v1.CreateDeploymentInput\x1a).cluster.fabric.v1.CreateDeploymentOutput\"f\x8a\xc4\x03b*:cluster/fabric/create-deployment/${! Org }/${! Component }0\x01r\"cluster.fabric.v1.CreateDeployment\x1a\v\x8a\xc4\x03\a\n" +
 	"\x05infraB\xe1\x01\n" +
 	"\x15com.cluster.fabric.v1B\fClusterProtoP\x01ZTgithub.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1;clusterfabricv1\xa2\x02\x03CFX\xaa\x02\x11Cluster.Fabric.V1\xca\x02\x11Cluster\\Fabric\\V1\xe2\x02\x1dCluster\\Fabric\\V1\\GPBMetadata\xea\x02\x13Cluster::Fabric::V1b\x06proto3"
 

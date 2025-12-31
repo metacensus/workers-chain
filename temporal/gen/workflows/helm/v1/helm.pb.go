@@ -7,6 +7,7 @@
 package helmv1
 
 import (
+	_ "github.com/alta/protopatch/patch/gopb"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -27,11 +28,11 @@ const (
 type RenderChartInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// chart_name is the chart name to render
-	ChartName string `protobuf:"bytes,1,opt,name=chart_name,json=chartName,proto3" json:"chart_name,omitempty"`
+	ChartName string `protobuf:"bytes,1,opt,name=chart_name,json=ChartName,proto3" json:"ChartName" validate:"required"`
 	// values_yaml is Helm values as a YAML string (merged with chart defaults)
-	ValuesYaml string `protobuf:"bytes,2,opt,name=values_yaml,json=valuesYaml,proto3" json:"values_yaml,omitempty"`
+	ValuesYaml string `protobuf:"bytes,2,opt,name=values_yaml,json=ValuesYaml,proto3" json:"ValuesYaml" validate:"required"`
 	// namespace is the Kubernetes namespace for template context (optional)
-	Namespace     *string `protobuf:"bytes,3,opt,name=namespace,proto3,oneof" json:"namespace,omitempty"`
+	Namespace     *string `protobuf:"bytes,3,opt,name=namespace,json=Namespace,proto3,oneof" json:"Namespace,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -91,13 +92,13 @@ func (x *RenderChartInput) GetNamespace() string {
 type RenderChartWithTemplateInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// chart_name is the chart name to render
-	ChartName string `protobuf:"bytes,1,opt,name=chart_name,json=chartName,proto3" json:"chart_name,omitempty"`
+	ChartName string `protobuf:"bytes,1,opt,name=chart_name,json=ChartName,proto3" json:"ChartName" validate:"required"`
 	// component is the component type whose values template to load and render
-	Component string `protobuf:"bytes,2,opt,name=component,proto3" json:"component,omitempty"`
+	Component string `protobuf:"bytes,2,opt,name=component,json=Component,proto3" json:"Component" validate:"required"`
 	// values is a structured map of template variables for rendering
-	Values *structpb.Struct `protobuf:"bytes,3,opt,name=values,proto3" json:"values,omitempty"`
+	Values *structpb.Struct `protobuf:"bytes,3,opt,name=values,json=Values,proto3" json:"Values" validate:"required"`
 	// namespace is the Kubernetes namespace for template context (optional)
-	Namespace     *string `protobuf:"bytes,4,opt,name=namespace,proto3,oneof" json:"namespace,omitempty"`
+	Namespace     *string `protobuf:"bytes,4,opt,name=namespace,json=Namespace,proto3,oneof" json:"Namespace,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -165,9 +166,9 @@ type RenderChartOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// resources is a map of resource_id → rendered resource
 	// Key is caller-defined (e.g., "deployment-api", "service-api")
-	Resources map[string]*Resource `protobuf:"bytes,1,rep,name=resources,proto3" json:"resources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Resources map[string]*Resource `protobuf:"bytes,1,rep,name=resources,json=Resources,proto3" json:"Resources" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	// failures is a map of resource_id → error message for resources that failed to parse
-	Failures      map[string]string `protobuf:"bytes,2,rep,name=failures,proto3" json:"failures,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Failures      map[string]string `protobuf:"bytes,2,rep,name=failures,json=Failures,proto3" json:"Failures" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -220,7 +221,7 @@ func (x *RenderChartOutput) GetFailures() map[string]string {
 type Resource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// manifest_yaml is the complete YAML definition of the resource
-	ManifestYaml  []byte `protobuf:"bytes,1,opt,name=manifest_yaml,json=manifestYaml,proto3" json:"manifest_yaml,omitempty"`
+	ManifestYaml  []byte `protobuf:"bytes,1,opt,name=manifest_yaml,json=ManifestYaml,proto3" json:"ManifestYaml" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -266,34 +267,34 @@ var File_helm_v1_helm_proto protoreflect.FileDescriptor
 
 const file_helm_v1_helm_proto_rawDesc = "" +
 	"\n" +
-	"\x12helm/v1/helm.proto\x12\ahelm.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1atemporal/v1/temporal.proto\"\x83\x01\n" +
-	"\x10RenderChartInput\x12\x1d\n" +
+	"\x12helm/v1/helm.proto\x12\ahelm.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\x96\x02\n" +
+	"\x10RenderChartInput\x12J\n" +
 	"\n" +
-	"chart_name\x18\x01 \x01(\tR\tchartName\x12\x1f\n" +
-	"\vvalues_yaml\x18\x02 \x01(\tR\n" +
-	"valuesYaml\x12!\n" +
-	"\tnamespace\x18\x03 \x01(\tH\x00R\tnamespace\x88\x01\x01B\f\n" +
+	"chart_name\x18\x01 \x01(\tB+ʵ\x03'\xa2\x01$json:\"ChartName\" validate:\"required\"R\tChartName\x12M\n" +
+	"\vvalues_yaml\x18\x02 \x01(\tB,ʵ\x03(\xa2\x01%json:\"ValuesYaml\" validate:\"required\"R\n" +
+	"ValuesYaml\x12Y\n" +
+	"\tnamespace\x18\x03 \x01(\tB6ʵ\x032\xa2\x01/json:\"Namespace,omitempty\" validate:\"omitempty\"H\x00R\tNamespace\x88\x01\x01B\f\n" +
 	"\n" +
-	"_namespace\"\xbd\x01\n" +
-	"\x1cRenderChartWithTemplateInput\x12\x1d\n" +
+	"_namespace\"\xf9\x02\n" +
+	"\x1cRenderChartWithTemplateInput\x12J\n" +
 	"\n" +
-	"chart_name\x18\x01 \x01(\tR\tchartName\x12\x1c\n" +
-	"\tcomponent\x18\x02 \x01(\tR\tcomponent\x12/\n" +
-	"\x06values\x18\x03 \x01(\v2\x17.google.protobuf.StructR\x06values\x12!\n" +
-	"\tnamespace\x18\x04 \x01(\tH\x00R\tnamespace\x88\x01\x01B\f\n" +
+	"chart_name\x18\x01 \x01(\tB+ʵ\x03'\xa2\x01$json:\"ChartName\" validate:\"required\"R\tChartName\x12I\n" +
+	"\tcomponent\x18\x02 \x01(\tB+ʵ\x03'\xa2\x01$json:\"Component\" validate:\"required\"R\tComponent\x12Y\n" +
+	"\x06values\x18\x03 \x01(\v2\x17.google.protobuf.StructB(ʵ\x03$\xa2\x01!json:\"Values\" validate:\"required\"R\x06Values\x12Y\n" +
+	"\tnamespace\x18\x04 \x01(\tB6ʵ\x032\xa2\x01/json:\"Namespace,omitempty\" validate:\"omitempty\"H\x00R\tNamespace\x88\x01\x01B\f\n" +
 	"\n" +
-	"_namespace\"\xb0\x02\n" +
-	"\x11RenderChartOutput\x12G\n" +
-	"\tresources\x18\x01 \x03(\v2).helm.v1.RenderChartOutput.ResourcesEntryR\tresources\x12D\n" +
-	"\bfailures\x18\x02 \x03(\v2(.helm.v1.RenderChartOutput.FailuresEntryR\bfailures\x1aO\n" +
+	"_namespace\"\x89\x03\n" +
+	"\x11RenderChartOutput\x12t\n" +
+	"\tresources\x18\x01 \x03(\v2).helm.v1.RenderChartOutput.ResourcesEntryB+ʵ\x03'\xa2\x01$json:\"Resources\" validate:\"required\"R\tResources\x12p\n" +
+	"\bfailures\x18\x02 \x03(\v2(.helm.v1.RenderChartOutput.FailuresEntryB*ʵ\x03&\xa2\x01#json:\"Failures\" validate:\"required\"R\bFailures\x1aO\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12'\n" +
 	"\x05value\x18\x02 \x01(\v2\x11.helm.v1.ResourceR\x05value:\x028\x01\x1a;\n" +
 	"\rFailuresEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"/\n" +
-	"\bResource\x12#\n" +
-	"\rmanifest_yaml\x18\x01 \x01(\fR\fmanifestYaml2\x84\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"_\n" +
+	"\bResource\x12S\n" +
+	"\rmanifest_yaml\x18\x01 \x01(\fB.ʵ\x03*\xa2\x01'json:\"ManifestYaml\" validate:\"required\"R\fManifestYaml2\x84\x02\n" +
 	"\x04Helm\x12d\n" +
 	"\vRenderChart\x12\x19.helm.v1.RenderChartInput\x1a\x1a.helm.v1.RenderChartOutput\"\x1e\x92\xc4\x03\x1a\x12\x03\b\xac\x02:\x13helm.v1.RenderChart\x12\x88\x01\n" +
 	"\x17RenderChartWithTemplate\x12%.helm.v1.RenderChartWithTemplateInput\x1a\x1a.helm.v1.RenderChartOutput\"*\x92\xc4\x03&\x12\x03\b\xac\x02:\x1fhelm.v1.RenderChartWithTemplate\x1a\v\x8a\xc4\x03\a\n" +

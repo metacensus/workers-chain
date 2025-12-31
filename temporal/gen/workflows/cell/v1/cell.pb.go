@@ -7,6 +7,7 @@
 package cellv1
 
 import (
+	_ "github.com/alta/protopatch/patch/gopb"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -101,7 +102,7 @@ type InitFabricShardInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// org is the organization identifier (e.g., "org1", "acme-corp")
 	// Used to derive namespace names: Temporal namespace "fabric-{org}", K8s namespace "fabric-{org}"
-	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	Org           string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -184,15 +185,15 @@ var File_cell_v1_cell_proto protoreflect.FileDescriptor
 
 const file_cell_v1_cell_proto_rawDesc = "" +
 	"\n" +
-	"\x12cell/v1/cell.proto\x12\acell.v1\x1a\x1atemporal/v1/temporal.proto\"\x15\n" +
+	"\x12cell/v1/cell.proto\x12\acell.v1\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\x15\n" +
 	"\x13BootstrapInfraInput\"\x16\n" +
-	"\x14BootstrapInfraOutput\"(\n" +
-	"\x14InitFabricShardInput\x12\x10\n" +
-	"\x03org\x18\x01 \x01(\tR\x03org\"\x17\n" +
-	"\x15InitFabricShardOutput2\xf5\x01\n" +
-	"\x04Cell\x12m\n" +
-	"\x0eBootstrapInfra\x12\x1c.cell.v1.BootstrapInfraInput\x1a\x1d.cell.v1.BootstrapInfraOutput\"\x1e\x8a\xc4\x03\x1a0\x01r\x16cell.v1.BootstrapInfra\x12q\n" +
-	"\x0fInitFabricShard\x12\x1d.cell.v1.InitFabricShardInput\x1a\x1e.cell.v1.InitFabricShardOutput\"\x1f\x8a\xc4\x03\x1b0\x01r\x17cell.v1.InitFabricShard\x1a\v\x8a\xc4\x03\a\n" +
+	"\x14BootstrapInfraOutput\"O\n" +
+	"\x14InitFabricShardInput\x127\n" +
+	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\"\x17\n" +
+	"\x15InitFabricShardOutput2\xaf\x02\n" +
+	"\x04Cell\x12\x83\x01\n" +
+	"\x0eBootstrapInfra\x12\x1c.cell.v1.BootstrapInfraInput\x1a\x1d.cell.v1.BootstrapInfraOutput\"4\x8a\xc4\x030*\x14cell/bootstrap-infra0\x01r\x16cell.v1.BootstrapInfra\x12\x93\x01\n" +
+	"\x0fInitFabricShard\x12\x1d.cell.v1.InitFabricShardInput\x1a\x1e.cell.v1.InitFabricShardOutput\"A\x8a\xc4\x03=* cell/init-fabric-shard/${! Org }0\x01r\x17cell.v1.InitFabricShard\x1a\v\x8a\xc4\x03\a\n" +
 	"\x05infraB\x98\x01\n" +
 	"\vcom.cell.v1B\tCellProtoP\x01ZAgithub.com/metacensus/infra/temporal/gen/workflows/cell/v1;cellv1\xa2\x02\x03CXX\xaa\x02\aCell.V1\xca\x02\aCell\\V1\xe2\x02\x13Cell\\V1\\GPBMetadata\xea\x02\bCell::V1b\x06proto3"
 

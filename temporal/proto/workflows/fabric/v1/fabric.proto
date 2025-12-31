@@ -5,6 +5,7 @@ package fabric.v1;
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1";
 
 import "nexus/v1/options.proto";
+import "patch/go.proto";
 import "temporal/v1/temporal.proto";
 
 // Fabric service defines workflows for manipulating a Fabric shard
@@ -55,8 +56,8 @@ service Fabric {
   rpc DeployRootCertificateAuthority(DeployRootCertificateAuthorityInput) returns (DeployRootCertificateAuthorityOutput) {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.DeployRootCertificateAuthority"
-      // Workflow ID includes cert_type and root suffix for clarity
-      id: 'fabric/deploy-certificate-authority/${! cert_type }/root'
+      // Workflow ID includes CertType and root suffix for clarity
+      id: 'fabric/deploy-certificate-authority/${! CertType }/root'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -66,8 +67,8 @@ service Fabric {
   rpc DeployCertificateAuthority(DeployCertificateAuthorityInput) returns (DeployCertificateAuthorityOutput) {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.DeployCertificateAuthority"
-      // Workflow ID includes cert_type and id to allow parallel deployment and rotation
-      id: 'fabric/deploy-certificate-authority/${! cert_type }/${! id }'
+      // Workflow ID includes CertType and Id to allow parallel deployment and rotation
+      id: 'fabric/deploy-certificate-authority/${! CertType }/${! Id }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -132,7 +133,10 @@ message DeployCertificateStoreOutput {
 message DeployRootCertificateAuthorityInput {
   // cert_type specifies whether this is a TLS or Org certificate authority
   // Valid values: "tls" (for secure communication), "org" (for Fabric MSP identity)
-  string cert_type = 1;
+  string cert_type = 1 [
+    json_name = "CertType",
+    (go.field).tags = 'json:"CertType" validate:"required"'
+  ];
 }
 
 // DeployRootCertificateAuthorityOutput indicates the result of root CA deployment
@@ -147,12 +151,18 @@ message DeployRootCertificateAuthorityOutput {
 message DeployCertificateAuthorityInput {
   // cert_type specifies whether this is a TLS or Org certificate authority
   // Valid values: "tls" or "org"
-  string cert_type = 1;
+  string cert_type = 1 [
+    json_name = "CertType",
+    (go.field).tags = 'json:"CertType" validate:"required"'
+  ];
   
   // id is a unique identifier for this intermediate CA instance.
   // This enables rotation by deploying a new intermediate CA with a different ID
   // while the old one is still active, then switching over and revoking the old one.
-  string id = 2;
+  string id = 2 [
+    json_name = "Id",
+    (go.field).tags = 'json:"Id" validate:"required"'
+  ];
 }
 
 // DeployCertificateAuthorityOutput indicates the result of intermediate CA deployment

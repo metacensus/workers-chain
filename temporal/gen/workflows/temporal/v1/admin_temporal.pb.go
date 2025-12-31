@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	expression "github.com/cludden/protoc-gen-go-temporal/pkg/expression"
 	helpers "github.com/cludden/protoc-gen-go-temporal/pkg/helpers"
 	enumsv1 "go.temporal.io/api/enums/v1"
 	activity "go.temporal.io/sdk/activity"
@@ -33,6 +34,11 @@ var AdminTaskQueue = "infra"
 // temporal.v1.Admin workflow names
 const (
 	CreateNamespaceWorkflowName = "temporal.v1.CreateNamespace"
+)
+
+// temporal.v1.Admin workflow id expressions
+var (
+	CreateNamespaceIdexpression = expression.MustParseExpression("temporal/create-namespace/${! Name }")
 )
 
 // temporal.v1.Admin activity names
@@ -209,6 +215,12 @@ func (o *CreateNamespaceOptions) Build(req protoreflect.Message) (client.StartWo
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(CreateNamespaceIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateNamespaceWorkflowName, err)
+		}
+		opts.ID = id
 	}
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
@@ -448,7 +460,7 @@ type CreateNamespaceWorkflowInput struct {
 // This is a workflow (not an activity) because namespace creation in Temporal is async
 // and requires polling to verify the namespace is active before returning.
 //
-// workflow details: (name: "temporal.v1.CreateNamespace")
+// workflow details: (name: "temporal.v1.CreateNamespace", id: "temporal/create-namespace/${! Name }")
 type CreateNamespaceWorkflow interface {
 	// Execute defines the entrypoint to a(n) temporal.v1.CreateNamespace workflow
 	Execute(ctx workflow.Context) (*CreateNamespaceOutput, error)
@@ -513,6 +525,28 @@ func (o *CreateNamespaceChildOptions) Build(ctx workflow.Context, req protorefle
 	opts := o.options
 	if v := o.id; v != nil {
 		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(CreateNamespaceIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateNamespaceWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateNamespaceWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(CreateNamespaceIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateNamespaceWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
 	}
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v

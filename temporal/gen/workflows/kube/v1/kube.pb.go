@@ -7,6 +7,7 @@
 package kubev1
 
 import (
+	_ "github.com/alta/protopatch/patch/gopb"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -28,7 +29,7 @@ type Resource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// manifest_yaml is the complete YAML definition of the resource
 	// Activities parse this to extract kind, name, namespace, apiVersion
-	ManifestYaml  []byte `protobuf:"bytes,1,opt,name=manifest_yaml,json=manifestYaml,proto3" json:"manifest_yaml,omitempty"`
+	ManifestYaml  []byte `protobuf:"bytes,1,opt,name=manifest_yaml,json=ManifestYaml,proto3" json:"ManifestYaml" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -76,7 +77,7 @@ type CreateInput struct {
 	// resources is a map of resource_id → resource
 	// resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
 	// Each resource's YAML must include namespace (or be cluster-scoped)
-	Resources     map[string]*Resource `protobuf:"bytes,1,rep,name=resources,proto3" json:"resources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Resources     map[string]*Resource `protobuf:"bytes,1,rep,name=resources,json=Resources,proto3" json:"Resources" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -123,9 +124,9 @@ type CreateOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// results contains the outcome for each resource
 	// Keys match the resource_id from CreateInput
-	Results map[string]*CreateResult `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Results map[string]*CreateResult `protobuf:"bytes,1,rep,name=results,json=Results,proto3" json:"Results" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	// summary provides high-level statistics
-	Summary       *CreateSummary `protobuf:"bytes,2,opt,name=summary,proto3" json:"summary,omitempty"`
+	Summary       *CreateSummary `protobuf:"bytes,2,opt,name=summary,json=Summary,proto3" json:"Summary" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -178,11 +179,11 @@ func (x *CreateOutput) GetSummary() *CreateSummary {
 type CreateResult struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// resource_id identifies which resource this result is for
-	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=ResourceId,proto3" json:"ResourceId" validate:"required"`
 	// resource_status contains current state (if created successfully)
-	ResourceStatus *ResourceStatus `protobuf:"bytes,2,opt,name=resource_status,json=resourceStatus,proto3" json:"resource_status,omitempty"`
+	ResourceStatus *ResourceStatus `protobuf:"bytes,2,opt,name=resource_status,json=ResourceStatus,proto3" json:"ResourceStatus,omitempty" validate:"omitempty"`
 	// error_message contains error details (if failed)
-	ErrorMessage  string `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	ErrorMessage  string `protobuf:"bytes,3,opt,name=error_message,json=ErrorMessage,proto3" json:"ErrorMessage,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -241,9 +242,9 @@ func (x *CreateResult) GetErrorMessage() string {
 // CreateSummary provides aggregate statistics
 type CreateSummary struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Total         int32                  `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
-	Created       int32                  `protobuf:"varint,2,opt,name=created,proto3" json:"created,omitempty"`
-	Failed        int32                  `protobuf:"varint,3,opt,name=failed,proto3" json:"failed,omitempty"`
+	Total         int32                  `protobuf:"varint,1,opt,name=total,json=Total,proto3" json:"Total" validate:"required"`
+	Created       int32                  `protobuf:"varint,2,opt,name=created,json=Created,proto3" json:"Created" validate:"required"`
+	Failed        int32                  `protobuf:"varint,3,opt,name=failed,json=Failed,proto3" json:"Failed" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -305,7 +306,7 @@ type UpdateInput struct {
 	// resources is a map of resource_id → resource
 	// resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
 	// Each resource's YAML must include namespace (or be cluster-scoped)
-	Resources     map[string]*Resource `protobuf:"bytes,1,rep,name=resources,proto3" json:"resources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Resources     map[string]*Resource `protobuf:"bytes,1,rep,name=resources,json=Resources,proto3" json:"Resources" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -352,9 +353,9 @@ type UpdateOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// results contains the outcome for each resource
 	// Keys match the resource_id from UpdateInput
-	Results map[string]*UpdateResult `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Results map[string]*UpdateResult `protobuf:"bytes,1,rep,name=results,json=Results,proto3" json:"Results" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	// summary provides high-level statistics
-	Summary       *UpdateSummary `protobuf:"bytes,2,opt,name=summary,proto3" json:"summary,omitempty"`
+	Summary       *UpdateSummary `protobuf:"bytes,2,opt,name=summary,json=Summary,proto3" json:"Summary" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -407,11 +408,11 @@ func (x *UpdateOutput) GetSummary() *UpdateSummary {
 type UpdateResult struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// resource_id identifies which resource this result is for
-	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=ResourceId,proto3" json:"ResourceId" validate:"required"`
 	// resource_status contains current state (if updated successfully)
-	ResourceStatus *ResourceStatus `protobuf:"bytes,2,opt,name=resource_status,json=resourceStatus,proto3" json:"resource_status,omitempty"`
+	ResourceStatus *ResourceStatus `protobuf:"bytes,2,opt,name=resource_status,json=ResourceStatus,proto3" json:"ResourceStatus,omitempty" validate:"omitempty"`
 	// error_message contains error details (if failed)
-	ErrorMessage  string `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	ErrorMessage  string `protobuf:"bytes,3,opt,name=error_message,json=ErrorMessage,proto3" json:"ErrorMessage,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -470,9 +471,9 @@ func (x *UpdateResult) GetErrorMessage() string {
 // UpdateSummary provides aggregate statistics
 type UpdateSummary struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Total         int32                  `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
-	Updated       int32                  `protobuf:"varint,2,opt,name=updated,proto3" json:"updated,omitempty"`
-	Failed        int32                  `protobuf:"varint,3,opt,name=failed,proto3" json:"failed,omitempty"`
+	Total         int32                  `protobuf:"varint,1,opt,name=total,json=Total,proto3" json:"Total" validate:"required"`
+	Updated       int32                  `protobuf:"varint,2,opt,name=updated,json=Updated,proto3" json:"Updated" validate:"required"`
+	Failed        int32                  `protobuf:"varint,3,opt,name=failed,json=Failed,proto3" json:"Failed" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -534,7 +535,7 @@ type ApplyInput struct {
 	// resources is a map of resource_id → resource
 	// resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
 	// Each resource's YAML must include namespace (or be cluster-scoped)
-	Resources     map[string]*Resource `protobuf:"bytes,1,rep,name=resources,proto3" json:"resources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Resources     map[string]*Resource `protobuf:"bytes,1,rep,name=resources,json=Resources,proto3" json:"Resources" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -581,9 +582,9 @@ type ApplyOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// results contains the outcome for each resource
 	// Keys match the resource_id from ApplyInput
-	Results map[string]*ApplyResult `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Results map[string]*ApplyResult `protobuf:"bytes,1,rep,name=results,json=Results,proto3" json:"Results" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	// summary provides high-level statistics
-	Summary       *ApplySummary `protobuf:"bytes,2,opt,name=summary,proto3" json:"summary,omitempty"`
+	Summary       *ApplySummary `protobuf:"bytes,2,opt,name=summary,json=Summary,proto3" json:"Summary" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -636,11 +637,11 @@ func (x *ApplyOutput) GetSummary() *ApplySummary {
 type ApplyResult struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// resource_id identifies which resource this result is for
-	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=ResourceId,proto3" json:"ResourceId" validate:"required"`
 	// resource_status contains current state (if applied successfully)
-	ResourceStatus *ResourceStatus `protobuf:"bytes,2,opt,name=resource_status,json=resourceStatus,proto3" json:"resource_status,omitempty"`
+	ResourceStatus *ResourceStatus `protobuf:"bytes,2,opt,name=resource_status,json=ResourceStatus,proto3" json:"ResourceStatus,omitempty" validate:"omitempty"`
 	// error_message contains error details (if failed)
-	ErrorMessage  string `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	ErrorMessage  string `protobuf:"bytes,3,opt,name=error_message,json=ErrorMessage,proto3" json:"ErrorMessage,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -699,9 +700,9 @@ func (x *ApplyResult) GetErrorMessage() string {
 // ApplySummary provides aggregate statistics
 type ApplySummary struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Total         int32                  `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
-	Applied       int32                  `protobuf:"varint,2,opt,name=applied,proto3" json:"applied,omitempty"`
-	Failed        int32                  `protobuf:"varint,3,opt,name=failed,proto3" json:"failed,omitempty"`
+	Total         int32                  `protobuf:"varint,1,opt,name=total,json=Total,proto3" json:"Total" validate:"required"`
+	Applied       int32                  `protobuf:"varint,2,opt,name=applied,json=Applied,proto3" json:"Applied" validate:"required"`
+	Failed        int32                  `protobuf:"varint,3,opt,name=failed,json=Failed,proto3" json:"Failed" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -763,7 +764,7 @@ type DeleteInput struct {
 	// resources to delete
 	// Keys are resource_id (same as ApplyInput)
 	// Each resource's YAML must include namespace (or be cluster-scoped)
-	Resources     map[string]*Resource `protobuf:"bytes,1,rep,name=resources,proto3" json:"resources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Resources     map[string]*Resource `protobuf:"bytes,1,rep,name=resources,json=Resources,proto3" json:"Resources" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -809,9 +810,9 @@ func (x *DeleteInput) GetResources() map[string]*Resource {
 type DeleteOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// results contains the outcome for each resource
-	Results map[string]*DeleteResult `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Results map[string]*DeleteResult `protobuf:"bytes,1,rep,name=results,json=Results,proto3" json:"Results" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	// summary provides high-level statistics
-	Summary       *DeleteSummary `protobuf:"bytes,2,opt,name=summary,proto3" json:"summary,omitempty"`
+	Summary       *DeleteSummary `protobuf:"bytes,2,opt,name=summary,json=Summary,proto3" json:"Summary" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -864,9 +865,9 @@ func (x *DeleteOutput) GetSummary() *DeleteSummary {
 type DeleteResult struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// resource_id identifies which resource this result is for
-	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=ResourceId,proto3" json:"ResourceId" validate:"required"`
 	// error_message contains error details (if failed)
-	ErrorMessage  string `protobuf:"bytes,2,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	ErrorMessage  string `protobuf:"bytes,2,opt,name=error_message,json=ErrorMessage,proto3" json:"ErrorMessage,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -918,9 +919,9 @@ func (x *DeleteResult) GetErrorMessage() string {
 // DeleteSummary provides aggregate statistics
 type DeleteSummary struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Total         int32                  `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
-	Deleted       int32                  `protobuf:"varint,2,opt,name=deleted,proto3" json:"deleted,omitempty"`
-	Failed        int32                  `protobuf:"varint,3,opt,name=failed,proto3" json:"failed,omitempty"`
+	Total         int32                  `protobuf:"varint,1,opt,name=total,json=Total,proto3" json:"Total" validate:"required"`
+	Deleted       int32                  `protobuf:"varint,2,opt,name=deleted,json=Deleted,proto3" json:"Deleted" validate:"required"`
+	Failed        int32                  `protobuf:"varint,3,opt,name=failed,json=Failed,proto3" json:"Failed" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -981,7 +982,7 @@ type GetStatusInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// resources to check status for
 	// Each resource's YAML must include namespace (or be cluster-scoped)
-	Resources     map[string]*Resource `protobuf:"bytes,1,rep,name=resources,proto3" json:"resources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Resources     map[string]*Resource `protobuf:"bytes,1,rep,name=resources,json=Resources,proto3" json:"Resources" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1028,9 +1029,9 @@ type GetStatusOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// results contains status for each resource
 	// Keys match resource_id from GetStatusInput
-	Results map[string]*ResourceStatus `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Results map[string]*ResourceStatus `protobuf:"bytes,1,rep,name=results,json=Results,proto3" json:"Results" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
 	// overall_status is a summary: "ready", "pending", "degraded", "error", "unknown"
-	OverallStatus string `protobuf:"bytes,2,opt,name=overall_status,json=overallStatus,proto3" json:"overall_status,omitempty"`
+	OverallStatus string `protobuf:"bytes,2,opt,name=overall_status,json=OverallStatus,proto3" json:"OverallStatus" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1083,14 +1084,14 @@ func (x *GetStatusOutput) GetOverallStatus() string {
 type ResourceIdentifier struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// api_version is the Kubernetes API version (e.g., "apps/v1", "v1")
-	ApiVersion string `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
+	ApiVersion string `protobuf:"bytes,1,opt,name=api_version,json=ApiVersion,proto3" json:"ApiVersion" validate:"required"`
 	// kind is the Kubernetes resource kind (e.g., "Deployment", "Service", "Pod")
-	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
+	Kind string `protobuf:"bytes,2,opt,name=kind,json=Kind,proto3" json:"Kind" validate:"required"`
 	// name is the resource name
-	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,3,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	// namespace is the resource namespace
 	// Empty for cluster-scoped resources
-	Namespace     string `protobuf:"bytes,4,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Namespace     string `protobuf:"bytes,4,opt,name=namespace,json=Namespace,proto3" json:"Namespace,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1157,21 +1158,21 @@ func (x *ResourceIdentifier) GetNamespace() string {
 type ResourceStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// kind is the Kubernetes resource kind (e.g., "Deployment", "Pod", "Service")
-	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	Kind string `protobuf:"bytes,1,opt,name=kind,json=Kind,proto3" json:"Kind" validate:"required"`
 	// name is the resource name
-	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	// namespace is the resource namespace
-	Namespace string `protobuf:"bytes,3,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Namespace string `protobuf:"bytes,3,opt,name=namespace,json=Namespace,proto3" json:"Namespace" validate:"required"`
 	// status is the current status (e.g., "ready", "pending", "error", "unknown")
-	Status string `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	Status string `protobuf:"bytes,4,opt,name=status,json=Status,proto3" json:"Status" validate:"required"`
 	// ready_replicas is the number of ready replicas (for Deployments, StatefulSets, etc.)
 	// Only populated for workload resources
-	ReadyReplicas int32 `protobuf:"varint,5,opt,name=ready_replicas,json=readyReplicas,proto3" json:"ready_replicas,omitempty"`
+	ReadyReplicas int32 `protobuf:"varint,5,opt,name=ready_replicas,json=ReadyReplicas,proto3" json:"ReadyReplicas,omitempty" validate:"omitempty"`
 	// desired_replicas is the desired number of replicas
 	// Only populated for workload resources
-	DesiredReplicas int32 `protobuf:"varint,6,opt,name=desired_replicas,json=desiredReplicas,proto3" json:"desired_replicas,omitempty"`
+	DesiredReplicas int32 `protobuf:"varint,6,opt,name=desired_replicas,json=DesiredReplicas,proto3" json:"DesiredReplicas,omitempty" validate:"omitempty"`
 	// message provides additional context (error messages, warnings, etc.)
-	Message       string `protobuf:"bytes,7,opt,name=message,proto3" json:"message,omitempty"`
+	Message       string `protobuf:"bytes,7,opt,name=message,json=Message,proto3" json:"Message,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1259,114 +1260,114 @@ var File_kube_v1_kube_proto protoreflect.FileDescriptor
 
 const file_kube_v1_kube_proto_rawDesc = "" +
 	"\n" +
-	"\x12kube/v1/kube.proto\x12\akube.v1\x1a\x1atemporal/v1/temporal.proto\"/\n" +
-	"\bResource\x12#\n" +
-	"\rmanifest_yaml\x18\x01 \x01(\fR\fmanifestYaml\"\xa1\x01\n" +
-	"\vCreateInput\x12A\n" +
-	"\tresources\x18\x01 \x03(\v2#.kube.v1.CreateInput.ResourcesEntryR\tresources\x1aO\n" +
+	"\x12kube/v1/kube.proto\x12\akube.v1\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"_\n" +
+	"\bResource\x12S\n" +
+	"\rmanifest_yaml\x18\x01 \x01(\fB.ʵ\x03*\xa2\x01'json:\"ManifestYaml\" validate:\"required\"R\fManifestYaml\"\xce\x01\n" +
+	"\vCreateInput\x12n\n" +
+	"\tresources\x18\x01 \x03(\v2#.kube.v1.CreateInput.ResourcesEntryB+ʵ\x03'\xa2\x01$json:\"Resources\" validate:\"required\"R\tResources\x1aO\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12'\n" +
-	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xd1\x01\n" +
-	"\fCreateOutput\x12<\n" +
-	"\aresults\x18\x01 \x03(\v2\".kube.v1.CreateOutput.ResultsEntryR\aresults\x120\n" +
-	"\asummary\x18\x02 \x01(\v2\x16.kube.v1.CreateSummaryR\asummary\x1aQ\n" +
+	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xa7\x02\n" +
+	"\fCreateOutput\x12g\n" +
+	"\aresults\x18\x01 \x03(\v2\".kube.v1.CreateOutput.ResultsEntryB)ʵ\x03%\xa2\x01\"json:\"Results\" validate:\"required\"R\aResults\x12[\n" +
+	"\asummary\x18\x02 \x01(\v2\x16.kube.v1.CreateSummaryB)ʵ\x03%\xa2\x01\"json:\"Summary\" validate:\"required\"R\aSummary\x1aQ\n" +
 	"\fResultsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12+\n" +
-	"\x05value\x18\x02 \x01(\v2\x15.kube.v1.CreateResultR\x05value:\x028\x01\"\x96\x01\n" +
-	"\fCreateResult\x12\x1f\n" +
-	"\vresource_id\x18\x01 \x01(\tR\n" +
-	"resourceId\x12@\n" +
-	"\x0fresource_status\x18\x02 \x01(\v2\x17.kube.v1.ResourceStatusR\x0eresourceStatus\x12#\n" +
-	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\"W\n" +
-	"\rCreateSummary\x12\x14\n" +
-	"\x05total\x18\x01 \x01(\x05R\x05total\x12\x18\n" +
-	"\acreated\x18\x02 \x01(\x05R\acreated\x12\x16\n" +
-	"\x06failed\x18\x03 \x01(\x05R\x06failed\"\xa1\x01\n" +
-	"\vUpdateInput\x12A\n" +
-	"\tresources\x18\x01 \x03(\v2#.kube.v1.UpdateInput.ResourcesEntryR\tresources\x1aO\n" +
+	"\x05value\x18\x02 \x01(\v2\x15.kube.v1.CreateResultR\x05value:\x028\x01\"\xbc\x02\n" +
+	"\fCreateResult\x12M\n" +
+	"\vresource_id\x18\x01 \x01(\tB,ʵ\x03(\xa2\x01%json:\"ResourceId\" validate:\"required\"R\n" +
+	"ResourceId\x12}\n" +
+	"\x0fresource_status\x18\x02 \x01(\v2\x17.kube.v1.ResourceStatusB;ʵ\x037\xa2\x014json:\"ResourceStatus,omitempty\" validate:\"omitempty\"R\x0eResourceStatus\x12^\n" +
+	"\rerror_message\x18\x03 \x01(\tB9ʵ\x035\xa2\x012json:\"ErrorMessage,omitempty\" validate:\"omitempty\"R\fErrorMessage\"\xd5\x01\n" +
+	"\rCreateSummary\x12=\n" +
+	"\x05total\x18\x01 \x01(\x05B'ʵ\x03#\xa2\x01 json:\"Total\" validate:\"required\"R\x05Total\x12C\n" +
+	"\acreated\x18\x02 \x01(\x05B)ʵ\x03%\xa2\x01\"json:\"Created\" validate:\"required\"R\aCreated\x12@\n" +
+	"\x06failed\x18\x03 \x01(\x05B(ʵ\x03$\xa2\x01!json:\"Failed\" validate:\"required\"R\x06Failed\"\xce\x01\n" +
+	"\vUpdateInput\x12n\n" +
+	"\tresources\x18\x01 \x03(\v2#.kube.v1.UpdateInput.ResourcesEntryB+ʵ\x03'\xa2\x01$json:\"Resources\" validate:\"required\"R\tResources\x1aO\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12'\n" +
-	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xd1\x01\n" +
-	"\fUpdateOutput\x12<\n" +
-	"\aresults\x18\x01 \x03(\v2\".kube.v1.UpdateOutput.ResultsEntryR\aresults\x120\n" +
-	"\asummary\x18\x02 \x01(\v2\x16.kube.v1.UpdateSummaryR\asummary\x1aQ\n" +
+	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xa7\x02\n" +
+	"\fUpdateOutput\x12g\n" +
+	"\aresults\x18\x01 \x03(\v2\".kube.v1.UpdateOutput.ResultsEntryB)ʵ\x03%\xa2\x01\"json:\"Results\" validate:\"required\"R\aResults\x12[\n" +
+	"\asummary\x18\x02 \x01(\v2\x16.kube.v1.UpdateSummaryB)ʵ\x03%\xa2\x01\"json:\"Summary\" validate:\"required\"R\aSummary\x1aQ\n" +
 	"\fResultsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12+\n" +
-	"\x05value\x18\x02 \x01(\v2\x15.kube.v1.UpdateResultR\x05value:\x028\x01\"\x96\x01\n" +
-	"\fUpdateResult\x12\x1f\n" +
-	"\vresource_id\x18\x01 \x01(\tR\n" +
-	"resourceId\x12@\n" +
-	"\x0fresource_status\x18\x02 \x01(\v2\x17.kube.v1.ResourceStatusR\x0eresourceStatus\x12#\n" +
-	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\"W\n" +
-	"\rUpdateSummary\x12\x14\n" +
-	"\x05total\x18\x01 \x01(\x05R\x05total\x12\x18\n" +
-	"\aupdated\x18\x02 \x01(\x05R\aupdated\x12\x16\n" +
-	"\x06failed\x18\x03 \x01(\x05R\x06failed\"\x9f\x01\n" +
+	"\x05value\x18\x02 \x01(\v2\x15.kube.v1.UpdateResultR\x05value:\x028\x01\"\xbc\x02\n" +
+	"\fUpdateResult\x12M\n" +
+	"\vresource_id\x18\x01 \x01(\tB,ʵ\x03(\xa2\x01%json:\"ResourceId\" validate:\"required\"R\n" +
+	"ResourceId\x12}\n" +
+	"\x0fresource_status\x18\x02 \x01(\v2\x17.kube.v1.ResourceStatusB;ʵ\x037\xa2\x014json:\"ResourceStatus,omitempty\" validate:\"omitempty\"R\x0eResourceStatus\x12^\n" +
+	"\rerror_message\x18\x03 \x01(\tB9ʵ\x035\xa2\x012json:\"ErrorMessage,omitempty\" validate:\"omitempty\"R\fErrorMessage\"\xd5\x01\n" +
+	"\rUpdateSummary\x12=\n" +
+	"\x05total\x18\x01 \x01(\x05B'ʵ\x03#\xa2\x01 json:\"Total\" validate:\"required\"R\x05Total\x12C\n" +
+	"\aupdated\x18\x02 \x01(\x05B)ʵ\x03%\xa2\x01\"json:\"Updated\" validate:\"required\"R\aUpdated\x12@\n" +
+	"\x06failed\x18\x03 \x01(\x05B(ʵ\x03$\xa2\x01!json:\"Failed\" validate:\"required\"R\x06Failed\"\xcc\x01\n" +
 	"\n" +
-	"ApplyInput\x12@\n" +
-	"\tresources\x18\x01 \x03(\v2\".kube.v1.ApplyInput.ResourcesEntryR\tresources\x1aO\n" +
+	"ApplyInput\x12m\n" +
+	"\tresources\x18\x01 \x03(\v2\".kube.v1.ApplyInput.ResourcesEntryB+ʵ\x03'\xa2\x01$json:\"Resources\" validate:\"required\"R\tResources\x1aO\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12'\n" +
-	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xcd\x01\n" +
-	"\vApplyOutput\x12;\n" +
-	"\aresults\x18\x01 \x03(\v2!.kube.v1.ApplyOutput.ResultsEntryR\aresults\x12/\n" +
-	"\asummary\x18\x02 \x01(\v2\x15.kube.v1.ApplySummaryR\asummary\x1aP\n" +
+	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xa3\x02\n" +
+	"\vApplyOutput\x12f\n" +
+	"\aresults\x18\x01 \x03(\v2!.kube.v1.ApplyOutput.ResultsEntryB)ʵ\x03%\xa2\x01\"json:\"Results\" validate:\"required\"R\aResults\x12Z\n" +
+	"\asummary\x18\x02 \x01(\v2\x15.kube.v1.ApplySummaryB)ʵ\x03%\xa2\x01\"json:\"Summary\" validate:\"required\"R\aSummary\x1aP\n" +
 	"\fResultsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12*\n" +
-	"\x05value\x18\x02 \x01(\v2\x14.kube.v1.ApplyResultR\x05value:\x028\x01\"\x95\x01\n" +
-	"\vApplyResult\x12\x1f\n" +
-	"\vresource_id\x18\x01 \x01(\tR\n" +
-	"resourceId\x12@\n" +
-	"\x0fresource_status\x18\x02 \x01(\v2\x17.kube.v1.ResourceStatusR\x0eresourceStatus\x12#\n" +
-	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\"V\n" +
-	"\fApplySummary\x12\x14\n" +
-	"\x05total\x18\x01 \x01(\x05R\x05total\x12\x18\n" +
-	"\aapplied\x18\x02 \x01(\x05R\aapplied\x12\x16\n" +
-	"\x06failed\x18\x03 \x01(\x05R\x06failed\"\xa1\x01\n" +
-	"\vDeleteInput\x12A\n" +
-	"\tresources\x18\x01 \x03(\v2#.kube.v1.DeleteInput.ResourcesEntryR\tresources\x1aO\n" +
+	"\x05value\x18\x02 \x01(\v2\x14.kube.v1.ApplyResultR\x05value:\x028\x01\"\xbb\x02\n" +
+	"\vApplyResult\x12M\n" +
+	"\vresource_id\x18\x01 \x01(\tB,ʵ\x03(\xa2\x01%json:\"ResourceId\" validate:\"required\"R\n" +
+	"ResourceId\x12}\n" +
+	"\x0fresource_status\x18\x02 \x01(\v2\x17.kube.v1.ResourceStatusB;ʵ\x037\xa2\x014json:\"ResourceStatus,omitempty\" validate:\"omitempty\"R\x0eResourceStatus\x12^\n" +
+	"\rerror_message\x18\x03 \x01(\tB9ʵ\x035\xa2\x012json:\"ErrorMessage,omitempty\" validate:\"omitempty\"R\fErrorMessage\"\xd4\x01\n" +
+	"\fApplySummary\x12=\n" +
+	"\x05total\x18\x01 \x01(\x05B'ʵ\x03#\xa2\x01 json:\"Total\" validate:\"required\"R\x05Total\x12C\n" +
+	"\aapplied\x18\x02 \x01(\x05B)ʵ\x03%\xa2\x01\"json:\"Applied\" validate:\"required\"R\aApplied\x12@\n" +
+	"\x06failed\x18\x03 \x01(\x05B(ʵ\x03$\xa2\x01!json:\"Failed\" validate:\"required\"R\x06Failed\"\xce\x01\n" +
+	"\vDeleteInput\x12n\n" +
+	"\tresources\x18\x01 \x03(\v2#.kube.v1.DeleteInput.ResourcesEntryB+ʵ\x03'\xa2\x01$json:\"Resources\" validate:\"required\"R\tResources\x1aO\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12'\n" +
-	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xd1\x01\n" +
-	"\fDeleteOutput\x12<\n" +
-	"\aresults\x18\x01 \x03(\v2\".kube.v1.DeleteOutput.ResultsEntryR\aresults\x120\n" +
-	"\asummary\x18\x02 \x01(\v2\x16.kube.v1.DeleteSummaryR\asummary\x1aQ\n" +
+	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xa7\x02\n" +
+	"\fDeleteOutput\x12g\n" +
+	"\aresults\x18\x01 \x03(\v2\".kube.v1.DeleteOutput.ResultsEntryB)ʵ\x03%\xa2\x01\"json:\"Results\" validate:\"required\"R\aResults\x12[\n" +
+	"\asummary\x18\x02 \x01(\v2\x16.kube.v1.DeleteSummaryB)ʵ\x03%\xa2\x01\"json:\"Summary\" validate:\"required\"R\aSummary\x1aQ\n" +
 	"\fResultsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12+\n" +
-	"\x05value\x18\x02 \x01(\v2\x15.kube.v1.DeleteResultR\x05value:\x028\x01\"T\n" +
-	"\fDeleteResult\x12\x1f\n" +
-	"\vresource_id\x18\x01 \x01(\tR\n" +
-	"resourceId\x12#\n" +
-	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage\"W\n" +
-	"\rDeleteSummary\x12\x14\n" +
-	"\x05total\x18\x01 \x01(\x05R\x05total\x12\x18\n" +
-	"\adeleted\x18\x02 \x01(\x05R\adeleted\x12\x16\n" +
-	"\x06failed\x18\x03 \x01(\x05R\x06failed\"\xa7\x01\n" +
-	"\x0eGetStatusInput\x12D\n" +
-	"\tresources\x18\x01 \x03(\v2&.kube.v1.GetStatusInput.ResourcesEntryR\tresources\x1aO\n" +
+	"\x05value\x18\x02 \x01(\v2\x15.kube.v1.DeleteResultR\x05value:\x028\x01\"\xbd\x01\n" +
+	"\fDeleteResult\x12M\n" +
+	"\vresource_id\x18\x01 \x01(\tB,ʵ\x03(\xa2\x01%json:\"ResourceId\" validate:\"required\"R\n" +
+	"ResourceId\x12^\n" +
+	"\rerror_message\x18\x02 \x01(\tB9ʵ\x035\xa2\x012json:\"ErrorMessage,omitempty\" validate:\"omitempty\"R\fErrorMessage\"\xd5\x01\n" +
+	"\rDeleteSummary\x12=\n" +
+	"\x05total\x18\x01 \x01(\x05B'ʵ\x03#\xa2\x01 json:\"Total\" validate:\"required\"R\x05Total\x12C\n" +
+	"\adeleted\x18\x02 \x01(\x05B)ʵ\x03%\xa2\x01\"json:\"Deleted\" validate:\"required\"R\aDeleted\x12@\n" +
+	"\x06failed\x18\x03 \x01(\x05B(ʵ\x03$\xa2\x01!json:\"Failed\" validate:\"required\"R\x06Failed\"\xd4\x01\n" +
+	"\x0eGetStatusInput\x12q\n" +
+	"\tresources\x18\x01 \x03(\v2&.kube.v1.GetStatusInput.ResourcesEntryB+ʵ\x03'\xa2\x01$json:\"Resources\" validate:\"required\"R\tResources\x1aO\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12'\n" +
-	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xce\x01\n" +
-	"\x0fGetStatusOutput\x12?\n" +
-	"\aresults\x18\x01 \x03(\v2%.kube.v1.GetStatusOutput.ResultsEntryR\aresults\x12%\n" +
-	"\x0eoverall_status\x18\x02 \x01(\tR\roverallStatus\x1aS\n" +
+	"\x05value\x18\x02 \x01(\v2\x11.kube.v1.ResourceR\x05value:\x028\x01\"\xaa\x02\n" +
+	"\x0fGetStatusOutput\x12j\n" +
+	"\aresults\x18\x01 \x03(\v2%.kube.v1.GetStatusOutput.ResultsEntryB)ʵ\x03%\xa2\x01\"json:\"Results\" validate:\"required\"R\aResults\x12V\n" +
+	"\x0eoverall_status\x18\x02 \x01(\tB/ʵ\x03+\xa2\x01(json:\"OverallStatus\" validate:\"required\"R\rOverallStatus\x1aS\n" +
 	"\fResultsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12-\n" +
-	"\x05value\x18\x02 \x01(\v2\x17.kube.v1.ResourceStatusR\x05value:\x028\x01\"{\n" +
-	"\x12ResourceIdentifier\x12\x1f\n" +
-	"\vapi_version\x18\x01 \x01(\tR\n" +
-	"apiVersion\x12\x12\n" +
-	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1c\n" +
-	"\tnamespace\x18\x04 \x01(\tR\tnamespace\"\xda\x01\n" +
-	"\x0eResourceStatus\x12\x12\n" +
-	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1c\n" +
-	"\tnamespace\x18\x03 \x01(\tR\tnamespace\x12\x16\n" +
-	"\x06status\x18\x04 \x01(\tR\x06status\x12%\n" +
-	"\x0eready_replicas\x18\x05 \x01(\x05R\rreadyReplicas\x12)\n" +
-	"\x10desired_replicas\x18\x06 \x01(\x05R\x0fdesiredReplicas\x12\x18\n" +
-	"\amessage\x18\a \x01(\tR\amessage2\xba\x03\n" +
+	"\x05value\x18\x02 \x01(\v2\x17.kube.v1.ResourceStatusR\x05value:\x028\x01\"\xb1\x02\n" +
+	"\x12ResourceIdentifier\x12M\n" +
+	"\vapi_version\x18\x01 \x01(\tB,ʵ\x03(\xa2\x01%json:\"ApiVersion\" validate:\"required\"R\n" +
+	"ApiVersion\x12:\n" +
+	"\x04kind\x18\x02 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Kind\" validate:\"required\"R\x04Kind\x12:\n" +
+	"\x04name\x18\x03 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\x12T\n" +
+	"\tnamespace\x18\x04 \x01(\tB6ʵ\x032\xa2\x01/json:\"Namespace,omitempty\" validate:\"omitempty\"R\tNamespace\"\xb1\x04\n" +
+	"\x0eResourceStatus\x12:\n" +
+	"\x04kind\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Kind\" validate:\"required\"R\x04Kind\x12:\n" +
+	"\x04name\x18\x02 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\x12I\n" +
+	"\tnamespace\x18\x03 \x01(\tB+ʵ\x03'\xa2\x01$json:\"Namespace\" validate:\"required\"R\tNamespace\x12@\n" +
+	"\x06status\x18\x04 \x01(\tB(ʵ\x03$\xa2\x01!json:\"Status\" validate:\"required\"R\x06Status\x12a\n" +
+	"\x0eready_replicas\x18\x05 \x01(\x05B:ʵ\x036\xa2\x013json:\"ReadyReplicas,omitempty\" validate:\"omitempty\"R\rReadyReplicas\x12g\n" +
+	"\x10desired_replicas\x18\x06 \x01(\x05B<ʵ\x038\xa2\x015json:\"DesiredReplicas,omitempty\" validate:\"omitempty\"R\x0fDesiredReplicas\x12N\n" +
+	"\amessage\x18\a \x01(\tB4ʵ\x030\xa2\x01-json:\"Message,omitempty\" validate:\"omitempty\"R\aMessage2\xba\x03\n" +
 	"\n" +
 	"Kubernetes\x12P\n" +
 	"\x06Create\x12\x14.kube.v1.CreateInput\x1a\x15.kube.v1.CreateOutput\"\x19\x92\xc4\x03\x15\x12\x03\b\xd8\x04:\x0ekube.v1.Create\x12P\n" +

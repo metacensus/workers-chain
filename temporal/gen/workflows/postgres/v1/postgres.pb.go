@@ -7,6 +7,7 @@
 package postgresv1
 
 import (
+	_ "github.com/alta/protopatch/patch/gopb"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -109,7 +110,7 @@ func (Privilege) EnumDescriptor() ([]byte, []int) {
 type CreateDatabaseInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// database_name is the name of the database to create
-	DatabaseName  string `protobuf:"bytes,1,opt,name=database_name,json=databaseName,proto3" json:"database_name,omitempty"`
+	DatabaseName  string `protobuf:"bytes,1,opt,name=database_name,json=DatabaseName,proto3" json:"DatabaseName" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -192,9 +193,9 @@ func (*CreateDatabaseOutput) Descriptor() ([]byte, []int) {
 type CreateUserInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// username is the name of the user to create
-	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Username string `protobuf:"bytes,1,opt,name=username,json=Username,proto3" json:"Username" validate:"required"`
 	// password is the password for the user
-	Password      string `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	Password      string `protobuf:"bytes,2,opt,name=password,json=Password,proto3" json:"Password" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -284,12 +285,12 @@ func (*CreateUserOutput) Descriptor() ([]byte, []int) {
 type GrantPrivilegesInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// username is the name of the user to grant privileges to
-	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Username string `protobuf:"bytes,1,opt,name=username,json=Username,proto3" json:"Username" validate:"required"`
 	// database_name is the name of the database to grant privileges on
-	DatabaseName string `protobuf:"bytes,2,opt,name=database_name,json=databaseName,proto3" json:"database_name,omitempty"`
+	DatabaseName string `protobuf:"bytes,2,opt,name=database_name,json=DatabaseName,proto3" json:"DatabaseName" validate:"required"`
 	// privileges is a list of privileges to grant
 	// If empty, defaults to [PRIVILEGE_ALL]
-	Privileges    []Privilege `protobuf:"varint,3,rep,packed,name=privileges,proto3,enum=postgres.v1.Privilege" json:"privileges,omitempty"`
+	Privileges    []Privilege `protobuf:"varint,3,rep,packed,name=privileges,json=Privileges,proto3,enum=postgres.v1.Privilege" json:"Privileges,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -386,20 +387,20 @@ var File_postgres_v1_postgres_proto protoreflect.FileDescriptor
 
 const file_postgres_v1_postgres_proto_rawDesc = "" +
 	"\n" +
-	"\x1apostgres/v1/postgres.proto\x12\vpostgres.v1\x1a\x1atemporal/v1/temporal.proto\":\n" +
-	"\x13CreateDatabaseInput\x12#\n" +
-	"\rdatabase_name\x18\x01 \x01(\tR\fdatabaseName\"\x16\n" +
-	"\x14CreateDatabaseOutput\"I\n" +
-	"\x0fCreateUserInput\x12\x1a\n" +
-	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"\x12\n" +
-	"\x10CreateUserOutput\"\x8f\x01\n" +
-	"\x14GrantPrivilegesInput\x12\x1a\n" +
-	"\busername\x18\x01 \x01(\tR\busername\x12#\n" +
-	"\rdatabase_name\x18\x02 \x01(\tR\fdatabaseName\x126\n" +
+	"\x1apostgres/v1/postgres.proto\x12\vpostgres.v1\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"j\n" +
+	"\x13CreateDatabaseInput\x12S\n" +
+	"\rdatabase_name\x18\x01 \x01(\tB.ʵ\x03*\xa2\x01'json:\"DatabaseName\" validate:\"required\"R\fDatabaseName\"\x16\n" +
+	"\x14CreateDatabaseOutput\"\xa1\x01\n" +
+	"\x0fCreateUserInput\x12F\n" +
+	"\busername\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"Username\" validate:\"required\"R\bUsername\x12F\n" +
+	"\bpassword\x18\x02 \x01(\tB*ʵ\x03&\xa2\x01#json:\"Password\" validate:\"required\"R\bPassword\"\x12\n" +
+	"\x10CreateUserOutput\"\xa4\x02\n" +
+	"\x14GrantPrivilegesInput\x12F\n" +
+	"\busername\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"Username\" validate:\"required\"R\bUsername\x12S\n" +
+	"\rdatabase_name\x18\x02 \x01(\tB.ʵ\x03*\xa2\x01'json:\"DatabaseName\" validate:\"required\"R\fDatabaseName\x12o\n" +
 	"\n" +
-	"privileges\x18\x03 \x03(\x0e2\x16.postgres.v1.PrivilegeR\n" +
-	"privileges\"\x17\n" +
+	"privileges\x18\x03 \x03(\x0e2\x16.postgres.v1.PrivilegeB7ʵ\x033\xa2\x010json:\"Privileges,omitempty\" validate:\"omitempty\"R\n" +
+	"Privileges\"\x17\n" +
 	"\x15GrantPrivilegesOutput*\xcc\x02\n" +
 	"\tPrivilege\x12\x19\n" +
 	"\x15PRIVILEGE_UNSPECIFIED\x10\x00\x12\x11\n" +

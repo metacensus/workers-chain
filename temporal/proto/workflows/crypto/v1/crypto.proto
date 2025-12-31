@@ -4,6 +4,7 @@ package crypto.v1;
 
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/crypto/v1;cryptov1";
 
+import "patch/go.proto";
 import "temporal/v1/temporal.proto";
 import "vault/v1/vault.proto";
 
@@ -41,7 +42,7 @@ service Crypto {
   rpc GenerateAndStorePassword(GenerateAndStorePasswordInput) returns (GenerateAndStorePasswordOutput) {
     option (temporal.v1.workflow) = {
       name: "crypto.v1.GenerateAndStorePassword"
-      id: 'crypto/generate-store-password/${! vault_path.or("default") }'
+      id: 'crypto/generate-store-password/${! VaultPath.or("default") }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
     };
@@ -49,11 +50,11 @@ service Crypto {
 
   // GenerateAndStoreKeyPair generates a key pair and stores it in Vault
   // Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
-  // Keys are stored with names "private" and "public" at the same vault_path
+  // Keys are stored with names "private" and "public" at the same VaultPath
   rpc GenerateAndStoreKeyPair(GenerateAndStoreKeyPairInput) returns (GenerateAndStoreKeyPairOutput) {
     option (temporal.v1.workflow) = {
       name: "crypto.v1.GenerateAndStoreKeyPair"
-      id: 'crypto/generate-store-keypair/${! vault_path.or("default") }'
+      id: 'crypto/generate-store-keypair/${! VaultPath.or("default") }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
     };
@@ -70,7 +71,10 @@ message GeneratePasswordInput {
 // GeneratePasswordOutput contains the generated password
 message GeneratePasswordOutput {
   // password is the generated secure random password
-  string password = 1;
+  string password = 1 [
+    json_name = "Password",
+    (go.field).tags = 'json:"Password" validate:"required"'
+  ];
 }
 
 // ==================== Key Pair Generation ====================
@@ -83,10 +87,16 @@ message GenerateKeyPairInput {
 // GenerateKeyPairOutput contains the generated key pair
 message GenerateKeyPairOutput {
   // private_key is the PEM-encoded private key
-  bytes private_key = 1;
+  bytes private_key = 1 [
+    json_name = "PrivateKey",
+    (go.field).tags = 'json:"PrivateKey" validate:"required"'
+  ];
   
   // public_key is the PEM-encoded public key
-  bytes public_key = 2;
+  bytes public_key = 2 [
+    json_name = "PublicKey",
+    (go.field).tags = 'json:"PublicKey" validate:"required"'
+  ];
 }
 
 // ==================== Workflows ====================
@@ -95,17 +105,26 @@ message GenerateKeyPairOutput {
 message GenerateAndStorePasswordInput {
   // vault_path is the Vault path to store the password at
   // Example: "fabric/org1/ca/tls/root/admin"
-  string vault_path = 1;
+  string vault_path = 1 [
+    json_name = "VaultPath",
+    (go.field).tags = 'json:"VaultPath" validate:"required"'
+  ];
   
   // username is the username to store alongside the password
   // Example: "postgres_ca_tls_root"
-  string username = 2;
+  string username = 2 [
+    json_name = "Username",
+    (go.field).tags = 'json:"Username" validate:"required"'
+  ];
 }
 
 // GenerateAndStorePasswordOutput returns the Vault secret reference
 message GenerateAndStorePasswordOutput {
   // secret_ref is the Vault secret reference with path and version
-  vault.v1.SecretRef secret_ref = 1;
+  vault.v1.SecretRef secret_ref = 1 [
+    json_name = "SecretRef",
+    (go.field).tags = 'json:"SecretRef" validate:"required"'
+  ];
 }
 
 // GenerateAndStoreKeyPairInput specifies where to store the generated key pair
@@ -113,12 +132,18 @@ message GenerateAndStoreKeyPairInput {
   // vault_path is the Vault path to store the key pair at
   // Both keys (private and public) are stored at this path
   // Example: "fabric/org1/ca/tls/root/keys"
-  string vault_path = 1;
+  string vault_path = 1 [
+    json_name = "VaultPath",
+    (go.field).tags = 'json:"VaultPath" validate:"required"'
+  ];
 }
 
 // GenerateAndStoreKeyPairOutput returns the Vault secret reference
 message GenerateAndStoreKeyPairOutput {
   // secret_ref is the Vault secret reference with path and version
-  vault.v1.SecretRef secret_ref = 1;
+  vault.v1.SecretRef secret_ref = 1 [
+    json_name = "SecretRef",
+    (go.field).tags = 'json:"SecretRef" validate:"required"'
+  ];
 }
 

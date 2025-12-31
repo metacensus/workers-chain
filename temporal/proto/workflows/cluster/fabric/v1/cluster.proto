@@ -4,6 +4,7 @@ package cluster.fabric.v1;
 
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1;clusterfabricv1";
 
+import "patch/go.proto";
 import "temporal/v1/temporal.proto";
 
 // Cluster defines workflows for infrastructure provisioning on Kubernetes
@@ -21,6 +22,7 @@ service Cluster {
     // Workflow execution metadata
     option (temporal.v1.workflow) = {
       name: "cluster.fabric.v1.CreateNamespace"
+      id: 'cluster/fabric/create-namespace/${! Org }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -32,6 +34,7 @@ service Cluster {
     // Workflow execution metadata
     option (temporal.v1.workflow) = {
       name: "cluster.fabric.v1.CreateServiceAccount"
+      id: 'cluster/fabric/create-service-account/${! Org }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -42,6 +45,7 @@ service Cluster {
     // Workflow execution metadata
     option (temporal.v1.workflow) = {
       name: "cluster.fabric.v1.CreateDeployment"
+      id: 'cluster/fabric/create-deployment/${! Org }/${! Component }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -52,18 +56,27 @@ service Cluster {
 message CreateNamespaceInput {
   // org is the organization identifier (e.g., "org1")
   // The namespace will be named "fabric-{org}"
-  string org = 1;
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
 }
 
 message CreateNamespaceOutput {
   // namespace_name is the created namespace (e.g., "fabric-org1")
-  string namespace_name = 1;
+  string namespace_name = 1 [
+    json_name = "NamespaceName",
+    (go.field).tags = 'json:"NamespaceName" validate:"required"'
+  ];
 }
 
 // ==================== CreateServiceAccount Workflow Messages ====================
 
 message CreateServiceAccountInput {
-  string org = 1;
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
 }
 
 message CreateServiceAccountOutput {}
@@ -73,16 +86,25 @@ message CreateServiceAccountOutput {}
 message CreateDeploymentInput {
   // org is the organization identifier (e.g., "org1")
   // Used to derive namespace names, service account names, etc.
-  string org = 1;
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
 
   // component specifies which type of deployment to create
   // Currently supported: "worker", "certificate-store"
   // Future components: "peer", "orderer", "ca", "couchdb"
-  string component = 2;
+  string component = 2 [
+    json_name = "Component",
+    (go.field).tags = 'json:"Component" validate:"required"'
+  ];
 }
 
 message CreateDeploymentOutput {
   // deployment_name is the name of the created deployment
-  string deployment_name = 1;
+  string deployment_name = 1 [
+    json_name = "DeploymentName",
+    (go.field).tags = 'json:"DeploymentName" validate:"required"'
+  ];
 }
 

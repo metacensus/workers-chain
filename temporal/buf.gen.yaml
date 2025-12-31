@@ -2,11 +2,13 @@ version: v2
 managed:
   enabled: true
 plugins:
-  # Generate standard Go protobuf types
-  - local: protoc-gen-go
+  # Generate standard Go protobuf types with custom struct tag patching
+  # protoc-gen-go-patch wraps protoc-gen-go and patches the output
+  - local: protoc-gen-go-patch
     out: gen/workflows
     opt:
       - paths=source_relative
+      - plugin=go
   # Generate Nexus handler interface and service constants
   - local: protoc-gen-go-nexus
     out: gen/workflows
@@ -29,6 +31,7 @@ plugins:
       - nexus=true
       - nexus-include-service-tags=nexus-enabled
       - nexus-exclude-operation-tags=activity
+      - enable-patch-support=true
       - paths=source_relative
     strategy: all
 inputs:

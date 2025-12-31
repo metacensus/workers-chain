@@ -38,7 +38,7 @@ const (
 
 // vault.v1.Vault workflow id expressions
 var (
-	CreateAccessIdexpression = expression.MustParseExpression("vault/create-access/${! policy_name.or(\"default\") }")
+	CreateAccessIdexpression = expression.MustParseExpression("vault/create-access/${! AuthRoleName.or(\"default\") }")
 )
 
 // vault.v1.Vault activity names
@@ -446,7 +446,7 @@ type CreateAccessWorkflowInput struct {
 
 // Access Management
 //
-// workflow details: (name: "vault.v1.CreateAccess", id: "vault/create-access/${! policy_name.or("default") }")
+// workflow details: (name: "vault.v1.CreateAccess", id: "vault/create-access/${! AuthRoleName.or("default") }")
 type CreateAccessWorkflow interface {
 	// Execute defines the entrypoint to a(n) vault.v1.CreateAccess workflow
 	Execute(ctx workflow.Context) (*CreateAccessOutput, error)
