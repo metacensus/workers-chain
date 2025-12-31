@@ -80,7 +80,7 @@ service Fabric {
   rpc CreateCertificateDatabase(CreateCertificateDatabaseInput) returns (CreateCertificateDatabaseOutput) {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.CreateCertificateDatabase"
-      id: 'fabric/create-certificate-database'
+      id: 'fabric/create-certificate-database/${! CertType }/${! CertificateAuthorityId }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -178,18 +178,27 @@ message DeployCertificateAuthorityOutput {
 message CreateCertificateDatabaseInput {
   // cert_type specifies whether this is for a TLS or Org certificate authority
   // Valid values: "tls" or "org"
-  string cert_type = 1;
+  string cert_type = 1 [
+    json_name = "CertType",
+    (go.field).tags = 'json:"CertType" validate:"required"'
+  ];
   
   // certificate_authority_id identifies which CA this database is for
   // Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs
-  string certificate_authority_id = 2;
+  string certificate_authority_id = 2 [
+    json_name = "CertificateAuthorityId",
+    (go.field).tags = 'json:"CertificateAuthorityId" validate:"required"'
+  ];
 }
 
 // CreateCertificateDatabaseOutput indicates the result of certificate database creation
 message CreateCertificateDatabaseOutput {
   // credentials_ref is the Vault reference to retrieve the username and password
   // The database name can be derived from cert_type and certificate_authority_id using fabric config
-  vault.v1.SecretRef credentials_ref = 1;
+  vault.v1.SecretRef credentials_ref = 1 [
+    json_name = "CredentialsRef",
+    (go.field).tags = 'json:"CredentialsRef" validate:"required"'
+  ];  
 }
 
 

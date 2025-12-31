@@ -6,10 +6,15 @@ import (
 	"testing"
 
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
+	cryptopb "github.com/metacensus/infra/temporal/gen/workflows/crypto/v1"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
+	postgrespb "github.com/metacensus/infra/temporal/gen/workflows/postgres/v1"
+	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	fabric "github.com/metacensus/infra/temporal/lib/workflows/fabric/v1"
+	postgresv1mocks "github.com/metacensus/infra/temporal/mocks/workflows/postgres/v1"
+	vaultv1mocks "github.com/metacensus/infra/temporal/mocks/workflows/vault/v1"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
@@ -41,6 +46,11 @@ func registerChildWorkflowStubs(env *testsuite.TestWorkflowEnvironment) {
 
 	register(pb.CreateCertificateDatabaseWorkflowName,
 		func(workflow.Context, *pb.CreateCertificateDatabaseInput) (*pb.CreateCertificateDatabaseOutput, error) {
+			return nil, nil
+		})
+
+	register(cryptopb.GenerateAndStorePasswordWorkflowName,
+		func(workflow.Context, *cryptopb.GenerateAndStorePasswordInput) (*cryptopb.GenerateAndStorePasswordOutput, error) {
 			return nil, nil
 		})
 }
@@ -137,14 +147,124 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 
 func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 	tests := []struct {
-		name        string
-		org         string
-		expectedErr error // nil = success
+		name                           string
+		org                            string
+		certType                       string
+		caID                           string
+		createDatabaseErr              error
+		generatePasswordErr            error
+		fetchSecretErr                 error
+		fetchSecretData                map[string][]byte
+		createUserErr                  error
+		grantPrivilegesErr             error
+		expectedErr                    error // nil = success
+		validateCredentialsRef         bool
 	}{
 		{
-			name:        "success - certificate database created",
+			name:     "success - certificate database created for tls root CA",
+			org:      testOrg,
+			certType: "tls",
+			caID:     "root",
+			fetchSecretData: map[string][]byte{
+				"username": []byte("postgres_tls_root"),
+				"password": []byte("secure-password-123"),
+			},
+			expectedErr:            nil,
+			validateCredentialsRef: true,
+		},
+		{
+			name:     "success - certificate database created for org intermediate CA",
+			org:      testOrg,
+			certType: "org",
+			caID:     "v1",
+			fetchSecretData: map[string][]byte{
+				"username": []byte("postgres_org_v1"),
+				"password": []byte("another-secure-pass"),
+			},
+			expectedErr:            nil,
+			validateCredentialsRef: true,
+		},
+		{
+			name:        "failure - invalid cert type",
 			org:         testOrg,
-			expectedErr: nil,
+			certType:    "invalid",
+			caID:        "root",
+			expectedErr: fabric.ErrInvalidCertType,
+		},
+		{
+			name:        "failure - empty certificate authority ID",
+			org:         testOrg,
+			certType:    "tls",
+			caID:        "",
+			expectedErr: errors.New("certificate_authority_id cannot be empty"),
+		},
+		{
+			name:              "failure - create database activity fails",
+			org:               testOrg,
+			certType:          "tls",
+			caID:              "root",
+			createDatabaseErr: errors.New("connection to postgres failed"),
+			expectedErr:       errors.New("failed to create database"),
+		},
+		{
+			name:                "failure - generate password workflow fails",
+			org:                 testOrg,
+			certType:            "org",
+			caID:                "v2",
+			generatePasswordErr: errors.New("crypto error"),
+			expectedErr:         errors.New("failed to generate credentials"),
+		},
+		{
+			name:           "failure - fetch secret activity fails",
+			org:            testOrg,
+			certType:       "tls",
+			caID:           "root",
+			fetchSecretErr: errors.New("vault connection timeout"),
+			expectedErr:    errors.New("failed to fetch credentials from Vault"),
+		},
+		{
+			name:     "failure - username not found in vault secret",
+			org:      testOrg,
+			certType: "tls",
+			caID:     "root",
+			fetchSecretData: map[string][]byte{
+				"password": []byte("secure-password"),
+			},
+			expectedErr: errors.New("username not found in Vault secret"),
+		},
+		{
+			name:     "failure - password not found in vault secret",
+			org:      testOrg,
+			certType: "org",
+			caID:     "v1",
+			fetchSecretData: map[string][]byte{
+				"username": []byte("postgres_org_v1"),
+			},
+			expectedErr: errors.New("password not found in Vault secret"),
+		},
+		{
+			name:     "failure - create user activity fails",
+			org:      testOrg,
+			certType: "tls",
+			caID:     "root",
+			fetchSecretData: map[string][]byte{
+				"username": []byte("postgres_tls_root"),
+				"password": []byte("secure-password"),
+			},
+			createUserErr: errors.New("user creation failed"),
+			expectedErr:   errors.New("failed to create user"),
+		},
+		{
+			name:     "failure - grant privileges activity fails",
+			org:      testOrg,
+			certType: "org",
+			caID:     "v1",
+			fetchSecretData: map[string][]byte{
+				"username": []byte("postgres_org_v1"),
+				"password": []byte("secure-password"),
+			},
+			grantPrivilegesErr: errors.New("grant operation failed"),
+			expectedErr:        errors.New("failed to grant privileges"),
 		},
 	}
 
@@ -159,19 +279,125 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 			// Create OrgConfig for testing
 			orgConfig := config.OrgConfig{OrgID: tt.org}
 
-			// TODO: Mock postgres activities and crypto workflows when implemented
-			// For now, the workflow only logs
-
-		// Execute workflow
-		env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.CreateCertificateDatabaseInput) (*pb.CreateCertificateDatabaseOutput, error) {
-			fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
-			workflows := fabric.NewWorkflows(orgConfig, fabricConfig)
-			wf, err := workflows.CreateCertificateDatabase(ctx, &pb.CreateCertificateDatabaseWorkflowInput{Req: input})
-			if err != nil {
-				return nil, err
+			// Mock GenerateAndStorePassword child workflow
+			if tt.generatePasswordErr != nil {
+				env.OnWorkflow(cryptopb.GenerateAndStorePasswordWorkflowName, mock.Anything, mock.Anything).
+					Return(nil, tt.generatePasswordErr)
+			} else if tt.certType != "" && tt.caID != "" {
+				// Only mock if we're past validation
+				shouldMock := true
+				if tt.expectedErr != nil {
+					if errors.Is(tt.expectedErr, fabric.ErrInvalidCertType) {
+						shouldMock = false
+					} else if strings.Contains(tt.expectedErr.Error(), "certificate_authority_id cannot be empty") {
+						shouldMock = false
+					}
+				}
+				
+				if shouldMock {
+					env.OnWorkflow(cryptopb.GenerateAndStorePasswordWorkflowName, mock.Anything, mock.Anything).
+						Return(&cryptopb.GenerateAndStorePasswordOutput{
+							SecretRef: &vaultpb.SecretRef{
+								Path:    "fabric/" + tt.org + "/ca/" + tt.certType + "/" + tt.caID + "/db/credentials",
+								Version: 1,
+							},
+						}, nil)
+				}
 			}
+
+			// Mock activities only if we pass validation
+			if tt.certType == "tls" || tt.certType == "org" {
+				if tt.caID != "" {
+					// Mock PostgreSQL activities
+					mockPostgresActivities := postgresv1mocks.NewMockPostgresActivities(t)
+
+					// Mock CreateDatabase
+					if tt.createDatabaseErr != nil {
+						mockPostgresActivities.EXPECT().
+							CreateDatabase(mock.Anything, mock.Anything).
+							Return(nil, tt.createDatabaseErr).
+							Maybe()
+					} else if tt.expectedErr == nil || 
+						!strings.Contains(tt.expectedErr.Error(), "failed to create database") {
+						mockPostgresActivities.EXPECT().
+							CreateDatabase(mock.Anything, mock.Anything).
+							Return(&postgrespb.CreateDatabaseOutput{}, nil).
+							Maybe()
+					}
+
+					// Mock CreateUser
+					// Call CreateUser if we're past CreateDatabase and FetchSecret
+					if tt.createUserErr != nil {
+						mockPostgresActivities.EXPECT().
+							CreateUser(mock.Anything, mock.Anything).
+							Return(nil, tt.createUserErr).
+							Maybe()
+					} else if tt.fetchSecretData != nil &&
+						tt.fetchSecretData["username"] != nil &&
+						tt.fetchSecretData["password"] != nil &&
+						tt.fetchSecretErr == nil {
+						// CreateUser should succeed if we're testing GrantPrivileges or success cases
+						mockPostgresActivities.EXPECT().
+							CreateUser(mock.Anything, mock.Anything).
+							Return(&postgrespb.CreateUserOutput{}, nil).
+							Maybe()
+					}
+
+					// Mock GrantPrivileges
+					// Call GrantPrivileges if we're past CreateUser
+					if tt.grantPrivilegesErr != nil {
+						mockPostgresActivities.EXPECT().
+							GrantPrivileges(mock.Anything, mock.Anything).
+							Return(nil, tt.grantPrivilegesErr).
+							Maybe()
+					} else if tt.fetchSecretData != nil &&
+						tt.fetchSecretData["username"] != nil &&
+						tt.fetchSecretData["password"] != nil &&
+						tt.fetchSecretErr == nil &&
+						tt.createUserErr == nil {
+						// GrantPrivileges should succeed for success cases
+						mockPostgresActivities.EXPECT().
+							GrantPrivileges(mock.Anything, mock.Anything).
+							Return(&postgrespb.GrantPrivilegesOutput{}, nil).
+							Maybe()
+					}
+
+					postgrespb.RegisterPostgresActivities(env, mockPostgresActivities)
+
+					// Mock Vault activities
+					mockVaultActivities := vaultv1mocks.NewMockVaultActivities(t)
+
+					if tt.fetchSecretErr != nil {
+						mockVaultActivities.EXPECT().
+							FetchSecret(mock.Anything, mock.Anything).
+							Return(nil, tt.fetchSecretErr).
+							Maybe()
+					} else if tt.fetchSecretData != nil {
+						mockVaultActivities.EXPECT().
+							FetchSecret(mock.Anything, mock.Anything).
+							Return(&vaultpb.FetchSecretOutput{
+								Data: tt.fetchSecretData,
+							}, nil).
+							Maybe()
+					}
+
+					vaultpb.RegisterVaultActivities(env, mockVaultActivities)
+				}
+			}
+
+			// Execute workflow
+			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.CreateCertificateDatabaseInput) (*pb.CreateCertificateDatabaseOutput, error) {
+				fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
+				workflows := fabric.NewWorkflows(orgConfig, fabricConfig)
+				wf, err := workflows.CreateCertificateDatabase(ctx, &pb.CreateCertificateDatabaseWorkflowInput{Req: input})
+				if err != nil {
+					return nil, err
+				}
 				return wf.Execute(ctx)
-			}, &pb.CreateCertificateDatabaseInput{})
+			}, &pb.CreateCertificateDatabaseInput{
+				CertType:               tt.certType,
+				CertificateAuthorityId: tt.caID,
+			})
 
 			var result *pb.CreateCertificateDatabaseOutput
 			err := env.GetWorkflowResult(&result)
@@ -182,6 +408,19 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 				}
 				if result == nil {
 					t.Fatal("result is nil")
+				}
+
+				// Validate credentials ref if requested
+				if tt.validateCredentialsRef {
+					if result.CredentialsRef == nil {
+						t.Fatal("credentials_ref is nil")
+					}
+					if result.CredentialsRef.Path == "" {
+						t.Fatal("credentials_ref.path is empty")
+					}
+					if result.CredentialsRef.Version == 0 {
+						t.Fatal("credentials_ref.version is 0")
+					}
 				}
 			} else {
 				if err == nil {

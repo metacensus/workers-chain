@@ -44,7 +44,7 @@ const (
 var (
 	BootstrapCertificateAuthoritiesIdexpression = expression.MustParseExpression("fabric/bootstrap-certificate-authorities")
 	BootstrapShardIdexpression                  = expression.MustParseExpression("fabric/bootstrap-shard")
-	CreateCertificateDatabaseIdexpression       = expression.MustParseExpression("fabric/create-certificate-database")
+	CreateCertificateDatabaseIdexpression       = expression.MustParseExpression("fabric/create-certificate-database/${! CertType }/${! CertificateAuthorityId }")
 	DeployCertificateAuthorityIdexpression      = expression.MustParseExpression("fabric/deploy-certificate-authority/${! CertType }/${! Id }")
 	DeployCertificateStoreIdexpression          = expression.MustParseExpression("fabric/deploy-certificate-store")
 	DeployRootCertificateAuthorityIdexpression  = expression.MustParseExpression("fabric/deploy-certificate-authority/${! CertType }/root")
@@ -2320,7 +2320,7 @@ type CreateCertificateDatabaseWorkflowInput struct {
 // in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
 // isolated database to store issued certificates and revocation information.
 //
-// workflow details: (name: "fabric.v1.CreateCertificateDatabase", id: "fabric/create-certificate-database")
+// workflow details: (name: "fabric.v1.CreateCertificateDatabase", id: "fabric/create-certificate-database/${! CertType }/${! CertificateAuthorityId }")
 type CreateCertificateDatabaseWorkflow interface {
 	// Execute defines the entrypoint to a(n) fabric.v1.CreateCertificateDatabase workflow
 	Execute(ctx workflow.Context) (*CreateCertificateDatabaseOutput, error)

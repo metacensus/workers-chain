@@ -154,7 +154,7 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 	vaultClient := vaultv1nexustemporal.NewVaultNexusClient(vaultCreateAccessNexusEndpoint)
 	_, err := vaultClient.CreateAccess(ctx, &vaultpb.CreateAccessInput{
 		PolicyName:          certStore.PolicyName(),
-		PolicyDocument:      buildCertificateStorePolicy(certStore),
+		PolicyDocument:      certStore.VaultPolicy(),
 		AuthRoleName:        certStore.AuthRoleName(),
 		ServiceAccountName:  certStore.ServiceAccountName(),
 		KubernetesNamespace: certStore.KubernetesNamespace(),
@@ -208,10 +208,10 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 	waitOptions := workflow.ActivityOptions{
 		StartToCloseTimeout: 10 * time.Minute,
 		RetryPolicy: &temporal.RetryPolicy{
-			InitialInterval:    5 * time.Second,  // Start checking after 5s
-			BackoffCoefficient: 1.0,              // No backoff - consistent 5s interval
-			MaximumInterval:    5 * time.Second,  // Keep at 5s
-			MaximumAttempts:    120,              // 120 * 5s = 10 minutes max
+			InitialInterval:    5 * time.Second, // Start checking after 5s
+			BackoffCoefficient: 1.0,             // No backoff - consistent 5s interval
+			MaximumInterval:    5 * time.Second, // Keep at 5s
+			MaximumAttempts:    120,             // 120 * 5s = 10 minutes max
 		},
 	}
 	waitCtx := workflow.WithActivityOptions(ctx, waitOptions)
@@ -404,7 +404,7 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 	vaultClient := vaultv1nexustemporal.NewVaultNexusClient(vaultCreateAccessNexusEndpoint)
 	_, err := vaultClient.CreateAccess(ctx, &vaultpb.CreateAccessInput{
 		PolicyName:          rootCA.PolicyName(),
-		PolicyDocument:      buildRootCertificateAuthorityPolicy(rootCA),
+		PolicyDocument:      rootCA.VaultPolicy(),
 		AuthRoleName:        rootCA.AuthRoleName(),
 		ServiceAccountName:  rootCA.ServiceAccountName(),
 		KubernetesNamespace: rootCA.KubernetesNamespace(),
@@ -436,58 +436,6 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 	return &pb.DeployRootCertificateAuthorityOutput{}, nil
 }
 
-// buildCertificateStorePolicy creates a Vault policy document for the certificate store.
-// The policy grants read access to the certificate store's secrets (postgres credentials).
-func buildCertificateStorePolicy(cs fabricconfig.CertificateStoreConfig) *vaultpb.PolicyDocument {
-	return &vaultpb.PolicyDocument{
-		Rules: []*vaultpb.PolicyRule{
-			// KV v2 data path - read access to certificate store secrets
-			{
-				Path: cs.VaultDataPath(),
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_READ,
-					vaultpb.Capability_CAPABILITY_LIST,
-				},
-			},
-			// KV v2 metadata path - list and read metadata
-			{
-				Path: cs.VaultMetadataPath(),
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_LIST,
-					vaultpb.Capability_CAPABILITY_READ,
-				},
-			},
-		},
-	}
-}
-
-// buildRootCertificateAuthorityPolicy creates a Vault policy document for a root CA.
-// The policy grants read/write access to the CA's secrets path.
-func buildRootCertificateAuthorityPolicy(ca fabricconfig.CertificateAuthorityConfig) *vaultpb.PolicyDocument {
-	return &vaultpb.PolicyDocument{
-		Rules: []*vaultpb.PolicyRule{
-			// KV v2 data path - read/write access to CA secrets
-			{
-				Path: ca.VaultDataPath(),
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_CREATE,
-					vaultpb.Capability_CAPABILITY_READ,
-					vaultpb.Capability_CAPABILITY_UPDATE,
-					vaultpb.Capability_CAPABILITY_LIST,
-				},
-			},
-			// KV v2 metadata path - list and read metadata
-			{
-				Path: ca.VaultMetadataPath(),
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_LIST,
-					vaultpb.Capability_CAPABILITY_READ,
-				},
-			},
-		},
-	}
-}
-
 // DeployCertificateAuthority implements the DeployCertificateAuthority workflow
 func (w *Workflows) DeployCertificateAuthority(ctx workflow.Context, input *pb.DeployCertificateAuthorityWorkflowInput) (pb.DeployCertificateAuthorityWorkflow, error) {
 	return &deployCertificateAuthorityWorkflow{
@@ -506,7 +454,60 @@ type deployCertificateAuthorityWorkflow struct {
 
 // Execute deploys an intermediate certificate authority for the organization.
 func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.DeployCertificateAuthorityOutput, error) {
-	// TODO: Implement intermediate CA deployment logic
+	logger := workflow.GetLogger(ctx)
+	certType := w.input.Req.GetCertType()
+	caID := w.input.Req.GetId()
+
+	// Validate cert type
+	if certType != "tls" && certType != "org" {
+		return nil, ErrInvalidCertType
+	}
+
+	// Get intermediate CA config
+	intermediateCA := w.fabricConfig.CertificateAuthority(certType, caID)
+
+	logger.Info("Deploying intermediate certificate authority",
+		"org", w.orgConfig.OrgID,
+		"certType", certType,
+		"caID", caID,
+		"policyName", intermediateCA.PolicyName(),
+	)
+
+	// Request Vault access via Nexus call to infra worker
+	// This creates the policy and auth role needed for the intermediate CA pod to access its secrets
+	vaultClient := vaultv1nexustemporal.NewVaultNexusClient(vaultCreateAccessNexusEndpoint)
+	_, err := vaultClient.CreateAccess(ctx, &vaultpb.CreateAccessInput{
+		PolicyName:          intermediateCA.PolicyName(),
+		PolicyDocument:      intermediateCA.VaultPolicy(),
+		AuthRoleName:        intermediateCA.AuthRoleName(),
+		ServiceAccountName:  intermediateCA.ServiceAccountName(),
+		KubernetesNamespace: intermediateCA.KubernetesNamespace(),
+	}, workflow.NexusOperationOptions{
+		ScheduleToCloseTimeout: 5 * time.Minute,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateVaultAccess, err)
+	}
+
+	logger.Info("Vault access created for intermediate certificate authority",
+		"org", w.orgConfig.OrgID,
+		"certType", certType,
+		"caID", caID,
+	)
+
+	// Create certificate database for this intermediate CA
+	if _, err := pb.CreateCertificateDatabaseChild(ctx, &pb.CreateCertificateDatabaseInput{
+		CertType:               certType,
+		CertificateAuthorityId: caID,
+	}); err != nil {
+		return nil, fmt.Errorf("%w (certType=%s, caID=%s): %w", ErrCreateCertificateDatabase, certType, caID, err)
+	}
+
+	// TODO: Scale down root CA
+	// TODO: Create intermediate CA identity via root CA
+	// TODO: Scale root CA back up
+	// TODO: Deploy intermediate CA pod
+	// TODO: Bootstrap intermediate CA admin
 
 	return &pb.DeployCertificateAuthorityOutput{}, nil
 }

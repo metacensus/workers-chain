@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	kubev1 "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
+	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 )
 
@@ -130,6 +131,31 @@ func (cs CertificateStoreConfig) VaultMetadataPath() string {
 	return fmt.Sprintf("%s/fabric/%s/certstore/*", vaultSecretMetadataPrefix, cs.OrgID)
 }
 
+// VaultPolicy creates a Vault policy document for the certificate store.
+// The policy grants read access to the certificate store's secrets (postgres credentials).
+func (cs CertificateStoreConfig) VaultPolicy() *vaultpb.PolicyDocument {
+	return &vaultpb.PolicyDocument{
+		Rules: []*vaultpb.PolicyRule{
+			// KV v2 data path - read access to certificate store secrets
+			{
+				Path: cs.VaultDataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+					vaultpb.Capability_CAPABILITY_LIST,
+				},
+			},
+			// KV v2 metadata path - list and read metadata
+			{
+				Path: cs.VaultMetadataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_LIST,
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+		},
+	}
+}
+
 // ============= Certificate Authority Configuration =============
 
 // CertificateAuthorityConfig encapsulates all configuration for a certificate authority.
@@ -196,6 +222,34 @@ func (ca CertificateAuthorityConfig) VaultDataPath() string {
 func (ca CertificateAuthorityConfig) VaultMetadataPath() string {
 	return fmt.Sprintf("%s/fabric/%s/ca/%s/%s/*",
 		vaultSecretMetadataPrefix, ca.OrgID, ca.certType, ca.caID)
+}
+
+// VaultPolicy creates a Vault policy document for the certificate authority.
+// The policy grants read/write access to the CA's secrets path.
+// Works for both root and intermediate CAs.
+func (ca CertificateAuthorityConfig) VaultPolicy() *vaultpb.PolicyDocument {
+	return &vaultpb.PolicyDocument{
+		Rules: []*vaultpb.PolicyRule{
+			// KV v2 data path - read/write access to CA secrets
+			{
+				Path: ca.VaultDataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_CREATE,
+					vaultpb.Capability_CAPABILITY_READ,
+					vaultpb.Capability_CAPABILITY_UPDATE,
+					vaultpb.Capability_CAPABILITY_LIST,
+				},
+			},
+			// KV v2 metadata path - list and read metadata
+			{
+				Path: ca.VaultMetadataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_LIST,
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+		},
+	}
 }
 
 // ------------ Database Properties ------------

@@ -439,10 +439,10 @@ type CreateCertificateDatabaseInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// cert_type specifies whether this is for a TLS or Org certificate authority
 	// Valid values: "tls" or "org"
-	CertType string `protobuf:"bytes,1,opt,name=cert_type,json=certType,proto3" json:"cert_type,omitempty"`
+	CertType string `protobuf:"bytes,1,opt,name=cert_type,json=CertType,proto3" json:"CertType" validate:"required"`
 	// certificate_authority_id identifies which CA this database is for
 	// Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs
-	CertificateAuthorityId string `protobuf:"bytes,2,opt,name=certificate_authority_id,json=certificateAuthorityId,proto3" json:"certificate_authority_id,omitempty"`
+	CertificateAuthorityId string `protobuf:"bytes,2,opt,name=certificate_authority_id,json=CertificateAuthorityId,proto3" json:"CertificateAuthorityId" validate:"required"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -496,7 +496,7 @@ type CreateCertificateDatabaseOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// credentials_ref is the Vault reference to retrieve the username and password
 	// The database name can be derived from cert_type and certificate_authority_id using fabric config
-	CredentialsRef *v1.SecretRef `protobuf:"bytes,1,opt,name=credentials_ref,json=credentialsRef,proto3" json:"credentials_ref,omitempty"`
+	CredentialsRef *v1.SecretRef `protobuf:"bytes,1,opt,name=credentials_ref,json=CredentialsRef,proto3" json:"CredentialsRef" validate:"required"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -555,19 +555,20 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x1fDeployCertificateAuthorityInput\x12G\n" +
 	"\tcert_type\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"CertType\" validate:\"required\"R\bCertType\x124\n" +
 	"\x02id\x18\x02 \x01(\tB$ʵ\x03 \xa2\x01\x1djson:\"Id\" validate:\"required\"R\x02Id\"\"\n" +
-	" DeployCertificateAuthorityOutput\"w\n" +
-	"\x1eCreateCertificateDatabaseInput\x12\x1b\n" +
-	"\tcert_type\x18\x01 \x01(\tR\bcertType\x128\n" +
-	"\x18certificate_authority_id\x18\x02 \x01(\tR\x16certificateAuthorityId\"_\n" +
-	"\x1fCreateCertificateDatabaseOutput\x12<\n" +
-	"\x0fcredentials_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefR\x0ecredentialsRef2\xe9\t\n" +
+	" DeployCertificateAuthorityOutput\"\xdd\x01\n" +
+	"\x1eCreateCertificateDatabaseInput\x12G\n" +
+	"\tcert_type\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"CertType\" validate:\"required\"R\bCertType\x12r\n" +
+	"\x18certificate_authority_id\x18\x02 \x01(\tB8ʵ\x034\xa2\x011json:\"CertificateAuthorityId\" validate:\"required\"R\x16CertificateAuthorityId\"\x91\x01\n" +
+	"\x1fCreateCertificateDatabaseOutput\x12n\n" +
+	"\x0fcredentials_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefB0ʵ\x03,\xa2\x01)json:\"CredentialsRef\" validate:\"required\"R\x0eCredentialsRef2\x95\n" +
+	"\n" +
 	"\x06Fabric\x12\x8b\x01\n" +
 	"\x0eBootstrapShard\x12\x1e.fabric.v1.BootstrapShardInput\x1a\x1f.fabric.v1.BootstrapShardOutput\"8\x8a\xc4\x034*\x16fabric/bootstrap-shard0\x01r\x18fabric.v1.BootstrapShard\x12\xe1\x01\n" +
 	"\x1fBootstrapCertificateAuthorities\x12/.fabric.v1.BootstrapCertificateAuthoritiesInput\x1a0.fabric.v1.BootstrapCertificateAuthoritiesOutput\"[\x8a\xc4\x03W*(fabric/bootstrap-certificate-authorities0\x01r)fabric.v1.BootstrapCertificateAuthorities\x12\xb4\x01\n" +
 	"\x16DeployCertificateStore\x12&.fabric.v1.DeployCertificateStoreInput\x1a'.fabric.v1.DeployCertificateStoreOutput\"I\x8a\xc4\x03E*\x1ffabric/deploy-certificate-store0\x01r fabric.v1.DeployCertificateStore\x12\xec\x01\n" +
 	"\x1eDeployRootCertificateAuthority\x12..fabric.v1.DeployRootCertificateAuthorityInput\x1a/.fabric.v1.DeployRootCertificateAuthorityOutput\"i\x8a\xc4\x03e*7fabric/deploy-certificate-authority/${! CertType }/root0\x01r(fabric.v1.DeployRootCertificateAuthority\x12\xe0\x01\n" +
-	"\x1aDeployCertificateAuthority\x12*.fabric.v1.DeployCertificateAuthorityInput\x1a+.fabric.v1.DeployCertificateAuthorityOutput\"i\x8a\xc4\x03e*;fabric/deploy-certificate-authority/${! CertType }/${! Id }0\x01r$fabric.v1.DeployCertificateAuthority\x12\xc3\x01\n" +
-	"\x19CreateCertificateDatabase\x12).fabric.v1.CreateCertificateDatabaseInput\x1a*.fabric.v1.CreateCertificateDatabaseOutput\"O\x8a\xc4\x03K*\"fabric/create-certificate-database0\x01r#fabric.v1.CreateCertificateDatabase\x1a\x1e\x8a\xc4\x03\a\n" +
+	"\x1aDeployCertificateAuthority\x12*.fabric.v1.DeployCertificateAuthorityInput\x1a+.fabric.v1.DeployCertificateAuthorityOutput\"i\x8a\xc4\x03e*;fabric/deploy-certificate-authority/${! CertType }/${! Id }0\x01r$fabric.v1.DeployCertificateAuthority\x12\xef\x01\n" +
+	"\x19CreateCertificateDatabase\x12).fabric.v1.CreateCertificateDatabaseInput\x1a*.fabric.v1.CreateCertificateDatabaseOutput\"{\x8a\xc4\x03w*Nfabric/create-certificate-database/${! CertType }/${! CertificateAuthorityId }0\x01r#fabric.v1.CreateCertificateDatabase\x1a\x1e\x8a\xc4\x03\a\n" +
 	"\x05infraʂ\x04\x0f\x12\rnexus-enabledB\xa8\x01\n" +
 	"\rcom.fabric.v1B\vFabricProtoP\x01ZEgithub.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1\xa2\x02\x03FXX\xaa\x02\tFabric.V1\xca\x02\tFabric\\V1\xe2\x02\x15Fabric\\V1\\GPBMetadata\xea\x02\n" +
 	"Fabric::V1b\x06proto3"
