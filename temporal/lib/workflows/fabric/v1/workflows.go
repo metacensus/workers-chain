@@ -371,7 +371,14 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		return nil, fmt.Errorf("%w (certType=%s): %w", ErrCreateCertificateDatabase, certType, err)
 	}
 
-	// TODO: Generate root CA key pair
+	// Generate root CA key pair and store in Vault
+	_, err = cryptopb.GenerateAndStoreKeyPairChild(ctx, &cryptopb.GenerateAndStoreKeyPairInput{
+		VaultPath: rootCA.VaultKeyPairPath(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate root CA key pair: %w", err)
+	}
+
 	// TODO: Generate root CA certificate
 	// TODO: Deploy root CA pod
 	// TODO: Bootstrap root CA admin

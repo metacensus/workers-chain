@@ -209,6 +209,15 @@ func (ca CertificateAuthorityConfig) VaultDatabaseCredentialsPath() string {
 		ca.OrgID, ca.certType, ca.caID)
 }
 
+// VaultKeyPairPath returns the path where the CA's key pair is stored.
+// Used with vault.StoreSecret and vault.FetchSecret activities.
+// Note: Returns path relative to secret mount (activities add "secret/data/" prefix).
+// Example: "fabric/org1/ca/tls/root/keys"
+func (ca CertificateAuthorityConfig) VaultKeyPairPath() string {
+	return fmt.Sprintf("fabric/%s/ca/%s/%s/keys",
+		ca.OrgID, ca.certType, ca.caID)
+}
+
 // VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
 // Used in Vault policy documents with wildcard for all CA secrets.
 // Example: "secret/data/fabric/org1/ca/tls/root/*"
