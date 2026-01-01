@@ -42,11 +42,6 @@ type generateAndStorePasswordWorkflow struct {
 
 // Execute orchestrates password generation and storage in Vault along with username
 func (w *generateAndStorePasswordWorkflow) Execute(ctx workflow.Context) (*cryptopb.GenerateAndStorePasswordOutput, error) {
-	logger := workflow.GetLogger(ctx)
-	logger.Info("GenerateAndStorePassword workflow started",
-		"vault_path", w.input.Req.GetVaultPath(),
-		"username", w.input.Req.GetUsername())
-
 	// Set up activity options
 	ao := workflow.ActivityOptions{
 		StartToCloseTimeout: 5 * time.Minute,
@@ -60,7 +55,6 @@ func (w *generateAndStorePasswordWorkflow) Execute(ctx workflow.Context) (*crypt
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
 	// Step 1: Generate password
-	logger.Info("Generating password")
 	var passwordOutput *cryptopb.GeneratePasswordOutput
 	err := workflow.ExecuteActivity(activityCtx, cryptopb.GeneratePasswordActivityName,
 		&cryptopb.GeneratePasswordInput{}).Get(ctx, &passwordOutput)
@@ -69,9 +63,6 @@ func (w *generateAndStorePasswordWorkflow) Execute(ctx workflow.Context) (*crypt
 	}
 
 	// Step 2: Store username and password in Vault with key names "username" and "password"
-	logger.Info("Storing username and password in Vault",
-		"vault_path", w.input.Req.GetVaultPath(),
-		"username", w.input.Req.GetUsername())
 	var storeOutput *vaultpb.StoreSecretOutput
 	err = workflow.ExecuteActivity(activityCtx, vaultpb.StoreSecretActivityName,
 		&vaultpb.StoreSecretInput{
@@ -85,11 +76,6 @@ func (w *generateAndStorePasswordWorkflow) Execute(ctx workflow.Context) (*crypt
 		return nil, fmt.Errorf("%w: failed to store username and password: %w", ErrGenerateAndStorePassword, err)
 	}
 
-	logger.Info("GenerateAndStorePassword workflow completed successfully",
-		"vault_path", storeOutput.SecretRef.GetPath(),
-		"version", storeOutput.SecretRef.GetVersion(),
-		"username", w.input.Req.GetUsername())
-
 	return &cryptopb.GenerateAndStorePasswordOutput{
 		SecretRef: storeOutput.GetSecretRef(),
 	}, nil
@@ -102,9 +88,6 @@ type generateAndStoreKeyPairWorkflow struct {
 
 // Execute orchestrates key pair generation and storage in Vault
 func (w *generateAndStoreKeyPairWorkflow) Execute(ctx workflow.Context) (*cryptopb.GenerateAndStoreKeyPairOutput, error) {
-	logger := workflow.GetLogger(ctx)
-	logger.Info("GenerateAndStoreKeyPair workflow started", "vault_path", w.input.Req.GetVaultPath())
-
 	// Set up activity options
 	ao := workflow.ActivityOptions{
 		StartToCloseTimeout: 5 * time.Minute,
@@ -118,7 +101,6 @@ func (w *generateAndStoreKeyPairWorkflow) Execute(ctx workflow.Context) (*crypto
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
 	// Step 1: Generate key pair
-	logger.Info("Generating ECDSA key pair")
 	var keyPairOutput *cryptopb.GenerateKeyPairOutput
 	err := workflow.ExecuteActivity(activityCtx, cryptopb.GenerateKeyPairActivityName,
 		&cryptopb.GenerateKeyPairInput{}).Get(ctx, &keyPairOutput)
@@ -127,7 +109,6 @@ func (w *generateAndStoreKeyPairWorkflow) Execute(ctx workflow.Context) (*crypto
 	}
 
 	// Step 2: Store both keys in Vault with key names "private" and "public"
-	logger.Info("Storing key pair in Vault", "vault_path", w.input.Req.GetVaultPath())
 	var storeOutput *vaultpb.StoreSecretOutput
 	err = workflow.ExecuteActivity(activityCtx, vaultpb.StoreSecretActivityName,
 		&vaultpb.StoreSecretInput{
@@ -140,10 +121,6 @@ func (w *generateAndStoreKeyPairWorkflow) Execute(ctx workflow.Context) (*crypto
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to store key pair: %w", ErrGenerateAndStoreKeyPair, err)
 	}
-
-	logger.Info("GenerateAndStoreKeyPair workflow completed successfully",
-		"vault_path", storeOutput.SecretRef.GetPath(),
-		"version", storeOutput.SecretRef.GetVersion())
 
 	return &cryptopb.GenerateAndStoreKeyPairOutput{
 		SecretRef: storeOutput.GetSecretRef(),

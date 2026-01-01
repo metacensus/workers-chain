@@ -41,8 +41,6 @@ func NewActivities(clientProvider ClientProvider) *Activities {
 // Idempotent: returns success if database already exists
 func (a *Activities) CreateDatabase(ctx context.Context, req *pb.CreateDatabaseInput) (*pb.CreateDatabaseOutput, error) {
 	logger := activity.GetLogger(ctx)
-	logger.Info("Creating database",
-		"database_name", req.DatabaseName)
 
 	// Validate required fields
 	if req.DatabaseName == "" {
@@ -81,7 +79,6 @@ func (a *Activities) CreateDatabase(ctx context.Context, req *pb.CreateDatabaseI
 		return nil, fmt.Errorf("%w: %w", ErrCreateDatabase, err)
 	}
 
-	logger.Info("Database created successfully", "database_name", req.DatabaseName)
 	return &pb.CreateDatabaseOutput{}, nil
 }
 
@@ -89,8 +86,6 @@ func (a *Activities) CreateDatabase(ctx context.Context, req *pb.CreateDatabaseI
 // Idempotent: returns success if user already exists
 func (a *Activities) CreateUser(ctx context.Context, req *pb.CreateUserInput) (*pb.CreateUserOutput, error) {
 	logger := activity.GetLogger(ctx)
-	logger.Info("Creating user",
-		"username", req.Username)
 
 	// Validate required fields
 	if req.Username == "" {
@@ -132,19 +127,12 @@ func (a *Activities) CreateUser(ctx context.Context, req *pb.CreateUserInput) (*
 		return nil, fmt.Errorf("%w: %w", ErrCreateUser, err)
 	}
 
-	logger.Info("User created successfully", "username", req.Username)
 	return &pb.CreateUserOutput{}, nil
 }
 
 // GrantPrivileges grants privileges to a user on a database
 // Idempotent: can be called multiple times safely
 func (a *Activities) GrantPrivileges(ctx context.Context, req *pb.GrantPrivilegesInput) (*pb.GrantPrivilegesOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Granting privileges",
-		"username", req.Username,
-		"database_name", req.DatabaseName,
-		"privileges", req.Privileges)
-
 	// Validate required fields
 	if req.Username == "" {
 		return nil, errors.New("username cannot be empty")
@@ -171,11 +159,6 @@ func (a *Activities) GrantPrivileges(ctx context.Context, req *pb.GrantPrivilege
 	if err := client.Exec(ctx, grantSQL); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrGrantPrivileges, err)
 	}
-
-	logger.Info("Privileges granted successfully",
-		"username", req.Username,
-		"database_name", req.DatabaseName,
-		"privileges", privilegesStr)
 
 	return &pb.GrantPrivilegesOutput{}, nil
 }

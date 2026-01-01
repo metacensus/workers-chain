@@ -46,9 +46,6 @@ type createNamespaceWorkflow struct {
 
 // Execute creates a Kubernetes namespace
 func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNamespaceOutput, error) {
-	logger := workflow.GetLogger(ctx)
-	logger.Info("CreateNamespace workflow started", "org", w.input.Org)
-
 	orgCfg := config.OrgConfig{OrgID: w.input.Org}
 	values := helm.NewNamespaceValues(orgCfg)
 	namespaceName := values.Name
@@ -72,7 +69,6 @@ func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNames
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
 	// Step 1: Render Helm chart
-	logger.Info("Rendering Helm chart", "chart", chartNamespace, "namespace", namespaceName)
 	var renderOutput *helmpb.RenderChartOutput
 	err = workflow.ExecuteActivity(activityCtx, helmpb.RenderChartWithTemplateActivityName, &helmpb.RenderChartWithTemplateInput{
 		ChartName: chartNamespace,
@@ -89,7 +85,6 @@ func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNames
 	}
 
 	// Step 2: Apply resources to Kubernetes
-	logger.Info("Applying resources", "resource_count", len(renderOutput.Resources))
 	kubeResources := make(map[string]*kubepb.Resource)
 	for id, res := range renderOutput.Resources {
 		kubeResources[id] = &kubepb.Resource{
@@ -109,7 +104,6 @@ func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNames
 		return nil, fmt.Errorf("failed to apply %d resources", applyOutput.Summary.Failed)
 	}
 
-	logger.Info("Namespace created successfully", "namespace", namespaceName)
 	return &pb.CreateNamespaceOutput{
 		NamespaceName: namespaceName,
 	}, nil
@@ -127,9 +121,6 @@ type createServiceAccountWorkflow struct {
 
 // Execute creates a Kubernetes service account
 func (w *createServiceAccountWorkflow) Execute(ctx workflow.Context) (*pb.CreateServiceAccountOutput, error) {
-	logger := workflow.GetLogger(ctx)
-	logger.Info("CreateServiceAccount workflow started", "org", w.input.Org)
-
 	orgCfg := config.OrgConfig{OrgID: w.input.Org}
 	values := helm.NewServiceAccountValues(orgCfg)
 	namespaceName := values.Namespace
@@ -153,7 +144,6 @@ func (w *createServiceAccountWorkflow) Execute(ctx workflow.Context) (*pb.Create
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
 	// Step 1: Render Helm chart
-	logger.Info("Rendering Helm chart", "chart", chartServiceAccount, "namespace", namespaceName)
 	var renderOutput *helmpb.RenderChartOutput
 	err = workflow.ExecuteActivity(activityCtx, helmpb.RenderChartWithTemplateActivityName, &helmpb.RenderChartWithTemplateInput{
 		ChartName: chartServiceAccount,
@@ -170,7 +160,6 @@ func (w *createServiceAccountWorkflow) Execute(ctx workflow.Context) (*pb.Create
 	}
 
 	// Step 2: Apply resources to Kubernetes
-	logger.Info("Applying resources", "resource_count", len(renderOutput.Resources))
 	kubeResources := make(map[string]*kubepb.Resource)
 	for id, res := range renderOutput.Resources {
 		kubeResources[id] = &kubepb.Resource{
@@ -190,7 +179,6 @@ func (w *createServiceAccountWorkflow) Execute(ctx workflow.Context) (*pb.Create
 		return nil, fmt.Errorf("failed to apply %d resources", applyOutput.Summary.Failed)
 	}
 
-	logger.Info("ServiceAccount created successfully", "org", w.input.Org)
 	return &pb.CreateServiceAccountOutput{}, nil
 }
 
@@ -206,9 +194,6 @@ type createDeploymentWorkflow struct {
 
 // Execute deploys resources to Kubernetes based on the specified component type
 func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDeploymentOutput, error) {
-	logger := workflow.GetLogger(ctx)
-	logger.Info("CreateDeployment workflow started", "org", w.input.Org, "component", w.input.Component)
-
 	// Validate input
 	if w.input.Org == "" {
 		return nil, fmt.Errorf("org is required")
@@ -266,7 +251,6 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
 	// Step 1: Render Helm chart
-	logger.Info("Rendering Helm chart", "chart", chartName, "namespace", namespaceName)
 	var renderOutput *helmpb.RenderChartOutput
 	err = workflow.ExecuteActivity(activityCtx, helmpb.RenderChartWithTemplateActivityName, &helmpb.RenderChartWithTemplateInput{
 		ChartName: chartName,
@@ -283,7 +267,6 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 	}
 
 	// Step 2: Apply resources to Kubernetes
-	logger.Info("Applying resources", "resource_count", len(renderOutput.Resources))
 	kubeResources := make(map[string]*kubepb.Resource)
 	for id, res := range renderOutput.Resources {
 		kubeResources[id] = &kubepb.Resource{
@@ -303,7 +286,6 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		return nil, fmt.Errorf("failed to apply %d resources", applyOutput.Summary.Failed)
 	}
 
-	logger.Info("Deployment created successfully", "deployment", deploymentName, "namespace", namespaceName)
 	return &pb.CreateDeploymentOutput{
 		DeploymentName: deploymentName,
 	}, nil

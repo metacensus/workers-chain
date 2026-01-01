@@ -43,10 +43,6 @@ func NewActivities(namespaceClient client.NamespaceClient, operatorService opera
 // RegisterNamespace creates a new Temporal namespace with specified retention policy
 // Idempotent: returns success if namespace already exists
 func (a *Activities) RegisterNamespace(ctx context.Context, req *pb.RegisterNamespaceInput) (*pb.RegisterNamespaceOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Registering namespace",
-		"name", req.Name)
-
 	// Determine retention period: use provided value or default to 30 days (2592000 seconds)
 	var retentionPeriod *durationpb.Duration
 	if req.Retention != nil {
@@ -55,10 +51,6 @@ func (a *Activities) RegisterNamespace(ctx context.Context, req *pb.RegisterName
 		// Default to 30 days
 		retentionPeriod = durationpb.New(30 * 24 * time.Hour)
 	}
-
-	logger.Info("Using retention period",
-		"namespace", req.Name,
-		"duration", retentionPeriod)
 
 	// Create RegisterNamespaceRequest for Temporal admin API
 	registerReq := &workflowservice.RegisterNamespaceRequest{
@@ -74,19 +66,12 @@ func (a *Activities) RegisterNamespace(ctx context.Context, req *pb.RegisterName
 		return nil, fmt.Errorf("%w: %w", ErrRegisterNamespace, err)
 	}
 
-	logger.Info("Namespace registered successfully",
-		"namespace", req.Name,
-		"retention_duration", retentionPeriod.String())
-
 	return &pb.RegisterNamespaceOutput{}, nil
 }
 
 // DescribeNamespace retrieves the current state of a Temporal namespace
 // Used by the workflow to poll until namespace is active
 func (a *Activities) DescribeNamespace(ctx context.Context, req *pb.DescribeNamespaceInput) (*pb.DescribeNamespaceOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Describing namespace", "name", req.Name)
-
 	// Call Temporal admin API
 	resp, err := a.namespaceClient.Describe(ctx, req.Name)
 	if err != nil {
@@ -104,10 +89,6 @@ func (a *Activities) DescribeNamespace(ctx context.Context, req *pb.DescribeName
 		}
 	}
 
-	logger.Info("Namespace described successfully",
-		"name", req.Name,
-		"state", state.String())
-
 	return &pb.DescribeNamespaceOutput{
 		Name:  req.Name,
 		State: state,
@@ -118,10 +99,6 @@ func (a *Activities) DescribeNamespace(ctx context.Context, req *pb.DescribeName
 // Idempotent: returns success if endpoint already exists
 func (a *Activities) CreateNexusEndpoint(ctx context.Context, req *pb.CreateNexusEndpointInput) (*pb.CreateNexusEndpointOutput, error) {
 	logger := activity.GetLogger(ctx)
-	logger.Info("Creating Nexus endpoint",
-		"name", req.Name,
-		"namespace", req.Namespace,
-		"task_queue", req.TaskQueue)
 
 	if req.Name == "" {
 		return nil, fmt.Errorf("endpoint name cannot be empty")
@@ -159,10 +136,6 @@ func (a *Activities) CreateNexusEndpoint(ctx context.Context, req *pb.CreateNexu
 		endpointID = resp.Endpoint.Id
 	}
 
-	logger.Info("Nexus endpoint created successfully",
-		"name", req.Name,
-		"id", endpointID)
-
 	return &pb.CreateNexusEndpointOutput{
 		Id: endpointID,
 	}, nil
@@ -171,9 +144,6 @@ func (a *Activities) CreateNexusEndpoint(ctx context.Context, req *pb.CreateNexu
 // DescribeNexusEndpoint retrieves the current configuration of a Nexus endpoint by ID
 // Used to fetch existing endpoint state before updating
 func (a *Activities) DescribeNexusEndpoint(ctx context.Context, req *pb.DescribeNexusEndpointInput) (*pb.DescribeNexusEndpointOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Describing Nexus endpoint", "id", req.Id)
-
 	if req.Id == "" {
 		return nil, fmt.Errorf("endpoint id cannot be empty")
 	}
@@ -201,10 +171,6 @@ func (a *Activities) DescribeNexusEndpoint(ctx context.Context, req *pb.Describe
 		}
 	}
 
-	logger.Info("Nexus endpoint described successfully",
-		"id", req.Id,
-		"name", endpoint.Name)
-
 	return &pb.DescribeNexusEndpointOutput{
 		Endpoint: endpoint,
 	}, nil
@@ -213,11 +179,6 @@ func (a *Activities) DescribeNexusEndpoint(ctx context.Context, req *pb.Describe
 // UpdateNexusEndpoint updates an existing Nexus endpoint configuration
 // REPLACES entire endpoint configuration (caller must provide complete desired state including ID)
 func (a *Activities) UpdateNexusEndpoint(ctx context.Context, req *pb.UpdateNexusEndpointInput) (*pb.UpdateNexusEndpointOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Updating Nexus endpoint",
-		"id", req.Endpoint.Id,
-		"name", req.Endpoint.Name)
-
 	if req.Endpoint.Id == "" {
 		return nil, fmt.Errorf("endpoint id cannot be empty")
 	}
@@ -245,9 +206,6 @@ func (a *Activities) UpdateNexusEndpoint(ctx context.Context, req *pb.UpdateNexu
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrUpdateNexusEndpoint, err)
 	}
-
-	logger.Info("Nexus endpoint updated successfully",
-		"id", req.Endpoint.Id)
 
 	return &pb.UpdateNexusEndpointOutput{}, nil
 }

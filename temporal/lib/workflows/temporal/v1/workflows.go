@@ -41,8 +41,6 @@ type createNamespaceWorkflow struct {
 func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNamespaceOutput, error) {
 	logger := workflow.GetLogger(ctx)
 	req := w.input.Req
-	logger.Info("CreateNamespace workflow started",
-		"namespace", req.Name)
 
 	// Register namespace with activity options
 	activityOptions := workflow.ActivityOptions{
@@ -56,7 +54,6 @@ func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNames
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
 
-	logger.Info("Registering namespace", "namespace", req.Name)
 	if err := workflow.ExecuteActivity(ctx, pb.RegisterNamespaceActivityName, &pb.RegisterNamespaceInput{
 		Name:      req.Name,
 		Retention: req.Retention,

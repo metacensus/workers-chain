@@ -9,7 +9,6 @@ import (
 	"text/template"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/helm/v1"
-	"go.temporal.io/sdk/activity"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
@@ -39,24 +38,16 @@ func NewActivities(repo RepoClient) *Activities {
 
 // RenderChart renders a Helm chart and returns parsed Kubernetes resources
 func (a *Activities) RenderChart(ctx context.Context, req *pb.RenderChartInput) (*pb.RenderChartOutput, error) {
-	logger := activity.GetLogger(ctx)
-
 	// Validate required fields
 	if req.GetChartName() == "" {
 		return nil, fmt.Errorf("chart_name is required")
 	}
-
-	logger.Info("Rendering Helm chart",
-		"chart_name", req.GetChartName(),
-		"namespace", req.GetNamespace())
 
 	return a.renderChartWithValues(ctx, req.GetChartName(), req.GetValuesYaml(), req.GetNamespace())
 }
 
 // RenderChartWithTemplate renders a Helm values template, then renders the chart with the result
 func (a *Activities) RenderChartWithTemplate(ctx context.Context, req *pb.RenderChartWithTemplateInput) (*pb.RenderChartOutput, error) {
-	logger := activity.GetLogger(ctx)
-
 	// Validate required fields
 	if req.GetChartName() == "" {
 		return nil, fmt.Errorf("chart_name is required")
@@ -67,11 +58,6 @@ func (a *Activities) RenderChartWithTemplate(ctx context.Context, req *pb.Render
 	if req.GetValues() == nil {
 		return nil, fmt.Errorf("values is required")
 	}
-
-	logger.Info("Rendering Helm chart with template",
-		"chart_name", req.GetChartName(),
-		"component", req.GetComponent(),
-		"namespace", req.GetNamespace())
 
 	// Step 1: Load values template from the chart directory
 	templateStr, err := a.repo.GetValuesTemplate(ctx, req.GetChartName())
@@ -94,8 +80,6 @@ func (a *Activities) RenderChartWithTemplate(ctx context.Context, req *pb.Render
 
 // renderChartWithValues is the shared logic for rendering a Helm chart with values YAML
 func (a *Activities) renderChartWithValues(ctx context.Context, chartName, valuesYAML, namespace string) (*pb.RenderChartOutput, error) {
-	logger := activity.GetLogger(ctx)
-
 	// Acquire chart from repository
 	ch, err := a.repo.GetChart(ctx, chartName)
 	if err != nil {
@@ -141,11 +125,6 @@ func (a *Activities) renderChartWithValues(ctx context.Context, chartName, value
 			ManifestYaml: manifest,
 		}
 	}
-
-	logger.Info("Chart rendered successfully",
-		"total_resources", len(resources)+len(failures),
-		"parsed_resources", len(resources),
-		"failed_resources", len(failures))
 
 	return &pb.RenderChartOutput{
 		Resources: resources,

@@ -135,13 +135,6 @@ func NewActivities(client VaultClient) *Activities {
 
 // CreateAuthRole creates a Kubernetes auth role in Vault
 func (a *Activities) CreateAuthRole(ctx context.Context, req *pb.CreateAuthRoleInput) (*pb.CreateAuthRoleOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Creating auth role",
-		"role_name", req.RoleName,
-		"service_account", req.ServiceAccountName,
-		"namespace", req.KubernetesNamespace,
-		"policies", req.PolicyNames)
-
 	// Validate required fields
 	if req.RoleName == "" {
 		return nil, errors.New("role name cannot be empty")
@@ -169,7 +162,6 @@ func (a *Activities) CreateAuthRole(ctx context.Context, req *pb.CreateAuthRoleI
 		return nil, fmt.Errorf("%w: %w", ErrCreateAuthRole, err)
 	}
 
-	logger.Info("Auth role created successfully", "role_name", req.RoleName)
 	return &pb.CreateAuthRoleOutput{
 		Name: req.RoleName,
 	}, nil
@@ -177,9 +169,6 @@ func (a *Activities) CreateAuthRole(ctx context.Context, req *pb.CreateAuthRoleI
 
 // DeleteAuthRole deletes a Kubernetes auth role from Vault
 func (a *Activities) DeleteAuthRole(ctx context.Context, req *pb.DeleteAuthRoleInput) (*pb.DeleteAuthRoleOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Deleting auth role", "role_name", req.Name)
-
 	if req.Name == "" {
 		return nil, errors.New("role name cannot be empty")
 	}
@@ -190,15 +179,11 @@ func (a *Activities) DeleteAuthRole(ctx context.Context, req *pb.DeleteAuthRoleI
 		return nil, fmt.Errorf("%w: %w", ErrDeleteAuthRole, err)
 	}
 
-	logger.Info("Auth role deleted successfully", "role_name", req.Name)
 	return &pb.DeleteAuthRoleOutput{}, nil
 }
 
 // CreatePolicy creates a new Vault policy
 func (a *Activities) CreatePolicy(ctx context.Context, req *pb.CreatePolicyInput) (*pb.CreatePolicyOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Creating policy", "policy_name", req.Name)
-
 	if req.Name == "" {
 		return nil, errors.New("policy name cannot be empty")
 	}
@@ -220,7 +205,6 @@ func (a *Activities) CreatePolicy(ctx context.Context, req *pb.CreatePolicyInput
 		return nil, fmt.Errorf("%w: %w", ErrCreatePolicy, err)
 	}
 
-	logger.Info("Policy created successfully", "policy_name", req.Name)
 	return &pb.CreatePolicyOutput{
 		Name: req.Name,
 	}, nil
@@ -228,9 +212,6 @@ func (a *Activities) CreatePolicy(ctx context.Context, req *pb.CreatePolicyInput
 
 // DeletePolicy deletes a Vault policy
 func (a *Activities) DeletePolicy(ctx context.Context, req *pb.DeletePolicyInput) (*pb.DeletePolicyOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Deleting policy", "policy_name", req.Name)
-
 	if req.Name == "" {
 		return nil, errors.New("policy name cannot be empty")
 	}
@@ -241,15 +222,11 @@ func (a *Activities) DeletePolicy(ctx context.Context, req *pb.DeletePolicyInput
 		return nil, fmt.Errorf("%w: %w", ErrDeletePolicy, err)
 	}
 
-	logger.Info("Policy deleted successfully", "policy_name", req.Name)
 	return &pb.DeletePolicyOutput{}, nil
 }
 
 // StoreSecret stores a secret in Vault at the specified path
 func (a *Activities) StoreSecret(ctx context.Context, req *pb.StoreSecretInput) (*pb.StoreSecretOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Storing secret", "path", req.Path)
-
 	// Vault KV v2 path structure: <mount>/data/<path>
 	vaultPath := fmt.Sprintf("secret/data/%s", req.Path)
 
@@ -268,8 +245,6 @@ func (a *Activities) StoreSecret(ctx context.Context, req *pb.StoreSecretInput) 
 		return nil, fmt.Errorf("%w: %w", ErrStoreSecret, err)
 	}
 
-	logger.Info("Secret stored successfully", "path", req.Path)
-
 	return &pb.StoreSecretOutput{
 		SecretRef: &pb.SecretRef{
 			Path:    req.Path,
@@ -281,7 +256,6 @@ func (a *Activities) StoreSecret(ctx context.Context, req *pb.StoreSecretInput) 
 // FetchSecret retrieves a secret from Vault
 func (a *Activities) FetchSecret(ctx context.Context, req *pb.FetchSecretInput) (*pb.FetchSecretOutput, error) {
 	logger := activity.GetLogger(ctx)
-	logger.Info("Fetching secret", "path", req.Path)
 
 	// TODO: Support version parameter (req.Version) - client.FetchSecret currently doesn't support versioning
 	// For now, we always fetch the latest version
@@ -305,10 +279,6 @@ func (a *Activities) FetchSecret(ctx context.Context, req *pb.FetchSecretInput) 
 		}
 	}
 
-	logger.Info("Secret fetched successfully",
-		"path", req.Path,
-		"data_present", len(data) > 0)
-
 	return &pb.FetchSecretOutput{
 		SecretRef: &pb.SecretRef{
 			Path:    req.Path,
@@ -320,17 +290,12 @@ func (a *Activities) FetchSecret(ctx context.Context, req *pb.FetchSecretInput) 
 
 // DeleteSecret deletes a secret from Vault
 func (a *Activities) DeleteSecret(ctx context.Context, req *pb.DeleteSecretInput) (*pb.DeleteSecretOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Deleting secret", "path", req.Path)
-
 	// Vault KV v2 path structure: <mount>/data/<path>
 	vaultPath := fmt.Sprintf("secret/data/%s", req.Path)
 
 	if err := a.client.Delete(ctx, vaultPath); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrDeleteSecret, err)
 	}
-
-	logger.Info("Secret deleted successfully", "path", req.Path)
 
 	return &pb.DeleteSecretOutput{}, nil
 }

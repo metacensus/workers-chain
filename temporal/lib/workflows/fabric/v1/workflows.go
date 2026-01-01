@@ -140,17 +140,12 @@ type deployCertificateStoreWorkflow struct {
 // Execute deploys the shared certificate store (PostgreSQL) for the organization.
 func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.DeployCertificateStoreOutput, error) {
 	logger := workflow.GetLogger(ctx)
-	logger.Info("Deploying certificate store", "org", w.orgConfig.OrgID)
 
 	// Get certificate store config
 	certStore := w.fabricConfig.CertificateStore()
 
 	// Step 1: Request Vault access via Nexus call to infra worker
 	// This creates the policy and auth role needed for the certificate store pod to access its secrets
-	logger.Info("Creating Vault access for certificate store",
-		"org", w.orgConfig.OrgID,
-		"policyName", certStore.PolicyName(),
-	)
 	vaultClient := vaultv1nexustemporal.NewVaultNexusClient(vaultCreateAccessNexusEndpoint)
 	_, err := vaultClient.CreateAccess(ctx, &vaultpb.CreateAccessInput{
 		PolicyName:          certStore.PolicyName(),
@@ -165,16 +160,7 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 		return nil, fmt.Errorf("%w: %w", ErrCreateVaultAccess, err)
 	}
 
-	logger.Info("Vault access created for certificate store",
-		"org", w.orgConfig.OrgID,
-		"policyName", certStore.PolicyName(),
-	)
-
 	// Step 2: Generate PostgreSQL credentials (username + password)
-	logger.Info("Generating PostgreSQL credentials for certificate store",
-		"org", w.orgConfig.OrgID,
-		"vaultPath", certStore.VaultAdminCredentialsPath(),
-	)
 	_, err = cryptopb.GenerateAndStorePasswordChild(ctx, &cryptopb.GenerateAndStorePasswordInput{
 		VaultPath: certStore.VaultAdminCredentialsPath(),
 		Username:  "admin",
@@ -183,17 +169,8 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 		return nil, fmt.Errorf("failed to generate postgres credentials: %w", err)
 	}
 
-	logger.Info("PostgreSQL credentials generated and stored",
-		"org", w.orgConfig.OrgID,
-		"vaultPath", certStore.VaultAdminCredentialsPath(),
-	)
-
 	// Step 3: Deploy PostgreSQL StatefulSet for certificate storage
 	// The StatefulSet will use Vault CSI driver to fetch credentials at runtime
-	logger.Info("Deploying certificate store StatefulSet",
-		"org", w.orgConfig.OrgID,
-		"component", certStore.ComponentName(),
-	)
 	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
 		Org:       w.orgConfig.OrgID,
 		Component: certStore.ComponentName(),
@@ -247,8 +224,6 @@ type createCertificateDatabaseWorkflow struct {
 
 // Execute creates a dedicated database and user for a certificate authority.
 func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.CreateCertificateDatabaseOutput, error) {
-	logger := workflow.GetLogger(ctx)
-
 	// Extract input parameters
 	certType := w.input.Req.GetCertType()
 	caID := w.input.Req.GetCertificateAuthorityId()
@@ -276,16 +251,7 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 	}
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
-	logger.Info("Creating certificate database",
-		"org", w.orgConfig.OrgID,
-		"certType", certType,
-		"caID", caID,
-		"database", caConfig.DatabaseName(),
-		"username", caConfig.DatabaseUsername(),
-	)
-
 	// Step 1: Create the PostgreSQL database
-	logger.Info("Creating PostgreSQL database", "database", caConfig.DatabaseName())
 	var createDBOutput *postgrespb.CreateDatabaseOutput
 	err := workflow.ExecuteActivity(activityCtx, postgrespb.CreateDatabaseActivityName, &postgrespb.CreateDatabaseInput{
 		DatabaseName: caConfig.DatabaseName(),
@@ -295,7 +261,6 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 	}
 
 	// Step 2: Generate and store credentials (username + password) in Vault
-	logger.Info("Generating database credentials", "vaultPath", caConfig.VaultDatabaseCredentialsPath())
 	credentialsOutput, err := cryptopb.GenerateAndStorePasswordChild(ctx, &cryptopb.GenerateAndStorePasswordInput{
 		VaultPath: caConfig.VaultDatabaseCredentialsPath(),
 		Username:  caConfig.DatabaseUsername(),
@@ -306,7 +271,6 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 
 	// Step 3: Fetch the generated credentials from Vault
 	// We need both username and password values to create the PostgreSQL user
-	logger.Info("Fetching generated credentials from Vault")
 	var fetchOutput *vaultpb.FetchSecretOutput
 	err = workflow.ExecuteActivity(activityCtx, vaultpb.FetchSecretActivityName, &vaultpb.FetchSecretInput{
 		Path:    credentialsOutput.GetSecretRef().GetPath(),
@@ -330,7 +294,6 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 	password := string(passwordBytes)
 
 	// Step 4: Create the PostgreSQL user with the generated credentials
-	logger.Info("Creating PostgreSQL user", "username", username)
 	var createUserOutput *postgrespb.CreateUserOutput
 	err = workflow.ExecuteActivity(activityCtx, postgrespb.CreateUserActivityName, &postgrespb.CreateUserInput{
 		Username: username,
@@ -341,7 +304,6 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 	}
 
 	// Step 5: Grant all privileges on the database to the user
-	logger.Info("Granting privileges", "username", username, "database", caConfig.DatabaseName())
 	var grantOutput *postgrespb.GrantPrivilegesOutput
 	err = workflow.ExecuteActivity(activityCtx, postgrespb.GrantPrivilegesActivityName, &postgrespb.GrantPrivilegesInput{
 		Username:     username,
@@ -351,13 +313,6 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 	if err != nil {
 		return nil, fmt.Errorf("failed to grant privileges: %w", err)
 	}
-
-	logger.Info("Certificate database created successfully",
-		"org", w.orgConfig.OrgID,
-		"database", caConfig.DatabaseName(),
-		"username", username,
-		"vaultPath", credentialsOutput.GetSecretRef().GetPath(),
-	)
 
 	return &pb.CreateCertificateDatabaseOutput{
 		CredentialsRef: credentialsOutput.GetSecretRef(),
@@ -382,7 +337,6 @@ type deployRootCertificateAuthorityWorkflow struct {
 
 // Execute deploys the root certificate authority for the organization.
 func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.DeployRootCertificateAuthorityOutput, error) {
-	logger := workflow.GetLogger(ctx)
 	certType := w.input.Req.GetCertType()
 
 	// Validate cert type
@@ -392,12 +346,6 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 
 	// Get root CA config
 	rootCA := w.fabricConfig.CertificateAuthority(certType, "root")
-
-	logger.Info("Deploying root certificate authority",
-		"org", w.orgConfig.OrgID,
-		"certType", certType,
-		"policyName", rootCA.PolicyName(),
-	)
 
 	// Request Vault access via Nexus call to infra worker
 	// This creates the policy and auth role needed for the root CA pod to access its secrets
@@ -414,11 +362,6 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateVaultAccess, err)
 	}
-
-	logger.Info("Vault access created for root certificate authority",
-		"org", w.orgConfig.OrgID,
-		"certType", certType,
-	)
 
 	// Create certificate database for this root CA
 	if _, err := pb.CreateCertificateDatabaseChild(ctx, &pb.CreateCertificateDatabaseInput{
@@ -454,7 +397,6 @@ type deployCertificateAuthorityWorkflow struct {
 
 // Execute deploys an intermediate certificate authority for the organization.
 func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.DeployCertificateAuthorityOutput, error) {
-	logger := workflow.GetLogger(ctx)
 	certType := w.input.Req.GetCertType()
 	caID := w.input.Req.GetId()
 
@@ -465,13 +407,6 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 
 	// Get intermediate CA config
 	intermediateCA := w.fabricConfig.CertificateAuthority(certType, caID)
-
-	logger.Info("Deploying intermediate certificate authority",
-		"org", w.orgConfig.OrgID,
-		"certType", certType,
-		"caID", caID,
-		"policyName", intermediateCA.PolicyName(),
-	)
 
 	// Request Vault access via Nexus call to infra worker
 	// This creates the policy and auth role needed for the intermediate CA pod to access its secrets
@@ -488,12 +423,6 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateVaultAccess, err)
 	}
-
-	logger.Info("Vault access created for intermediate certificate authority",
-		"org", w.orgConfig.OrgID,
-		"certType", certType,
-		"caID", caID,
-	)
 
 	// Create certificate database for this intermediate CA
 	if _, err := pb.CreateCertificateDatabaseChild(ctx, &pb.CreateCertificateDatabaseInput{

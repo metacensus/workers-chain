@@ -63,9 +63,6 @@ type bootstrapInfraWorkflow struct {
 // This workflow sets up platform-level services and Nexus endpoints that enable
 // other workflows to communicate across namespaces.
 func (w *bootstrapInfraWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapInfraOutput, error) {
-	logger := workflow.GetLogger(ctx)
-	logger.Info("BootstrapInfra workflow started")
-
 	// Register Nexus endpoint for vault.v1.CreateAccess service
 	// This endpoint is called from fabric shards to request vault access setup in the infra namespace
 	temporalCfg := config.GetTemporal()
@@ -78,7 +75,6 @@ func (w *bootstrapInfraWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapInf
 		return nil, fmt.Errorf("%w: %w", ErrCreateVaultNexusEndpoint, err)
 	}
 
-	logger.Info("BootstrapInfra workflow completed")
 	return &pb.BootstrapInfraOutput{}, nil
 }
 

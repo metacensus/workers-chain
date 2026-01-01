@@ -37,9 +37,6 @@ func NewActivities(client KubeClient) *Activities {
 
 // Create creates new resources in the cluster
 func (a *Activities) Create(ctx context.Context, req *pb.CreateInput) (*pb.CreateOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Creating resources", "resource_count", len(req.GetResources()))
-
 	response := &pb.CreateOutput{
 		Results: make(map[string]*pb.CreateResult),
 		Summary: &pb.CreateSummary{
@@ -63,11 +60,6 @@ func (a *Activities) Create(ctx context.Context, req *pb.CreateInput) (*pb.Creat
 		response.Results[resourceID] = result
 		response.Summary.Created++
 	}
-
-	logger.Info("Resources created successfully",
-		"total", response.Summary.Total,
-		"created", response.Summary.Created,
-		"failed", response.Summary.Failed)
 
 	return response, nil
 }
@@ -110,9 +102,6 @@ func (a *Activities) createSingleResource(ctx context.Context, resourceID string
 
 // Update updates existing resources in the cluster
 func (a *Activities) Update(ctx context.Context, req *pb.UpdateInput) (*pb.UpdateOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Updating resources", "resource_count", len(req.GetResources()))
-
 	response := &pb.UpdateOutput{
 		Results: make(map[string]*pb.UpdateResult),
 		Summary: &pb.UpdateSummary{
@@ -136,11 +125,6 @@ func (a *Activities) Update(ctx context.Context, req *pb.UpdateInput) (*pb.Updat
 		response.Results[resourceID] = result
 		response.Summary.Updated++
 	}
-
-	logger.Info("Resources updated successfully",
-		"total", response.Summary.Total,
-		"updated", response.Summary.Updated,
-		"failed", response.Summary.Failed)
 
 	return response, nil
 }
@@ -183,9 +167,6 @@ func (a *Activities) updateSingleResource(ctx context.Context, resourceID string
 
 // Apply deploys resources to the cluster (create or update)
 func (a *Activities) Apply(ctx context.Context, req *pb.ApplyInput) (*pb.ApplyOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Applying resources", "resource_count", len(req.GetResources()))
-
 	response := &pb.ApplyOutput{
 		Results: make(map[string]*pb.ApplyResult),
 		Summary: &pb.ApplySummary{
@@ -209,11 +190,6 @@ func (a *Activities) Apply(ctx context.Context, req *pb.ApplyInput) (*pb.ApplyOu
 		response.Results[resourceID] = result
 		response.Summary.Applied++
 	}
-
-	logger.Info("Resources applied successfully",
-		"total", response.Summary.Total,
-		"applied", response.Summary.Applied,
-		"failed", response.Summary.Failed)
 
 	return response, nil
 }
@@ -256,9 +232,6 @@ func (a *Activities) applySingleResource(ctx context.Context, resourceID string,
 
 // Delete removes resources from the cluster
 func (a *Activities) Delete(ctx context.Context, req *pb.DeleteInput) (*pb.DeleteOutput, error) {
-	logger := activity.GetLogger(ctx)
-	logger.Info("Deleting resources", "resource_count", len(req.GetResources()))
-
 	response := &pb.DeleteOutput{
 		Results: make(map[string]*pb.DeleteResult),
 		Summary: &pb.DeleteSummary{
@@ -282,11 +255,6 @@ func (a *Activities) Delete(ctx context.Context, req *pb.DeleteInput) (*pb.Delet
 		response.Results[resourceID] = result
 		response.Summary.Deleted++
 	}
-
-	logger.Info("Resources deleted successfully",
-		"total", response.Summary.Total,
-		"deleted", response.Summary.Deleted,
-		"failed", response.Summary.Failed)
 
 	return response, nil
 }
@@ -315,7 +283,6 @@ func (a *Activities) deleteSingleResource(ctx context.Context, resourceID string
 // Returns error if any resources are not ready (for use with activity retry policies)
 func (a *Activities) GetStatus(ctx context.Context, req *pb.GetStatusInput) (*pb.GetStatusOutput, error) {
 	logger := activity.GetLogger(ctx)
-	logger.Info("Getting resource status", "resource_count", len(req.GetResources()))
 
 	response := &pb.GetStatusOutput{
 		ResourcesReady: []string{},

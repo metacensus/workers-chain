@@ -36,12 +36,6 @@ type createAccessWorkflow struct {
 
 // Execute orchestrates the creation of a Vault policy and Kubernetes auth role
 func (w *createAccessWorkflow) Execute(ctx workflow.Context) (*pb.CreateAccessOutput, error) {
-	logger := workflow.GetLogger(ctx)
-	logger.Info("CreateAccess workflow started",
-		"policy_name", w.input.Req.GetPolicyName(),
-		"auth_role_name", w.input.Req.GetAuthRoleName(),
-		"service_account", w.input.Req.GetServiceAccountName())
-
 	// Set up activity options
 	ao := workflow.ActivityOptions{
 		StartToCloseTimeout: 5 * time.Minute,
@@ -55,7 +49,6 @@ func (w *createAccessWorkflow) Execute(ctx workflow.Context) (*pb.CreateAccessOu
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
 	// Step 1: Create the policy
-	logger.Info("Creating Vault policy", "policy_name", w.input.Req.GetPolicyName())
 	var policyOutput *pb.CreatePolicyOutput
 	err := workflow.ExecuteActivity(activityCtx, pb.CreatePolicyActivityName,
 		&pb.CreatePolicyInput{
@@ -67,8 +60,6 @@ func (w *createAccessWorkflow) Execute(ctx workflow.Context) (*pb.CreateAccessOu
 	}
 
 	// Step 2: Create the auth role using the policy name from step 1
-	logger.Info("Creating Kubernetes auth role", "role_name", w.input.Req.GetAuthRoleName())
-
 	var authRoleOutput *pb.CreateAuthRoleOutput
 	err = workflow.ExecuteActivity(activityCtx, pb.CreateAuthRoleActivityName,
 		&pb.CreateAuthRoleInput{
@@ -80,10 +71,6 @@ func (w *createAccessWorkflow) Execute(ctx workflow.Context) (*pb.CreateAccessOu
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateAuthRoleWorkflow, err)
 	}
-
-	logger.Info("CreateAccess workflow completed successfully",
-		"policy_name", policyOutput.GetName(),
-		"auth_role_name", authRoleOutput.GetName())
 
 	return &pb.CreateAccessOutput{
 		PolicyName:   policyOutput.GetName(),
