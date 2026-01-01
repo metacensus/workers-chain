@@ -2,19 +2,17 @@ syntax = "proto3";
 
 package crypto.v1;
 
-option go_package = "github.com/metacensus/infra/temporal/gen/workflows/crypto/v1;cryptov1";
-
 import "patch/go.proto";
 import "temporal/v1/temporal.proto";
 import "vault/v1/vault.proto";
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/crypto/v1;cryptov1";
 
 // Crypto service defines activities for cryptographic operations
 // Activities generate passwords, key pairs, and other cryptographic primitives
 service Crypto {
   // Service-wide Temporal settings
-  option (temporal.v1.service) = {
-    task_queue: "infra"
-  };
+  option (temporal.v1.service) = {task_queue: "infra"};
 
   // GeneratePassword generates a secure random password
   // Password is 32-character base64-URL-encoded random string
@@ -91,7 +89,7 @@ message GenerateKeyPairOutput {
     json_name = "PrivateKey",
     (go.field).tags = 'json:"PrivateKey" validate:"required"'
   ];
-  
+
   // public_key is the PEM-encoded public key
   bytes public_key = 2 [
     json_name = "PublicKey",
@@ -109,7 +107,7 @@ message GenerateAndStorePasswordInput {
     json_name = "VaultPath",
     (go.field).tags = 'json:"VaultPath" validate:"required"'
   ];
-  
+
   // username is the username to store alongside the password
   // Example: "postgres_ca_tls_root"
   string username = 2 [
@@ -146,4 +144,3 @@ message GenerateAndStoreKeyPairOutput {
     (go.field).tags = 'json:"SecretRef" validate:"required"'
   ];
 }
-

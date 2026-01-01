@@ -2,26 +2,24 @@ syntax = "proto3";
 
 package helm.v1;
 
-option go_package = "github.com/metacensus/infra/temporal/gen/workflows/helm/v1;helmv1";
-
 import "google/protobuf/struct.proto";
 import "patch/go.proto";
 import "temporal/v1/temporal.proto";
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/helm/v1;helmv1";
 
 // Helm service defines activities for rendering Helm charts into Kubernetes manifests
 // Activities parse the rendered YAML and return individual resources
 service Helm {
   // Service-wide Temporal settings
-  option (temporal.v1.service) = {
-    task_queue: "infra"
-  };
+  option (temporal.v1.service) = {task_queue: "infra"};
 
   // RenderChart renders a Helm chart with given values and returns parsed resources
   rpc RenderChart(RenderChartInput) returns (RenderChartOutput) {
     // Activity execution metadata
     option (temporal.v1.activity) = {
       name: "helm.v1.RenderChart"
-      schedule_to_close_timeout: {seconds: 300}  // 5 minutes
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
     };
   }
 
@@ -108,4 +106,3 @@ message Resource {
     (go.field).tags = 'json:"ManifestYaml" validate:"required"'
   ];
 }
-

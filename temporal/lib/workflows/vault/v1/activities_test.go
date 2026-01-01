@@ -133,18 +133,18 @@ func TestFetchSecretActivity(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestActivityEnvironment()
 
-		mockClient := vaultmocks.NewMockVaultClient(t)
+			mockClient := vaultmocks.NewMockVaultClient(t)
 
-		// Setup mock based on whether we expect an error
-		if tt.clientErr != nil {
-			mockClient.EXPECT().
-				FetchSecret(mock.Anything, tt.input.Path).
-				Return(nil, tt.clientErr)
-		} else {
-			mockClient.EXPECT().
-				FetchSecret(mock.Anything, tt.input.Path).
-				Return(tt.mockData, nil)
-		}
+			// Setup mock based on whether we expect an error
+			if tt.clientErr != nil {
+				mockClient.EXPECT().
+					FetchSecret(mock.Anything, tt.input.Path).
+					Return(nil, tt.clientErr)
+			} else {
+				mockClient.EXPECT().
+					FetchSecret(mock.Anything, tt.input.Path).
+					Return(tt.mockData, nil)
+			}
 
 			activities := NewActivities(mockClient)
 			env.RegisterActivity(activities.FetchSecret)

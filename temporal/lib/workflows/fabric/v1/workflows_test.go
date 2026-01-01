@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nexus-rpc/sdk-go/nexus"
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	cryptopb "github.com/metacensus/infra/temporal/gen/workflows/crypto/v1"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
@@ -19,6 +18,7 @@ import (
 	fabric "github.com/metacensus/infra/temporal/lib/workflows/fabric/v1"
 	postgresv1mocks "github.com/metacensus/infra/temporal/mocks/workflows/postgres/v1"
 	vaultv1mocks "github.com/metacensus/infra/temporal/mocks/workflows/vault/v1"
+	"github.com/nexus-rpc/sdk-go/nexus"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
@@ -94,48 +94,48 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-		testSuite := &testsuite.WorkflowTestSuite{}
-		env := testSuite.NewTestWorkflowEnvironment()
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestWorkflowEnvironment()
 
-		// Register child workflow stubs
-		registerChildWorkflowStubs(env)
+			// Register child workflow stubs
+			registerChildWorkflowStubs(env)
 
-		// Create OrgConfig for testing
-		orgConfig := config.OrgConfig{OrgID: tt.org}
+			// Create OrgConfig for testing
+			orgConfig := config.OrgConfig{OrgID: tt.org}
 
-		// Mock Vault CreateAccess Nexus operation
-		vaultNexusSvc, nexusErr := vaultv1nexus.NewVaultNexusService(&vaultv1nexus.UnimplementedVaultNexusHandler{})
-		if nexusErr != nil {
-			t.Fatalf("failed to create vault nexus service: %v", nexusErr)
-		}
-		env.RegisterNexusService(vaultNexusSvc)
-		env.OnNexusOperation(vaultNexusSvc, vaultv1nexus.VaultCreateAccessOperationName, mock.Anything, mock.Anything).
-			Return(&nexus.HandlerStartOperationResultSync[*vaultpb.CreateAccessOutput]{Value: &vaultpb.CreateAccessOutput{}}, nil)
+			// Mock Vault CreateAccess Nexus operation
+			vaultNexusSvc, nexusErr := vaultv1nexus.NewVaultNexusService(&vaultv1nexus.UnimplementedVaultNexusHandler{})
+			if nexusErr != nil {
+				t.Fatalf("failed to create vault nexus service: %v", nexusErr)
+			}
+			env.RegisterNexusService(vaultNexusSvc)
+			env.OnNexusOperation(vaultNexusSvc, vaultv1nexus.VaultCreateAccessOperationName, mock.Anything, mock.Anything).
+				Return(&nexus.HandlerStartOperationResultSync[*vaultpb.CreateAccessOutput]{Value: &vaultpb.CreateAccessOutput{}}, nil)
 
-		// Mock GenerateAndStorePassword child workflow
-		mockChildWorkflow[cryptopb.GenerateAndStorePasswordOutput](env, cryptopb.GenerateAndStorePasswordWorkflowName, nil)
+			// Mock GenerateAndStorePassword child workflow
+			mockChildWorkflow[cryptopb.GenerateAndStorePasswordOutput](env, cryptopb.GenerateAndStorePasswordWorkflowName, nil)
 
-		// Register and mock GetStatus activity
-		env.RegisterActivityWithOptions(
-			func(ctx context.Context, input *kubepb.GetStatusInput) (*kubepb.GetStatusOutput, error) {
-				return &kubepb.GetStatusOutput{}, nil
-			},
-			activity.RegisterOptions{Name: kubepb.GetStatusActivityName},
-		)
-		env.OnActivity(kubepb.GetStatusActivityName, mock.Anything, mock.Anything).Return(&kubepb.GetStatusOutput{}, nil)
+			// Register and mock GetStatus activity
+			env.RegisterActivityWithOptions(
+				func(ctx context.Context, input *kubepb.GetStatusInput) (*kubepb.GetStatusOutput, error) {
+					return &kubepb.GetStatusOutput{}, nil
+				},
+				activity.RegisterOptions{Name: kubepb.GetStatusActivityName},
+			)
+			env.OnActivity(kubepb.GetStatusActivityName, mock.Anything, mock.Anything).Return(&kubepb.GetStatusOutput{}, nil)
 
-		// Mock CreateDeployment child workflow
-		if tt.validateDeploymentInput {
-			// Validate that correct component is passed
-			env.OnWorkflow(clusterpb.CreateDeploymentWorkflowName, mock.Anything,
-				mock.MatchedBy(func(input *clusterpb.CreateDeploymentInput) bool {
-					return input.Org == tt.org && input.Component == "certificate-store"
-				})).Return(&clusterpb.CreateDeploymentOutput{
-				DeploymentName: "certificate-store",
-			}, tt.createDeploymentErr)
-		} else {
-			mockChildWorkflow[clusterpb.CreateDeploymentOutput](env, clusterpb.CreateDeploymentWorkflowName, tt.createDeploymentErr)
-		}
+			// Mock CreateDeployment child workflow
+			if tt.validateDeploymentInput {
+				// Validate that correct component is passed
+				env.OnWorkflow(clusterpb.CreateDeploymentWorkflowName, mock.Anything,
+					mock.MatchedBy(func(input *clusterpb.CreateDeploymentInput) bool {
+						return input.Org == tt.org && input.Component == "certificate-store"
+					})).Return(&clusterpb.CreateDeploymentOutput{
+					DeploymentName: "certificate-store",
+				}, tt.createDeploymentErr)
+			} else {
+				mockChildWorkflow[clusterpb.CreateDeploymentOutput](env, clusterpb.CreateDeploymentWorkflowName, tt.createDeploymentErr)
+			}
 
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployCertificateStoreInput) (*pb.DeployCertificateStoreOutput, error) {

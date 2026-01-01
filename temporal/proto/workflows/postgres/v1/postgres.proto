@@ -2,24 +2,22 @@ syntax = "proto3";
 
 package postgres.v1;
 
-option go_package = "github.com/metacensus/infra/temporal/gen/workflows/postgres/v1;postgresv1";
-
 import "patch/go.proto";
 import "temporal/v1/temporal.proto";
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/postgres/v1;postgresv1";
 
 // Postgres service defines activities for PostgreSQL database management
 service Postgres {
   // Service-wide Temporal settings
-  option (temporal.v1.service) = {
-    task_queue: "infra"
-  };
+  option (temporal.v1.service) = {task_queue: "infra"};
 
   // CreateDatabase creates a new PostgreSQL database
   // Idempotent: returns success if database already exists
   rpc CreateDatabase(CreateDatabaseInput) returns (CreateDatabaseOutput) {
     option (temporal.v1.activity) = {
       name: "postgres.v1.CreateDatabase"
-      schedule_to_close_timeout: {seconds: 300}  // 5 minutes
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
     };
   }
 
@@ -28,7 +26,7 @@ service Postgres {
   rpc CreateUser(CreateUserInput) returns (CreateUserOutput) {
     option (temporal.v1.activity) = {
       name: "postgres.v1.CreateUser"
-      schedule_to_close_timeout: {seconds: 300}  // 5 minutes
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
     };
   }
 
@@ -37,7 +35,7 @@ service Postgres {
   rpc GrantPrivileges(GrantPrivilegesInput) returns (GrantPrivilegesOutput) {
     option (temporal.v1.activity) = {
       name: "postgres.v1.GrantPrivileges"
-      schedule_to_close_timeout: {seconds: 300}  // 5 minutes
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
     };
   }
 }
@@ -67,7 +65,7 @@ message CreateUserInput {
     json_name = "Username",
     (go.field).tags = 'json:"Username" validate:"required"'
   ];
-  
+
   // password is the password for the user
   string password = 2 [
     json_name = "Password",
@@ -85,19 +83,19 @@ message CreateUserOutput {
 // Privilege enum for PostgreSQL database permissions
 enum Privilege {
   PRIVILEGE_UNSPECIFIED = 0;
-  PRIVILEGE_ALL = 1;           // All available privileges
-  PRIVILEGE_SELECT = 2;         // Query data
-  PRIVILEGE_INSERT = 3;         // Insert data
-  PRIVILEGE_UPDATE = 4;         // Update data
-  PRIVILEGE_DELETE = 5;         // Delete data
-  PRIVILEGE_TRUNCATE = 6;       // Truncate tables
-  PRIVILEGE_REFERENCES = 7;     // Create foreign key constraints
-  PRIVILEGE_TRIGGER = 8;        // Create triggers
-  PRIVILEGE_CREATE = 9;         // Create schemas/tables
-  PRIVILEGE_CONNECT = 10;       // Connect to database
-  PRIVILEGE_TEMPORARY = 11;     // Create temporary tables
-  PRIVILEGE_EXECUTE = 12;       // Execute functions
-  PRIVILEGE_USAGE = 13;         // Use schemas/sequences
+  PRIVILEGE_ALL = 1; // All available privileges
+  PRIVILEGE_SELECT = 2; // Query data
+  PRIVILEGE_INSERT = 3; // Insert data
+  PRIVILEGE_UPDATE = 4; // Update data
+  PRIVILEGE_DELETE = 5; // Delete data
+  PRIVILEGE_TRUNCATE = 6; // Truncate tables
+  PRIVILEGE_REFERENCES = 7; // Create foreign key constraints
+  PRIVILEGE_TRIGGER = 8; // Create triggers
+  PRIVILEGE_CREATE = 9; // Create schemas/tables
+  PRIVILEGE_CONNECT = 10; // Connect to database
+  PRIVILEGE_TEMPORARY = 11; // Create temporary tables
+  PRIVILEGE_EXECUTE = 12; // Execute functions
+  PRIVILEGE_USAGE = 13; // Use schemas/sequences
 }
 
 // GrantPrivilegesInput specifies parameters for granting privileges
@@ -107,13 +105,13 @@ message GrantPrivilegesInput {
     json_name = "Username",
     (go.field).tags = 'json:"Username" validate:"required"'
   ];
-  
+
   // database_name is the name of the database to grant privileges on
   string database_name = 2 [
     json_name = "DatabaseName",
     (go.field).tags = 'json:"DatabaseName" validate:"required"'
   ];
-  
+
   // privileges is a list of privileges to grant
   // If empty, defaults to [PRIVILEGE_ALL]
   repeated Privilege privileges = 3 [
@@ -126,4 +124,3 @@ message GrantPrivilegesInput {
 message GrantPrivilegesOutput {
   // Empty - privilege grant confirmed by successful return
 }
-

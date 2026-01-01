@@ -2,85 +2,83 @@ syntax = "proto3";
 
 package vault.v1;
 
-option go_package = "github.com/metacensus/infra/temporal/gen/workflows/vault/v1;vaultv1";
-
 import "nexus/v1/options.proto";
 import "patch/go.proto";
 import "temporal/v1/temporal.proto";
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/vault/v1;vaultv1";
 
 // Vault service defines activities related to secret and auth management
 service Vault {
   // Enable Nexus for cross-namespace calls from fabric workers
   option (.nexus.v1.service).tags = "nexus-enabled";
   // Service-wide Temporal settings
-  option (temporal.v1.service) = {
-    task_queue: "infra"
-  };
+  option (temporal.v1.service) = {task_queue: "infra"};
   // Namespace parameter is used for security enforcement on identity activities
 
   // Auth Role Management
   rpc CreateAuthRole(CreateAuthRoleInput) returns (CreateAuthRoleOutput) {
     // Creates a Kubernetes auth role binding a service account to policies
-    option (.nexus.v1.operation).tags = "activity";  // Exclude from Nexus
+    option (.nexus.v1.operation).tags = "activity"; // Exclude from Nexus
     option (temporal.v1.activity) = {
       name: "vault.v1.CreateAuthRole"
-      schedule_to_close_timeout: {seconds: 300}  // 5 minutes
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
     };
   }
-  
+
   rpc DeleteAuthRole(DeleteAuthRoleInput) returns (DeleteAuthRoleOutput) {
     // Deletes an existing Kubernetes auth role
-    option (.nexus.v1.operation).tags = "activity";  // Exclude from Nexus
+    option (.nexus.v1.operation).tags = "activity"; // Exclude from Nexus
     option (temporal.v1.activity) = {
       name: "vault.v1.DeleteAuthRole"
-      schedule_to_close_timeout: {seconds: 300}  // 5 minutes
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
     };
   }
 
   // Policy Management
   rpc CreatePolicy(CreatePolicyInput) returns (CreatePolicyOutput) {
     // Creates a new Vault policy with the specified HCL document
-    option (.nexus.v1.operation).tags = "activity";  // Exclude from Nexus
+    option (.nexus.v1.operation).tags = "activity"; // Exclude from Nexus
     option (temporal.v1.activity) = {
       name: "vault.v1.CreatePolicy"
-      schedule_to_close_timeout: {seconds: 300}  // 5 minutes
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
     };
   }
-  
+
   rpc DeletePolicy(DeletePolicyInput) returns (DeletePolicyOutput) {
     // Deletes an existing Vault policy
-    option (.nexus.v1.operation).tags = "activity";  // Exclude from Nexus
+    option (.nexus.v1.operation).tags = "activity"; // Exclude from Nexus
     option (temporal.v1.activity) = {
       name: "vault.v1.DeletePolicy"
-      schedule_to_close_timeout: {seconds: 300}  // 5 minutes
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
     };
   }
 
   // Secret Management
   rpc StoreSecret(StoreSecretInput) returns (StoreSecretOutput) {
     // Stores a secret in Vault and returns its reference
-    option (.nexus.v1.operation).tags = "activity";  // Exclude from Nexus
+    option (.nexus.v1.operation).tags = "activity"; // Exclude from Nexus
     option (temporal.v1.activity) = {
       name: "vault.v1.StoreSecret"
-      schedule_to_close_timeout: {seconds: 300}  // 5 minutes
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
     };
   }
 
   rpc FetchSecret(FetchSecretInput) returns (FetchSecretOutput) {
     // Retrieves a secret from Vault
-    option (.nexus.v1.operation).tags = "activity";  // Exclude from Nexus
+    option (.nexus.v1.operation).tags = "activity"; // Exclude from Nexus
     option (temporal.v1.activity) = {
       name: "vault.v1.FetchSecret"
-      schedule_to_close_timeout: {seconds: 60}  // 1 minute
+      schedule_to_close_timeout: {seconds: 60} /* 1 minute */
     };
   }
-  
+
   rpc DeleteSecret(DeleteSecretInput) returns (DeleteSecretOutput) {
     // Deletes an existing secret from Vault
-    option (.nexus.v1.operation).tags = "activity";  // Exclude from Nexus
+    option (.nexus.v1.operation).tags = "activity"; // Exclude from Nexus
     option (temporal.v1.activity) = {
       name: "vault.v1.DeleteSecret"
-      schedule_to_close_timeout: {seconds: 300}  // 5 minutes
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
     };
   }
 
@@ -106,19 +104,19 @@ message CreateAuthRoleInput {
     json_name = "RoleName",
     (go.field).tags = 'json:"RoleName" validate:"required"'
   ];
-  
+
   // service_account_name is the Kubernetes service account that can authenticate
   string service_account_name = 2 [
     json_name = "ServiceAccountName",
     (go.field).tags = 'json:"ServiceAccountName" validate:"required"'
   ];
-  
+
   // kubernetes_namespace is the Kubernetes namespace where the service account exists
   string kubernetes_namespace = 3 [
     json_name = "KubernetesNamespace",
     (go.field).tags = 'json:"KubernetesNamespace" validate:"required"'
   ];
-  
+
   // policy_names is a list of Vault policy names to bind to this role
   repeated string policy_names = 4 [
     json_name = "PolicyNames",
@@ -173,7 +171,7 @@ message PolicyRule {
     json_name = "Path",
     (go.field).tags = 'json:"Path" validate:"required"'
   ];
-  
+
   // capabilities are the allowed capabilities for this path
   repeated Capability capabilities = 2 [
     json_name = "Capabilities",
@@ -197,7 +195,7 @@ message CreatePolicyInput {
     json_name = "Name",
     (go.field).tags = 'json:"Name" validate:"required"'
   ];
-  
+
   // document contains the structured policy rules
   PolicyDocument document = 2 [
     json_name = "Document",
@@ -262,7 +260,7 @@ message StoreSecretOutput {
   SecretRef secret_ref = 1 [
     json_name = "SecretRef",
     (go.field).tags = 'json:"SecretRef" validate:"required"'
-  ];  // Reference including actual version assigned by Vault
+  ]; // Reference including actual version assigned by Vault
 }
 
 // FetchSecretInput specifies which secret to retrieve
@@ -315,7 +313,7 @@ message CreateAccessInput {
     json_name = "PolicyName",
     (go.field).tags = 'json:"PolicyName" validate:"required"'
   ];
-  
+
   // policy_document is the structured policy content
   PolicyDocument policy_document = 2 [
     json_name = "PolicyDocument",
@@ -328,13 +326,13 @@ message CreateAccessInput {
     json_name = "AuthRoleName",
     (go.field).tags = 'json:"AuthRoleName" validate:"required"'
   ];
-  
+
   // service_account_name is the Kubernetes service account that can authenticate
   string service_account_name = 4 [
     json_name = "ServiceAccountName",
     (go.field).tags = 'json:"ServiceAccountName" validate:"required"'
   ];
-  
+
   // kubernetes_namespace is the Kubernetes namespace where the service account exists
   string kubernetes_namespace = 5 [
     json_name = "KubernetesNamespace",
@@ -349,10 +347,10 @@ message CreateAccessOutput {
     json_name = "PolicyName",
     (go.field).tags = 'json:"PolicyName" validate:"required"'
   ];
-  
+
   // auth_role_name is the name of the created Kubernetes auth role
   string auth_role_name = 2 [
     json_name = "AuthRoleName",
     (go.field).tags = 'json:"AuthRoleName" validate:"required"'
   ];
-} 
+}

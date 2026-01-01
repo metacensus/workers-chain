@@ -2,12 +2,12 @@ syntax = "proto3";
 
 package fabric.v1;
 
-option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1";
-
 import "nexus/v1/options.proto";
 import "patch/go.proto";
 import "temporal/v1/temporal.proto";
 import "vault/v1/vault.proto";
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1";
 
 // Fabric service defines workflows for manipulating a Fabric shard
 // These workflows run on the fabric worker in the org-specific Temporal namespace
@@ -15,9 +15,7 @@ service Fabric {
   // Enable Nexus for cross-namespace calls from central worker
   option (.nexus.v1.service).tags = "nexus-enabled";
   // Service-wide Temporal settings
-  option (temporal.v1.service) = {
-    task_queue: "infra"
-  };
+  option (temporal.v1.service) = {task_queue: "infra"};
 
   // BootstrapShard is the entry point for Phase 2 of shard initialization
   // This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
@@ -156,7 +154,7 @@ message DeployCertificateAuthorityInput {
     json_name = "CertType",
     (go.field).tags = 'json:"CertType" validate:"required"'
   ];
-  
+
   // id is a unique identifier for this intermediate CA instance.
   // This enables rotation by deploying a new intermediate CA with a different ID
   // while the old one is still active, then switching over and revoking the old one.
@@ -182,7 +180,7 @@ message CreateCertificateDatabaseInput {
     json_name = "CertType",
     (go.field).tags = 'json:"CertType" validate:"required"'
   ];
-  
+
   // certificate_authority_id identifies which CA this database is for
   // Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs
   string certificate_authority_id = 2 [
@@ -198,7 +196,5 @@ message CreateCertificateDatabaseOutput {
   vault.v1.SecretRef credentials_ref = 1 [
     json_name = "CredentialsRef",
     (go.field).tags = 'json:"CredentialsRef" validate:"required"'
-  ];  
+  ];
 }
-
-
