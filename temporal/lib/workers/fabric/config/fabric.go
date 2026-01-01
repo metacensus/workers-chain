@@ -113,9 +113,9 @@ func (cs CertificateStoreConfig) AuthRoleName() string {
 // VaultAdminCredentialsPath returns the path where postgres admin credentials are stored.
 // Used with vault.StoreSecret and vault.FetchSecret activities.
 // Note: Returns path relative to secret mount (activities add "secret/data/" prefix).
-// Example: "fabric/org1/certstore/postgres"
+// Example: "fabric/org1/certstore/admin/credentials"
 func (cs CertificateStoreConfig) VaultAdminCredentialsPath() string {
-	return fmt.Sprintf("fabric/%s/certstore/postgres", cs.OrgID)
+	return fmt.Sprintf("fabric/%s/certstore/admin/credentials", cs.OrgID)
 }
 
 // VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
@@ -203,9 +203,20 @@ func (ca CertificateAuthorityConfig) AuthRoleName() string {
 // VaultDatabaseCredentialsPath returns the path where database credentials are stored.
 // Used with vault.StoreSecret and vault.FetchSecret activities.
 // Note: Returns path relative to secret mount (activities add "secret/data/" prefix).
-// Example: "fabric/org1/ca/tls/root/db-credentials"
+// Example: "fabric/org1/ca/tls/root/certstore/user/credentials"
 func (ca CertificateAuthorityConfig) VaultDatabaseCredentialsPath() string {
-	return fmt.Sprintf("fabric/%s/ca/%s/%s/db-credentials",
+	return fmt.Sprintf("fabric/%s/ca/%s/%s/certstore/user/credentials",
+		ca.OrgID, ca.certType, ca.caID)
+}
+
+// VaultAdminCredentialsPath returns the path where CA admin/bootstrap credentials are stored.
+// Used with vault.StoreSecret and vault.FetchSecret activities.
+// Note: Returns path relative to secret mount (activities add "secret/data/" prefix).
+// Note: these credentials are used to bootstrap the CA's initial admin user
+// and then are immediately replaced with a new keyPair based admin.
+// Example: "fabric/org1/ca/tls/root/admin/credentials"
+func (ca CertificateAuthorityConfig) VaultAdminCredentialsPath() string {
+	return fmt.Sprintf("fabric/%s/ca/%s/%s/admin/credentials",
 		ca.OrgID, ca.certType, ca.caID)
 }
 

@@ -396,6 +396,16 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		return nil, fmt.Errorf("failed to generate root CA certificate: %w", err)
 	}
 
+	// Generate bootstrap admin credentials (username + password) for CA initial setup
+	// These credentials will be used in the deployment to configure the CA's initial admin user
+	_, err = cryptopb.GenerateAndStorePasswordChild(ctx, &cryptopb.GenerateAndStorePasswordInput{
+		VaultPath: rootCA.VaultAdminCredentialsPath(),
+		Username:  "admin",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate bootstrap admin credentials: %w", err)
+	}
+
 	// TODO: Deploy root CA pod
 	// TODO: Bootstrap root CA admin
 
