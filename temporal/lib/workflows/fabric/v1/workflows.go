@@ -16,6 +16,7 @@ import (
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 // Nexus endpoint names for cross-namespace calls to infra worker
@@ -379,7 +380,22 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		return nil, fmt.Errorf("failed to generate root CA key pair: %w", err)
 	}
 
-	// TODO: Generate root CA certificate
+	// Generate self-signed root CA certificate and store in Vault
+	// Root CAs are valid for 15 years
+	certValidityDuration := 15 * 365 * 24 * time.Hour
+	_, err = cryptopb.CreateSelfSignedCertificateChild(ctx, &cryptopb.CreateSelfSignedCertificateInput{
+		VaultKeyPath:         rootCA.VaultKeyPairPath(),
+		VaultCertificatePath: rootCA.VaultCertificatePath(),
+		CommonName:           rootCA.ComponentName(),
+		Organization:         w.orgConfig.OrgID,
+		OrganizationalUnit:   rootCA.OrganizationalUnit(),
+		ValidityDuration:     durationpb.New(certValidityDuration),
+		MaxPathLength:        1, // Can issue intermediate CAs
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate root CA certificate: %w", err)
+	}
+
 	// TODO: Deploy root CA pod
 	// TODO: Bootstrap root CA admin
 

@@ -12,6 +12,7 @@ import (
 	v1 "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -199,6 +200,144 @@ func (x *GenerateKeyPairOutput) GetPublicKey() []byte {
 	return nil
 }
 
+// GenerateCertificateInput specifies parameters for self-signed certificate generation
+type GenerateCertificateInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// private_key is the PEM-encoded ECDSA private key used to sign the certificate
+	PrivateKey []byte `protobuf:"bytes,1,opt,name=private_key,json=PrivateKey,proto3" json:"PrivateKey" validate:"required"`
+	// common_name is the CN field in the certificate subject (e.g., "org1-tls-root-ca")
+	CommonName string `protobuf:"bytes,2,opt,name=common_name,json=CommonName,proto3" json:"CommonName" validate:"required"`
+	// organization is the O field in the certificate subject (e.g., "org1")
+	Organization string `protobuf:"bytes,3,opt,name=organization,json=Organization,proto3" json:"Organization" validate:"required"`
+	// organizational_unit is the OU field in the certificate subject (e.g., "root-ca")
+	OrganizationalUnit string `protobuf:"bytes,4,opt,name=organizational_unit,json=OrganizationalUnit,proto3" json:"OrganizationalUnit"`
+	// validity_duration is how long the certificate is valid (e.g., 15 years for root CA)
+	ValidityDuration *durationpb.Duration `protobuf:"bytes,5,opt,name=validity_duration,json=ValidityDuration,proto3" json:"ValidityDuration" validate:"required"`
+	// max_path_length sets the pathLenConstraint in BasicConstraints extension
+	// Typically set to 1 for root CAs (can issue intermediate CAs)
+	MaxPathLength int32 `protobuf:"varint,6,opt,name=max_path_length,json=MaxPathLength,proto3" json:"MaxPathLength" validate:"min=0"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateCertificateInput) Reset() {
+	*x = GenerateCertificateInput{}
+	mi := &file_crypto_v1_crypto_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateCertificateInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateCertificateInput) ProtoMessage() {}
+
+func (x *GenerateCertificateInput) ProtoReflect() protoreflect.Message {
+	mi := &file_crypto_v1_crypto_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateCertificateInput.ProtoReflect.Descriptor instead.
+func (*GenerateCertificateInput) Descriptor() ([]byte, []int) {
+	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GenerateCertificateInput) GetPrivateKey() []byte {
+	if x != nil {
+		return x.PrivateKey
+	}
+	return nil
+}
+
+func (x *GenerateCertificateInput) GetCommonName() string {
+	if x != nil {
+		return x.CommonName
+	}
+	return ""
+}
+
+func (x *GenerateCertificateInput) GetOrganization() string {
+	if x != nil {
+		return x.Organization
+	}
+	return ""
+}
+
+func (x *GenerateCertificateInput) GetOrganizationalUnit() string {
+	if x != nil {
+		return x.OrganizationalUnit
+	}
+	return ""
+}
+
+func (x *GenerateCertificateInput) GetValidityDuration() *durationpb.Duration {
+	if x != nil {
+		return x.ValidityDuration
+	}
+	return nil
+}
+
+func (x *GenerateCertificateInput) GetMaxPathLength() int32 {
+	if x != nil {
+		return x.MaxPathLength
+	}
+	return 0
+}
+
+// GenerateCertificateOutput contains the generated certificate
+type GenerateCertificateOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// certificate is the PEM-encoded X.509 certificate
+	Certificate   []byte `protobuf:"bytes,1,opt,name=certificate,json=Certificate,proto3" json:"Certificate" validate:"required"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateCertificateOutput) Reset() {
+	*x = GenerateCertificateOutput{}
+	mi := &file_crypto_v1_crypto_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateCertificateOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateCertificateOutput) ProtoMessage() {}
+
+func (x *GenerateCertificateOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_crypto_v1_crypto_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateCertificateOutput.ProtoReflect.Descriptor instead.
+func (*GenerateCertificateOutput) Descriptor() ([]byte, []int) {
+	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GenerateCertificateOutput) GetCertificate() []byte {
+	if x != nil {
+		return x.Certificate
+	}
+	return nil
+}
+
 // GenerateAndStorePasswordInput specifies where to store the generated password
 type GenerateAndStorePasswordInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -214,7 +353,7 @@ type GenerateAndStorePasswordInput struct {
 
 func (x *GenerateAndStorePasswordInput) Reset() {
 	*x = GenerateAndStorePasswordInput{}
-	mi := &file_crypto_v1_crypto_proto_msgTypes[4]
+	mi := &file_crypto_v1_crypto_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -226,7 +365,7 @@ func (x *GenerateAndStorePasswordInput) String() string {
 func (*GenerateAndStorePasswordInput) ProtoMessage() {}
 
 func (x *GenerateAndStorePasswordInput) ProtoReflect() protoreflect.Message {
-	mi := &file_crypto_v1_crypto_proto_msgTypes[4]
+	mi := &file_crypto_v1_crypto_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -239,7 +378,7 @@ func (x *GenerateAndStorePasswordInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateAndStorePasswordInput.ProtoReflect.Descriptor instead.
 func (*GenerateAndStorePasswordInput) Descriptor() ([]byte, []int) {
-	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{4}
+	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GenerateAndStorePasswordInput) GetVaultPath() string {
@@ -267,7 +406,7 @@ type GenerateAndStorePasswordOutput struct {
 
 func (x *GenerateAndStorePasswordOutput) Reset() {
 	*x = GenerateAndStorePasswordOutput{}
-	mi := &file_crypto_v1_crypto_proto_msgTypes[5]
+	mi := &file_crypto_v1_crypto_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -279,7 +418,7 @@ func (x *GenerateAndStorePasswordOutput) String() string {
 func (*GenerateAndStorePasswordOutput) ProtoMessage() {}
 
 func (x *GenerateAndStorePasswordOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_crypto_v1_crypto_proto_msgTypes[5]
+	mi := &file_crypto_v1_crypto_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -292,7 +431,7 @@ func (x *GenerateAndStorePasswordOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateAndStorePasswordOutput.ProtoReflect.Descriptor instead.
 func (*GenerateAndStorePasswordOutput) Descriptor() ([]byte, []int) {
-	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{5}
+	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GenerateAndStorePasswordOutput) GetSecretRef() *v1.SecretRef {
@@ -315,7 +454,7 @@ type GenerateAndStoreKeyPairInput struct {
 
 func (x *GenerateAndStoreKeyPairInput) Reset() {
 	*x = GenerateAndStoreKeyPairInput{}
-	mi := &file_crypto_v1_crypto_proto_msgTypes[6]
+	mi := &file_crypto_v1_crypto_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -327,7 +466,7 @@ func (x *GenerateAndStoreKeyPairInput) String() string {
 func (*GenerateAndStoreKeyPairInput) ProtoMessage() {}
 
 func (x *GenerateAndStoreKeyPairInput) ProtoReflect() protoreflect.Message {
-	mi := &file_crypto_v1_crypto_proto_msgTypes[6]
+	mi := &file_crypto_v1_crypto_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -340,7 +479,7 @@ func (x *GenerateAndStoreKeyPairInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateAndStoreKeyPairInput.ProtoReflect.Descriptor instead.
 func (*GenerateAndStoreKeyPairInput) Descriptor() ([]byte, []int) {
-	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{6}
+	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GenerateAndStoreKeyPairInput) GetVaultPath() string {
@@ -361,7 +500,7 @@ type GenerateAndStoreKeyPairOutput struct {
 
 func (x *GenerateAndStoreKeyPairOutput) Reset() {
 	*x = GenerateAndStoreKeyPairOutput{}
-	mi := &file_crypto_v1_crypto_proto_msgTypes[7]
+	mi := &file_crypto_v1_crypto_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -373,7 +512,7 @@ func (x *GenerateAndStoreKeyPairOutput) String() string {
 func (*GenerateAndStoreKeyPairOutput) ProtoMessage() {}
 
 func (x *GenerateAndStoreKeyPairOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_crypto_v1_crypto_proto_msgTypes[7]
+	mi := &file_crypto_v1_crypto_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -386,10 +525,159 @@ func (x *GenerateAndStoreKeyPairOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateAndStoreKeyPairOutput.ProtoReflect.Descriptor instead.
 func (*GenerateAndStoreKeyPairOutput) Descriptor() ([]byte, []int) {
-	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{7}
+	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GenerateAndStoreKeyPairOutput) GetSecretRef() *v1.SecretRef {
+	if x != nil {
+		return x.SecretRef
+	}
+	return nil
+}
+
+// CreateSelfSignedCertificateInput specifies where to fetch the key and store the certificate
+type CreateSelfSignedCertificateInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// vault_key_path is the Vault path to fetch the private key from
+	// Example: "fabric/org1/ca/tls/root/keys"
+	VaultKeyPath string `protobuf:"bytes,1,opt,name=vault_key_path,json=VaultKeyPath,proto3" json:"VaultKeyPath" validate:"required"`
+	// vault_certificate_path is the Vault path to store the certificate at
+	// Example: "fabric/org1/ca/tls/root/cert"
+	VaultCertificatePath string `protobuf:"bytes,2,opt,name=vault_certificate_path,json=VaultCertificatePath,proto3" json:"VaultCertificatePath" validate:"required"`
+	// common_name is the CN field in the certificate subject (e.g., "org1-tls-root-ca")
+	CommonName string `protobuf:"bytes,3,opt,name=common_name,json=CommonName,proto3" json:"CommonName" validate:"required"`
+	// organization is the O field in the certificate subject (e.g., "org1")
+	Organization string `protobuf:"bytes,4,opt,name=organization,json=Organization,proto3" json:"Organization" validate:"required"`
+	// organizational_unit is the OU field in the certificate subject (e.g., "root-ca")
+	OrganizationalUnit string `protobuf:"bytes,5,opt,name=organizational_unit,json=OrganizationalUnit,proto3" json:"OrganizationalUnit"`
+	// validity_duration is how long the certificate is valid (e.g., 15 years for root CA)
+	ValidityDuration *durationpb.Duration `protobuf:"bytes,6,opt,name=validity_duration,json=ValidityDuration,proto3" json:"ValidityDuration" validate:"required"`
+	// max_path_length sets the pathLenConstraint in BasicConstraints extension
+	// Typically set to 1 for root CAs (can issue intermediate CAs)
+	MaxPathLength int32 `protobuf:"varint,7,opt,name=max_path_length,json=MaxPathLength,proto3" json:"MaxPathLength" validate:"min=0"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateSelfSignedCertificateInput) Reset() {
+	*x = CreateSelfSignedCertificateInput{}
+	mi := &file_crypto_v1_crypto_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateSelfSignedCertificateInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateSelfSignedCertificateInput) ProtoMessage() {}
+
+func (x *CreateSelfSignedCertificateInput) ProtoReflect() protoreflect.Message {
+	mi := &file_crypto_v1_crypto_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateSelfSignedCertificateInput.ProtoReflect.Descriptor instead.
+func (*CreateSelfSignedCertificateInput) Descriptor() ([]byte, []int) {
+	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *CreateSelfSignedCertificateInput) GetVaultKeyPath() string {
+	if x != nil {
+		return x.VaultKeyPath
+	}
+	return ""
+}
+
+func (x *CreateSelfSignedCertificateInput) GetVaultCertificatePath() string {
+	if x != nil {
+		return x.VaultCertificatePath
+	}
+	return ""
+}
+
+func (x *CreateSelfSignedCertificateInput) GetCommonName() string {
+	if x != nil {
+		return x.CommonName
+	}
+	return ""
+}
+
+func (x *CreateSelfSignedCertificateInput) GetOrganization() string {
+	if x != nil {
+		return x.Organization
+	}
+	return ""
+}
+
+func (x *CreateSelfSignedCertificateInput) GetOrganizationalUnit() string {
+	if x != nil {
+		return x.OrganizationalUnit
+	}
+	return ""
+}
+
+func (x *CreateSelfSignedCertificateInput) GetValidityDuration() *durationpb.Duration {
+	if x != nil {
+		return x.ValidityDuration
+	}
+	return nil
+}
+
+func (x *CreateSelfSignedCertificateInput) GetMaxPathLength() int32 {
+	if x != nil {
+		return x.MaxPathLength
+	}
+	return 0
+}
+
+// CreateSelfSignedCertificateOutput returns the Vault secret reference
+type CreateSelfSignedCertificateOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// secret_ref is the Vault secret reference with path and version
+	SecretRef     *v1.SecretRef `protobuf:"bytes,1,opt,name=secret_ref,json=SecretRef,proto3" json:"SecretRef" validate:"required"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateSelfSignedCertificateOutput) Reset() {
+	*x = CreateSelfSignedCertificateOutput{}
+	mi := &file_crypto_v1_crypto_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateSelfSignedCertificateOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateSelfSignedCertificateOutput) ProtoMessage() {}
+
+func (x *CreateSelfSignedCertificateOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_crypto_v1_crypto_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateSelfSignedCertificateOutput.ProtoReflect.Descriptor instead.
+func (*CreateSelfSignedCertificateOutput) Descriptor() ([]byte, []int) {
+	return file_crypto_v1_crypto_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *CreateSelfSignedCertificateOutput) GetSecretRef() *v1.SecretRef {
 	if x != nil {
 		return x.SecretRef
 	}
@@ -400,7 +688,7 @@ var File_crypto_v1_crypto_proto protoreflect.FileDescriptor
 
 const file_crypto_v1_crypto_proto_rawDesc = "" +
 	"\n" +
-	"\x16crypto/v1/crypto.proto\x12\tcrypto.v1\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\x1a\x14vault/v1/vault.proto\"\x17\n" +
+	"\x16crypto/v1/crypto.proto\x12\tcrypto.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\x1a\x14vault/v1/vault.proto\"\x17\n" +
 	"\x15GeneratePasswordInput\"`\n" +
 	"\x16GeneratePasswordOutput\x12F\n" +
 	"\bpassword\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"Password\" validate:\"required\"R\bPassword\"\x16\n" +
@@ -409,7 +697,18 @@ const file_crypto_v1_crypto_proto_rawDesc = "" +
 	"\vprivate_key\x18\x01 \x01(\fB,ʵ\x03(\xa2\x01%json:\"PrivateKey\" validate:\"required\"R\n" +
 	"PrivateKey\x12J\n" +
 	"\n" +
-	"public_key\x18\x02 \x01(\fB+ʵ\x03'\xa2\x01$json:\"PublicKey\" validate:\"required\"R\tPublicKey\"\xb3\x01\n" +
+	"public_key\x18\x02 \x01(\fB+ʵ\x03'\xa2\x01$json:\"PublicKey\" validate:\"required\"R\tPublicKey\"\xb1\x04\n" +
+	"\x18GenerateCertificateInput\x12M\n" +
+	"\vprivate_key\x18\x01 \x01(\fB,ʵ\x03(\xa2\x01%json:\"PrivateKey\" validate:\"required\"R\n" +
+	"PrivateKey\x12M\n" +
+	"\vcommon_name\x18\x02 \x01(\tB,ʵ\x03(\xa2\x01%json:\"CommonName\" validate:\"required\"R\n" +
+	"CommonName\x12R\n" +
+	"\forganization\x18\x03 \x01(\tB.ʵ\x03*\xa2\x01'json:\"Organization\" validate:\"required\"R\fOrganization\x12Q\n" +
+	"\x13organizational_unit\x18\x04 \x01(\tB ʵ\x03\x1c\xa2\x01\x19json:\"OrganizationalUnit\"R\x12OrganizationalUnit\x12z\n" +
+	"\x11validity_duration\x18\x05 \x01(\v2\x19.google.protobuf.DurationB2ʵ\x03.\xa2\x01+json:\"ValidityDuration\" validate:\"required\"R\x10ValidityDuration\x12T\n" +
+	"\x0fmax_path_length\x18\x06 \x01(\x05B,ʵ\x03(\xa2\x01%json:\"MaxPathLength\" validate:\"min=0\"R\rMaxPathLength\"l\n" +
+	"\x19GenerateCertificateOutput\x12O\n" +
+	"\vcertificate\x18\x01 \x01(\fB-ʵ\x03)\xa2\x01&json:\"Certificate\" validate:\"required\"R\vCertificate\"\xb3\x01\n" +
 	"\x1dGenerateAndStorePasswordInput\x12J\n" +
 	"\n" +
 	"vault_path\x18\x01 \x01(\tB+ʵ\x03'\xa2\x01$json:\"VaultPath\" validate:\"required\"R\tVaultPath\x12F\n" +
@@ -422,12 +721,26 @@ const file_crypto_v1_crypto_proto_rawDesc = "" +
 	"vault_path\x18\x01 \x01(\tB+ʵ\x03'\xa2\x01$json:\"VaultPath\" validate:\"required\"R\tVaultPath\"\x80\x01\n" +
 	"\x1dGenerateAndStoreKeyPairOutput\x12_\n" +
 	"\n" +
-	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefB+ʵ\x03'\xa2\x01$json:\"SecretRef\" validate:\"required\"R\tSecretRef2\xc6\x05\n" +
+	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefB+ʵ\x03'\xa2\x01$json:\"SecretRef\" validate:\"required\"R\tSecretRef\"\xae\x05\n" +
+	" CreateSelfSignedCertificateInput\x12T\n" +
+	"\x0evault_key_path\x18\x01 \x01(\tB.ʵ\x03*\xa2\x01'json:\"VaultKeyPath\" validate:\"required\"R\fVaultKeyPath\x12l\n" +
+	"\x16vault_certificate_path\x18\x02 \x01(\tB6ʵ\x032\xa2\x01/json:\"VaultCertificatePath\" validate:\"required\"R\x14VaultCertificatePath\x12M\n" +
+	"\vcommon_name\x18\x03 \x01(\tB,ʵ\x03(\xa2\x01%json:\"CommonName\" validate:\"required\"R\n" +
+	"CommonName\x12R\n" +
+	"\forganization\x18\x04 \x01(\tB.ʵ\x03*\xa2\x01'json:\"Organization\" validate:\"required\"R\fOrganization\x12Q\n" +
+	"\x13organizational_unit\x18\x05 \x01(\tB ʵ\x03\x1c\xa2\x01\x19json:\"OrganizationalUnit\"R\x12OrganizationalUnit\x12z\n" +
+	"\x11validity_duration\x18\x06 \x01(\v2\x19.google.protobuf.DurationB2ʵ\x03.\xa2\x01+json:\"ValidityDuration\" validate:\"required\"R\x10ValidityDuration\x12T\n" +
+	"\x0fmax_path_length\x18\a \x01(\x05B,ʵ\x03(\xa2\x01%json:\"MaxPathLength\" validate:\"min=0\"R\rMaxPathLength\"\x84\x01\n" +
+	"!CreateSelfSignedCertificateOutput\x12_\n" +
+	"\n" +
+	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefB+ʵ\x03'\xa2\x01$json:\"SecretRef\" validate:\"required\"R\tSecretRef2\xc6\b\n" +
 	"\x06Crypto\x12}\n" +
 	"\x10GeneratePassword\x12 .crypto.v1.GeneratePasswordInput\x1a!.crypto.v1.GeneratePasswordOutput\"$\x92\xc4\x03 \x12\x02\b\x1e:\x1acrypto.v1.GeneratePassword\x12y\n" +
-	"\x0fGenerateKeyPair\x12\x1f.crypto.v1.GenerateKeyPairInput\x1a .crypto.v1.GenerateKeyPairOutput\"#\x92\xc4\x03\x1f\x12\x02\b\x1e:\x19crypto.v1.GenerateKeyPair\x12\xdb\x01\n" +
+	"\x0fGenerateKeyPair\x12\x1f.crypto.v1.GenerateKeyPairInput\x1a .crypto.v1.GenerateKeyPairOutput\"#\x92\xc4\x03\x1f\x12\x02\b\x1e:\x19crypto.v1.GenerateKeyPair\x12\x89\x01\n" +
+	"\x13GenerateCertificate\x12#.crypto.v1.GenerateCertificateInput\x1a$.crypto.v1.GenerateCertificateOutput\"'\x92\xc4\x03#\x12\x02\b\x1e:\x1dcrypto.v1.GenerateCertificate\x12\xdb\x01\n" +
 	"\x18GenerateAndStorePassword\x12(.crypto.v1.GenerateAndStorePasswordInput\x1a).crypto.v1.GenerateAndStorePasswordOutput\"j\x8a\xc4\x03f*<crypto/generate-store-password/${! VaultPath.or(\"default\") }0\x01@\x03r\"crypto.v1.GenerateAndStorePassword\x12\xd6\x01\n" +
-	"\x17GenerateAndStoreKeyPair\x12'.crypto.v1.GenerateAndStoreKeyPairInput\x1a(.crypto.v1.GenerateAndStoreKeyPairOutput\"h\x8a\xc4\x03d*;crypto/generate-store-keypair/${! VaultPath.or(\"default\") }0\x01@\x03r!crypto.v1.GenerateAndStoreKeyPair\x1a\v\x8a\xc4\x03\a\n" +
+	"\x17GenerateAndStoreKeyPair\x12'.crypto.v1.GenerateAndStoreKeyPairInput\x1a(.crypto.v1.GenerateAndStoreKeyPairOutput\"h\x8a\xc4\x03d*;crypto/generate-store-keypair/${! VaultPath.or(\"default\") }0\x01@\x03r!crypto.v1.GenerateAndStoreKeyPair\x12\xf1\x01\n" +
+	"\x1bCreateSelfSignedCertificate\x12+.crypto.v1.CreateSelfSignedCertificateInput\x1a,.crypto.v1.CreateSelfSignedCertificateOutput\"w\x8a\xc4\x03s*Fcrypto/create-selfsigned-cert/${! VaultCertificatePath.or(\"default\") }0\x01@\x03r%crypto.v1.CreateSelfSignedCertificate\x1a\v\x8a\xc4\x03\a\n" +
 	"\x05infraB\xa8\x01\n" +
 	"\rcom.crypto.v1B\vCryptoProtoP\x01ZEgithub.com/metacensus/infra/temporal/gen/workflows/crypto/v1;cryptov1\xa2\x02\x03CXX\xaa\x02\tCrypto.V1\xca\x02\tCrypto\\V1\xe2\x02\x15Crypto\\V1\\GPBMetadata\xea\x02\n" +
 	"Crypto::V1b\x06proto3"
@@ -444,34 +757,46 @@ func file_crypto_v1_crypto_proto_rawDescGZIP() []byte {
 	return file_crypto_v1_crypto_proto_rawDescData
 }
 
-var file_crypto_v1_crypto_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_crypto_v1_crypto_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_crypto_v1_crypto_proto_goTypes = []any{
-	(*GeneratePasswordInput)(nil),          // 0: crypto.v1.GeneratePasswordInput
-	(*GeneratePasswordOutput)(nil),         // 1: crypto.v1.GeneratePasswordOutput
-	(*GenerateKeyPairInput)(nil),           // 2: crypto.v1.GenerateKeyPairInput
-	(*GenerateKeyPairOutput)(nil),          // 3: crypto.v1.GenerateKeyPairOutput
-	(*GenerateAndStorePasswordInput)(nil),  // 4: crypto.v1.GenerateAndStorePasswordInput
-	(*GenerateAndStorePasswordOutput)(nil), // 5: crypto.v1.GenerateAndStorePasswordOutput
-	(*GenerateAndStoreKeyPairInput)(nil),   // 6: crypto.v1.GenerateAndStoreKeyPairInput
-	(*GenerateAndStoreKeyPairOutput)(nil),  // 7: crypto.v1.GenerateAndStoreKeyPairOutput
-	(*v1.SecretRef)(nil),                   // 8: vault.v1.SecretRef
+	(*GeneratePasswordInput)(nil),             // 0: crypto.v1.GeneratePasswordInput
+	(*GeneratePasswordOutput)(nil),            // 1: crypto.v1.GeneratePasswordOutput
+	(*GenerateKeyPairInput)(nil),              // 2: crypto.v1.GenerateKeyPairInput
+	(*GenerateKeyPairOutput)(nil),             // 3: crypto.v1.GenerateKeyPairOutput
+	(*GenerateCertificateInput)(nil),          // 4: crypto.v1.GenerateCertificateInput
+	(*GenerateCertificateOutput)(nil),         // 5: crypto.v1.GenerateCertificateOutput
+	(*GenerateAndStorePasswordInput)(nil),     // 6: crypto.v1.GenerateAndStorePasswordInput
+	(*GenerateAndStorePasswordOutput)(nil),    // 7: crypto.v1.GenerateAndStorePasswordOutput
+	(*GenerateAndStoreKeyPairInput)(nil),      // 8: crypto.v1.GenerateAndStoreKeyPairInput
+	(*GenerateAndStoreKeyPairOutput)(nil),     // 9: crypto.v1.GenerateAndStoreKeyPairOutput
+	(*CreateSelfSignedCertificateInput)(nil),  // 10: crypto.v1.CreateSelfSignedCertificateInput
+	(*CreateSelfSignedCertificateOutput)(nil), // 11: crypto.v1.CreateSelfSignedCertificateOutput
+	(*durationpb.Duration)(nil),               // 12: google.protobuf.Duration
+	(*v1.SecretRef)(nil),                      // 13: vault.v1.SecretRef
 }
 var file_crypto_v1_crypto_proto_depIdxs = []int32{
-	8, // 0: crypto.v1.GenerateAndStorePasswordOutput.secret_ref:type_name -> vault.v1.SecretRef
-	8, // 1: crypto.v1.GenerateAndStoreKeyPairOutput.secret_ref:type_name -> vault.v1.SecretRef
-	0, // 2: crypto.v1.Crypto.GeneratePassword:input_type -> crypto.v1.GeneratePasswordInput
-	2, // 3: crypto.v1.Crypto.GenerateKeyPair:input_type -> crypto.v1.GenerateKeyPairInput
-	4, // 4: crypto.v1.Crypto.GenerateAndStorePassword:input_type -> crypto.v1.GenerateAndStorePasswordInput
-	6, // 5: crypto.v1.Crypto.GenerateAndStoreKeyPair:input_type -> crypto.v1.GenerateAndStoreKeyPairInput
-	1, // 6: crypto.v1.Crypto.GeneratePassword:output_type -> crypto.v1.GeneratePasswordOutput
-	3, // 7: crypto.v1.Crypto.GenerateKeyPair:output_type -> crypto.v1.GenerateKeyPairOutput
-	5, // 8: crypto.v1.Crypto.GenerateAndStorePassword:output_type -> crypto.v1.GenerateAndStorePasswordOutput
-	7, // 9: crypto.v1.Crypto.GenerateAndStoreKeyPair:output_type -> crypto.v1.GenerateAndStoreKeyPairOutput
-	6, // [6:10] is the sub-list for method output_type
-	2, // [2:6] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	12, // 0: crypto.v1.GenerateCertificateInput.validity_duration:type_name -> google.protobuf.Duration
+	13, // 1: crypto.v1.GenerateAndStorePasswordOutput.secret_ref:type_name -> vault.v1.SecretRef
+	13, // 2: crypto.v1.GenerateAndStoreKeyPairOutput.secret_ref:type_name -> vault.v1.SecretRef
+	12, // 3: crypto.v1.CreateSelfSignedCertificateInput.validity_duration:type_name -> google.protobuf.Duration
+	13, // 4: crypto.v1.CreateSelfSignedCertificateOutput.secret_ref:type_name -> vault.v1.SecretRef
+	0,  // 5: crypto.v1.Crypto.GeneratePassword:input_type -> crypto.v1.GeneratePasswordInput
+	2,  // 6: crypto.v1.Crypto.GenerateKeyPair:input_type -> crypto.v1.GenerateKeyPairInput
+	4,  // 7: crypto.v1.Crypto.GenerateCertificate:input_type -> crypto.v1.GenerateCertificateInput
+	6,  // 8: crypto.v1.Crypto.GenerateAndStorePassword:input_type -> crypto.v1.GenerateAndStorePasswordInput
+	8,  // 9: crypto.v1.Crypto.GenerateAndStoreKeyPair:input_type -> crypto.v1.GenerateAndStoreKeyPairInput
+	10, // 10: crypto.v1.Crypto.CreateSelfSignedCertificate:input_type -> crypto.v1.CreateSelfSignedCertificateInput
+	1,  // 11: crypto.v1.Crypto.GeneratePassword:output_type -> crypto.v1.GeneratePasswordOutput
+	3,  // 12: crypto.v1.Crypto.GenerateKeyPair:output_type -> crypto.v1.GenerateKeyPairOutput
+	5,  // 13: crypto.v1.Crypto.GenerateCertificate:output_type -> crypto.v1.GenerateCertificateOutput
+	7,  // 14: crypto.v1.Crypto.GenerateAndStorePassword:output_type -> crypto.v1.GenerateAndStorePasswordOutput
+	9,  // 15: crypto.v1.Crypto.GenerateAndStoreKeyPair:output_type -> crypto.v1.GenerateAndStoreKeyPairOutput
+	11, // 16: crypto.v1.Crypto.CreateSelfSignedCertificate:output_type -> crypto.v1.CreateSelfSignedCertificateOutput
+	11, // [11:17] is the sub-list for method output_type
+	5,  // [5:11] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_crypto_v1_crypto_proto_init() }
@@ -485,7 +810,7 @@ func file_crypto_v1_crypto_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_crypto_v1_crypto_proto_rawDesc), len(file_crypto_v1_crypto_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

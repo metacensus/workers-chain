@@ -33,24 +33,38 @@ var CryptoTaskQueue = "infra"
 
 // crypto.v1.Crypto workflow names
 const (
-	GenerateAndStoreKeyPairWorkflowName  = "crypto.v1.GenerateAndStoreKeyPair"
-	GenerateAndStorePasswordWorkflowName = "crypto.v1.GenerateAndStorePassword"
+	CreateSelfSignedCertificateWorkflowName = "crypto.v1.CreateSelfSignedCertificate"
+	GenerateAndStoreKeyPairWorkflowName     = "crypto.v1.GenerateAndStoreKeyPair"
+	GenerateAndStorePasswordWorkflowName    = "crypto.v1.GenerateAndStorePassword"
 )
 
 // crypto.v1.Crypto workflow id expressions
 var (
-	GenerateAndStoreKeyPairIdexpression  = expression.MustParseExpression("crypto/generate-store-keypair/${! VaultPath.or(\"default\") }")
-	GenerateAndStorePasswordIdexpression = expression.MustParseExpression("crypto/generate-store-password/${! VaultPath.or(\"default\") }")
+	CreateSelfSignedCertificateIdexpression = expression.MustParseExpression("crypto/create-selfsigned-cert/${! VaultCertificatePath.or(\"default\") }")
+	GenerateAndStoreKeyPairIdexpression     = expression.MustParseExpression("crypto/generate-store-keypair/${! VaultPath.or(\"default\") }")
+	GenerateAndStorePasswordIdexpression    = expression.MustParseExpression("crypto/generate-store-password/${! VaultPath.or(\"default\") }")
 )
 
 // crypto.v1.Crypto activity names
 const (
-	GenerateKeyPairActivityName  = "crypto.v1.GenerateKeyPair"
-	GeneratePasswordActivityName = "crypto.v1.GeneratePassword"
+	GenerateCertificateActivityName = "crypto.v1.GenerateCertificate"
+	GenerateKeyPairActivityName     = "crypto.v1.GenerateKeyPair"
+	GeneratePasswordActivityName    = "crypto.v1.GeneratePassword"
 )
 
 // CryptoClient describes a client for a(n) crypto.v1.Crypto worker
 type CryptoClient interface {
+	// CreateSelfSignedCertificate generates a self-signed certificate and stores it in Vault
+	// Orchestrates vault.v1.FetchSecret + GenerateCertificate activity + vault.v1.StoreSecret activity
+	// Used ONLY for root CA certificates. All other certificates are issued via fabric.v1.CreateIdentity.
+	CreateSelfSignedCertificate(ctx context.Context, req *CreateSelfSignedCertificateInput, opts ...*CreateSelfSignedCertificateOptions) (*CreateSelfSignedCertificateOutput, error)
+
+	// CreateSelfSignedCertificateAsync starts a(n) crypto.v1.CreateSelfSignedCertificate workflow and returns a handle to the workflow run
+	CreateSelfSignedCertificateAsync(ctx context.Context, req *CreateSelfSignedCertificateInput, opts ...*CreateSelfSignedCertificateOptions) (CreateSelfSignedCertificateRun, error)
+
+	// GetCreateSelfSignedCertificate retrieves a handle to an existing crypto.v1.CreateSelfSignedCertificate workflow execution
+	GetCreateSelfSignedCertificate(ctx context.Context, workflowID string, runID string) CreateSelfSignedCertificateRun
+
 	// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 	// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
 	// Keys are stored with names "private" and "public" at the same VaultPath
@@ -143,6 +157,52 @@ func (opts *cryptoClientOptions) getLogger() *slog.Logger {
 		return opts.log
 	}
 	return slog.Default()
+}
+
+// CreateSelfSignedCertificate generates a self-signed certificate and stores it in Vault
+// Orchestrates vault.v1.FetchSecret + GenerateCertificate activity + vault.v1.StoreSecret activity
+// Used ONLY for root CA certificates. All other certificates are issued via fabric.v1.CreateIdentity.
+func (c *cryptoClient) CreateSelfSignedCertificate(ctx context.Context, req *CreateSelfSignedCertificateInput, options ...*CreateSelfSignedCertificateOptions) (*CreateSelfSignedCertificateOutput, error) {
+	run, err := c.CreateSelfSignedCertificateAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// CreateSelfSignedCertificate generates a self-signed certificate and stores it in Vault
+// Orchestrates vault.v1.FetchSecret + GenerateCertificate activity + vault.v1.StoreSecret activity
+// Used ONLY for root CA certificates. All other certificates are issued via fabric.v1.CreateIdentity.
+func (c *cryptoClient) CreateSelfSignedCertificateAsync(ctx context.Context, req *CreateSelfSignedCertificateInput, options ...*CreateSelfSignedCertificateOptions) (CreateSelfSignedCertificateRun, error) {
+	var o *CreateSelfSignedCertificateOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateSelfSignedCertificateOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, CreateSelfSignedCertificateWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &createSelfSignedCertificateRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetCreateSelfSignedCertificate fetches an existing crypto.v1.CreateSelfSignedCertificate execution
+func (c *cryptoClient) GetCreateSelfSignedCertificate(ctx context.Context, workflowID string, runID string) CreateSelfSignedCertificateRun {
+	return &createSelfSignedCertificateRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
 }
 
 // GenerateAndStoreKeyPair generates a key pair and stores it in Vault
@@ -245,6 +305,189 @@ func (c *cryptoClient) CancelWorkflow(ctx context.Context, workflowID string, ru
 // TerminateWorkflow terminates an existing workflow execution
 func (c *cryptoClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
 	return c.client.TerminateWorkflow(ctx, workflowID, runID, reason, details...)
+}
+
+// CreateSelfSignedCertificateOptions provides configuration for a crypto.v1.CreateSelfSignedCertificate workflow operation
+type CreateSelfSignedCertificateOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewCreateSelfSignedCertificateOptions initializes a new CreateSelfSignedCertificateOptions value
+func NewCreateSelfSignedCertificateOptions() *CreateSelfSignedCertificateOptions {
+	return &CreateSelfSignedCertificateOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *CreateSelfSignedCertificateOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(CreateSelfSignedCertificateIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateSelfSignedCertificateWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = CryptoTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *CreateSelfSignedCertificateOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *CreateSelfSignedCertificateOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *CreateSelfSignedCertificateOptions) WithExecutionTimeout(d time.Duration) *CreateSelfSignedCertificateOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *CreateSelfSignedCertificateOptions) WithID(id string) *CreateSelfSignedCertificateOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *CreateSelfSignedCertificateOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *CreateSelfSignedCertificateOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CreateSelfSignedCertificateOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateSelfSignedCertificateOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *CreateSelfSignedCertificateOptions) WithRunTimeout(d time.Duration) *CreateSelfSignedCertificateOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *CreateSelfSignedCertificateOptions) WithSearchAttributes(sa map[string]any) *CreateSelfSignedCertificateOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *CreateSelfSignedCertificateOptions) WithTaskTimeout(d time.Duration) *CreateSelfSignedCertificateOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *CreateSelfSignedCertificateOptions) WithTaskQueue(tq string) *CreateSelfSignedCertificateOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *CreateSelfSignedCertificateOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *CreateSelfSignedCertificateOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// CreateSelfSignedCertificateRun describes a(n) crypto.v1.CreateSelfSignedCertificate workflow run
+type CreateSelfSignedCertificateRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*CreateSelfSignedCertificateOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// createSelfSignedCertificateRun provides an internal implementation of a(n) CreateSelfSignedCertificateRunRun
+type createSelfSignedCertificateRun struct {
+	client *cryptoClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *createSelfSignedCertificateRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *createSelfSignedCertificateRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *createSelfSignedCertificateRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *createSelfSignedCertificateRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *createSelfSignedCertificateRun) Get(ctx context.Context) (*CreateSelfSignedCertificateOutput, error) {
+	var resp CreateSelfSignedCertificateOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *createSelfSignedCertificateRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
 // GenerateAndStoreKeyPairOptions provides configuration for a crypto.v1.GenerateAndStoreKeyPair workflow operation
@@ -617,6 +860,10 @@ func (r *generateAndStorePasswordRun) Terminate(ctx context.Context, reason stri
 var (
 	// cryptoRegistrationMutex is a mutex for registering crypto.v1.Crypto workflows
 	cryptoRegistrationMutex sync.Mutex
+	// CreateSelfSignedCertificate generates a self-signed certificate and stores it in Vault
+	// Orchestrates vault.v1.FetchSecret + GenerateCertificate activity + vault.v1.StoreSecret activity
+	// Used ONLY for root CA certificates. All other certificates are issued via fabric.v1.CreateIdentity.
+	CreateSelfSignedCertificateFunction func(workflow.Context, *CreateSelfSignedCertificateInput) (*CreateSelfSignedCertificateOutput, error)
 	// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 	// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
 	// Keys are stored with names "private" and "public" at the same VaultPath
@@ -631,6 +878,10 @@ var (
 type (
 	// CryptoWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
 	CryptoWorkflowFunctions interface {
+		// CreateSelfSignedCertificate generates a self-signed certificate and stores it in Vault
+		// Orchestrates vault.v1.FetchSecret + GenerateCertificate activity + vault.v1.StoreSecret activity
+		// Used ONLY for root CA certificates. All other certificates are issued via fabric.v1.CreateIdentity.
+		CreateSelfSignedCertificate(workflow.Context, *CreateSelfSignedCertificateInput) (*CreateSelfSignedCertificateOutput, error)
 		// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 		// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
 		// Keys are stored with names "private" and "public" at the same VaultPath
@@ -646,6 +897,16 @@ type (
 
 func NewCryptoWorkflowFunctions() CryptoWorkflowFunctions {
 	return &cryptoWorkflowFunctions{}
+}
+
+// CreateSelfSignedCertificate generates a self-signed certificate and stores it in Vault
+// Orchestrates vault.v1.FetchSecret + GenerateCertificate activity + vault.v1.StoreSecret activity
+// Used ONLY for root CA certificates. All other certificates are issued via fabric.v1.CreateIdentity.
+func (f *cryptoWorkflowFunctions) CreateSelfSignedCertificate(ctx workflow.Context, req *CreateSelfSignedCertificateInput) (*CreateSelfSignedCertificateOutput, error) {
+	if CreateSelfSignedCertificateFunction == nil {
+		return nil, errors.New("CreateSelfSignedCertificate requires workflow registration via RegisterCryptoWorkflows or RegisterCreateSelfSignedCertificateWorkflow")
+	}
+	return CreateSelfSignedCertificateFunction(ctx, req)
 }
 
 // GenerateAndStoreKeyPair generates a key pair and stores it in Vault
@@ -670,6 +931,11 @@ func (f *cryptoWorkflowFunctions) GenerateAndStorePassword(ctx workflow.Context,
 
 // CryptoWorkflows provides methods for initializing new crypto.v1.Crypto workflow values
 type CryptoWorkflows interface {
+	// CreateSelfSignedCertificate generates a self-signed certificate and stores it in Vault
+	// Orchestrates vault.v1.FetchSecret + GenerateCertificate activity + vault.v1.StoreSecret activity
+	// Used ONLY for root CA certificates. All other certificates are issued via fabric.v1.CreateIdentity.
+	CreateSelfSignedCertificate(ctx workflow.Context, input *CreateSelfSignedCertificateWorkflowInput) (CreateSelfSignedCertificateWorkflow, error)
+
 	// GenerateAndStoreKeyPair generates a key pair and stores it in Vault
 	// Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
 	// Keys are stored with names "private" and "public" at the same VaultPath
@@ -683,8 +949,288 @@ type CryptoWorkflows interface {
 
 // RegisterCryptoWorkflows registers crypto.v1.Crypto workflows with the given worker
 func RegisterCryptoWorkflows(r worker.WorkflowRegistry, workflows CryptoWorkflows) {
+	RegisterCreateSelfSignedCertificateWorkflow(r, workflows.CreateSelfSignedCertificate)
 	RegisterGenerateAndStoreKeyPairWorkflow(r, workflows.GenerateAndStoreKeyPair)
 	RegisterGenerateAndStorePasswordWorkflow(r, workflows.GenerateAndStorePassword)
+}
+
+// RegisterCreateSelfSignedCertificateWorkflow registers a crypto.v1.Crypto.CreateSelfSignedCertificate workflow with the given worker
+func RegisterCreateSelfSignedCertificateWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *CreateSelfSignedCertificateWorkflowInput) (CreateSelfSignedCertificateWorkflow, error)) {
+	cryptoRegistrationMutex.Lock()
+	defer cryptoRegistrationMutex.Unlock()
+	CreateSelfSignedCertificateFunction = buildCreateSelfSignedCertificate(wf)
+	r.RegisterWorkflowWithOptions(CreateSelfSignedCertificateFunction, workflow.RegisterOptions{Name: CreateSelfSignedCertificateWorkflowName})
+}
+
+// buildCreateSelfSignedCertificate converts a CreateSelfSignedCertificate workflow struct into a valid workflow function
+func buildCreateSelfSignedCertificate(ctor func(workflow.Context, *CreateSelfSignedCertificateWorkflowInput) (CreateSelfSignedCertificateWorkflow, error)) func(workflow.Context, *CreateSelfSignedCertificateInput) (*CreateSelfSignedCertificateOutput, error) {
+	return func(ctx workflow.Context, req *CreateSelfSignedCertificateInput) (*CreateSelfSignedCertificateOutput, error) {
+		input := &CreateSelfSignedCertificateWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// CreateSelfSignedCertificateWorkflowInput describes the input to a(n) crypto.v1.CreateSelfSignedCertificate workflow constructor
+type CreateSelfSignedCertificateWorkflowInput struct {
+	Req *CreateSelfSignedCertificateInput
+}
+
+// CreateSelfSignedCertificate generates a self-signed certificate and stores it in Vault
+// Orchestrates vault.v1.FetchSecret + GenerateCertificate activity + vault.v1.StoreSecret activity
+// Used ONLY for root CA certificates. All other certificates are issued via fabric.v1.CreateIdentity.
+//
+// workflow details: (name: "crypto.v1.CreateSelfSignedCertificate", id: "crypto/create-selfsigned-cert/${! VaultCertificatePath.or("default") }")
+type CreateSelfSignedCertificateWorkflow interface {
+	// Execute defines the entrypoint to a(n) crypto.v1.CreateSelfSignedCertificate workflow
+	Execute(ctx workflow.Context) (*CreateSelfSignedCertificateOutput, error)
+}
+
+// CreateSelfSignedCertificate generates a self-signed certificate and stores it in Vault
+// Orchestrates vault.v1.FetchSecret + GenerateCertificate activity + vault.v1.StoreSecret activity
+// Used ONLY for root CA certificates. All other certificates are issued via fabric.v1.CreateIdentity.
+func CreateSelfSignedCertificateChild(ctx workflow.Context, req *CreateSelfSignedCertificateInput, options ...*CreateSelfSignedCertificateChildOptions) (*CreateSelfSignedCertificateOutput, error) {
+	childRun, err := CreateSelfSignedCertificateChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// CreateSelfSignedCertificate generates a self-signed certificate and stores it in Vault
+// Orchestrates vault.v1.FetchSecret + GenerateCertificate activity + vault.v1.StoreSecret activity
+// Used ONLY for root CA certificates. All other certificates are issued via fabric.v1.CreateIdentity.
+func CreateSelfSignedCertificateChildAsync(ctx workflow.Context, req *CreateSelfSignedCertificateInput, options ...*CreateSelfSignedCertificateChildOptions) (*CreateSelfSignedCertificateChildRun, error) {
+	var o *CreateSelfSignedCertificateChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateSelfSignedCertificateChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &CreateSelfSignedCertificateChildRun{Future: workflow.ExecuteChildWorkflow(ctx, CreateSelfSignedCertificateWorkflowName, req)}, nil
+}
+
+// CreateSelfSignedCertificateChildOptions provides configuration for a child crypto.v1.CreateSelfSignedCertificate workflow operation
+type CreateSelfSignedCertificateChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewCreateSelfSignedCertificateChildOptions initializes a new CreateSelfSignedCertificateChildOptions value
+func NewCreateSelfSignedCertificateChildOptions() *CreateSelfSignedCertificateChildOptions {
+	return &CreateSelfSignedCertificateChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *CreateSelfSignedCertificateChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(CreateSelfSignedCertificateIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateSelfSignedCertificateWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateSelfSignedCertificateWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(CreateSelfSignedCertificateIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateSelfSignedCertificateWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = CryptoTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	} else if opts.ParentClosePolicy == enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = enumsv1.PARENT_CLOSE_POLICY_REQUEST_CANCEL
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *CreateSelfSignedCertificateChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *CreateSelfSignedCertificateChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *CreateSelfSignedCertificateChildOptions) WithDataConverter(dc converter.DataConverter) *CreateSelfSignedCertificateChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *CreateSelfSignedCertificateChildOptions) WithExecutionTimeout(d time.Duration) *CreateSelfSignedCertificateChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *CreateSelfSignedCertificateChildOptions) WithID(id string) *CreateSelfSignedCertificateChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *CreateSelfSignedCertificateChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *CreateSelfSignedCertificateChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *CreateSelfSignedCertificateChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *CreateSelfSignedCertificateChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CreateSelfSignedCertificateChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateSelfSignedCertificateChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *CreateSelfSignedCertificateChildOptions) WithRunTimeout(d time.Duration) *CreateSelfSignedCertificateChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *CreateSelfSignedCertificateChildOptions) WithSearchAttributes(sa map[string]any) *CreateSelfSignedCertificateChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *CreateSelfSignedCertificateChildOptions) WithTaskTimeout(d time.Duration) *CreateSelfSignedCertificateChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *CreateSelfSignedCertificateChildOptions) WithTaskQueue(tq string) *CreateSelfSignedCertificateChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *CreateSelfSignedCertificateChildOptions) WithWaitForCancellation(wait bool) *CreateSelfSignedCertificateChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *CreateSelfSignedCertificateChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *CreateSelfSignedCertificateChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// CreateSelfSignedCertificateChildRun describes a child CreateSelfSignedCertificate workflow run
+type CreateSelfSignedCertificateChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *CreateSelfSignedCertificateChildRun) Get(ctx workflow.Context) (*CreateSelfSignedCertificateOutput, error) {
+	var resp CreateSelfSignedCertificateOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *CreateSelfSignedCertificateChildRun) Select(sel workflow.Selector, fn func(*CreateSelfSignedCertificateChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *CreateSelfSignedCertificateChildRun) SelectStart(sel workflow.Selector, fn func(*CreateSelfSignedCertificateChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *CreateSelfSignedCertificateChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
 }
 
 // RegisterGenerateAndStoreKeyPairWorkflow registers a crypto.v1.Crypto.GenerateAndStoreKeyPair workflow with the given worker
@@ -1247,6 +1793,11 @@ func (r *GenerateAndStorePasswordChildRun) WaitStart(ctx workflow.Context) (*wor
 
 // CryptoActivities describes available worker activities
 type CryptoActivities interface {
+	// GenerateCertificate generates a self-signed X.509 certificate
+	// Used for root CA certificates. Certificate is signed using the provided private key.
+	// Generates X.509 v3 certificate with CA extensions (BasicConstraints, KeyUsage).
+	GenerateCertificate(ctx context.Context, req *GenerateCertificateInput) (*GenerateCertificateOutput, error)
+
 	// GenerateKeyPair generates an ECDSA key pair
 	// Key is 256-bit ECDSA (P-256 curve)
 	GenerateKeyPair(ctx context.Context, req *GenerateKeyPairInput) (*GenerateKeyPairOutput, error)
@@ -1258,8 +1809,277 @@ type CryptoActivities interface {
 
 // RegisterCryptoActivities registers activities with a worker
 func RegisterCryptoActivities(r worker.ActivityRegistry, activities CryptoActivities) {
+	RegisterGenerateCertificateActivity(r, activities.GenerateCertificate)
 	RegisterGenerateKeyPairActivity(r, activities.GenerateKeyPair)
 	RegisterGeneratePasswordActivity(r, activities.GeneratePassword)
+}
+
+// RegisterGenerateCertificateActivity registers a crypto.v1.GenerateCertificate activity
+func RegisterGenerateCertificateActivity(r worker.ActivityRegistry, fn func(context.Context, *GenerateCertificateInput) (*GenerateCertificateOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: GenerateCertificateActivityName,
+	})
+}
+
+// GenerateCertificateFuture describes a(n) crypto.v1.GenerateCertificate activity execution
+type GenerateCertificateFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *GenerateCertificateFuture) Get(ctx workflow.Context) (*GenerateCertificateOutput, error) {
+	var resp GenerateCertificateOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *GenerateCertificateFuture) Select(sel workflow.Selector, fn func(*GenerateCertificateFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// GenerateCertificate generates a self-signed X.509 certificate
+// Used for root CA certificates. Certificate is signed using the provided private key.
+// Generates X.509 v3 certificate with CA extensions (BasicConstraints, KeyUsage).
+func GenerateCertificate(ctx workflow.Context, req *GenerateCertificateInput, options ...*GenerateCertificateActivityOptions) (*GenerateCertificateOutput, error) {
+	return GenerateCertificateAsync(ctx, req, options...).Get(ctx)
+}
+
+// GenerateCertificate generates a self-signed X.509 certificate
+// Used for root CA certificates. Certificate is signed using the provided private key.
+// Generates X.509 v3 certificate with CA extensions (BasicConstraints, KeyUsage).
+func GenerateCertificateAsync(ctx workflow.Context, req *GenerateCertificateInput, options ...*GenerateCertificateActivityOptions) *GenerateCertificateFuture {
+	var o *GenerateCertificateActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewGenerateCertificateActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &GenerateCertificateFuture{Future: errF}
+	}
+	activity := GenerateCertificateActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &GenerateCertificateFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// GenerateCertificate generates a self-signed X.509 certificate
+// Used for root CA certificates. Certificate is signed using the provided private key.
+// Generates X.509 v3 certificate with CA extensions (BasicConstraints, KeyUsage).
+func GenerateCertificateLocal(ctx workflow.Context, req *GenerateCertificateInput, options ...*GenerateCertificateLocalActivityOptions) (*GenerateCertificateOutput, error) {
+	return GenerateCertificateLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// GenerateCertificate generates a self-signed X.509 certificate
+// Used for root CA certificates. Certificate is signed using the provided private key.
+// Generates X.509 v3 certificate with CA extensions (BasicConstraints, KeyUsage).
+func GenerateCertificateLocalAsync(ctx workflow.Context, req *GenerateCertificateInput, options ...*GenerateCertificateLocalActivityOptions) *GenerateCertificateFuture {
+	var o *GenerateCertificateLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewGenerateCertificateLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &GenerateCertificateFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = GenerateCertificateActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &GenerateCertificateFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// GenerateCertificateActivityOptions provides configuration for a(n) crypto.v1.GenerateCertificate activity
+type GenerateCertificateActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewGenerateCertificateActivityOptions initializes a new GenerateCertificateActivityOptions value
+func NewGenerateCertificateActivityOptions() *GenerateCertificateActivityOptions {
+	return &GenerateCertificateActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *GenerateCertificateActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 30000000000 // 30 seconds
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = CryptoTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *GenerateCertificateActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *GenerateCertificateActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *GenerateCertificateActivityOptions) WithDataConverter(dc converter.DataConverter) *GenerateCertificateActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *GenerateCertificateActivityOptions) WithHeartbeatTimeout(d time.Duration) *GenerateCertificateActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *GenerateCertificateActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *GenerateCertificateActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *GenerateCertificateActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *GenerateCertificateActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *GenerateCertificateActivityOptions) WithScheduleToStartTimeout(d time.Duration) *GenerateCertificateActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *GenerateCertificateActivityOptions) WithStartToCloseTimeout(d time.Duration) *GenerateCertificateActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *GenerateCertificateActivityOptions) WithTaskQueue(tq string) *GenerateCertificateActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *GenerateCertificateActivityOptions) WithWaitForCancellation(wait bool) *GenerateCertificateActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// GenerateCertificateLocalActivityOptions provides configuration for a(n) crypto.v1.GenerateCertificate activity
+type GenerateCertificateLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *GenerateCertificateInput) (*GenerateCertificateOutput, error)
+}
+
+// NewGenerateCertificateLocalActivityOptions initializes a new GenerateCertificateLocalActivityOptions value
+func NewGenerateCertificateLocalActivityOptions() *GenerateCertificateLocalActivityOptions {
+	return &GenerateCertificateLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *GenerateCertificateLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 30000000000 // 30 seconds
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom crypto.v1.GenerateCertificate implementation
+func (o *GenerateCertificateLocalActivityOptions) Local(fn func(context.Context, *GenerateCertificateInput) (*GenerateCertificateOutput, error)) *GenerateCertificateLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *GenerateCertificateLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *GenerateCertificateLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *GenerateCertificateLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *GenerateCertificateLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *GenerateCertificateLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *GenerateCertificateLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *GenerateCertificateLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *GenerateCertificateLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *GenerateCertificateLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *GenerateCertificateLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
 }
 
 // RegisterGenerateKeyPairActivity registers a crypto.v1.GenerateKeyPair activity
@@ -1809,6 +2629,35 @@ func NewTestCryptoClient(env *testsuite.TestWorkflowEnvironment, workflows Crypt
 	return &TestCryptoClient{env, workflows}
 }
 
+// CreateSelfSignedCertificate executes a(n) crypto.v1.CreateSelfSignedCertificate workflow in the test environment
+func (c *TestCryptoClient) CreateSelfSignedCertificate(ctx context.Context, req *CreateSelfSignedCertificateInput, opts ...*CreateSelfSignedCertificateOptions) (*CreateSelfSignedCertificateOutput, error) {
+	run, err := c.CreateSelfSignedCertificateAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// CreateSelfSignedCertificateAsync executes a(n) crypto.v1.CreateSelfSignedCertificate workflow in the test environment
+func (c *TestCryptoClient) CreateSelfSignedCertificateAsync(ctx context.Context, req *CreateSelfSignedCertificateInput, options ...*CreateSelfSignedCertificateOptions) (CreateSelfSignedCertificateRun, error) {
+	var o *CreateSelfSignedCertificateOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateSelfSignedCertificateOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testCreateSelfSignedCertificateRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetCreateSelfSignedCertificate is a noop
+func (c *TestCryptoClient) GetCreateSelfSignedCertificate(ctx context.Context, workflowID string, runID string) CreateSelfSignedCertificateRun {
+	return &testCreateSelfSignedCertificateRun{env: c.env, workflows: c.workflows}
+}
+
 // GenerateAndStoreKeyPair executes a(n) crypto.v1.GenerateAndStoreKeyPair workflow in the test environment
 func (c *TestCryptoClient) GenerateAndStoreKeyPair(ctx context.Context, req *GenerateAndStoreKeyPairInput, opts ...*GenerateAndStoreKeyPairOptions) (*GenerateAndStoreKeyPairOutput, error) {
 	run, err := c.GenerateAndStoreKeyPairAsync(ctx, req, opts...)
@@ -1876,6 +2725,64 @@ func (c *TestCryptoClient) CancelWorkflow(ctx context.Context, workflowID string
 // TerminateWorkflow terminates an existing workflow execution
 func (c *TestCryptoClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
 	return c.CancelWorkflow(ctx, workflowID, runID)
+}
+
+var _ CreateSelfSignedCertificateRun = &testCreateSelfSignedCertificateRun{}
+
+// testCreateSelfSignedCertificateRun provides convenience methods for interacting with a(n) crypto.v1.CreateSelfSignedCertificate workflow in the test environment
+type testCreateSelfSignedCertificateRun struct {
+	client    *TestCryptoClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *CreateSelfSignedCertificateInput
+	workflows CryptoWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testCreateSelfSignedCertificateRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test crypto.v1.CreateSelfSignedCertificate workflow result
+func (r *testCreateSelfSignedCertificateRun) Get(context.Context) (*CreateSelfSignedCertificateOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(CreateSelfSignedCertificateWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result CreateSelfSignedCertificateOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test crypto.v1.CreateSelfSignedCertificate workflow run's workflow ID
+func (r *testCreateSelfSignedCertificateRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testCreateSelfSignedCertificateRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testCreateSelfSignedCertificateRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testCreateSelfSignedCertificateRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
 var _ GenerateAndStoreKeyPairRun = &testGenerateAndStoreKeyPairRun{}

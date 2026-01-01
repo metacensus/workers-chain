@@ -42,14 +42,20 @@
       - [Workflows](#crypto-v1-crypto-workflows)
         - [crypto.v1.GenerateAndStorePassword](#crypto-v1-generateandstorepassword-workflow)
         - [crypto.v1.GenerateAndStoreKeyPair](#crypto-v1-generateandstorekeypair-workflow)
+        - [crypto.v1.CreateSelfSignedCertificate](#crypto-v1-createselfsignedcertificate-workflow)
       - [Activities](#crypto-v1-crypto-activities)
         - [crypto.v1.GeneratePassword](#crypto-v1-generatepassword-activity)
         - [crypto.v1.GenerateKeyPair](#crypto-v1-generatekeypair-activity)
+        - [crypto.v1.GenerateCertificate](#crypto-v1-generatecertificate-activity)
   - Messages
+    - [crypto.v1.CreateSelfSignedCertificateInput](#crypto-v1-createselfsignedcertificateinput)
+    - [crypto.v1.CreateSelfSignedCertificateOutput](#crypto-v1-createselfsignedcertificateoutput)
     - [crypto.v1.GenerateAndStoreKeyPairInput](#crypto-v1-generateandstorekeypairinput)
     - [crypto.v1.GenerateAndStoreKeyPairOutput](#crypto-v1-generateandstorekeypairoutput)
     - [crypto.v1.GenerateAndStorePasswordInput](#crypto-v1-generateandstorepasswordinput)
     - [crypto.v1.GenerateAndStorePasswordOutput](#crypto-v1-generateandstorepasswordoutput)
+    - [crypto.v1.GenerateCertificateInput](#crypto-v1-generatecertificateinput)
+    - [crypto.v1.GenerateCertificateOutput](#crypto-v1-generatecertificateoutput)
     - [crypto.v1.GenerateKeyPairInput](#crypto-v1-generatekeypairinput)
     - [crypto.v1.GenerateKeyPairOutput](#crypto-v1-generatekeypairoutput)
     - [crypto.v1.GeneratePasswordInput](#crypto-v1-generatepasswordinput)
@@ -1309,6 +1315,122 @@ go_tags: json:"SecretRef" validate:"required"</pre></td>
 <tr><td>id</td><td><pre><code>crypto/generate-store-keypair/${! VaultPath.or("default") }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 <tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
+</table>
+
+---
+<a name="crypto-v1-createselfsignedcertificate-workflow"></a>
+### crypto.v1.CreateSelfSignedCertificate
+
+<pre>
+CreateSelfSignedCertificate generates a self-signed certificate and stores it in Vault
+Orchestrates vault.v1.FetchSecret + GenerateCertificate activity + vault.v1.StoreSecret activity
+Used ONLY for root CA certificates. All other certificates are issued via fabric.v1.CreateIdentity.
+</pre>
+
+**Input:** [crypto.v1.CreateSelfSignedCertificateInput](#crypto-v1-createselfsignedcertificateinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN field in the certificate subject (e.g., "org1-tls-root-ca")<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>max_path_length</td>
+<td>int32</td>
+<td><pre>
+max_path_length sets the pathLenConstraint in BasicConstraints extension
+Typically set to 1 for root CAs (can issue intermediate CAs)<br>
+
+json_name: MaxPathLength
+go_name: MaxPathLength
+go_tags: json:"MaxPathLength" validate:"min=0"</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+organization is the O field in the certificate subject (e.g., "org1")<br>
+
+json_name: Organization
+go_name: Organization
+go_tags: json:"Organization" validate:"required"</pre></td>
+</tr><tr>
+<td>organizational_unit</td>
+<td>string</td>
+<td><pre>
+organizational_unit is the OU field in the certificate subject (e.g., "root-ca")<br>
+
+json_name: OrganizationalUnit
+go_name: OrganizationalUnit
+go_tags: json:"OrganizationalUnit"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration is how long the certificate is valid (e.g., 15 years for root CA)<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration" validate:"required"</pre></td>
+</tr><tr>
+<td>vault_certificate_path</td>
+<td>string</td>
+<td><pre>
+vault_certificate_path is the Vault path to store the certificate at
+Example: "fabric/org1/ca/tls/root/cert"<br>
+
+json_name: VaultCertificatePath
+go_name: VaultCertificatePath
+go_tags: json:"VaultCertificatePath" validate:"required"</pre></td>
+</tr><tr>
+<td>vault_key_path</td>
+<td>string</td>
+<td><pre>
+vault_key_path is the Vault path to fetch the private key from
+Example: "fabric/org1/ca/tls/root/keys"<br>
+
+json_name: VaultKeyPath
+go_name: VaultKeyPath
+go_tags: json:"VaultKeyPath" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [crypto.v1.CreateSelfSignedCertificateOutput](#crypto-v1-createselfsignedcertificateoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+secret_ref is the Vault secret reference with path and version<br>
+
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>crypto/create-selfsigned-cert/${! VaultCertificatePath.or("default") }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
 </table>    
 
 <a name="crypto-v1-crypto-activities"></a>
@@ -1387,10 +1509,217 @@ json_name: PublicKey
 go_name: PublicKey
 go_tags: json:"PublicKey" validate:"required"</pre></td>
 </tr>
+</table> 
+
+---
+<a name="crypto-v1-generatecertificate-activity"></a>
+### crypto.v1.GenerateCertificate
+
+<pre>
+GenerateCertificate generates a self-signed X.509 certificate
+Used for root CA certificates. Certificate is signed using the provided private key.
+Generates X.509 v3 certificate with CA extensions (BasicConstraints, KeyUsage).
+</pre>
+
+**Input:** [crypto.v1.GenerateCertificateInput](#crypto-v1-generatecertificateinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN field in the certificate subject (e.g., "org1-tls-root-ca")<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>max_path_length</td>
+<td>int32</td>
+<td><pre>
+max_path_length sets the pathLenConstraint in BasicConstraints extension
+Typically set to 1 for root CAs (can issue intermediate CAs)<br>
+
+json_name: MaxPathLength
+go_name: MaxPathLength
+go_tags: json:"MaxPathLength" validate:"min=0"</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+organization is the O field in the certificate subject (e.g., "org1")<br>
+
+json_name: Organization
+go_name: Organization
+go_tags: json:"Organization" validate:"required"</pre></td>
+</tr><tr>
+<td>organizational_unit</td>
+<td>string</td>
+<td><pre>
+organizational_unit is the OU field in the certificate subject (e.g., "root-ca")<br>
+
+json_name: OrganizationalUnit
+go_name: OrganizationalUnit
+go_tags: json:"OrganizationalUnit"</pre></td>
+</tr><tr>
+<td>private_key</td>
+<td>bytes</td>
+<td><pre>
+private_key is the PEM-encoded ECDSA private key used to sign the certificate<br>
+
+json_name: PrivateKey
+go_name: PrivateKey
+go_tags: json:"PrivateKey" validate:"required"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration is how long the certificate is valid (e.g., 15 years for root CA)<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [crypto.v1.GenerateCertificateOutput](#crypto-v1-generatecertificateoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>certificate</td>
+<td>bytes</td>
+<td><pre>
+certificate is the PEM-encoded X.509 certificate<br>
+
+json_name: Certificate
+go_name: Certificate
+go_tags: json:"Certificate" validate:"required"</pre></td>
+</tr>
 </table>   
 
 <a name="crypto-v1-messages"></a>
 ## Messages
+
+<a name="crypto-v1-createselfsignedcertificateinput"></a>
+### crypto.v1.CreateSelfSignedCertificateInput
+
+<pre>
+CreateSelfSignedCertificateInput specifies where to fetch the key and store the certificate
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN field in the certificate subject (e.g., "org1-tls-root-ca")<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>max_path_length</td>
+<td>int32</td>
+<td><pre>
+max_path_length sets the pathLenConstraint in BasicConstraints extension
+Typically set to 1 for root CAs (can issue intermediate CAs)<br>
+
+json_name: MaxPathLength
+go_name: MaxPathLength
+go_tags: json:"MaxPathLength" validate:"min=0"</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+organization is the O field in the certificate subject (e.g., "org1")<br>
+
+json_name: Organization
+go_name: Organization
+go_tags: json:"Organization" validate:"required"</pre></td>
+</tr><tr>
+<td>organizational_unit</td>
+<td>string</td>
+<td><pre>
+organizational_unit is the OU field in the certificate subject (e.g., "root-ca")<br>
+
+json_name: OrganizationalUnit
+go_name: OrganizationalUnit
+go_tags: json:"OrganizationalUnit"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration is how long the certificate is valid (e.g., 15 years for root CA)<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration" validate:"required"</pre></td>
+</tr><tr>
+<td>vault_certificate_path</td>
+<td>string</td>
+<td><pre>
+vault_certificate_path is the Vault path to store the certificate at
+Example: "fabric/org1/ca/tls/root/cert"<br>
+
+json_name: VaultCertificatePath
+go_name: VaultCertificatePath
+go_tags: json:"VaultCertificatePath" validate:"required"</pre></td>
+</tr><tr>
+<td>vault_key_path</td>
+<td>string</td>
+<td><pre>
+vault_key_path is the Vault path to fetch the private key from
+Example: "fabric/org1/ca/tls/root/keys"<br>
+
+json_name: VaultKeyPath
+go_name: VaultKeyPath
+go_tags: json:"VaultKeyPath" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="crypto-v1-createselfsignedcertificateoutput"></a>
+### crypto.v1.CreateSelfSignedCertificateOutput
+
+<pre>
+CreateSelfSignedCertificateOutput returns the Vault secret reference
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><pre>
+secret_ref is the Vault secret reference with path and version<br>
+
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
+</tr>
+</table>
+
+
 
 <a name="crypto-v1-generateandstorekeypairinput"></a>
 ### crypto.v1.GenerateAndStoreKeyPairInput
@@ -1508,6 +1837,106 @@ secret_ref is the Vault secret reference with path and version<br>
 json_name: SecretRef
 go_name: SecretRef
 go_tags: json:"SecretRef" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="crypto-v1-generatecertificateinput"></a>
+### crypto.v1.GenerateCertificateInput
+
+<pre>
+GenerateCertificateInput specifies parameters for self-signed certificate generation
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN field in the certificate subject (e.g., "org1-tls-root-ca")<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>max_path_length</td>
+<td>int32</td>
+<td><pre>
+max_path_length sets the pathLenConstraint in BasicConstraints extension
+Typically set to 1 for root CAs (can issue intermediate CAs)<br>
+
+json_name: MaxPathLength
+go_name: MaxPathLength
+go_tags: json:"MaxPathLength" validate:"min=0"</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+organization is the O field in the certificate subject (e.g., "org1")<br>
+
+json_name: Organization
+go_name: Organization
+go_tags: json:"Organization" validate:"required"</pre></td>
+</tr><tr>
+<td>organizational_unit</td>
+<td>string</td>
+<td><pre>
+organizational_unit is the OU field in the certificate subject (e.g., "root-ca")<br>
+
+json_name: OrganizationalUnit
+go_name: OrganizationalUnit
+go_tags: json:"OrganizationalUnit"</pre></td>
+</tr><tr>
+<td>private_key</td>
+<td>bytes</td>
+<td><pre>
+private_key is the PEM-encoded ECDSA private key used to sign the certificate<br>
+
+json_name: PrivateKey
+go_name: PrivateKey
+go_tags: json:"PrivateKey" validate:"required"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration is how long the certificate is valid (e.g., 15 years for root CA)<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="crypto-v1-generatecertificateoutput"></a>
+### crypto.v1.GenerateCertificateOutput
+
+<pre>
+GenerateCertificateOutput contains the generated certificate
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>certificate</td>
+<td>bytes</td>
+<td><pre>
+certificate is the PEM-encoded X.509 certificate<br>
+
+json_name: Certificate
+go_name: Certificate
+go_tags: json:"Certificate" validate:"required"</pre></td>
 </tr>
 </table>
 

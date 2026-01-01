@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package crypto.v1;
 
+import "google/protobuf/duration.proto";
 import "patch/go.proto";
 import "temporal/v1/temporal.proto";
 import "vault/v1/vault.proto";
@@ -34,6 +35,17 @@ service Crypto {
     };
   }
 
+  // GenerateCertificate generates a self-signed X.509 certificate
+  // Used for root CA certificates. Certificate is signed using the provided private key.
+  // Generates X.509 v3 certificate with CA extensions (BasicConstraints, KeyUsage).
+  rpc GenerateCertificate(GenerateCertificateInput) returns (GenerateCertificateOutput) {
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "crypto.v1.GenerateCertificate"
+      schedule_to_close_timeout: {seconds: 30}
+    };
+  }
+
   // GenerateAndStorePassword generates a password and stores it in Vault
   // Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
   // Username and password are stored with key names "username" and "password"
@@ -53,6 +65,18 @@ service Crypto {
     option (temporal.v1.workflow) = {
       name: "crypto.v1.GenerateAndStoreKeyPair"
       id: 'crypto/generate-store-keypair/${! VaultPath.or("default") }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
+    };
+  }
+
+  // CreateSelfSignedCertificate generates a self-signed certificate and stores it in Vault
+  // Orchestrates vault.v1.FetchSecret + GenerateCertificate activity + vault.v1.StoreSecret activity
+  // Used ONLY for root CA certificates. All other certificates are issued via fabric.v1.CreateIdentity.
+  rpc CreateSelfSignedCertificate(CreateSelfSignedCertificateInput) returns (CreateSelfSignedCertificateOutput) {
+    option (temporal.v1.workflow) = {
+      name: "crypto.v1.CreateSelfSignedCertificate"
+      id: 'crypto/create-selfsigned-cert/${! VaultCertificatePath.or("default") }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       parent_close_policy: PARENT_CLOSE_POLICY_REQUEST_CANCEL
     };
@@ -97,6 +121,57 @@ message GenerateKeyPairOutput {
   ];
 }
 
+// ==================== Certificate Generation ====================
+
+// GenerateCertificateInput specifies parameters for self-signed certificate generation
+message GenerateCertificateInput {
+  // private_key is the PEM-encoded ECDSA private key used to sign the certificate
+  bytes private_key = 1 [
+    json_name = "PrivateKey",
+    (go.field).tags = 'json:"PrivateKey" validate:"required"'
+  ];
+
+  // common_name is the CN field in the certificate subject (e.g., "org1-tls-root-ca")
+  string common_name = 2 [
+    json_name = "CommonName",
+    (go.field).tags = 'json:"CommonName" validate:"required"'
+  ];
+
+  // organization is the O field in the certificate subject (e.g., "org1")
+  string organization = 3 [
+    json_name = "Organization",
+    (go.field).tags = 'json:"Organization" validate:"required"'
+  ];
+
+  // organizational_unit is the OU field in the certificate subject (e.g., "root-ca")
+  string organizational_unit = 4 [
+    json_name = "OrganizationalUnit",
+    (go.field).tags = 'json:"OrganizationalUnit"'
+  ];
+
+  // validity_duration is how long the certificate is valid (e.g., 15 years for root CA)
+  google.protobuf.Duration validity_duration = 5 [
+    json_name = "ValidityDuration",
+    (go.field).tags = 'json:"ValidityDuration" validate:"required"'
+  ];
+
+  // max_path_length sets the pathLenConstraint in BasicConstraints extension
+  // Typically set to 1 for root CAs (can issue intermediate CAs)
+  int32 max_path_length = 6 [
+    json_name = "MaxPathLength",
+    (go.field).tags = 'json:"MaxPathLength" validate:"min=0"'
+  ];
+}
+
+// GenerateCertificateOutput contains the generated certificate
+message GenerateCertificateOutput {
+  // certificate is the PEM-encoded X.509 certificate
+  bytes certificate = 1 [
+    json_name = "Certificate",
+    (go.field).tags = 'json:"Certificate" validate:"required"'
+  ];
+}
+
 // ==================== Workflows ====================
 
 // GenerateAndStorePasswordInput specifies where to store the generated password
@@ -138,6 +213,63 @@ message GenerateAndStoreKeyPairInput {
 
 // GenerateAndStoreKeyPairOutput returns the Vault secret reference
 message GenerateAndStoreKeyPairOutput {
+  // secret_ref is the Vault secret reference with path and version
+  vault.v1.SecretRef secret_ref = 1 [
+    json_name = "SecretRef",
+    (go.field).tags = 'json:"SecretRef" validate:"required"'
+  ];
+}
+
+// CreateSelfSignedCertificateInput specifies where to fetch the key and store the certificate
+message CreateSelfSignedCertificateInput {
+  // vault_key_path is the Vault path to fetch the private key from
+  // Example: "fabric/org1/ca/tls/root/keys"
+  string vault_key_path = 1 [
+    json_name = "VaultKeyPath",
+    (go.field).tags = 'json:"VaultKeyPath" validate:"required"'
+  ];
+
+  // vault_certificate_path is the Vault path to store the certificate at
+  // Example: "fabric/org1/ca/tls/root/cert"
+  string vault_certificate_path = 2 [
+    json_name = "VaultCertificatePath",
+    (go.field).tags = 'json:"VaultCertificatePath" validate:"required"'
+  ];
+
+  // common_name is the CN field in the certificate subject (e.g., "org1-tls-root-ca")
+  string common_name = 3 [
+    json_name = "CommonName",
+    (go.field).tags = 'json:"CommonName" validate:"required"'
+  ];
+
+  // organization is the O field in the certificate subject (e.g., "org1")
+  string organization = 4 [
+    json_name = "Organization",
+    (go.field).tags = 'json:"Organization" validate:"required"'
+  ];
+
+  // organizational_unit is the OU field in the certificate subject (e.g., "root-ca")
+  string organizational_unit = 5 [
+    json_name = "OrganizationalUnit",
+    (go.field).tags = 'json:"OrganizationalUnit"'
+  ];
+
+  // validity_duration is how long the certificate is valid (e.g., 15 years for root CA)
+  google.protobuf.Duration validity_duration = 6 [
+    json_name = "ValidityDuration",
+    (go.field).tags = 'json:"ValidityDuration" validate:"required"'
+  ];
+
+  // max_path_length sets the pathLenConstraint in BasicConstraints extension
+  // Typically set to 1 for root CAs (can issue intermediate CAs)
+  int32 max_path_length = 7 [
+    json_name = "MaxPathLength",
+    (go.field).tags = 'json:"MaxPathLength" validate:"min=0"'
+  ];
+}
+
+// CreateSelfSignedCertificateOutput returns the Vault secret reference
+message CreateSelfSignedCertificateOutput {
   // secret_ref is the Vault secret reference with path and version
   vault.v1.SecretRef secret_ref = 1 [
     json_name = "SecretRef",

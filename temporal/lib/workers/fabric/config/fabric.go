@@ -218,6 +218,15 @@ func (ca CertificateAuthorityConfig) VaultKeyPairPath() string {
 		ca.OrgID, ca.certType, ca.caID)
 }
 
+// VaultCertificatePath returns the path where the CA's certificate is stored.
+// Used with vault.StoreSecret and vault.FetchSecret activities.
+// Note: Returns path relative to secret mount (activities add "secret/data/" prefix).
+// Example: "fabric/org1/ca/tls/root/cert"
+func (ca CertificateAuthorityConfig) VaultCertificatePath() string {
+	return fmt.Sprintf("fabric/%s/ca/%s/%s/cert",
+		ca.OrgID, ca.certType, ca.caID)
+}
+
 // VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
 // Used in Vault policy documents with wildcard for all CA secrets.
 // Example: "secret/data/fabric/org1/ca/tls/root/*"
@@ -307,6 +316,15 @@ func (ca CertificateAuthorityConfig) CertType() string {
 
 // CAID returns the CA identifier ("root" for root CAs, "v1", "v2", etc. for intermediates)
 func (ca CertificateAuthorityConfig) CAID() string {
+	return ca.caID
+}
+
+// OrganizationalUnit returns the OU field for certificate subject.
+// Returns "root-ca" for root CAs, or the CA version ID for intermediate CAs.
+func (ca CertificateAuthorityConfig) OrganizationalUnit() string {
+	if ca.caID == "root" {
+		return "root-ca"
+	}
 	return ca.caID
 }
 

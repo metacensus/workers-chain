@@ -22,6 +22,65 @@ func (_m *MockCryptoActivities) EXPECT() *MockCryptoActivities_Expecter {
 	return &MockCryptoActivities_Expecter{mock: &_m.Mock}
 }
 
+// GenerateCertificate provides a mock function with given fields: ctx, req
+func (_m *MockCryptoActivities) GenerateCertificate(ctx context.Context, req *cryptov1.GenerateCertificateInput) (*cryptov1.GenerateCertificateOutput, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GenerateCertificate")
+	}
+
+	var r0 *cryptov1.GenerateCertificateOutput
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *cryptov1.GenerateCertificateInput) (*cryptov1.GenerateCertificateOutput, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *cryptov1.GenerateCertificateInput) *cryptov1.GenerateCertificateOutput); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cryptov1.GenerateCertificateOutput)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *cryptov1.GenerateCertificateInput) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockCryptoActivities_GenerateCertificate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GenerateCertificate'
+type MockCryptoActivities_GenerateCertificate_Call struct {
+	*mock.Call
+}
+
+// GenerateCertificate is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *cryptov1.GenerateCertificateInput
+func (_e *MockCryptoActivities_Expecter) GenerateCertificate(ctx interface{}, req interface{}) *MockCryptoActivities_GenerateCertificate_Call {
+	return &MockCryptoActivities_GenerateCertificate_Call{Call: _e.mock.On("GenerateCertificate", ctx, req)}
+}
+
+func (_c *MockCryptoActivities_GenerateCertificate_Call) Run(run func(ctx context.Context, req *cryptov1.GenerateCertificateInput)) *MockCryptoActivities_GenerateCertificate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*cryptov1.GenerateCertificateInput))
+	})
+	return _c
+}
+
+func (_c *MockCryptoActivities_GenerateCertificate_Call) Return(_a0 *cryptov1.GenerateCertificateOutput, _a1 error) *MockCryptoActivities_GenerateCertificate_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockCryptoActivities_GenerateCertificate_Call) RunAndReturn(run func(context.Context, *cryptov1.GenerateCertificateInput) (*cryptov1.GenerateCertificateOutput, error)) *MockCryptoActivities_GenerateCertificate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GenerateKeyPair provides a mock function with given fields: ctx, req
 func (_m *MockCryptoActivities) GenerateKeyPair(ctx context.Context, req *cryptov1.GenerateKeyPairInput) (*cryptov1.GenerateKeyPairOutput, error) {
 	ret := _m.Called(ctx, req)

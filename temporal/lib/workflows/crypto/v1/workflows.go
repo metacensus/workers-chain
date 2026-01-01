@@ -13,8 +13,9 @@ import (
 
 // Sentinel errors for crypto workflows
 var (
-	ErrGenerateAndStorePassword = errors.New("generate and store password workflow failed")
-	ErrGenerateAndStoreKeyPair  = errors.New("generate and store key pair workflow failed")
+	ErrGenerateAndStorePassword    = errors.New("generate and store password workflow failed")
+	ErrGenerateAndStoreKeyPair     = errors.New("generate and store key pair workflow failed")
+	ErrCreateSelfSignedCertificate = errors.New("create self-signed certificate workflow failed")
 )
 
 // Workflows implements the CryptoWorkflows interface from generated code
@@ -33,6 +34,11 @@ func (w *Workflows) GenerateAndStorePassword(ctx workflow.Context, input *crypto
 // GenerateAndStoreKeyPair implements the GenerateAndStoreKeyPair workflow
 func (w *Workflows) GenerateAndStoreKeyPair(ctx workflow.Context, input *cryptopb.GenerateAndStoreKeyPairWorkflowInput) (cryptopb.GenerateAndStoreKeyPairWorkflow, error) {
 	return &generateAndStoreKeyPairWorkflow{input: input}, nil
+}
+
+// CreateSelfSignedCertificate implements the CreateSelfSignedCertificate workflow
+func (w *Workflows) CreateSelfSignedCertificate(ctx workflow.Context, input *cryptopb.CreateSelfSignedCertificateWorkflowInput) (cryptopb.CreateSelfSignedCertificateWorkflow, error) {
+	return &createSelfSignedCertificateWorkflow{input: input}, nil
 }
 
 // generateAndStorePasswordWorkflow implements cryptopb.GenerateAndStorePasswordWorkflow
@@ -136,5 +142,80 @@ func TestGenerateAndStorePasswordWorkflow(ctx workflow.Context, input *cryptopb.
 // TestGenerateAndStoreKeyPairWorkflow is a test helper function
 func TestGenerateAndStoreKeyPairWorkflow(ctx workflow.Context, input *cryptopb.GenerateAndStoreKeyPairWorkflowInput) (*cryptopb.GenerateAndStoreKeyPairOutput, error) {
 	w := &generateAndStoreKeyPairWorkflow{input: input}
+	return w.Execute(ctx)
+}
+
+// createSelfSignedCertificateWorkflow implements cryptopb.CreateSelfSignedCertificateWorkflow
+type createSelfSignedCertificateWorkflow struct {
+	input *cryptopb.CreateSelfSignedCertificateWorkflowInput
+}
+
+// Execute orchestrates self-signed certificate generation and storage in Vault
+func (w *createSelfSignedCertificateWorkflow) Execute(ctx workflow.Context) (*cryptopb.CreateSelfSignedCertificateOutput, error) {
+	// Set up activity options
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    3,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
+
+	// Step 1: Fetch private key from Vault
+	var fetchOutput *vaultpb.FetchSecretOutput
+	err := workflow.ExecuteActivity(activityCtx, vaultpb.FetchSecretActivityName,
+		&vaultpb.FetchSecretInput{
+			Path: w.input.Req.GetVaultKeyPath(),
+		}).Get(ctx, &fetchOutput)
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to fetch private key: %w", ErrCreateSelfSignedCertificate, err)
+	}
+
+	// Extract private key from the fetched secret data
+	// Keys are stored with key name "private" by GenerateAndStoreKeyPair
+	privateKeyBytes, ok := fetchOutput.GetData()["private"]
+	if !ok {
+		return nil, fmt.Errorf("%w: private key not found in vault secret", ErrCreateSelfSignedCertificate)
+	}
+
+	// Step 2: Generate self-signed certificate
+	var certOutput *cryptopb.GenerateCertificateOutput
+	err = workflow.ExecuteActivity(activityCtx, cryptopb.GenerateCertificateActivityName,
+		&cryptopb.GenerateCertificateInput{
+			PrivateKey:         privateKeyBytes,
+			CommonName:         w.input.Req.GetCommonName(),
+			Organization:       w.input.Req.GetOrganization(),
+			OrganizationalUnit: w.input.Req.GetOrganizationalUnit(),
+			ValidityDuration:   w.input.Req.GetValidityDuration(),
+			MaxPathLength:      w.input.Req.GetMaxPathLength(),
+		}).Get(ctx, &certOutput)
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to generate certificate: %w", ErrCreateSelfSignedCertificate, err)
+	}
+
+	// Step 3: Store certificate in Vault
+	var storeOutput *vaultpb.StoreSecretOutput
+	err = workflow.ExecuteActivity(activityCtx, vaultpb.StoreSecretActivityName,
+		&vaultpb.StoreSecretInput{
+			Path: w.input.Req.GetVaultCertificatePath(),
+			Data: map[string][]byte{
+				"certificate": certOutput.GetCertificate(),
+			},
+		}).Get(ctx, &storeOutput)
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to store certificate: %w", ErrCreateSelfSignedCertificate, err)
+	}
+
+	return &cryptopb.CreateSelfSignedCertificateOutput{
+		SecretRef: storeOutput.GetSecretRef(),
+	}, nil
+}
+
+// TestCreateSelfSignedCertificateWorkflow is a test helper function
+func TestCreateSelfSignedCertificateWorkflow(ctx workflow.Context, input *cryptopb.CreateSelfSignedCertificateWorkflowInput) (*cryptopb.CreateSelfSignedCertificateOutput, error) {
+	w := &createSelfSignedCertificateWorkflow{input: input}
 	return w.Execute(ctx)
 }

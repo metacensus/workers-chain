@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/testsuite"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 var errActivityFailed = temporal.NewApplicationError("activity failed", "ActivityFailed")
@@ -271,6 +272,245 @@ func TestGenerateAndStoreKeyPairWorkflow(t *testing.T) {
 				}
 
 				var result *cryptopb.GenerateAndStoreKeyPairOutput
+				if err := env.GetWorkflowResult(&result); err != nil {
+					t.Fatalf("failed to get workflow result: %v", err)
+				}
+
+				if result.GetSecretRef().GetPath() != tt.storeSecretRes.GetSecretRef().GetPath() {
+					t.Errorf("path mismatch: got %q, want %q",
+						result.GetSecretRef().GetPath(), tt.storeSecretRes.GetSecretRef().GetPath())
+				}
+
+				if result.GetSecretRef().GetVersion() != tt.storeSecretRes.GetSecretRef().GetVersion() {
+					t.Errorf("version mismatch: got %d, want %d",
+						result.GetSecretRef().GetVersion(), tt.storeSecretRes.GetSecretRef().GetVersion())
+				}
+			}
+		})
+	}
+}
+
+func TestCreateSelfSignedCertificateWorkflow(t *testing.T) {
+	tests := []struct {
+		name                    string
+		input                   *cryptopb.CreateSelfSignedCertificateWorkflowInput
+		fetchSecretRes          *vaultpb.FetchSecretOutput
+		fetchSecretErr          error
+		generateCertificateRes  *cryptopb.GenerateCertificateOutput
+		generateCertificateErr  error
+		storeSecretRes          *vaultpb.StoreSecretOutput
+		storeSecretErr          error
+		expectErr               bool
+		validateFetchRequest    func(*testing.T, *vaultpb.FetchSecretInput)
+		validateGenerateRequest func(*testing.T, *cryptopb.GenerateCertificateInput)
+		validateStoreRequest    func(*testing.T, *vaultpb.StoreSecretInput)
+	}{
+		{
+			name: "success - certificate generated and stored",
+			input: &cryptopb.CreateSelfSignedCertificateWorkflowInput{
+				Req: &cryptopb.CreateSelfSignedCertificateInput{
+					VaultKeyPath:         "fabric/org1/ca/tls/root/keys",
+					VaultCertificatePath: "fabric/org1/ca/tls/root/cert",
+					CommonName:           "org1-tls-root-ca",
+					Organization:         "org1",
+					OrganizationalUnit:   "root-ca",
+					ValidityDuration:     durationpb.New(365 * 24 * 60 * 60 * 1e9),
+					MaxPathLength:        1,
+				},
+			},
+			fetchSecretRes: &vaultpb.FetchSecretOutput{
+				Data: map[string][]byte{
+					"private": []byte("-----BEGIN PRIVATE KEY-----\ntest-private-key\n-----END PRIVATE KEY-----"),
+					"public":  []byte("-----BEGIN PUBLIC KEY-----\ntest-public-key\n-----END PUBLIC KEY-----"),
+				},
+			},
+			generateCertificateRes: &cryptopb.GenerateCertificateOutput{
+				Certificate: []byte("-----BEGIN CERTIFICATE-----\ntest-certificate\n-----END CERTIFICATE-----"),
+			},
+			storeSecretRes: &vaultpb.StoreSecretOutput{
+				SecretRef: &vaultpb.SecretRef{
+					Path:    "fabric/org1/ca/tls/root/cert",
+					Version: 1,
+				},
+			},
+			validateFetchRequest: func(t *testing.T, input *vaultpb.FetchSecretInput) {
+				if input.GetPath() != "fabric/org1/ca/tls/root/keys" {
+					t.Errorf("fetch path: got %q, want %q", input.GetPath(), "fabric/org1/ca/tls/root/keys")
+				}
+			},
+			validateGenerateRequest: func(t *testing.T, input *cryptopb.GenerateCertificateInput) {
+				if input.GetCommonName() != "org1-tls-root-ca" {
+					t.Errorf("CommonName: got %q, want %q", input.GetCommonName(), "org1-tls-root-ca")
+				}
+				if input.GetOrganization() != "org1" {
+					t.Errorf("Organization: got %q, want %q", input.GetOrganization(), "org1")
+				}
+				if input.GetOrganizationalUnit() != "root-ca" {
+					t.Errorf("OrganizationalUnit: got %q, want %q", input.GetOrganizationalUnit(), "root-ca")
+				}
+				if input.GetMaxPathLength() != 1 {
+					t.Errorf("MaxPathLength: got %d, want 1", input.GetMaxPathLength())
+				}
+			},
+			validateStoreRequest: func(t *testing.T, input *vaultpb.StoreSecretInput) {
+				if input.GetPath() != "fabric/org1/ca/tls/root/cert" {
+					t.Errorf("store path: got %q, want %q", input.GetPath(), "fabric/org1/ca/tls/root/cert")
+				}
+				if len(input.GetData()) != 1 {
+					t.Errorf("data length: got %d, want 1", len(input.GetData()))
+				}
+				if _, ok := input.GetData()["certificate"]; !ok {
+					t.Error("missing 'certificate' key in data")
+				}
+			},
+		},
+		{
+			name: "failure - FetchSecret activity fails",
+			input: &cryptopb.CreateSelfSignedCertificateWorkflowInput{
+				Req: &cryptopb.CreateSelfSignedCertificateInput{
+					VaultKeyPath:         "fabric/org1/ca/tls/root/keys",
+					VaultCertificatePath: "fabric/org1/ca/tls/root/cert",
+					CommonName:           "org1-tls-root-ca",
+					Organization:         "org1",
+					OrganizationalUnit:   "root-ca",
+					ValidityDuration:     durationpb.New(365 * 24 * 60 * 60 * 1e9),
+					MaxPathLength:        1,
+				},
+			},
+			fetchSecretErr: errActivityFailed,
+			expectErr:      true,
+		},
+		{
+			name: "failure - private key not found in vault secret",
+			input: &cryptopb.CreateSelfSignedCertificateWorkflowInput{
+				Req: &cryptopb.CreateSelfSignedCertificateInput{
+					VaultKeyPath:         "fabric/org1/ca/tls/root/keys",
+					VaultCertificatePath: "fabric/org1/ca/tls/root/cert",
+					CommonName:           "org1-tls-root-ca",
+					Organization:         "org1",
+					OrganizationalUnit:   "root-ca",
+					ValidityDuration:     durationpb.New(365 * 24 * 60 * 60 * 1e9),
+					MaxPathLength:        1,
+				},
+			},
+			fetchSecretRes: &vaultpb.FetchSecretOutput{
+				Data: map[string][]byte{
+					"public": []byte("-----BEGIN PUBLIC KEY-----\ntest-public-key\n-----END PUBLIC KEY-----"),
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "failure - GenerateCertificate activity fails",
+			input: &cryptopb.CreateSelfSignedCertificateWorkflowInput{
+				Req: &cryptopb.CreateSelfSignedCertificateInput{
+					VaultKeyPath:         "fabric/org1/ca/tls/root/keys",
+					VaultCertificatePath: "fabric/org1/ca/tls/root/cert",
+					CommonName:           "org1-tls-root-ca",
+					Organization:         "org1",
+					OrganizationalUnit:   "root-ca",
+					ValidityDuration:     durationpb.New(365 * 24 * 60 * 60 * 1e9),
+					MaxPathLength:        1,
+				},
+			},
+			fetchSecretRes: &vaultpb.FetchSecretOutput{
+				Data: map[string][]byte{
+					"private": []byte("-----BEGIN PRIVATE KEY-----\ntest-private-key\n-----END PRIVATE KEY-----"),
+					"public":  []byte("-----BEGIN PUBLIC KEY-----\ntest-public-key\n-----END PUBLIC KEY-----"),
+				},
+			},
+			generateCertificateErr: errActivityFailed,
+			expectErr:              true,
+		},
+		{
+			name: "failure - StoreSecret activity fails",
+			input: &cryptopb.CreateSelfSignedCertificateWorkflowInput{
+				Req: &cryptopb.CreateSelfSignedCertificateInput{
+					VaultKeyPath:         "fabric/org1/ca/tls/root/keys",
+					VaultCertificatePath: "fabric/org1/ca/tls/root/cert",
+					CommonName:           "org1-tls-root-ca",
+					Organization:         "org1",
+					OrganizationalUnit:   "root-ca",
+					ValidityDuration:     durationpb.New(365 * 24 * 60 * 60 * 1e9),
+					MaxPathLength:        1,
+				},
+			},
+			fetchSecretRes: &vaultpb.FetchSecretOutput{
+				Data: map[string][]byte{
+					"private": []byte("-----BEGIN PRIVATE KEY-----\ntest-private-key\n-----END PRIVATE KEY-----"),
+					"public":  []byte("-----BEGIN PUBLIC KEY-----\ntest-public-key\n-----END PUBLIC KEY-----"),
+				},
+			},
+			generateCertificateRes: &cryptopb.GenerateCertificateOutput{
+				Certificate: []byte("-----BEGIN CERTIFICATE-----\ntest-certificate\n-----END CERTIFICATE-----"),
+			},
+			storeSecretErr: errActivityFailed,
+			expectErr:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestWorkflowEnvironment()
+
+			realWorkflows := crypto.NewWorkflows()
+			cryptopb.RegisterCryptoWorkflows(env, realWorkflows)
+
+			mockCryptoActivities := cryptomocks.NewMockCryptoActivities(t)
+			if tt.fetchSecretErr == nil && tt.fetchSecretRes != nil && tt.fetchSecretRes.Data["private"] != nil {
+				mockCryptoActivities.EXPECT().
+					GenerateCertificate(mock.Anything, mock.MatchedBy(func(input *cryptopb.GenerateCertificateInput) bool {
+						if tt.validateGenerateRequest != nil {
+							tt.validateGenerateRequest(t, input)
+						}
+						return true
+					})).
+					Return(tt.generateCertificateRes, tt.generateCertificateErr).
+					Maybe()
+			}
+			cryptopb.RegisterCryptoActivities(env, mockCryptoActivities)
+
+			mockVaultActivities := vaultmocks.NewMockVaultActivities(t)
+			mockVaultActivities.EXPECT().
+				FetchSecret(mock.Anything, mock.MatchedBy(func(input *vaultpb.FetchSecretInput) bool {
+					if tt.validateFetchRequest != nil {
+						tt.validateFetchRequest(t, input)
+					}
+					return true
+				})).
+				Return(tt.fetchSecretRes, tt.fetchSecretErr).
+				Maybe()
+
+			if tt.fetchSecretErr == nil && tt.fetchSecretRes != nil && tt.fetchSecretRes.Data["private"] != nil && tt.generateCertificateErr == nil {
+				mockVaultActivities.EXPECT().
+					StoreSecret(mock.Anything, mock.MatchedBy(func(input *vaultpb.StoreSecretInput) bool {
+						if tt.validateStoreRequest != nil {
+							tt.validateStoreRequest(t, input)
+						}
+						return true
+					})).
+					Return(tt.storeSecretRes, tt.storeSecretErr).
+					Maybe()
+			}
+			vaultpb.RegisterVaultActivities(env, mockVaultActivities)
+
+			env.ExecuteWorkflow(crypto.TestCreateSelfSignedCertificateWorkflow, tt.input)
+
+			if !env.IsWorkflowCompleted() {
+				t.Fatal("expected workflow to complete")
+			}
+
+			if tt.expectErr {
+				if env.GetWorkflowError() == nil {
+					t.Fatal("expected error, got nil")
+				}
+			} else {
+				if err := env.GetWorkflowError(); err != nil {
+					t.Fatalf("unexpected workflow error: %v", err)
+				}
+
+				var result *cryptopb.CreateSelfSignedCertificateOutput
 				if err := env.GetWorkflowResult(&result); err != nil {
 					t.Fatalf("failed to get workflow result: %v", err)
 				}
