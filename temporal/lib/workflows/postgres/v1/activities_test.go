@@ -351,7 +351,7 @@ func TestGrantPrivilegesActivity(t *testing.T) {
 		expectErr bool
 	}{
 		{
-			name: "success - grants ALL privileges",
+			name: "success - makes user owner of database",
 			input: &pb.GrantPrivilegesInput{
 				Username:     "testuser",
 				DatabaseName: "testdb",
@@ -359,12 +359,12 @@ func TestGrantPrivilegesActivity(t *testing.T) {
 			},
 			setupMock: func(m *postgresmocks.MockPostgresClient) {
 				m.EXPECT().
-					Exec(mock.Anything, `GRANT ALL ON DATABASE "testdb" TO "testuser"`).
+					Exec(mock.Anything, `ALTER DATABASE "testdb" OWNER TO "testuser"`).
 					Return(nil)
 			},
 		},
 		{
-			name: "success - grants specific privileges",
+			name: "success - makes user owner (ignores specific privileges)",
 			input: &pb.GrantPrivilegesInput{
 				Username:     "testuser",
 				DatabaseName: "testdb",
@@ -376,12 +376,12 @@ func TestGrantPrivilegesActivity(t *testing.T) {
 			},
 			setupMock: func(m *postgresmocks.MockPostgresClient) {
 				m.EXPECT().
-					Exec(mock.Anything, `GRANT SELECT, INSERT, UPDATE ON DATABASE "testdb" TO "testuser"`).
+					Exec(mock.Anything, `ALTER DATABASE "testdb" OWNER TO "testuser"`).
 					Return(nil)
 			},
 		},
 		{
-			name: "success - defaults to ALL when privileges empty",
+			name: "success - makes user owner when privileges empty",
 			input: &pb.GrantPrivilegesInput{
 				Username:     "testuser",
 				DatabaseName: "testdb",
@@ -389,12 +389,12 @@ func TestGrantPrivilegesActivity(t *testing.T) {
 			},
 			setupMock: func(m *postgresmocks.MockPostgresClient) {
 				m.EXPECT().
-					Exec(mock.Anything, `GRANT ALL ON DATABASE "testdb" TO "testuser"`).
+					Exec(mock.Anything, `ALTER DATABASE "testdb" OWNER TO "testuser"`).
 					Return(nil)
 			},
 		},
 		{
-			name: "success - defaults to ALL when only UNSPECIFIED",
+			name: "success - makes user owner when only UNSPECIFIED",
 			input: &pb.GrantPrivilegesInput{
 				Username:     "testuser",
 				DatabaseName: "testdb",
@@ -402,12 +402,12 @@ func TestGrantPrivilegesActivity(t *testing.T) {
 			},
 			setupMock: func(m *postgresmocks.MockPostgresClient) {
 				m.EXPECT().
-					Exec(mock.Anything, `GRANT ALL ON DATABASE "testdb" TO "testuser"`).
+					Exec(mock.Anything, `ALTER DATABASE "testdb" OWNER TO "testuser"`).
 					Return(nil)
 			},
 		},
 		{
-			name: "success - grants multiple specific privileges",
+			name: "success - makes user owner (ignores multiple specific privileges)",
 			input: &pb.GrantPrivilegesInput{
 				Username:     "testuser",
 				DatabaseName: "testdb",
@@ -419,7 +419,7 @@ func TestGrantPrivilegesActivity(t *testing.T) {
 			},
 			setupMock: func(m *postgresmocks.MockPostgresClient) {
 				m.EXPECT().
-					Exec(mock.Anything, `GRANT CONNECT, TEMPORARY, CREATE ON DATABASE "testdb" TO "testuser"`).
+					Exec(mock.Anything, `ALTER DATABASE "testdb" OWNER TO "testuser"`).
 					Return(nil)
 			},
 		},

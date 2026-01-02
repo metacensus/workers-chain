@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
@@ -15,15 +16,17 @@ import (
 )
 
 const (
-	chartNamespace        = "fabric/namespace"
-	chartServiceAccount   = "fabric/service-account"
-	chartWorker           = "fabric/worker"
-	chartCertificateStore = "fabric/certificate-store"
+	chartNamespace            = "fabric/namespace"
+	chartServiceAccount       = "fabric/service-account"
+	chartWorker               = "fabric/worker"
+	chartCertificateStore     = "fabric/certificate-store"
+	chartCertificateAuthority = "fabric/certificate-authority"
 
-	componentNamespace        = "namespace"
-	componentServiceAccount   = "service-account"
-	componentWorker           = "worker"
-	componentCertificateStore = "certificate-store"
+	componentNamespace            = "namespace"
+	componentServiceAccount       = "service-account"
+	componentWorker               = "worker"
+	componentCertificateStore     = "certificate-store"
+	componentCertificateAuthority = "certificate-authority"
 )
 
 // Workflows implements the ClusterWorkflows interface from generated code
@@ -210,15 +213,15 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 
 	orgCfg := config.OrgConfig{OrgID: w.input.Org}
 
-	switch w.input.Component {
-	case componentWorker:
+	switch {
+	case w.input.Component == componentWorker:
 		chartName = chartWorker
 		componentName = componentWorker
 		workerValues := helm.NewWorkerValues(orgCfg)
 		values = workerValues
 		namespaceName = orgCfg.KubernetesNamespace()
 		deploymentName = orgCfg.WorkerDeploymentName()
-	case componentCertificateStore:
+	case w.input.Component == componentCertificateStore:
 		chartName = chartCertificateStore
 		componentName = componentCertificateStore
 		// Create config objects to get consistent configuration values
@@ -228,6 +231,30 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		values = certStoreValues
 		namespaceName = certStoreConfig.KubernetesNamespace() // Use from certStoreConfig which embeds OrgConfig
 		deploymentName = componentCertificateStore            // Matches helm chart: {{ include "certificate-store.name" . }}
+	case strings.HasPrefix(w.input.Component, componentCertificateAuthority):
+		// Certificate authority component names follow pattern: "certificate-authority-{certType}-{caID}"
+		// Examples: "certificate-authority-tls-root", "certificate-authority-org-v1"
+		parts := strings.Split(w.input.Component, "-")
+		if len(parts) != 4 {
+			return nil, fmt.Errorf("invalid certificate authority component format: %s (expected: certificate-authority-{certType}-{caID})", w.input.Component)
+		}
+		certType := parts[2] // "tls" or "org"
+		caID := parts[3]     // "root", "v1", "v2", etc.
+
+		// Validate cert type
+		if certType != "tls" && certType != "org" {
+			return nil, fmt.Errorf("invalid cert type: %s (must be 'tls' or 'org')", certType)
+		}
+
+		chartName = chartCertificateAuthority
+		componentName = componentCertificateAuthority
+		// Create config objects to get consistent configuration values
+		fabricCfg := fabricconfig.NewFabricConfig(orgCfg)
+		caConfig := fabricCfg.CertificateAuthority(certType, caID)
+		caValues := helm.NewCertificateAuthorityValues(caConfig)
+		values = caValues
+		namespaceName = caConfig.KubernetesNamespace()
+		deploymentName = caConfig.ComponentName() // Matches helm chart: {{ include "certificate-authority.name" . }}
 	default:
 		return nil, fmt.Errorf("unsupported component type: %s", w.input.Component)
 	}

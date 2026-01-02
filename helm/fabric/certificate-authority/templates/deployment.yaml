@@ -1,0 +1,132 @@
+{{- /*
+Certificate Authority Deployment
+Deploys Hyperledger Fabric CA server with access to:
+- Private key and certificate (from Vault)
+- Database credentials (from Vault)
+- Bootstrap admin credentials (from Vault)
+*/ -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "certificate-authority.name" . }}
+  namespace: {{ include "certificate-authority.namespace" . }}
+  labels:
+    {{- include "certificate-authority.commonLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{- include "certificate-authority.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "certificate-authority.commonLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "certificate-authority.name" . }}
+      containers:
+      - name: fabric-ca
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+        - sh
+        - -c
+        - |
+          # Build the datasource string with actual environment variable values
+          export FABRIC_CA_SERVER_DB_DATASOURCE="host={{ .Values.database.host }} port={{ .Values.database.port }} user=${DB_USERNAME} password=${DB_PASSWORD} dbname={{ .Values.database.name }} sslmode=disable"
+          # Start the fabric-ca-server with bootstrap admin credentials
+          exec fabric-ca-server start -b ${ADMIN_USERNAME}:${ADMIN_PASSWORD}
+        ports:
+        - name: ca-server
+          containerPort: {{ .Values.service.port }}
+          protocol: TCP
+        env:
+        # Fabric CA Server configuration via environment variables
+        # Ref: https://hyperledger-fabric-ca.readthedocs.io/en/latest/serverconfig.html
+        
+        # Basic CA configuration
+        - name: FABRIC_CA_SERVER_CA_NAME
+          value: {{ .Values.ca.commonName | quote }}
+        - name: FABRIC_CA_SERVER_PORT
+          value: {{ .Values.service.port | quote }}
+        
+        # Database configuration (PostgreSQL)
+        - name: FABRIC_CA_SERVER_DB_TYPE
+          value: "postgres"
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "certificate-authority.name" . }}-secret
+              key: db-username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "certificate-authority.name" . }}-secret
+              key: db-password
+        
+        # Bootstrap admin credentials (for -b flag)
+        - name: ADMIN_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "certificate-authority.name" . }}-secret
+              key: admin-username
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "certificate-authority.name" . }}-secret
+              key: admin-password
+        
+        # TLS Configuration (CA uses its own cert/key for TLS)
+        - name: FABRIC_CA_SERVER_TLS_ENABLED
+          value: "true"
+        - name: FABRIC_CA_SERVER_TLS_CERTFILE
+          value: "/mnt/secrets-store/ca-cert"
+        - name: FABRIC_CA_SERVER_TLS_KEYFILE
+          value: "/mnt/secrets-store/ca-private-key"
+        
+        # CA signing certificate and key
+        - name: FABRIC_CA_SERVER_CA_CERTFILE
+          value: "/mnt/secrets-store/ca-cert"
+        - name: FABRIC_CA_SERVER_CA_KEYFILE
+          value: "/mnt/secrets-store/ca-private-key"
+        
+        # Operations server configuration (for health checks and metrics)
+        - name: FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS
+          value: "0.0.0.0:9443"
+        
+        # Logging configuration
+        - name: FABRIC_CA_SERVER_DEBUG
+          value: "false"
+        
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9443
+            scheme: HTTP
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 9443
+            scheme: HTTP
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+        volumeMounts:
+        - name: vault-secrets
+          mountPath: /mnt/secrets-store
+          readOnly: true
+      volumes:
+      - name: vault-secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: {{ include "certificate-authority.name" . }}-vault
+
+
+
+

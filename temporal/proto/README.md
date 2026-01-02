@@ -988,8 +988,13 @@ This workflow renders a Helm chart with provided values and applies it to the cl
 <td>string</td>
 <td><pre>
 component specifies which type of deployment to create
-Currently supported: "worker", "certificate-store"
-Future components: "peer", "orderer", "ca", "couchdb"<br>
+Currently supported:
+  - "worker": Fabric worker deployment
+  - "certificate-store": PostgreSQL certificate store
+  - "certificate-authority-{certType}-{caID}": Certificate Authority
+      where certType is "tls" or "org", and caID is "root", "v1", "v2", etc.
+      Examples: "certificate-authority-tls-root", "certificate-authority-org-v1"
+Future components: "peer", "orderer", "couchdb"<br>
 
 json_name: Component
 go_name: Component
@@ -1052,8 +1057,13 @@ go_tags: json:"DeploymentName" validate:"required"</pre></td>
 <td>string</td>
 <td><pre>
 component specifies which type of deployment to create
-Currently supported: "worker", "certificate-store"
-Future components: "peer", "orderer", "ca", "couchdb"<br>
+Currently supported:
+  - "worker": Fabric worker deployment
+  - "certificate-store": PostgreSQL certificate store
+  - "certificate-authority-{certType}-{caID}": Certificate Authority
+      where certType is "tls" or "org", and caID is "root", "v1", "v2", etc.
+      Examples: "certificate-authority-tls-root", "certificate-authority-org-v1"
+Future components: "peer", "orderer", "couchdb"<br>
 
 json_name: Component
 go_name: Component

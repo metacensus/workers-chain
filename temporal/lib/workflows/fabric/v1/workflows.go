@@ -406,7 +406,15 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		return nil, fmt.Errorf("failed to generate bootstrap admin credentials: %w", err)
 	}
 
-	// TODO: Deploy root CA pod
+	// Deploy root CA pod
+	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
+		Org:       w.orgConfig.OrgID,
+		Component: rootCA.ComponentName(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to deploy root CA: %w", err)
+	}
+
 	// TODO: Bootstrap root CA admin
 
 	return &pb.DeployRootCertificateAuthorityOutput{}, nil

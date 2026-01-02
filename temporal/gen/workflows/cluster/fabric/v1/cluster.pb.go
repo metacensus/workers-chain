@@ -200,8 +200,14 @@ type CreateDeploymentInput struct {
 	// Used to derive namespace names, service account names, etc.
 	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
 	// component specifies which type of deployment to create
-	// Currently supported: "worker", "certificate-store"
-	// Future components: "peer", "orderer", "ca", "couchdb"
+	// Currently supported:
+	//   - "worker": Fabric worker deployment
+	//   - "certificate-store": PostgreSQL certificate store
+	//   - "certificate-authority-{certType}-{caID}": Certificate Authority
+	//     where certType is "tls" or "org", and caID is "root", "v1", "v2", etc.
+	//     Examples: "certificate-authority-tls-root", "certificate-authority-org-v1"
+	//
+	// Future components: "peer", "orderer", "couchdb"
 	Component     string `protobuf:"bytes,2,opt,name=component,json=Component,proto3" json:"Component" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -147,16 +147,19 @@ func (a *Activities) GrantPrivileges(ctx context.Context, req *pb.GrantPrivilege
 		return nil, fmt.Errorf("failed to get postgres client: %w", err)
 	}
 
-	// Convert enum privileges to PostgreSQL privilege strings
-	privilegesStr := ConvertPrivilegesToSQL(req.Privileges)
-
-	// Grant privileges on the database
 	// We need to escape identifiers
 	escapedUsername := escapeIdentifier(req.Username)
 	escapedDatabaseName := escapeIdentifier(req.DatabaseName)
-	grantSQL := fmt.Sprintf("GRANT %s ON DATABASE %s TO %s", privilegesStr, escapedDatabaseName, escapedUsername)
 
-	if err := client.Exec(ctx, grantSQL); err != nil {
+	// Make the user the owner of the database
+	// This gives them full control including:
+	// - CONNECT to the database
+	// - CREATE schemas
+	// - CREATE tables in the public schema (required for PostgreSQL 15+)
+	// - All other database operations within this database
+	// Permissions are isolated - the user cannot access other databases
+	alterOwnerSQL := fmt.Sprintf("ALTER DATABASE %s OWNER TO %s", escapedDatabaseName, escapedUsername)
+	if err := client.Exec(ctx, alterOwnerSQL); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrGrantPrivileges, err)
 	}
 
