@@ -26,13 +26,15 @@ const (
 
 // Sentinel errors for fabric workflows
 var (
-	ErrBootstrapCertificateAuthorities = errors.New("bootstrap certificate authorities")
-	ErrDeployCertificateStore          = errors.New("deploy certificate store")
-	ErrCreateCertificateDatabase       = errors.New("create certificate database")
-	ErrDeployRootCertificateAuthority  = errors.New("deploy root certificate authority")
-	ErrDeployCertificateAuthority      = errors.New("deploy certificate authority")
-	ErrCreateVaultAccess               = errors.New("create vault access via nexus")
-	ErrInvalidCertType                 = errors.New("invalid cert type")
+	ErrBootstrapCertificateAuthorities      = errors.New("bootstrap certificate authorities")
+	ErrDeployCertificateStore               = errors.New("deploy certificate store")
+	ErrCreateCertificateDatabase            = errors.New("create certificate database")
+	ErrDeployRootCertificateAuthority       = errors.New("deploy root certificate authority")
+	ErrDeployCertificateAuthority           = errors.New("deploy certificate authority")
+	ErrBootstrapCertificateAuthorityAdmin   = errors.New("bootstrap certificate authority admin")
+	ErrCreateIdentity                       = errors.New("create identity")
+	ErrCreateVaultAccess                    = errors.New("create vault access via nexus")
+	ErrInvalidCertType                      = errors.New("invalid cert type")
 )
 
 // Workflows implements the FabricWorkflows interface from generated code
@@ -480,4 +482,85 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 	// TODO: Bootstrap intermediate CA admin
 
 	return &pb.DeployCertificateAuthorityOutput{}, nil
+}
+
+// BootstrapCertificateAuthorityAdmin implements the BootstrapCertificateAuthorityAdmin workflow
+func (w *Workflows) BootstrapCertificateAuthorityAdmin(ctx workflow.Context, input *pb.BootstrapCertificateAuthorityAdminWorkflowInput) (pb.BootstrapCertificateAuthorityAdminWorkflow, error) {
+	return &bootstrapCertificateAuthorityAdminWorkflow{
+		input:        input,
+		orgConfig:    w.orgConfig,
+		fabricConfig: w.fabricConfig,
+	}, nil
+}
+
+// bootstrapCertificateAuthorityAdminWorkflow implements pb.BootstrapCertificateAuthorityAdminWorkflow
+type bootstrapCertificateAuthorityAdminWorkflow struct {
+	input        *pb.BootstrapCertificateAuthorityAdminWorkflowInput
+	orgConfig    config.OrgConfig
+	fabricConfig fabricconfig.FabricConfig
+}
+
+// Execute bootstraps the admin user for a certificate authority
+func (w *bootstrapCertificateAuthorityAdminWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapCertificateAuthorityAdminOutput, error) {
+	certType := w.input.Req.GetCertType()
+	caID := w.input.Req.GetCertificateAuthorityId()
+
+	// Validate cert type
+	if certType != "tls" && certType != "org" {
+		return nil, ErrInvalidCertType
+	}
+
+	// TODO: Create admin identities for both tls and org
+	// for each ("tls", "org")
+	//   └─ Workflow: fabric.v1.CreateIdentity
+
+	// TODO: Revoke bootstrap admin credentials
+	// └─ Activity: fabric.v1.RevokeIdentity
+
+	_ = caID // TODO: Use caID in implementation
+
+	return &pb.BootstrapCertificateAuthorityAdminOutput{}, nil
+}
+
+// CreateIdentity implements the CreateIdentity workflow
+func (w *Workflows) CreateIdentity(ctx workflow.Context, input *pb.CreateIdentityWorkflowInput) (pb.CreateIdentityWorkflow, error) {
+	return &createIdentityWorkflow{
+		input:        input,
+		orgConfig:    w.orgConfig,
+		fabricConfig: w.fabricConfig,
+	}, nil
+}
+
+// createIdentityWorkflow implements pb.CreateIdentityWorkflow
+type createIdentityWorkflow struct {
+	input        *pb.CreateIdentityWorkflowInput
+	orgConfig    config.OrgConfig
+	fabricConfig fabricconfig.FabricConfig
+}
+
+// Execute creates a new Fabric identity by generating keys, registering with CA, and enrolling
+func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdentityOutput, error) {
+	certType := w.input.Req.GetCertType()
+	identityName := w.input.Req.GetIdentityName()
+
+	// Validate cert type
+	if certType != "tls" && certType != "org" {
+		return nil, ErrInvalidCertType
+	}
+
+	// TODO: Generate key pair for identity
+	// └─ Workflow: crypto.v1.GenerateAndStoreKeyPair
+
+	// TODO: Register identity with CA
+	// └─ Activity: fabric.v1.RegisterIdentity
+
+	// TODO: Enroll identity with CA
+	// └─ Activity: fabric.v1.EnrollIdentity
+
+	// TODO: Store identity certificate in Vault
+	// └─ Activity: vault.v1.StoreSecret
+
+	_ = identityName // TODO: Use identityName in implementation
+
+	return &pb.CreateIdentityOutput{}, nil
 }

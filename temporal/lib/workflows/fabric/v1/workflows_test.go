@@ -58,6 +58,16 @@ func registerChildWorkflowStubs(env *testsuite.TestWorkflowEnvironment) {
 		func(workflow.Context, *cryptopb.GenerateAndStorePasswordInput) (*cryptopb.GenerateAndStorePasswordOutput, error) {
 			return nil, nil
 		})
+
+	register(pb.CreateIdentityWorkflowName,
+		func(workflow.Context, *pb.CreateIdentityInput) (*pb.CreateIdentityOutput, error) {
+			return nil, nil
+		})
+
+	register(pb.BootstrapCertificateAuthorityAdminWorkflowName,
+		func(workflow.Context, *pb.BootstrapCertificateAuthorityAdminInput) (*pb.BootstrapCertificateAuthorityAdminOutput, error) {
+			return nil, nil
+		})
 }
 
 // mockChildWorkflow sets up a mock for a child workflow, returning success or the given error.
@@ -447,6 +457,174 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 					if result.CredentialsRef.Version == 0 {
 						t.Fatal("credentials_ref.version is 0")
 					}
+				}
+			} else {
+				if err == nil {
+					t.Fatalf("expected error %v, got nil", tt.expectedErr)
+				}
+				// Temporal serializes workflow errors, breaking Go's error chain, so we check the message.
+				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
+					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
+				}
+			}
+		})
+	}
+}
+
+func TestBootstrapCertificateAuthorityAdminWorkflow(t *testing.T) {
+	tests := []struct {
+		name        string
+		org         string
+		certType    string
+		caID        string
+		expectedErr error // nil = success
+	}{
+		{
+			name:        "success - bootstrap admin for tls root CA",
+			org:         testOrg,
+			certType:    "tls",
+			caID:        "root",
+			expectedErr: nil,
+		},
+		{
+			name:        "success - bootstrap admin for org intermediate CA",
+			org:         testOrg,
+			certType:    "org",
+			caID:        "v1",
+			expectedErr: nil,
+		},
+		{
+			name:        "failure - invalid cert type",
+			org:         testOrg,
+			certType:    "invalid",
+			caID:        "root",
+			expectedErr: fabric.ErrInvalidCertType,
+		},
+		// TODO: Add more test cases during implementation
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestWorkflowEnvironment()
+
+			// Register child workflow stubs
+			registerChildWorkflowStubs(env)
+
+			// Create OrgConfig for testing
+			orgConfig := config.OrgConfig{OrgID: tt.org}
+
+			// TODO: Mock CreateIdentity child workflow
+			// TODO: Mock RevokeIdentity activity
+
+			// Execute workflow
+			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.BootstrapCertificateAuthorityAdminInput) (*pb.BootstrapCertificateAuthorityAdminOutput, error) {
+				fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
+				workflows := fabric.NewWorkflows(orgConfig, fabricConfig)
+				wf, err := workflows.BootstrapCertificateAuthorityAdmin(ctx, &pb.BootstrapCertificateAuthorityAdminWorkflowInput{Req: input})
+				if err != nil {
+					return nil, err
+				}
+				return wf.Execute(ctx)
+			}, &pb.BootstrapCertificateAuthorityAdminInput{
+				CertType:               tt.certType,
+				CertificateAuthorityId: tt.caID,
+			})
+
+			var result *pb.BootstrapCertificateAuthorityAdminOutput
+			err := env.GetWorkflowResult(&result)
+
+			if tt.expectedErr == nil {
+				if err != nil {
+					t.Fatalf("unexpected workflow error: %v", err)
+				}
+				if result == nil {
+					t.Fatal("result is nil")
+				}
+			} else {
+				if err == nil {
+					t.Fatalf("expected error %v, got nil", tt.expectedErr)
+				}
+				// Temporal serializes workflow errors, breaking Go's error chain, so we check the message.
+				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
+					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
+				}
+			}
+		})
+	}
+}
+
+func TestCreateIdentityWorkflow(t *testing.T) {
+	tests := []struct {
+		name         string
+		org          string
+		certType     string
+		identityName string
+		expectedErr  error // nil = success
+	}{
+		{
+			name:         "success - create tls admin identity",
+			org:          testOrg,
+			certType:     "tls",
+			identityName: "admin",
+			expectedErr:  nil,
+		},
+		{
+			name:         "success - create org peer0 identity",
+			org:          testOrg,
+			certType:     "org",
+			identityName: "peer0",
+			expectedErr:  nil,
+		},
+		{
+			name:         "failure - invalid cert type",
+			org:          testOrg,
+			certType:     "invalid",
+			identityName: "admin",
+			expectedErr:  fabric.ErrInvalidCertType,
+		},
+		// TODO: Add more test cases during implementation
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestWorkflowEnvironment()
+
+			// Register child workflow stubs
+			registerChildWorkflowStubs(env)
+
+			// Create OrgConfig for testing
+			orgConfig := config.OrgConfig{OrgID: tt.org}
+
+			// TODO: Mock GenerateAndStoreKeyPair child workflow
+			// TODO: Mock RegisterIdentity activity
+			// TODO: Mock EnrollIdentity activity
+			// TODO: Mock StoreSecret activity
+
+			// Execute workflow
+			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.CreateIdentityInput) (*pb.CreateIdentityOutput, error) {
+				fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
+				workflows := fabric.NewWorkflows(orgConfig, fabricConfig)
+				wf, err := workflows.CreateIdentity(ctx, &pb.CreateIdentityWorkflowInput{Req: input})
+				if err != nil {
+					return nil, err
+				}
+				return wf.Execute(ctx)
+			}, &pb.CreateIdentityInput{
+				CertType:     tt.certType,
+				IdentityName: tt.identityName,
+			})
+
+			var result *pb.CreateIdentityOutput
+			err := env.GetWorkflowResult(&result)
+
+			if tt.expectedErr == nil {
+				if err != nil {
+					t.Fatalf("unexpected workflow error: %v", err)
+				}
+				if result == nil {
+					t.Fatal("result is nil")
 				}
 			} else {
 				if err == nil {

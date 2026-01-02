@@ -156,3 +156,47 @@ func (c *FabricNexusClient) CreateCertificateDatabase(ctx workflow.Context, inpu
 	err := fut.Get(ctx, &output)
 	return &output, err
 }
+
+type BootstrapCertificateAuthorityAdminFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *BootstrapCertificateAuthorityAdminFuture) GetTyped(ctx workflow.Context) (*v1.BootstrapCertificateAuthorityAdminOutput, error) {
+	var output v1.BootstrapCertificateAuthorityAdminOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) BootstrapCertificateAuthorityAdminAsync(ctx workflow.Context, input *v1.BootstrapCertificateAuthorityAdminInput, options workflow.NexusOperationOptions) BootstrapCertificateAuthorityAdminFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricBootstrapCertificateAuthorityAdminOperationName, input, options)
+	return BootstrapCertificateAuthorityAdminFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) BootstrapCertificateAuthorityAdmin(ctx workflow.Context, input *v1.BootstrapCertificateAuthorityAdminInput, options workflow.NexusOperationOptions) (*v1.BootstrapCertificateAuthorityAdminOutput, error) {
+	var output v1.BootstrapCertificateAuthorityAdminOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricBootstrapCertificateAuthorityAdminOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type CreateIdentityFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *CreateIdentityFuture) GetTyped(ctx workflow.Context) (*v1.CreateIdentityOutput, error) {
+	var output v1.CreateIdentityOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) CreateIdentityAsync(ctx workflow.Context, input *v1.CreateIdentityInput, options workflow.NexusOperationOptions) CreateIdentityFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricCreateIdentityOperationName, input, options)
+	return CreateIdentityFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) CreateIdentity(ctx workflow.Context, input *v1.CreateIdentityInput, options workflow.NexusOperationOptions) (*v1.CreateIdentityOutput, error) {
+	var output v1.CreateIdentityOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricCreateIdentityOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}

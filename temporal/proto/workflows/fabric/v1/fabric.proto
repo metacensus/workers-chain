@@ -82,6 +82,62 @@ service Fabric {
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
+
+  // BootstrapCertificateAuthorityAdmin bootstraps the admin user for a certificate authority
+  // After a CA is deployed, this workflow creates admin identities for both tls and org,
+  // then revokes the bootstrap admin credentials
+  rpc BootstrapCertificateAuthorityAdmin(BootstrapCertificateAuthorityAdminInput) returns (BootstrapCertificateAuthorityAdminOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.BootstrapCertificateAuthorityAdmin"
+      id: 'fabric/bootstrap-ca-admin/${! CertType }/${! CertificateAuthorityId }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // CreateIdentity creates a new Fabric identity by generating keys, registering with CA, and enrolling
+  // Used for creating admin identities, peer identities, orderer identities, and chaincode identities
+  rpc CreateIdentity(CreateIdentityInput) returns (CreateIdentityOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.CreateIdentity"
+      id: 'fabric/create-identity/${! CertType }/${! IdentityName }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+}
+
+// FabricActivities service defines activities for Fabric CA operations
+// These activities interact with Fabric CA for identity management
+// Activities are NOT exposed via Nexus (only workflows can be called cross-namespace)
+service FabricActivities {
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {task_queue: "infra"};
+
+  // RegisterIdentity registers a new identity with a Fabric CA
+  // This is the first step in identity creation - registration returns an enrollment secret
+  rpc RegisterIdentity(RegisterIdentityInput) returns (RegisterIdentityOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.RegisterIdentity"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+
+  // EnrollIdentity enrolls a registered identity and retrieves certificates
+  // This is the second step in identity creation - enrollment uses the secret from registration
+  rpc EnrollIdentity(EnrollIdentityInput) returns (EnrollIdentityOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.EnrollIdentity"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+
+  // RevokeIdentity revokes an identity from a Fabric CA
+  // Used to revoke bootstrap admin credentials after permanent admin is created
+  rpc RevokeIdentity(RevokeIdentityInput) returns (RevokeIdentityOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.RevokeIdentity"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
 }
 
 // ==================== BootstrapShard Workflow Messages ====================
@@ -197,4 +253,89 @@ message CreateCertificateDatabaseOutput {
     json_name = "CredentialsRef",
     (go.field).tags = 'json:"CredentialsRef" validate:"required"'
   ];
+}
+
+// ==================== BootstrapCertificateAuthorityAdmin Workflow Messages ====================
+
+// BootstrapCertificateAuthorityAdminInput specifies the parameters for bootstrapping CA admin
+message BootstrapCertificateAuthorityAdminInput {
+  // cert_type specifies whether this is a TLS or Org certificate authority
+  // Valid values: "tls" or "org"
+  string cert_type = 1 [
+    json_name = "CertType",
+    (go.field).tags = 'json:"CertType" validate:"required"'
+  ];
+
+  // certificate_authority_id identifies which CA to bootstrap the admin for
+  // Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs
+  string certificate_authority_id = 2 [
+    json_name = "CertificateAuthorityId",
+    (go.field).tags = 'json:"CertificateAuthorityId" validate:"required"'
+  ];
+}
+
+// BootstrapCertificateAuthorityAdminOutput indicates the result of CA admin bootstrap
+// Empty for now - will be populated as implementation progresses
+message BootstrapCertificateAuthorityAdminOutput {
+  // Empty for now
+}
+
+// ==================== CreateIdentity Workflow Messages ====================
+
+// CreateIdentityInput specifies the parameters for creating a Fabric identity
+message CreateIdentityInput {
+  // cert_type specifies whether this is a TLS or Org identity
+  // Valid values: "tls" or "org"
+  string cert_type = 1 [
+    json_name = "CertType",
+    (go.field).tags = 'json:"CertType" validate:"required"'
+  ];
+
+  // identity_name is the unique name for this identity (e.g., "admin", "peer0", "orderer0")
+  string identity_name = 2 [
+    json_name = "IdentityName",
+    (go.field).tags = 'json:"IdentityName" validate:"required"'
+  ];
+}
+
+// CreateIdentityOutput indicates the result of identity creation
+// Empty for now - will be populated as implementation progresses
+message CreateIdentityOutput {
+  // Empty for now
+}
+
+// ==================== RegisterIdentity Activity Messages ====================
+
+// RegisterIdentityInput specifies the parameters for registering an identity with a CA
+message RegisterIdentityInput {
+  // Empty for now - will be populated during implementation
+}
+
+// RegisterIdentityOutput contains the enrollment secret returned by the CA
+message RegisterIdentityOutput {
+  // Empty for now - will be populated during implementation
+}
+
+// ==================== EnrollIdentity Activity Messages ====================
+
+// EnrollIdentityInput specifies the parameters for enrolling an identity with a CA
+message EnrollIdentityInput {
+  // Empty for now - will be populated during implementation
+}
+
+// EnrollIdentityOutput contains the certificates returned by the CA
+message EnrollIdentityOutput {
+  // Empty for now - will be populated during implementation
+}
+
+// ==================== RevokeIdentity Activity Messages ====================
+
+// RevokeIdentityInput specifies the parameters for revoking an identity from a CA
+message RevokeIdentityInput {
+  // Empty for now - will be populated during implementation
+}
+
+// RevokeIdentityOutput indicates the result of identity revocation
+message RevokeIdentityOutput {
+  // Empty for now - will be populated during implementation
 }

@@ -70,19 +70,36 @@
         - [fabric.v1.DeployRootCertificateAuthority](#fabric-v1-deployrootcertificateauthority-workflow)
         - [fabric.v1.DeployCertificateAuthority](#fabric-v1-deploycertificateauthority-workflow)
         - [fabric.v1.CreateCertificateDatabase](#fabric-v1-createcertificatedatabase-workflow)
+        - [fabric.v1.BootstrapCertificateAuthorityAdmin](#fabric-v1-bootstrapcertificateauthorityadmin-workflow)
+        - [fabric.v1.CreateIdentity](#fabric-v1-createidentity-workflow)
+    - [fabric.v1.FabricActivities](#fabric-v1-fabricactivities)
+      - [Activities](#fabric-v1-fabricactivities-activities)
+        - [fabric.v1.RegisterIdentity](#fabric-v1-registeridentity-activity)
+        - [fabric.v1.EnrollIdentity](#fabric-v1-enrollidentity-activity)
+        - [fabric.v1.RevokeIdentity](#fabric-v1-revokeidentity-activity)
   - Messages
     - [fabric.v1.BootstrapCertificateAuthoritiesInput](#fabric-v1-bootstrapcertificateauthoritiesinput)
     - [fabric.v1.BootstrapCertificateAuthoritiesOutput](#fabric-v1-bootstrapcertificateauthoritiesoutput)
+    - [fabric.v1.BootstrapCertificateAuthorityAdminInput](#fabric-v1-bootstrapcertificateauthorityadmininput)
+    - [fabric.v1.BootstrapCertificateAuthorityAdminOutput](#fabric-v1-bootstrapcertificateauthorityadminoutput)
     - [fabric.v1.BootstrapShardInput](#fabric-v1-bootstrapshardinput)
     - [fabric.v1.BootstrapShardOutput](#fabric-v1-bootstrapshardoutput)
     - [fabric.v1.CreateCertificateDatabaseInput](#fabric-v1-createcertificatedatabaseinput)
     - [fabric.v1.CreateCertificateDatabaseOutput](#fabric-v1-createcertificatedatabaseoutput)
+    - [fabric.v1.CreateIdentityInput](#fabric-v1-createidentityinput)
+    - [fabric.v1.CreateIdentityOutput](#fabric-v1-createidentityoutput)
     - [fabric.v1.DeployCertificateAuthorityInput](#fabric-v1-deploycertificateauthorityinput)
     - [fabric.v1.DeployCertificateAuthorityOutput](#fabric-v1-deploycertificateauthorityoutput)
     - [fabric.v1.DeployCertificateStoreInput](#fabric-v1-deploycertificatestoreinput)
     - [fabric.v1.DeployCertificateStoreOutput](#fabric-v1-deploycertificatestoreoutput)
     - [fabric.v1.DeployRootCertificateAuthorityInput](#fabric-v1-deployrootcertificateauthorityinput)
     - [fabric.v1.DeployRootCertificateAuthorityOutput](#fabric-v1-deployrootcertificateauthorityoutput)
+    - [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
+    - [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
+    - [fabric.v1.RegisterIdentityInput](#fabric-v1-registeridentityinput)
+    - [fabric.v1.RegisterIdentityOutput](#fabric-v1-registeridentityoutput)
+    - [fabric.v1.RevokeIdentityInput](#fabric-v1-revokeidentityinput)
+    - [fabric.v1.RevokeIdentityOutput](#fabric-v1-revokeidentityoutput)
 - [helm.v1](#helm-v1)
   - Services
     - [helm.v1.Helm](#helm-v1-helm)
@@ -2291,7 +2308,174 @@ go_tags: json:"CredentialsRef" validate:"required"</pre></td>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/create-certificate-database/${! CertType }/${! CertificateAuthorityId }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-bootstrapcertificateauthorityadmin-workflow"></a>
+### fabric.v1.BootstrapCertificateAuthorityAdmin
+
+<pre>
+BootstrapCertificateAuthorityAdmin bootstraps the admin user for a certificate authority
+After a CA is deployed, this workflow creates admin identities for both tls and org,
+then revokes the bootstrap admin credentials
+</pre>
+
+**Input:** [fabric.v1.BootstrapCertificateAuthorityAdminInput](#fabric-v1-bootstrapcertificateauthorityadmininput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is a TLS or Org certificate authority
+Valid values: "tls" or "org"<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required"</pre></td>
+</tr><tr>
+<td>certificate_authority_id</td>
+<td>string</td>
+<td><pre>
+certificate_authority_id identifies which CA to bootstrap the admin for
+Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs<br>
+
+json_name: CertificateAuthorityId
+go_name: CertificateAuthorityId
+go_tags: json:"CertificateAuthorityId" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.v1.BootstrapCertificateAuthorityAdminOutput](#fabric-v1-bootstrapcertificateauthorityadminoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/bootstrap-ca-admin/${! CertType }/${! CertificateAuthorityId }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-createidentity-workflow"></a>
+### fabric.v1.CreateIdentity
+
+<pre>
+CreateIdentity creates a new Fabric identity by generating keys, registering with CA, and enrolling
+Used for creating admin identities, peer identities, orderer identities, and chaincode identities
+</pre>
+
+**Input:** [fabric.v1.CreateIdentityInput](#fabric-v1-createidentityinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is a TLS or Org identity
+Valid values: "tls" or "org"<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the unique name for this identity (e.g., "admin", "peer0", "orderer0")<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.v1.CreateIdentityOutput](#fabric-v1-createidentityoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/create-identity/${! CertType }/${! IdentityName }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>     
+
+<a name="fabric-v1-fabricactivities"></a>
+## fabric.v1.FabricActivities
+
+<pre>
+FabricActivities service defines activities for Fabric CA operations
+These activities interact with Fabric CA for identity management
+Activities are NOT exposed via Nexus (only workflows can be called cross-namespace)
+</pre>   
+
+<a name="fabric-v1-fabricactivities-activities"></a>
+### Activities
+
+---
+<a name="fabric-v1-registeridentity-activity"></a>
+### fabric.v1.RegisterIdentity
+
+<pre>
+RegisterIdentity registers a new identity with a Fabric CA
+This is the first step in identity creation - registration returns an enrollment secret
+</pre>
+
+**Input:** [fabric.v1.RegisterIdentityInput](#fabric-v1-registeridentityinput)
+
+
+
+**Output:** [fabric.v1.RegisterIdentityOutput](#fabric-v1-registeridentityoutput)
+
+ 
+
+---
+<a name="fabric-v1-enrollidentity-activity"></a>
+### fabric.v1.EnrollIdentity
+
+<pre>
+EnrollIdentity enrolls a registered identity and retrieves certificates
+This is the second step in identity creation - enrollment uses the secret from registration
+</pre>
+
+**Input:** [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
+
+
+
+**Output:** [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
+
+ 
+
+---
+<a name="fabric-v1-revokeidentity-activity"></a>
+### fabric.v1.RevokeIdentity
+
+<pre>
+RevokeIdentity revokes an identity from a Fabric CA
+Used to revoke bootstrap admin credentials after permanent admin is created
+</pre>
+
+**Input:** [fabric.v1.RevokeIdentityInput](#fabric-v1-revokeidentityinput)
+
+
+
+**Output:** [fabric.v1.RevokeIdentityOutput](#fabric-v1-revokeidentityoutput)
+
+   
 
 <a name="fabric-v1-messages"></a>
 ## Messages
@@ -2311,6 +2495,54 @@ Empty for now - org is implicit from the worker's namespace
 
 <pre>
 BootstrapCertificateAuthoritiesOutput indicates the result of CA bootstrapping
+Empty for now - will be populated as implementation progresses
+</pre>
+
+
+
+<a name="fabric-v1-bootstrapcertificateauthorityadmininput"></a>
+### fabric.v1.BootstrapCertificateAuthorityAdminInput
+
+<pre>
+BootstrapCertificateAuthorityAdminInput specifies the parameters for bootstrapping CA admin
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is a TLS or Org certificate authority
+Valid values: "tls" or "org"<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required"</pre></td>
+</tr><tr>
+<td>certificate_authority_id</td>
+<td>string</td>
+<td><pre>
+certificate_authority_id identifies which CA to bootstrap the admin for
+Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs<br>
+
+json_name: CertificateAuthorityId
+go_name: CertificateAuthorityId
+go_tags: json:"CertificateAuthorityId" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-bootstrapcertificateauthorityadminoutput"></a>
+### fabric.v1.BootstrapCertificateAuthorityAdminOutput
+
+<pre>
+BootstrapCertificateAuthorityAdminOutput indicates the result of CA admin bootstrap
 Empty for now - will be populated as implementation progresses
 </pre>
 
@@ -2399,6 +2631,53 @@ go_name: CredentialsRef
 go_tags: json:"CredentialsRef" validate:"required"</pre></td>
 </tr>
 </table>
+
+
+
+<a name="fabric-v1-createidentityinput"></a>
+### fabric.v1.CreateIdentityInput
+
+<pre>
+CreateIdentityInput specifies the parameters for creating a Fabric identity
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is a TLS or Org identity
+Valid values: "tls" or "org"<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the unique name for this identity (e.g., "admin", "peer0", "orderer0")<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-createidentityoutput"></a>
+### fabric.v1.CreateIdentityOutput
+
+<pre>
+CreateIdentityOutput indicates the result of identity creation
+Empty for now - will be populated as implementation progresses
+</pre>
 
 
 
@@ -2505,6 +2784,60 @@ go_tags: json:"CertType" validate:"required"</pre></td>
 <pre>
 DeployRootCertificateAuthorityOutput indicates the result of root CA deployment
 Empty for now - will be populated as implementation progresses
+</pre>
+
+
+
+<a name="fabric-v1-enrollidentityinput"></a>
+### fabric.v1.EnrollIdentityInput
+
+<pre>
+EnrollIdentityInput specifies the parameters for enrolling an identity with a CA
+</pre>
+
+
+
+<a name="fabric-v1-enrollidentityoutput"></a>
+### fabric.v1.EnrollIdentityOutput
+
+<pre>
+EnrollIdentityOutput contains the certificates returned by the CA
+</pre>
+
+
+
+<a name="fabric-v1-registeridentityinput"></a>
+### fabric.v1.RegisterIdentityInput
+
+<pre>
+RegisterIdentityInput specifies the parameters for registering an identity with a CA
+</pre>
+
+
+
+<a name="fabric-v1-registeridentityoutput"></a>
+### fabric.v1.RegisterIdentityOutput
+
+<pre>
+RegisterIdentityOutput contains the enrollment secret returned by the CA
+</pre>
+
+
+
+<a name="fabric-v1-revokeidentityinput"></a>
+### fabric.v1.RevokeIdentityInput
+
+<pre>
+RevokeIdentityInput specifies the parameters for revoking an identity from a CA
+</pre>
+
+
+
+<a name="fabric-v1-revokeidentityoutput"></a>
+### fabric.v1.RevokeIdentityOutput
+
+<pre>
+RevokeIdentityOutput indicates the result of identity revocation
 </pre>
 
 

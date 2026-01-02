@@ -34,6 +34,22 @@ func (h *FabricNexusHandler) BootstrapCertificateAuthorities(name string) nexus.
 	})
 }
 
+// BootstrapCertificateAuthorityAdmin bootstraps the admin user for a certificate authority
+// After a CA is deployed, this workflow creates admin identities for both tls and org,
+// then revokes the bootstrap admin credentials
+func (h *FabricNexusHandler) BootstrapCertificateAuthorityAdmin(name string) nexus.Operation[*v1.BootstrapCertificateAuthorityAdminInput, *v1.BootstrapCertificateAuthorityAdminOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.BootstrapCertificateAuthorityAdminInput, *v1.BootstrapCertificateAuthorityAdminOutput]{
+		Handler: func(ctx context.Context, input *v1.BootstrapCertificateAuthorityAdminInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.BootstrapCertificateAuthorityAdminOutput], error) {
+			o, err := v1.NewBootstrapCertificateAuthorityAdminOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.BootstrapCertificateAuthorityAdminOutput](ctx, opts, o, v1.BootstrapCertificateAuthorityAdminWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
 // BootstrapShard is the entry point for Phase 2 of shard initialization
 // This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
 // and deploys all Fabric components (CAs, peers, orderers) for the organization.
@@ -62,6 +78,21 @@ func (h *FabricNexusHandler) CreateCertificateDatabase(name string) nexus.Operat
 				return nil, err
 			}
 			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateCertificateDatabaseOutput](ctx, opts, o, v1.CreateCertificateDatabaseWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// CreateIdentity creates a new Fabric identity by generating keys, registering with CA, and enrolling
+// Used for creating admin identities, peer identities, orderer identities, and chaincode identities
+func (h *FabricNexusHandler) CreateIdentity(name string) nexus.Operation[*v1.CreateIdentityInput, *v1.CreateIdentityOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.CreateIdentityInput, *v1.CreateIdentityOutput]{
+		Handler: func(ctx context.Context, input *v1.CreateIdentityInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.CreateIdentityOutput], error) {
+			o, err := v1.NewCreateIdentityOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateIdentityOutput](ctx, opts, o, v1.CreateIdentityWorkflowName, input)
 		},
 		Name: name,
 	})
