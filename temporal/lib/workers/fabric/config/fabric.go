@@ -17,18 +17,19 @@ const (
 
 // FabricConfig provides access to all Fabric-related configuration.
 // It acts as a factory for component-specific configs.
+// It embeds OrgConfig to provide direct access to org-level configuration.
 type FabricConfig struct {
-	orgConfig config.OrgConfig
+	config.OrgConfig
 }
 
 // NewFabricConfig creates a FabricConfig from an OrgConfig.
 func NewFabricConfig(orgConfig config.OrgConfig) FabricConfig {
-	return FabricConfig{orgConfig: orgConfig}
+	return FabricConfig{OrgConfig: orgConfig}
 }
 
 // CertificateStore returns the configuration for the certificate store (shared PostgreSQL).
 func (fc FabricConfig) CertificateStore() CertificateStoreConfig {
-	return CertificateStoreConfig{OrgConfig: fc.orgConfig}
+	return CertificateStoreConfig{OrgConfig: fc.OrgConfig}
 }
 
 // CertificateAuthority returns the configuration for a specific certificate authority.
@@ -36,7 +37,7 @@ func (fc FabricConfig) CertificateStore() CertificateStoreConfig {
 // caID should be "root" for root CAs, or a version ID (e.g., "v1") for intermediates.
 func (fc FabricConfig) CertificateAuthority(certType, caID string) CertificateAuthorityConfig {
 	return CertificateAuthorityConfig{
-		OrgConfig: fc.orgConfig,
+		OrgConfig: fc.OrgConfig,
 		certType:  certType,
 		caID:      caID,
 	}

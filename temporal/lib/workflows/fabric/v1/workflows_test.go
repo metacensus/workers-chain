@@ -150,7 +150,7 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployCertificateStoreInput) (*pb.DeployCertificateStoreOutput, error) {
 				fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
-				workflows := fabric.NewWorkflows(orgConfig, fabricConfig)
+				workflows := fabric.NewWorkflows(fabricConfig)
 				wf, err := workflows.DeployCertificateStore(ctx, &pb.DeployCertificateStoreWorkflowInput{Req: input})
 				if err != nil {
 					return nil, err
@@ -424,7 +424,7 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.CreateCertificateDatabaseInput) (*pb.CreateCertificateDatabaseOutput, error) {
 				fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
-				workflows := fabric.NewWorkflows(orgConfig, fabricConfig)
+				workflows := fabric.NewWorkflows(fabricConfig)
 				wf, err := workflows.CreateCertificateDatabase(ctx, &pb.CreateCertificateDatabaseWorkflowInput{Req: input})
 				if err != nil {
 					return nil, err
@@ -520,7 +520,7 @@ func TestBootstrapCertificateAuthorityAdminWorkflow(t *testing.T) {
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.BootstrapCertificateAuthorityAdminInput) (*pb.BootstrapCertificateAuthorityAdminOutput, error) {
 				fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
-				workflows := fabric.NewWorkflows(orgConfig, fabricConfig)
+				workflows := fabric.NewWorkflows(fabricConfig)
 				wf, err := workflows.BootstrapCertificateAuthorityAdmin(ctx, &pb.BootstrapCertificateAuthorityAdminWorkflowInput{Req: input})
 				if err != nil {
 					return nil, err
@@ -605,7 +605,7 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.CreateIdentityInput) (*pb.CreateIdentityOutput, error) {
 				fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
-				workflows := fabric.NewWorkflows(orgConfig, fabricConfig)
+				workflows := fabric.NewWorkflows(fabricConfig)
 				wf, err := workflows.CreateIdentity(ctx, &pb.CreateIdentityWorkflowInput{Req: input})
 				if err != nil {
 					return nil, err

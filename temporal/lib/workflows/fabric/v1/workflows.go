@@ -12,7 +12,6 @@ import (
 	postgrespb "github.com/metacensus/infra/temporal/gen/workflows/postgres/v1"
 	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	"github.com/metacensus/infra/temporal/gen/workflows/vault/v1/vaultv1nexustemporal"
-	"github.com/metacensus/infra/temporal/lib/workers/config"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
@@ -39,14 +38,12 @@ var (
 
 // Workflows implements the FabricWorkflows interface from generated code
 type Workflows struct {
-	orgConfig    config.OrgConfig
 	fabricConfig fabricconfig.FabricConfig
 }
 
-// NewWorkflows creates a new Workflows instance with org configuration
-func NewWorkflows(orgConfig config.OrgConfig, fabricConfig fabricconfig.FabricConfig) *Workflows {
+// NewWorkflows creates a new Workflows instance with fabric configuration
+func NewWorkflows(fabricConfig fabricconfig.FabricConfig) *Workflows {
 	return &Workflows{
-		orgConfig:    orgConfig,
 		fabricConfig: fabricConfig,
 	}
 }
@@ -55,7 +52,6 @@ func NewWorkflows(orgConfig config.OrgConfig, fabricConfig fabricconfig.FabricCo
 func (w *Workflows) BootstrapShard(ctx workflow.Context, input *pb.BootstrapShardWorkflowInput) (pb.BootstrapShardWorkflow, error) {
 	return &bootstrapShardWorkflow{
 		input:        input,
-		orgConfig:    w.orgConfig,
 		fabricConfig: w.fabricConfig,
 	}, nil
 }
@@ -63,7 +59,6 @@ func (w *Workflows) BootstrapShard(ctx workflow.Context, input *pb.BootstrapShar
 // bootstrapShardWorkflow implements pb.BootstrapShardWorkflow
 type bootstrapShardWorkflow struct {
 	input        *pb.BootstrapShardWorkflowInput
-	orgConfig    config.OrgConfig
 	fabricConfig fabricconfig.FabricConfig
 }
 
@@ -83,7 +78,6 @@ func (w *bootstrapShardWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapSha
 func (w *Workflows) BootstrapCertificateAuthorities(ctx workflow.Context, input *pb.BootstrapCertificateAuthoritiesWorkflowInput) (pb.BootstrapCertificateAuthoritiesWorkflow, error) {
 	return &bootstrapCertificateAuthoritiesWorkflow{
 		input:        input,
-		orgConfig:    w.orgConfig,
 		fabricConfig: w.fabricConfig,
 	}, nil
 }
@@ -91,7 +85,6 @@ func (w *Workflows) BootstrapCertificateAuthorities(ctx workflow.Context, input 
 // bootstrapCertificateAuthoritiesWorkflow implements pb.BootstrapCertificateAuthoritiesWorkflow
 type bootstrapCertificateAuthoritiesWorkflow struct {
 	input        *pb.BootstrapCertificateAuthoritiesWorkflowInput
-	orgConfig    config.OrgConfig
 	fabricConfig fabricconfig.FabricConfig
 }
 
@@ -128,7 +121,6 @@ func (w *bootstrapCertificateAuthoritiesWorkflow) Execute(ctx workflow.Context) 
 func (w *Workflows) DeployCertificateStore(ctx workflow.Context, input *pb.DeployCertificateStoreWorkflowInput) (pb.DeployCertificateStoreWorkflow, error) {
 	return &deployCertificateStoreWorkflow{
 		input:        input,
-		orgConfig:    w.orgConfig,
 		fabricConfig: w.fabricConfig,
 	}, nil
 }
@@ -136,7 +128,6 @@ func (w *Workflows) DeployCertificateStore(ctx workflow.Context, input *pb.Deplo
 // deployCertificateStoreWorkflow implements pb.DeployCertificateStoreWorkflow
 type deployCertificateStoreWorkflow struct {
 	input        *pb.DeployCertificateStoreWorkflowInput
-	orgConfig    config.OrgConfig
 	fabricConfig fabricconfig.FabricConfig
 }
 
@@ -175,7 +166,7 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 	// Step 3: Deploy PostgreSQL StatefulSet for certificate storage
 	// The StatefulSet will use Vault CSI driver to fetch credentials at runtime
 	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
-		Org:       w.orgConfig.OrgID,
+		Org:       w.fabricConfig.OrgID,
 		Component: certStore.ComponentName(),
 	})
 	if err != nil {
@@ -184,7 +175,7 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 
 	// Step 4: Wait for certificate store to be ready
 	// Use activity retry policy to poll until ready (GetStatus fails if not ready)
-	logger.Info("Waiting for certificate store to be ready", "org", w.orgConfig.OrgID)
+	logger.Info("Waiting for certificate store to be ready", "org", w.fabricConfig.OrgID)
 	waitOptions := workflow.ActivityOptions{
 		StartToCloseTimeout: 10 * time.Minute,
 		RetryPolicy: &temporal.RetryPolicy{
@@ -205,7 +196,7 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 		return nil, fmt.Errorf("certificate store did not become ready: %w", err)
 	}
 
-	logger.Info("Certificate store deployed and ready", "org", w.orgConfig.OrgID)
+	logger.Info("Certificate store deployed and ready", "org", w.fabricConfig.OrgID)
 	return &pb.DeployCertificateStoreOutput{}, nil
 }
 
@@ -213,7 +204,6 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 func (w *Workflows) CreateCertificateDatabase(ctx workflow.Context, input *pb.CreateCertificateDatabaseWorkflowInput) (pb.CreateCertificateDatabaseWorkflow, error) {
 	return &createCertificateDatabaseWorkflow{
 		input:        input,
-		orgConfig:    w.orgConfig,
 		fabricConfig: w.fabricConfig,
 	}, nil
 }
@@ -221,7 +211,6 @@ func (w *Workflows) CreateCertificateDatabase(ctx workflow.Context, input *pb.Cr
 // createCertificateDatabaseWorkflow implements pb.CreateCertificateDatabaseWorkflow
 type createCertificateDatabaseWorkflow struct {
 	input        *pb.CreateCertificateDatabaseWorkflowInput
-	orgConfig    config.OrgConfig
 	fabricConfig fabricconfig.FabricConfig
 }
 
@@ -326,7 +315,6 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 func (w *Workflows) DeployRootCertificateAuthority(ctx workflow.Context, input *pb.DeployRootCertificateAuthorityWorkflowInput) (pb.DeployRootCertificateAuthorityWorkflow, error) {
 	return &deployRootCertificateAuthorityWorkflow{
 		input:        input,
-		orgConfig:    w.orgConfig,
 		fabricConfig: w.fabricConfig,
 	}, nil
 }
@@ -334,7 +322,6 @@ func (w *Workflows) DeployRootCertificateAuthority(ctx workflow.Context, input *
 // deployRootCertificateAuthorityWorkflow implements pb.DeployRootCertificateAuthorityWorkflow
 type deployRootCertificateAuthorityWorkflow struct {
 	input        *pb.DeployRootCertificateAuthorityWorkflowInput
-	orgConfig    config.OrgConfig
 	fabricConfig fabricconfig.FabricConfig
 }
 
@@ -389,7 +376,7 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		VaultKeyPath:         rootCA.VaultKeyPairPath(),
 		VaultCertificatePath: rootCA.VaultCertificatePath(),
 		CommonName:           rootCA.ComponentName(),
-		Organization:         w.orgConfig.OrgID,
+		Organization:         w.fabricConfig.OrgID,
 		OrganizationalUnit:   rootCA.OrganizationalUnit(),
 		ValidityDuration:     durationpb.New(certValidityDuration),
 		MaxPathLength:        1, // Can issue intermediate CAs
@@ -410,7 +397,7 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 
 	// Deploy root CA pod
 	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
-		Org:       w.orgConfig.OrgID,
+		Org:       w.fabricConfig.OrgID,
 		Component: rootCA.ComponentName(),
 	})
 	if err != nil {
@@ -426,7 +413,6 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 func (w *Workflows) DeployCertificateAuthority(ctx workflow.Context, input *pb.DeployCertificateAuthorityWorkflowInput) (pb.DeployCertificateAuthorityWorkflow, error) {
 	return &deployCertificateAuthorityWorkflow{
 		input:        input,
-		orgConfig:    w.orgConfig,
 		fabricConfig: w.fabricConfig,
 	}, nil
 }
@@ -434,7 +420,6 @@ func (w *Workflows) DeployCertificateAuthority(ctx workflow.Context, input *pb.D
 // deployCertificateAuthorityWorkflow implements pb.DeployCertificateAuthorityWorkflow
 type deployCertificateAuthorityWorkflow struct {
 	input        *pb.DeployCertificateAuthorityWorkflowInput
-	orgConfig    config.OrgConfig
 	fabricConfig fabricconfig.FabricConfig
 }
 
@@ -488,7 +473,6 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 func (w *Workflows) BootstrapCertificateAuthorityAdmin(ctx workflow.Context, input *pb.BootstrapCertificateAuthorityAdminWorkflowInput) (pb.BootstrapCertificateAuthorityAdminWorkflow, error) {
 	return &bootstrapCertificateAuthorityAdminWorkflow{
 		input:        input,
-		orgConfig:    w.orgConfig,
 		fabricConfig: w.fabricConfig,
 	}, nil
 }
@@ -496,7 +480,6 @@ func (w *Workflows) BootstrapCertificateAuthorityAdmin(ctx workflow.Context, inp
 // bootstrapCertificateAuthorityAdminWorkflow implements pb.BootstrapCertificateAuthorityAdminWorkflow
 type bootstrapCertificateAuthorityAdminWorkflow struct {
 	input        *pb.BootstrapCertificateAuthorityAdminWorkflowInput
-	orgConfig    config.OrgConfig
 	fabricConfig fabricconfig.FabricConfig
 }
 
@@ -526,7 +509,6 @@ func (w *bootstrapCertificateAuthorityAdminWorkflow) Execute(ctx workflow.Contex
 func (w *Workflows) CreateIdentity(ctx workflow.Context, input *pb.CreateIdentityWorkflowInput) (pb.CreateIdentityWorkflow, error) {
 	return &createIdentityWorkflow{
 		input:        input,
-		orgConfig:    w.orgConfig,
 		fabricConfig: w.fabricConfig,
 	}, nil
 }
@@ -534,7 +516,6 @@ func (w *Workflows) CreateIdentity(ctx workflow.Context, input *pb.CreateIdentit
 // createIdentityWorkflow implements pb.CreateIdentityWorkflow
 type createIdentityWorkflow struct {
 	input        *pb.CreateIdentityWorkflowInput
-	orgConfig    config.OrgConfig
 	fabricConfig fabricconfig.FabricConfig
 }
 

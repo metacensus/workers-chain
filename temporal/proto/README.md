@@ -97,6 +97,7 @@
     - [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
     - [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
     - [fabric.v1.RegisterIdentityInput](#fabric-v1-registeridentityinput)
+    - [fabric.v1.RegisterIdentityInput.AttributesEntry](#fabric-v1-registeridentityinput-attributesentry)
     - [fabric.v1.RegisterIdentityOutput](#fabric-v1-registeridentityoutput)
     - [fabric.v1.RevokeIdentityInput](#fabric-v1-revokeidentityinput)
     - [fabric.v1.RevokeIdentityOutput](#fabric-v1-revokeidentityoutput)
@@ -2437,11 +2438,99 @@ This is the first step in identity creation - registration returns an enrollment
 
 **Input:** [fabric.v1.RegisterIdentityInput](#fabric-v1-registeridentityinput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>affiliation</td>
+<td>string</td>
+<td><pre>
+affiliation is the identity's organizational affiliation
+Example: "org1.department1"<br>
 
+json_name: Affiliation
+go_name: Affiliation
+go_tags: json:"Affiliation"</pre></td>
+</tr><tr>
+<td>attributes</td>
+<td><a href="#fabric-v1-registeridentityinput-attributesentry">fabric.v1.RegisterIdentityInput.AttributesEntry</a></td>
+<td><pre>
+attributes are custom attributes associated with this identity<br>
+
+json_name: Attributes
+go_name: Attributes
+go_tags: json:"Attributes"</pre></td>
+</tr><tr>
+<td>ca_id</td>
+<td>string</td>
+<td><pre>
+ca_id is the CA identifier ("root" for root CAs, or version ID like "v1" for intermediates)<br>
+
+json_name: CaId
+go_name: CaId
+go_tags: json:"CaId" validate:"required"</pre></td>
+</tr><tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies which CA to register with ("tls" or "org")<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required,oneof=tls org"</pre></td>
+</tr><tr>
+<td>max_enrollments</td>
+<td>int32</td>
+<td><pre>
+max_enrollments is the maximum number of times the secret can be used to enroll
+0 or -1 means unlimited<br>
+
+json_name: MaxEnrollments
+go_name: MaxEnrollments
+go_tags: json:"MaxEnrollments"</pre></td>
+</tr><tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the unique enrollment ID for this identity<br>
+
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
+</tr><tr>
+<td>type</td>
+<td>string</td>
+<td><pre>
+type is the identity type (e.g., "client", "peer", "orderer", "admin")<br>
+
+json_name: Type
+go_name: Type
+go_tags: json:"Type" validate:"required"</pre></td>
+</tr>
+</table>
 
 **Output:** [fabric.v1.RegisterIdentityOutput](#fabric-v1-registeridentityoutput)
 
- 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret</td>
+<td>string</td>
+<td><pre>
+secret is the enrollment secret that can be used to enroll this identity<br>
+
+json_name: Secret
+go_name: Secret
+go_tags: json:"Secret"</pre></td>
+</tr>
+</table> 
 
 ---
 <a name="fabric-v1-enrollidentity-activity"></a>
@@ -2454,11 +2543,97 @@ This is the second step in identity creation - enrollment uses the secret from r
 
 **Input:** [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_id</td>
+<td>string</td>
+<td><pre>
+ca_id is the CA identifier ("root" for root CAs, or version ID like "v1" for intermediates)<br>
 
+json_name: CaId
+go_name: CaId
+go_tags: json:"CaId" validate:"required"</pre></td>
+</tr><tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies which CA to enroll with ("tls" or "org")<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required,oneof=tls org"</pre></td>
+</tr><tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN field for the certificate (defaults to name if not provided)<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName"</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+hosts are the Subject Alternative Names (SANs) for the certificate<br>
+
+json_name: Hosts
+go_name: Hosts
+go_tags: json:"Hosts"</pre></td>
+</tr><tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the enrollment ID for this identity (from registration)<br>
+
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
+</tr><tr>
+<td>secret</td>
+<td>string</td>
+<td><pre>
+secret is the enrollment secret (from registration)<br>
+
+json_name: Secret
+go_name: Secret
+go_tags: json:"Secret" validate:"required"</pre></td>
+</tr>
+</table>
 
 **Output:** [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
 
- 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_certificate</td>
+<td>string</td>
+<td><pre>
+ca_certificate is the PEM-encoded CA certificate chain<br>
+
+json_name: CaCertificate
+go_name: CaCertificate
+go_tags: json:"CaCertificate"</pre></td>
+</tr><tr>
+<td>certificate</td>
+<td>string</td>
+<td><pre>
+certificate is the PEM-encoded signed certificate<br>
+
+json_name: Certificate
+go_name: Certificate
+go_tags: json:"Certificate"</pre></td>
+</tr>
+</table> 
 
 ---
 <a name="fabric-v1-revokeidentity-activity"></a>
@@ -2471,7 +2646,51 @@ Used to revoke bootstrap admin credentials after permanent admin is created
 
 **Input:** [fabric.v1.RevokeIdentityInput](#fabric-v1-revokeidentityinput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_id</td>
+<td>string</td>
+<td><pre>
+ca_id is the CA identifier ("root" for root CAs, or version ID like "v1" for intermediates)<br>
 
+json_name: CaId
+go_name: CaId
+go_tags: json:"CaId" validate:"required"</pre></td>
+</tr><tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies which CA to revoke from ("tls" or "org")<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required,oneof=tls org"</pre></td>
+</tr><tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the enrollment ID of the identity to revoke<br>
+
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
+</tr><tr>
+<td>reason</td>
+<td>string</td>
+<td><pre>
+reason is the reason for revocation (optional)
+Common values: "unspecified", "keycompromise", "cacompromise", "affiliationchanged", "superseded", "cessationofoperation"<br>
+
+json_name: Reason
+go_name: Reason
+go_tags: json:"Reason"</pre></td>
+</tr>
+</table>
 
 **Output:** [fabric.v1.RevokeIdentityOutput](#fabric-v1-revokeidentityoutput)
 
@@ -2795,14 +3014,104 @@ Empty for now - will be populated as implementation progresses
 EnrollIdentityInput specifies the parameters for enrolling an identity with a CA
 </pre>
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_id</td>
+<td>string</td>
+<td><pre>
+ca_id is the CA identifier ("root" for root CAs, or version ID like "v1" for intermediates)<br>
+
+json_name: CaId
+go_name: CaId
+go_tags: json:"CaId" validate:"required"</pre></td>
+</tr><tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies which CA to enroll with ("tls" or "org")<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required,oneof=tls org"</pre></td>
+</tr><tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN field for the certificate (defaults to name if not provided)<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName"</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+hosts are the Subject Alternative Names (SANs) for the certificate<br>
+
+json_name: Hosts
+go_name: Hosts
+go_tags: json:"Hosts"</pre></td>
+</tr><tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the enrollment ID for this identity (from registration)<br>
+
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
+</tr><tr>
+<td>secret</td>
+<td>string</td>
+<td><pre>
+secret is the enrollment secret (from registration)<br>
+
+json_name: Secret
+go_name: Secret
+go_tags: json:"Secret" validate:"required"</pre></td>
+</tr>
+</table>
+
 
 
 <a name="fabric-v1-enrollidentityoutput"></a>
 ### fabric.v1.EnrollIdentityOutput
 
 <pre>
-EnrollIdentityOutput contains the certificates returned by the CA
+EnrollIdentityOutput contains the certificate returned by the CA
 </pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_certificate</td>
+<td>string</td>
+<td><pre>
+ca_certificate is the PEM-encoded CA certificate chain<br>
+
+json_name: CaCertificate
+go_name: CaCertificate
+go_tags: json:"CaCertificate"</pre></td>
+</tr><tr>
+<td>certificate</td>
+<td>string</td>
+<td><pre>
+certificate is the PEM-encoded signed certificate<br>
+
+json_name: Certificate
+go_name: Certificate
+go_tags: json:"Certificate"</pre></td>
+</tr>
+</table>
 
 
 
@@ -2813,6 +3122,106 @@ EnrollIdentityOutput contains the certificates returned by the CA
 RegisterIdentityInput specifies the parameters for registering an identity with a CA
 </pre>
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>affiliation</td>
+<td>string</td>
+<td><pre>
+affiliation is the identity's organizational affiliation
+Example: "org1.department1"<br>
+
+json_name: Affiliation
+go_name: Affiliation
+go_tags: json:"Affiliation"</pre></td>
+</tr><tr>
+<td>attributes</td>
+<td><a href="#fabric-v1-registeridentityinput-attributesentry">fabric.v1.RegisterIdentityInput.AttributesEntry</a></td>
+<td><pre>
+attributes are custom attributes associated with this identity<br>
+
+json_name: Attributes
+go_name: Attributes
+go_tags: json:"Attributes"</pre></td>
+</tr><tr>
+<td>ca_id</td>
+<td>string</td>
+<td><pre>
+ca_id is the CA identifier ("root" for root CAs, or version ID like "v1" for intermediates)<br>
+
+json_name: CaId
+go_name: CaId
+go_tags: json:"CaId" validate:"required"</pre></td>
+</tr><tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies which CA to register with ("tls" or "org")<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required,oneof=tls org"</pre></td>
+</tr><tr>
+<td>max_enrollments</td>
+<td>int32</td>
+<td><pre>
+max_enrollments is the maximum number of times the secret can be used to enroll
+0 or -1 means unlimited<br>
+
+json_name: MaxEnrollments
+go_name: MaxEnrollments
+go_tags: json:"MaxEnrollments"</pre></td>
+</tr><tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the unique enrollment ID for this identity<br>
+
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
+</tr><tr>
+<td>type</td>
+<td>string</td>
+<td><pre>
+type is the identity type (e.g., "client", "peer", "orderer", "admin")<br>
+
+json_name: Type
+go_name: Type
+go_tags: json:"Type" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-registeridentityinput-attributesentry"></a>
+### fabric.v1.RegisterIdentityInput.AttributesEntry
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>key</td>
+<td>string</td>
+<td><pre>
+json_name: key
+go_name: Key</pre></td>
+</tr><tr>
+<td>value</td>
+<td>string</td>
+<td><pre>
+json_name: value
+go_name: Value</pre></td>
+</tr>
+</table>
+
 
 
 <a name="fabric-v1-registeridentityoutput"></a>
@@ -2822,6 +3231,24 @@ RegisterIdentityInput specifies the parameters for registering an identity with 
 RegisterIdentityOutput contains the enrollment secret returned by the CA
 </pre>
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret</td>
+<td>string</td>
+<td><pre>
+secret is the enrollment secret that can be used to enroll this identity<br>
+
+json_name: Secret
+go_name: Secret
+go_tags: json:"Secret"</pre></td>
+</tr>
+</table>
+
 
 
 <a name="fabric-v1-revokeidentityinput"></a>
@@ -2830,6 +3257,52 @@ RegisterIdentityOutput contains the enrollment secret returned by the CA
 <pre>
 RevokeIdentityInput specifies the parameters for revoking an identity from a CA
 </pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_id</td>
+<td>string</td>
+<td><pre>
+ca_id is the CA identifier ("root" for root CAs, or version ID like "v1" for intermediates)<br>
+
+json_name: CaId
+go_name: CaId
+go_tags: json:"CaId" validate:"required"</pre></td>
+</tr><tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies which CA to revoke from ("tls" or "org")<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required,oneof=tls org"</pre></td>
+</tr><tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the enrollment ID of the identity to revoke<br>
+
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
+</tr><tr>
+<td>reason</td>
+<td>string</td>
+<td><pre>
+reason is the reason for revocation (optional)
+Common values: "unspecified", "keycompromise", "cacompromise", "affiliationchanged", "superseded", "cessationofoperation"<br>
+
+json_name: Reason
+go_name: Reason
+go_tags: json:"Reason"</pre></td>
+</tr>
+</table>
 
 
 

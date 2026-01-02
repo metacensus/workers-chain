@@ -3,8 +3,11 @@ package fabric
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
+	"github.com/metacensus/infra/temporal/lib/workers/fabric/config"
+	"github.com/metacensus/infra/temporal/lib/workflows/fabric/v1/certauthority"
 )
 
 // Sentinel errors for fabric activities
@@ -12,16 +15,42 @@ var (
 	ErrRegisterIdentity = errors.New("register identity")
 	ErrEnrollIdentity   = errors.New("enroll identity")
 	ErrRevokeIdentity   = errors.New("revoke identity")
+	ErrInvalidInput     = errors.New("invalid input")
 )
 
 // Activities implements the Fabric activities
 type Activities struct {
-	// TODO: Add client dependency when implementation is ready
+	// factory is required
+	clientProviderFactory ClientProviderFactory
+	fabricConfig          config.FabricConfig
 }
 
-// NewActivities creates a new Activities instance
-func NewActivities() *Activities {
-	return &Activities{}
+// NewActivities creates a new Activities instance with CA client provider factory
+func NewActivities(
+	clientProviderFactory ClientProviderFactory,
+	fabricConfig config.FabricConfig,
+) *Activities {
+	return &Activities{
+		clientProviderFactory: clientProviderFactory,
+		fabricConfig:          fabricConfig,
+	}
+}
+
+// getCAClient builds a CA client for the specified cert type and CA ID
+func (a *Activities) getCAClient(ctx context.Context, certType, caID string) (certauthority.Client, error) {
+	// Build the CA config for this specific CA
+	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
+
+	// Create a client provider for this CA
+	provider := a.clientProviderFactory(caConfig)
+
+	// Get the client (this will fetch credentials from Vault on first call)
+	client, err := provider.GetClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get CA client for %s-%s: %w", certType, caID, err)
+	}
+
+	return client, nil
 }
 
 // RegisterIdentity registers a new identity with a Fabric CA
@@ -56,4 +85,3 @@ func (a *Activities) RevokeIdentity(ctx context.Context, req *pb.RevokeIdentityI
 
 	return &pb.RevokeIdentityOutput{}, nil
 }
-
