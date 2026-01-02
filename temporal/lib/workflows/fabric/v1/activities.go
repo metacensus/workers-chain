@@ -7,6 +7,7 @@ import (
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/fabric/config"
+	"github.com/metacensus/infra/temporal/lib/workflows/common"
 	"github.com/metacensus/infra/temporal/lib/workflows/fabric/v1/certauthority"
 )
 
@@ -20,32 +21,34 @@ var (
 
 // Activities implements the Fabric activities
 type Activities struct {
-	// factory is required
-	clientProviderFactory ClientProviderFactory
-	fabricConfig          config.FabricConfig
+	// clientProvider manages multiple CA clients, caching them by Vault path
+	clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig]
+	fabricConfig   config.FabricConfig
 }
 
-// NewActivities creates a new Activities instance with CA client provider factory
+// NewActivities creates a new Activities instance with CA multi-client provider
 func NewActivities(
-	clientProviderFactory ClientProviderFactory,
+	clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig],
 	fabricConfig config.FabricConfig,
 ) *Activities {
 	return &Activities{
-		clientProviderFactory: clientProviderFactory,
-		fabricConfig:          fabricConfig,
+		clientProvider: clientProvider,
+		fabricConfig:   fabricConfig,
 	}
 }
 
-// getCAClient builds a CA client for the specified cert type and CA ID
+// getCAClient builds a CA client for the specified cert type and CA ID.
+// The client is cached by the provider using the Vault path as the key,
+// so repeated calls with the same certType/caID return the cached client.
 func (a *Activities) getCAClient(ctx context.Context, certType, caID string) (certauthority.Client, error) {
 	// Build the CA config for this specific CA
 	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
 
-	// Create a client provider for this CA
-	provider := a.clientProviderFactory(caConfig)
+	// Wrap in hydrator for the provider
+	hydrator := certauthority.NewConfig(caConfig)
 
-	// Get the client (this will fetch credentials from Vault on first call)
-	client, err := provider.GetClient(ctx)
+	// Get the client (provider caches by Vault path, so this is efficient for repeated calls)
+	client, err := a.clientProvider.GetClient(ctx, hydrator)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get CA client for %s-%s: %w", certType, caID, err)
 	}

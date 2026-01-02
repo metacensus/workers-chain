@@ -4,28 +4,24 @@ import (
 	"fmt"
 
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
-	"github.com/metacensus/infra/temporal/lib/workflows/common"
-	vault "github.com/metacensus/infra/temporal/lib/workflows/vault/v1"
 )
-
-// NewClientProvider creates a ClientProvider for Fabric CA with Vault-backed credentials
-func NewClientProvider(config Config, vaultClient vault.VaultClient) *common.ClientProvider[Client, ClientConfig] {
-	return common.NewClientProvider(
-		config,
-		vaultClient,
-		NewClient,
-	)
-}
 
 // Config is an alias type that wraps CertificateAuthorityConfig and implements
 // the common.ConfigHydrator interface for Fabric CA client creation.
 // This allows CertificateAuthorityConfig to remain focused on its core responsibilities while
 // the certauthority package handles CA-specific configuration hydration.
+//
+// Config implements common.ConfigHydrator[ClientConfig], which means:
+// - GetVaultPath() returns the unique Vault path for this CA's credentials
+// - Hydrate() creates a ClientConfig from Vault secret data
+//
+// The GetVaultPath() also serves as the cache key when used with ClientProviderFactory.
 type Config struct {
 	fabricconfig.CertificateAuthorityConfig
 }
 
-// GetVaultPath returns where to find CA admin credentials in Vault
+// GetVaultPath returns where to find CA admin credentials in Vault.
+// This path is unique per CA and is used as the cache key by ClientProviderFactory.
 func (c Config) GetVaultPath() string {
 	return c.VaultAdminCredentialsPath()
 }
@@ -56,7 +52,8 @@ func (c Config) Hydrate(secretData map[string]interface{}) (ClientConfig, error)
 	}, nil
 }
 
-// NewConfig wraps a CertificateAuthorityConfig for CA client provider use
+// NewConfig wraps a CertificateAuthorityConfig for use with ClientProviderFactory.
+// The returned Config implements common.ConfigHydrator[ClientConfig].
 func NewConfig(certAuthConfig fabricconfig.CertificateAuthorityConfig) Config {
 	return Config{CertificateAuthorityConfig: certAuthConfig}
 }

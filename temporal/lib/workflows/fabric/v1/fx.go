@@ -15,41 +15,37 @@ import (
 //
 // Dependency chain for CA client:
 //
-//	fabricconfig.CertificateAuthorityConfig (provided by fabric worker module)
-//	-> CAConfig (via NewCAConfig)
 //	vault.VaultClient (provided by vault module)
-//	-> ClientProvider (via NewCAClientProvider)
+//	-> MultiClientProvider (via common.NewMultiClientProvider)
 //	-> Activities (via NewActivities)
+//
+// The ClientProviderFactory caches clients by their Vault path, so repeated
+// calls to the same CA return the cached client.
 var Module = fx.Options(
 	// Provide Workflows implementing pb.FabricWorkflows interface
 	fx.Provide(func(fabricConfig fabricconfig.FabricConfig) pb.FabricWorkflows {
 		return NewWorkflows(fabricConfig)
 	}),
 
-	// Provide CA client provider factory
-	// Note: This provides a factory that can create client providers for different CAs on demand
-	// Activities will need to get specific CA configs and create providers as needed
-	fx.Provide(func(vaultClient vault.VaultClient) ClientProviderFactory {
-		return func(caConfig fabricconfig.CertificateAuthorityConfig) ClientProvider {
-			return certauthority.NewClientProvider(certauthority.NewConfig(caConfig), vaultClient)
-		}
+	// Provide CA multi-client provider
+	// Uses MultiClientProvider because there are many CAs (tls-root, org-root, etc.)
+	// and the specific CA is only known at activity call time.
+	// Clients are cached by their Vault path for efficiency.
+	fx.Provide(func(vaultClient vault.VaultClient) *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig] {
+		return common.NewMultiClientProvider(
+			vaultClient,
+			certauthority.NewClient, // ClientConstructor
+		)
 	}),
 
-	// Provide Activities with CA client provider factory and config
+	// Provide Activities with CA multi-client provider and config
 	fx.Provide(func(
-		providerFactory ClientProviderFactory,
+		clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig],
 		fabricConfig fabricconfig.FabricConfig,
 	) *Activities {
-		return NewActivities(providerFactory, fabricConfig)
+		return NewActivities(clientProvider, fabricConfig)
 	}),
 )
-
-// ClientProviderFactory creates a ClientProvider for a specific CA configuration
-// This allows activities to dynamically create clients for different CAs (tls-root, org-root, etc.)
-type ClientProviderFactory func(caConfig fabricconfig.CertificateAuthorityConfig) ClientProvider
-
-// ClientProvider is a type alias for the common.ClientProvider specialized for CA clients
-type ClientProvider = *common.ClientProvider[certauthority.Client, certauthority.ClientConfig]
 
 // RegisterWorkflows registers fabric workflows with the worker
 func RegisterWorkflows(w worker.Worker, workflows pb.FabricWorkflows) {

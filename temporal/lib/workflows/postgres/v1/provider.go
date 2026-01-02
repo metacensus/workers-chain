@@ -8,12 +8,13 @@ import (
 	vault "github.com/metacensus/infra/temporal/lib/workflows/vault/v1"
 )
 
-// NewPostgresClientProvider creates a ClientProvider for postgres with Vault-backed credentials
+// NewPostgresClientProvider creates a ClientProvider for postgres with Vault-backed credentials.
+// Uses ClientProvider (single-client pattern) because there is exactly one postgres deployment.
 func NewPostgresClientProvider(config CertStorePostgresConfig, vaultClient vault.VaultClient) *common.ClientProvider[PostgresClient, PostgresConfig] {
 	return common.NewClientProvider(
 		config,
 		vaultClient,
-		NewPostgresClient,
+		NewPostgresClient, // ClientConstructor
 	)
 }
 
