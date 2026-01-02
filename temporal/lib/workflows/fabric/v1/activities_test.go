@@ -36,8 +36,8 @@ func TestActivities_RegisterIdentity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO: Provide mocked CAClientProviderFactory
-			activities := NewActivities(nil, fabricConfig)
+			// TODO: Provide mocked VaultClient and ClientProvider
+			activities := NewActivities(nil, nil, fabricConfig)
 			ctx := context.Background()
 
 			got, err := activities.RegisterIdentity(ctx, tt.req)
@@ -76,8 +76,8 @@ func TestActivities_EnrollIdentity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO: Provide mocked CAClientProviderFactory
-			activities := NewActivities(nil, fabricConfig)
+			// TODO: Provide mocked VaultClient and ClientProvider
+			activities := NewActivities(nil, nil, fabricConfig)
 			ctx := context.Background()
 
 			got, err := activities.EnrollIdentity(ctx, tt.req)
@@ -116,8 +116,8 @@ func TestActivities_RevokeIdentity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO: Provide mocked CAClientProviderFactory
-			activities := NewActivities(nil, fabricConfig)
+			// TODO: Provide mocked VaultClient and ClientProvider
+			activities := NewActivities(nil, nil, fabricConfig)
 			ctx := context.Background()
 
 			got, err := activities.RevokeIdentity(ctx, tt.req)

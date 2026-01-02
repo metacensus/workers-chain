@@ -21,36 +21,65 @@ var (
 
 // Activities implements the Fabric activities
 type Activities struct {
-	// clientProvider manages multiple CA clients, caching them by Vault path
+	// vaultClient is used to fetch credentials for creating BootstrapClients on-demand
+	vaultClient common.VaultClient
+
+	// clientProvider manages cached Clients for Register/Revoke operations
 	clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig]
-	fabricConfig   config.FabricConfig
+
+	fabricConfig config.FabricConfig
 }
 
-// NewActivities creates a new Activities instance with CA multi-client provider
+// NewActivities creates a new Activities instance
 func NewActivities(
+	vaultClient common.VaultClient,
 	clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig],
 	fabricConfig config.FabricConfig,
 ) *Activities {
 	return &Activities{
+		vaultClient:    vaultClient,
 		clientProvider: clientProvider,
 		fabricConfig:   fabricConfig,
 	}
 }
 
-// getCAClient builds a CA client for the specified cert type and CA ID.
-// The client is cached by the provider using the Vault path as the key,
-// so repeated calls with the same certType/caID return the cached client.
-func (a *Activities) getCAClient(ctx context.Context, certType, caID string) (certauthority.Client, error) {
-	// Build the CA config for this specific CA
+// getClient returns a cached Client for the specified CA.
+// Clients use keypair/cert auth loaded from Vault and support Register/Revoke.
+func (a *Activities) getClient(ctx context.Context, certType, caID string) (certauthority.Client, error) {
 	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
-
-	// Wrap in hydrator for the provider
 	hydrator := certauthority.NewConfig(caConfig)
 
-	// Get the client (provider caches by Vault path, so this is efficient for repeated calls)
 	client, err := a.clientProvider.GetClient(ctx, hydrator)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get CA client for %s-%s: %w", certType, caID, err)
+		return nil, fmt.Errorf("failed to get client for %s-%s: %w", certType, caID, err)
+	}
+
+	return client, nil
+}
+
+// getBootstrapClient creates a new BootstrapClient for the specified CA.
+// BootstrapClients use username/password auth and only support Enroll.
+// These are NOT cached - each call creates a fresh client.
+func (a *Activities) getBootstrapClient(ctx context.Context, certType, caID string) (certauthority.BootstrapClient, error) {
+	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
+	hydrator := certauthority.NewBootstrapConfig(caConfig)
+
+	// Fetch credentials from Vault
+	secretData, err := a.vaultClient.FetchSecret(ctx, hydrator.GetVaultPath())
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch bootstrap credentials for %s-%s: %w", certType, caID, err)
+	}
+
+	// Hydrate config with credentials
+	clientConfig, err := hydrator.Hydrate(secretData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hydrate bootstrap config for %s-%s: %w", certType, caID, err)
+	}
+
+	// Create the client
+	client, err := certauthority.NewBootstrapClient(clientConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create bootstrap client for %s-%s: %w", certType, caID, err)
 	}
 
 	return client, nil

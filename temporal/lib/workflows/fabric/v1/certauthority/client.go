@@ -19,16 +19,21 @@ var (
 	ErrInvalidResponse = errors.New("fabric ca: invalid response from CA")
 )
 
-// ClientConfig represents the configuration needed to connect to a Fabric CA
-type ClientConfig struct {
+// =============================================================================
+// BootstrapClient - Username/Password based authentication
+// Used during bootstrap when no keypair/cert exists yet
+// =============================================================================
+
+// BootstrapClientConfig represents the configuration for username/password authentication
+type BootstrapClientConfig struct {
 	URL      string // CA server URL (e.g., "https://ca.fabric-org1.svc.cluster.local:7054")
-	Username string // Admin username for authentication
-	Password string // Admin password for authentication
+	Username string // Username for authentication
+	Password string // Password/secret for authentication
 	CAName   string // Optional CA name (for multi-CA servers)
 }
 
-// Validate checks if the ClientConfig has all required fields
-func (c *ClientConfig) Validate() error {
+// Validate checks if the BootstrapClientConfig has all required fields
+func (c *BootstrapClientConfig) Validate() error {
 	if c.URL == "" {
 		return fmt.Errorf("%w: URL cannot be empty", ErrInvalidConfig)
 	}
@@ -41,102 +46,193 @@ func (c *ClientConfig) Validate() error {
 	return nil
 }
 
-// Client defines the interface for Fabric CA operations
-// This interface wraps the fabric-ca lib.Client for testability
-type Client interface {
-	// Register registers a new identity with the CA and returns an enrollment secret
-	Register(ctx context.Context, req *api.RegistrationRequest) (*api.RegistrationResponse, error)
-
-	// Enroll enrolls an identity using an enrollment secret and returns certificates
+// BootstrapClient provides enrollment-only access to a Fabric CA using username/password.
+// This is used during initial bootstrap when no admin keypair/cert exists yet.
+// After enrollment, the returned certificates should be stored in Vault.
+type BootstrapClient interface {
+	// Enroll enrolls an identity using username/password and returns certificates.
+	// The returned EnrollmentResponse contains the certificate and key material.
 	Enroll(ctx context.Context, req *api.EnrollmentRequest) (*lib.EnrollmentResponse, error)
 
-	// Revoke revokes an identity from the CA
+	// GetCAInfo retrieves information about the CA (certificate chain, etc.)
+	GetCAInfo(ctx context.Context) (*lib.GetCAInfoResponse, error)
+}
+
+// bootstrapClient implements BootstrapClient
+type bootstrapClient struct {
+	fabricClient *lib.Client
+	config       BootstrapClientConfig
+}
+
+// NewBootstrapClient creates a new bootstrap-only client.
+// This client uses username/password authentication and only supports Enroll() and GetCAInfo().
+// Use this during initial bootstrap to obtain the admin's keypair/cert for storage in Vault.
+func NewBootstrapClient(config BootstrapClientConfig) (BootstrapClient, error) {
+	if err := config.Validate(); err != nil {
+		return nil, err
+	}
+
+	fabricCAConfig := &lib.ClientConfig{
+		URL:    config.URL,
+		CAName: config.CAName,
+		MSPDir: "", // In-memory operations only
+	}
+
+	fabricCAClient := &lib.Client{
+		HomeDir: "",
+		Config:  fabricCAConfig,
+	}
+
+	if err := fabricCAClient.Init(); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrClientInit, err)
+	}
+
+	return &bootstrapClient{
+		fabricClient: fabricCAClient,
+		config:       config,
+	}, nil
+}
+
+// Enroll enrolls an identity using username/password credentials.
+// If req is nil, uses the credentials from the config.
+func (c *bootstrapClient) Enroll(ctx context.Context, req *api.EnrollmentRequest) (*lib.EnrollmentResponse, error) {
+	// If no request provided, build one from config
+	if req == nil {
+		req = &api.EnrollmentRequest{
+			Name:   c.config.Username,
+			Secret: c.config.Password,
+			CAName: c.config.CAName,
+		}
+	}
+
+	resp, err := c.fabricClient.Enroll(req)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrEnroll, err)
+	}
+
+	if resp == nil || resp.Identity == nil {
+		return nil, fmt.Errorf("%w: enrollment returned nil response or identity", ErrInvalidResponse)
+	}
+
+	return resp, nil
+}
+
+// GetCAInfo retrieves information about the CA
+func (c *bootstrapClient) GetCAInfo(ctx context.Context) (*lib.GetCAInfoResponse, error) {
+	resp, err := c.fabricClient.GetCAInfo(&api.GetCAInfoRequest{
+		CAName: c.config.CAName,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get CA info: %w", err)
+	}
+
+	return resp, nil
+}
+
+// =============================================================================
+// Client - Keypair/Certificate based authentication from Vault
+// Used after bootstrap when admin credentials exist in Vault
+// =============================================================================
+
+// ClientConfig represents the configuration for keypair/cert authentication
+type ClientConfig struct {
+	URL    string // CA server URL
+	CAName string // Optional CA name (for multi-CA servers)
+
+	// Admin identity credentials loaded from Vault
+	AdminCert []byte // PEM-encoded admin certificate
+	AdminKey  []byte // PEM-encoded admin private key
+}
+
+// Validate checks if the ClientConfig has all required fields
+func (c *ClientConfig) Validate() error {
+	if c.URL == "" {
+		return fmt.Errorf("%w: URL cannot be empty", ErrInvalidConfig)
+	}
+	if len(c.AdminCert) == 0 {
+		return fmt.Errorf("%w: AdminCert cannot be empty", ErrInvalidConfig)
+	}
+	if len(c.AdminKey) == 0 {
+		return fmt.Errorf("%w: AdminKey cannot be empty", ErrInvalidConfig)
+	}
+	return nil
+}
+
+// Client provides full admin access to a Fabric CA using keypair/cert authentication.
+// The admin identity is loaded from Vault during construction.
+// This client is suitable for caching by MultiClientProvider.
+type Client interface {
+	// Register registers a new identity with the CA and returns an enrollment secret.
+	Register(ctx context.Context, req *api.RegistrationRequest) (*api.RegistrationResponse, error)
+
+	// Enroll enrolls an identity using an enrollment secret and returns certificates.
+	// Note: This does not require admin privileges - anyone with a valid secret can enroll.
+	Enroll(ctx context.Context, req *api.EnrollmentRequest) (*lib.EnrollmentResponse, error)
+
+	// Revoke revokes an identity from the CA.
 	Revoke(ctx context.Context, req *api.RevocationRequest) (*api.RevocationResponse, error)
 
 	// GetCAInfo retrieves information about the CA (certificate chain, etc.)
 	GetCAInfo(ctx context.Context) (*lib.GetCAInfoResponse, error)
 }
 
-// client implements Client using the forked fabric-ca lib.Client
-// This wrapper provides a clean interface for testing and follows our patterns
+// client implements Client
 type client struct {
 	fabricClient  *lib.Client
+	adminIdentity *lib.Identity
 	config        ClientConfig
-	adminIdentity *lib.Identity // Enrolled admin identity used for Register/Revoke operations
 }
 
-// NewClient creates a new Fabric CA client with the given configuration
-// The client is initialized and ready to use
-// Note: The admin is automatically enrolled using the provided credentials
+// NewClient creates a new client with keypair/cert authentication.
+// The admin identity is constructed from the certificate and key in the config.
+// This client is ready to use immediately for Register, Revoke, and Enroll operations.
 func NewClient(config ClientConfig) (Client, error) {
-	// Validate configuration
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
 
-	// Create fabric-ca ClientConfig
 	fabricCAConfig := &lib.ClientConfig{
 		URL:    config.URL,
 		CAName: config.CAName,
-		// MSPDir is intentionally empty - we use in-memory operations only
-		MSPDir: "",
+		MSPDir: "", // In-memory operations only
 	}
 
-	// Create fabric-ca client
-	// HomeDir is empty since we're doing in-memory operations only
 	fabricCAClient := &lib.Client{
 		HomeDir: "",
 		Config:  fabricCAConfig,
 	}
 
-	// Initialize the client
 	if err := fabricCAClient.Init(); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrClientInit, err)
 	}
 
-	// Enroll the admin identity immediately so we can perform Register/Revoke operations
-	// This uses the username/password from the config
-	enrollReq := &api.EnrollmentRequest{
-		Name:   config.Username,
-		Secret: config.Password,
-		CAName: config.CAName,
-	}
-
-	enrollResp, err := fabricCAClient.Enroll(enrollReq)
+	// Build the admin identity from the provided cert and key
+	// TODO: Create identity from cert/key bytes using fabric-ca lib
+	// For now, this is a placeholder - need to investigate the fabric-ca API
+	// to create an Identity from PEM bytes without enrolling
+	identity, err := createIdentityFromCredentials(fabricCAClient, config.AdminCert, config.AdminKey)
 	if err != nil {
-		return nil, fmt.Errorf("%w: failed to enroll admin identity: %v", ErrClientInit, err)
-	}
-
-	if enrollResp == nil || enrollResp.Identity == nil {
-		return nil, fmt.Errorf("%w: admin enrollment returned nil identity", ErrClientInit)
+		return nil, fmt.Errorf("%w: failed to create admin identity from credentials: %v", ErrClientInit, err)
 	}
 
 	return &client{
 		fabricClient:  fabricCAClient,
+		adminIdentity: identity,
 		config:        config,
-		adminIdentity: enrollResp.Identity,
 	}, nil
 }
 
 // Register registers a new identity with the CA
-// This requires an enrolled admin identity
 func (c *client) Register(ctx context.Context, req *api.RegistrationRequest) (*api.RegistrationResponse, error) {
-	if c.adminIdentity == nil {
-		return nil, fmt.Errorf("%w: admin identity not enrolled", ErrRegister)
-	}
-
-	// Perform registration using the admin identity
 	resp, err := c.adminIdentity.Register(req)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrRegister, err)
 	}
-
 	return resp, nil
 }
 
 // Enroll enrolls an identity using an enrollment secret
 func (c *client) Enroll(ctx context.Context, req *api.EnrollmentRequest) (*lib.EnrollmentResponse, error) {
-	// Perform enrollment
 	resp, err := c.fabricClient.Enroll(req)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrEnroll, err)
@@ -150,31 +246,38 @@ func (c *client) Enroll(ctx context.Context, req *api.EnrollmentRequest) (*lib.E
 }
 
 // Revoke revokes an identity from the CA
-// This requires an enrolled admin identity
 func (c *client) Revoke(ctx context.Context, req *api.RevocationRequest) (*api.RevocationResponse, error) {
-	if c.adminIdentity == nil {
-		return nil, fmt.Errorf("%w: admin identity not enrolled", ErrRevoke)
-	}
-
-	// Perform revocation using the admin identity
 	resp, err := c.adminIdentity.Revoke(req)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrRevoke, err)
 	}
-
 	return resp, nil
 }
 
 // GetCAInfo retrieves information about the CA
 func (c *client) GetCAInfo(ctx context.Context) (*lib.GetCAInfoResponse, error) {
-	// Get CA info
 	resp, err := c.fabricClient.GetCAInfo(&api.GetCAInfoRequest{
 		CAName: c.config.CAName,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get CA info: %w", err)
 	}
-
 	return resp, nil
 }
 
+// =============================================================================
+// Helper functions
+// =============================================================================
+
+// createIdentityFromCredentials creates a lib.Identity from PEM-encoded cert and key.
+// This allows us to use an identity that was previously enrolled and stored in Vault.
+func createIdentityFromCredentials(client *lib.Client, certPEM, keyPEM []byte) (*lib.Identity, error) {
+	// TODO: Implement using fabric-ca library
+	// Need to investigate the correct API:
+	// - lib.Client.NewX509Identity?
+	// - x509cred.NewCredential + x509cred.NewSigner?
+	// - Loading cert/key and building Identity manually?
+	//
+	// For now, return nil with an error indicating this needs implementation
+	return nil, errors.New("createIdentityFromCredentials not yet implemented - need to investigate fabric-ca API")
+}

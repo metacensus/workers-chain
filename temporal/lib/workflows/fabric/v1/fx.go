@@ -13,37 +13,47 @@ import (
 
 // Module provides fabric v1 workflows and activities for dependency injection
 //
-// Dependency chain for CA client:
+// Two types of CA clients are available:
+//
+//  1. BootstrapClient - Username/password auth for initial bootstrap enrollment
+//     Created on-demand, not cached (each enrollment is unique)
+//
+//  2. Client - Keypair/cert auth for admin operations (Register, Revoke)
+//     Cached by MultiClientProvider using Vault path as key
+//
+// Dependency chain:
 //
 //	vault.VaultClient (provided by vault module)
-//	-> MultiClientProvider (via common.NewMultiClientProvider)
-//	-> Activities (via NewActivities)
-//
-// The ClientProviderFactory caches clients by their Vault path, so repeated
-// calls to the same CA return the cached client.
+//	-> MultiClientProvider[Client] (cached by Vault path)
+//	-> Activities
 var Module = fx.Options(
 	// Provide Workflows implementing pb.FabricWorkflows interface
 	fx.Provide(func(fabricConfig fabricconfig.FabricConfig) pb.FabricWorkflows {
 		return NewWorkflows(fabricConfig)
 	}),
 
-	// Provide CA multi-client provider
+	// Provide Client multi-client provider
+	// Clients are cached because they have stable keypair/cert auth from Vault.
 	// Uses MultiClientProvider because there are many CAs (tls-root, org-root, etc.)
 	// and the specific CA is only known at activity call time.
-	// Clients are cached by their Vault path for efficiency.
 	fx.Provide(func(vaultClient vault.VaultClient) *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig] {
 		return common.NewMultiClientProvider(
 			vaultClient,
-			certauthority.NewClient, // ClientConstructor
+			certauthority.NewClient,
 		)
 	}),
 
-	// Provide Activities with CA multi-client provider and config
+	// Provide Activities with CA client providers and config
+	// Activities get:
+	// - vaultClient: for creating BootstrapClients on-the-fly during bootstrap
+	// - clientProvider: for cached Client access
+	// - fabricConfig: for building CA-specific configurations
 	fx.Provide(func(
+		vaultClient vault.VaultClient,
 		clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig],
 		fabricConfig fabricconfig.FabricConfig,
 	) *Activities {
-		return NewActivities(clientProvider, fabricConfig)
+		return NewActivities(vaultClient, clientProvider, fabricConfig)
 	}),
 )
 
