@@ -36,30 +36,6 @@
     - [cluster.fabric.v1.CreateNamespaceOutput](#cluster-fabric-v1-createnamespaceoutput)
     - [cluster.fabric.v1.CreateServiceAccountInput](#cluster-fabric-v1-createserviceaccountinput)
     - [cluster.fabric.v1.CreateServiceAccountOutput](#cluster-fabric-v1-createserviceaccountoutput)
-- [crypto.v1](#crypto-v1)
-  - Services
-    - [crypto.v1.Crypto](#crypto-v1-crypto)
-      - [Workflows](#crypto-v1-crypto-workflows)
-        - [crypto.v1.GenerateAndStorePassword](#crypto-v1-generateandstorepassword-workflow)
-        - [crypto.v1.GenerateAndStoreKeyPair](#crypto-v1-generateandstorekeypair-workflow)
-        - [crypto.v1.CreateSelfSignedCertificate](#crypto-v1-createselfsignedcertificate-workflow)
-      - [Activities](#crypto-v1-crypto-activities)
-        - [crypto.v1.GeneratePassword](#crypto-v1-generatepassword-activity)
-        - [crypto.v1.GenerateKeyPair](#crypto-v1-generatekeypair-activity)
-        - [crypto.v1.GenerateCertificate](#crypto-v1-generatecertificate-activity)
-  - Messages
-    - [crypto.v1.CreateSelfSignedCertificateInput](#crypto-v1-createselfsignedcertificateinput)
-    - [crypto.v1.CreateSelfSignedCertificateOutput](#crypto-v1-createselfsignedcertificateoutput)
-    - [crypto.v1.GenerateAndStoreKeyPairInput](#crypto-v1-generateandstorekeypairinput)
-    - [crypto.v1.GenerateAndStoreKeyPairOutput](#crypto-v1-generateandstorekeypairoutput)
-    - [crypto.v1.GenerateAndStorePasswordInput](#crypto-v1-generateandstorepasswordinput)
-    - [crypto.v1.GenerateAndStorePasswordOutput](#crypto-v1-generateandstorepasswordoutput)
-    - [crypto.v1.GenerateCertificateInput](#crypto-v1-generatecertificateinput)
-    - [crypto.v1.GenerateCertificateOutput](#crypto-v1-generatecertificateoutput)
-    - [crypto.v1.GenerateKeyPairInput](#crypto-v1-generatekeypairinput)
-    - [crypto.v1.GenerateKeyPairOutput](#crypto-v1-generatekeypairoutput)
-    - [crypto.v1.GeneratePasswordInput](#crypto-v1-generatepasswordinput)
-    - [crypto.v1.GeneratePasswordOutput](#crypto-v1-generatepasswordoutput)
 - [fabric.v1](#fabric-v1)
   - Services
     - [fabric.v1.Fabric](#fabric-v1-fabric)
@@ -97,7 +73,6 @@
     - [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
     - [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
     - [fabric.v1.RegisterIdentityInput](#fabric-v1-registeridentityinput)
-    - [fabric.v1.RegisterIdentityInput.AttributesEntry](#fabric-v1-registeridentityinput-attributesentry)
     - [fabric.v1.RegisterIdentityOutput](#fabric-v1-registeridentityoutput)
     - [fabric.v1.RevokeIdentityInput](#fabric-v1-revokeidentityinput)
     - [fabric.v1.RevokeIdentityOutput](#fabric-v1-revokeidentityoutput)
@@ -169,6 +144,25 @@
     - [postgres.v1.GrantPrivilegesInput](#postgres-v1-grantprivilegesinput)
     - [postgres.v1.GrantPrivilegesOutput](#postgres-v1-grantprivilegesoutput)
     - [postgres.v1.Privilege](#postgres-v1-privilege)
+- [secrets.v1](#secrets-v1)
+  - Services
+    - [secrets.v1.Secrets](#secrets-v1-secrets)
+      - [Workflows](#secrets-v1-secrets-workflows)
+        - [secrets.v1.CreateAccess](#secrets-v1-createaccess-workflow)
+      - [Activities](#secrets-v1-secrets-activities)
+        - [secrets.v1.CreatePassword](#secrets-v1-createpassword-activity)
+        - [secrets.v1.CreateKeyPair](#secrets-v1-createkeypair-activity)
+        - [secrets.v1.CreateSelfSignedCertificate](#secrets-v1-createselfsignedcertificate-activity)
+  - Messages
+    - [secrets.v1.CreateAccessInput](#secrets-v1-createaccessinput)
+    - [secrets.v1.CreateAccessOutput](#secrets-v1-createaccessoutput)
+    - [secrets.v1.CreateKeyPairInput](#secrets-v1-createkeypairinput)
+    - [secrets.v1.CreateKeyPairOutput](#secrets-v1-createkeypairoutput)
+    - [secrets.v1.CreatePasswordInput](#secrets-v1-createpasswordinput)
+    - [secrets.v1.CreatePasswordOutput](#secrets-v1-createpasswordoutput)
+    - [secrets.v1.CreateSelfSignedCertificateInput](#secrets-v1-createselfsignedcertificateinput)
+    - [secrets.v1.CreateSelfSignedCertificateOutput](#secrets-v1-createselfsignedcertificateoutput)
+    - [secrets.v1.SecretRef](#secrets-v1-secretref)
 - [temporal.v1](#temporal-v1)
   - Services
     - [temporal.v1.Admin](#temporal-v1-admin)
@@ -198,20 +192,13 @@
 - [vault.v1](#vault-v1)
   - Services
     - [vault.v1.Vault](#vault-v1-vault)
-      - [Workflows](#vault-v1-vault-workflows)
-        - [vault.v1.CreateAccess](#vault-v1-createaccess-workflow)
       - [Activities](#vault-v1-vault-activities)
         - [vault.v1.CreateAuthRole](#vault-v1-createauthrole-activity)
         - [vault.v1.DeleteAuthRole](#vault-v1-deleteauthrole-activity)
         - [vault.v1.CreatePolicy](#vault-v1-createpolicy-activity)
         - [vault.v1.DeletePolicy](#vault-v1-deletepolicy-activity)
-        - [vault.v1.StoreSecret](#vault-v1-storesecret-activity)
-        - [vault.v1.FetchSecret](#vault-v1-fetchsecret-activity)
-        - [vault.v1.DeleteSecret](#vault-v1-deletesecret-activity)
   - Messages
     - [vault.v1.Capability](#vault-v1-capability)
-    - [vault.v1.CreateAccessInput](#vault-v1-createaccessinput)
-    - [vault.v1.CreateAccessOutput](#vault-v1-createaccessoutput)
     - [vault.v1.CreateAuthRoleInput](#vault-v1-createauthroleinput)
     - [vault.v1.CreateAuthRoleOutput](#vault-v1-createauthroleoutput)
     - [vault.v1.CreatePolicyInput](#vault-v1-createpolicyinput)
@@ -220,17 +207,8 @@
     - [vault.v1.DeleteAuthRoleOutput](#vault-v1-deleteauthroleoutput)
     - [vault.v1.DeletePolicyInput](#vault-v1-deletepolicyinput)
     - [vault.v1.DeletePolicyOutput](#vault-v1-deletepolicyoutput)
-    - [vault.v1.DeleteSecretInput](#vault-v1-deletesecretinput)
-    - [vault.v1.DeleteSecretOutput](#vault-v1-deletesecretoutput)
-    - [vault.v1.FetchSecretInput](#vault-v1-fetchsecretinput)
-    - [vault.v1.FetchSecretOutput](#vault-v1-fetchsecretoutput)
-    - [vault.v1.FetchSecretOutput.DataEntry](#vault-v1-fetchsecretoutput-dataentry)
     - [vault.v1.PolicyDocument](#vault-v1-policydocument)
     - [vault.v1.PolicyRule](#vault-v1-policyrule)
-    - [vault.v1.SecretRef](#vault-v1-secretref)
-    - [vault.v1.StoreSecretInput](#vault-v1-storesecretinput)
-    - [vault.v1.StoreSecretInput.DataEntry](#vault-v1-storesecretinput-dataentry)
-    - [vault.v1.StoreSecretOutput](#vault-v1-storesecretoutput)
 - [google.protobuf](#google-protobuf)
   - Messages
     - [google.protobuf.Duration](#google-protobuf-duration)
@@ -1197,860 +1175,6 @@ go_tags: json:"Org" validate:"required"</pre></td>
 
 
 
-<a name="crypto-v1"></a>
-# crypto.v1
-
-<a name="crypto-v1-services"></a>
-## Services
-
-<a name="crypto-v1-crypto"></a>
-## crypto.v1.Crypto
-
-<pre>
-Crypto service defines activities for cryptographic operations
-Activities generate passwords, key pairs, and other cryptographic primitives
-</pre>
-
-<a name="crypto-v1-crypto-workflows"></a>
-### Workflows
-
----
-<a name="crypto-v1-generateandstorepassword-workflow"></a>
-### crypto.v1.GenerateAndStorePassword
-
-<pre>
-GenerateAndStorePassword generates a password and stores it in Vault
-Orchestrates GeneratePassword activity + vault.v1.StoreSecret activity
-Username and password are stored with key names "username" and "password"
-</pre>
-
-**Input:** [crypto.v1.GenerateAndStorePasswordInput](#crypto-v1-generateandstorepasswordinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>username</td>
-<td>string</td>
-<td><pre>
-username is the username to store alongside the password
-Example: "postgres_ca_tls_root"<br>
-
-json_name: Username
-go_name: Username
-go_tags: json:"Username" validate:"required"</pre></td>
-</tr><tr>
-<td>vault_path</td>
-<td>string</td>
-<td><pre>
-vault_path is the Vault path to store the password at
-Example: "fabric/org1/ca/tls/root/admin"<br>
-
-json_name: VaultPath
-go_name: VaultPath
-go_tags: json:"VaultPath" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Output:** [crypto.v1.GenerateAndStorePasswordOutput](#crypto-v1-generateandstorepasswordoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>secret_ref</td>
-<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
-<td><pre>
-secret_ref is the Vault secret reference with path and version<br>
-
-json_name: SecretRef
-go_name: SecretRef
-go_tags: json:"SecretRef" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>crypto/generate-store-password/${! VaultPath.or("default") }</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
-</table>
-
----
-<a name="crypto-v1-generateandstorekeypair-workflow"></a>
-### crypto.v1.GenerateAndStoreKeyPair
-
-<pre>
-GenerateAndStoreKeyPair generates a key pair and stores it in Vault
-Orchestrates GenerateKeyPair activity + vault.v1.StoreSecret activity
-Keys are stored with names "private" and "public" at the same VaultPath
-</pre>
-
-**Input:** [crypto.v1.GenerateAndStoreKeyPairInput](#crypto-v1-generateandstorekeypairinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>vault_path</td>
-<td>string</td>
-<td><pre>
-vault_path is the Vault path to store the key pair at
-Both keys (private and public) are stored at this path
-Example: "fabric/org1/ca/tls/root/keys"<br>
-
-json_name: VaultPath
-go_name: VaultPath
-go_tags: json:"VaultPath" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Output:** [crypto.v1.GenerateAndStoreKeyPairOutput](#crypto-v1-generateandstorekeypairoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>secret_ref</td>
-<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
-<td><pre>
-secret_ref is the Vault secret reference with path and version<br>
-
-json_name: SecretRef
-go_name: SecretRef
-go_tags: json:"SecretRef" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>crypto/generate-store-keypair/${! VaultPath.or("default") }</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
-</table>
-
----
-<a name="crypto-v1-createselfsignedcertificate-workflow"></a>
-### crypto.v1.CreateSelfSignedCertificate
-
-<pre>
-CreateSelfSignedCertificate generates a self-signed certificate and stores it in Vault
-Orchestrates vault.v1.FetchSecret + GenerateCertificate activity + vault.v1.StoreSecret activity
-Used ONLY for root CA certificates. All other certificates are issued via fabric.v1.CreateIdentity.
-</pre>
-
-**Input:** [crypto.v1.CreateSelfSignedCertificateInput](#crypto-v1-createselfsignedcertificateinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>common_name</td>
-<td>string</td>
-<td><pre>
-common_name is the CN field in the certificate subject (e.g., "org1-tls-root-ca")<br>
-
-json_name: CommonName
-go_name: CommonName
-go_tags: json:"CommonName" validate:"required"</pre></td>
-</tr><tr>
-<td>max_path_length</td>
-<td>int32</td>
-<td><pre>
-max_path_length sets the pathLenConstraint in BasicConstraints extension
-Typically set to 1 for root CAs (can issue intermediate CAs)<br>
-
-json_name: MaxPathLength
-go_name: MaxPathLength
-go_tags: json:"MaxPathLength" validate:"min=0"</pre></td>
-</tr><tr>
-<td>organization</td>
-<td>string</td>
-<td><pre>
-organization is the O field in the certificate subject (e.g., "org1")<br>
-
-json_name: Organization
-go_name: Organization
-go_tags: json:"Organization" validate:"required"</pre></td>
-</tr><tr>
-<td>organizational_unit</td>
-<td>string</td>
-<td><pre>
-organizational_unit is the OU field in the certificate subject (e.g., "root-ca")<br>
-
-json_name: OrganizationalUnit
-go_name: OrganizationalUnit
-go_tags: json:"OrganizationalUnit"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration is how long the certificate is valid (e.g., 15 years for root CA)<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration" validate:"required"</pre></td>
-</tr><tr>
-<td>vault_certificate_path</td>
-<td>string</td>
-<td><pre>
-vault_certificate_path is the Vault path to store the certificate at
-Example: "fabric/org1/ca/tls/root/cert"<br>
-
-json_name: VaultCertificatePath
-go_name: VaultCertificatePath
-go_tags: json:"VaultCertificatePath" validate:"required"</pre></td>
-</tr><tr>
-<td>vault_key_path</td>
-<td>string</td>
-<td><pre>
-vault_key_path is the Vault path to fetch the private key from
-Example: "fabric/org1/ca/tls/root/keys"<br>
-
-json_name: VaultKeyPath
-go_name: VaultKeyPath
-go_tags: json:"VaultKeyPath" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Output:** [crypto.v1.CreateSelfSignedCertificateOutput](#crypto-v1-createselfsignedcertificateoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>secret_ref</td>
-<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
-<td><pre>
-secret_ref is the Vault secret reference with path and version<br>
-
-json_name: SecretRef
-go_name: SecretRef
-go_tags: json:"SecretRef" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>crypto/create-selfsigned-cert/${! VaultCertificatePath.or("default") }</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
-</table>    
-
-<a name="crypto-v1-crypto-activities"></a>
-### Activities
-
----
-<a name="crypto-v1-generatepassword-activity"></a>
-### crypto.v1.GeneratePassword
-
-<pre>
-GeneratePassword generates a secure random password
-Password is 32-character base64-URL-encoded random string
-</pre>
-
-**Input:** [crypto.v1.GeneratePasswordInput](#crypto-v1-generatepasswordinput)
-
-
-
-**Output:** [crypto.v1.GeneratePasswordOutput](#crypto-v1-generatepasswordoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>password</td>
-<td>string</td>
-<td><pre>
-password is the generated secure random password<br>
-
-json_name: Password
-go_name: Password
-go_tags: json:"Password" validate:"required"</pre></td>
-</tr>
-</table> 
-
----
-<a name="crypto-v1-generatekeypair-activity"></a>
-### crypto.v1.GenerateKeyPair
-
-<pre>
-GenerateKeyPair generates an ECDSA key pair
-Key is 256-bit ECDSA (P-256 curve)
-</pre>
-
-**Input:** [crypto.v1.GenerateKeyPairInput](#crypto-v1-generatekeypairinput)
-
-
-
-**Output:** [crypto.v1.GenerateKeyPairOutput](#crypto-v1-generatekeypairoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>private_key</td>
-<td>bytes</td>
-<td><pre>
-private_key is the PEM-encoded private key<br>
-
-json_name: PrivateKey
-go_name: PrivateKey
-go_tags: json:"PrivateKey" validate:"required"</pre></td>
-</tr><tr>
-<td>public_key</td>
-<td>bytes</td>
-<td><pre>
-public_key is the PEM-encoded public key<br>
-
-json_name: PublicKey
-go_name: PublicKey
-go_tags: json:"PublicKey" validate:"required"</pre></td>
-</tr>
-</table> 
-
----
-<a name="crypto-v1-generatecertificate-activity"></a>
-### crypto.v1.GenerateCertificate
-
-<pre>
-GenerateCertificate generates a self-signed X.509 certificate
-Used for root CA certificates. Certificate is signed using the provided private key.
-Generates X.509 v3 certificate with CA extensions (BasicConstraints, KeyUsage).
-</pre>
-
-**Input:** [crypto.v1.GenerateCertificateInput](#crypto-v1-generatecertificateinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>common_name</td>
-<td>string</td>
-<td><pre>
-common_name is the CN field in the certificate subject (e.g., "org1-tls-root-ca")<br>
-
-json_name: CommonName
-go_name: CommonName
-go_tags: json:"CommonName" validate:"required"</pre></td>
-</tr><tr>
-<td>max_path_length</td>
-<td>int32</td>
-<td><pre>
-max_path_length sets the pathLenConstraint in BasicConstraints extension
-Typically set to 1 for root CAs (can issue intermediate CAs)<br>
-
-json_name: MaxPathLength
-go_name: MaxPathLength
-go_tags: json:"MaxPathLength" validate:"min=0"</pre></td>
-</tr><tr>
-<td>organization</td>
-<td>string</td>
-<td><pre>
-organization is the O field in the certificate subject (e.g., "org1")<br>
-
-json_name: Organization
-go_name: Organization
-go_tags: json:"Organization" validate:"required"</pre></td>
-</tr><tr>
-<td>organizational_unit</td>
-<td>string</td>
-<td><pre>
-organizational_unit is the OU field in the certificate subject (e.g., "root-ca")<br>
-
-json_name: OrganizationalUnit
-go_name: OrganizationalUnit
-go_tags: json:"OrganizationalUnit"</pre></td>
-</tr><tr>
-<td>private_key</td>
-<td>bytes</td>
-<td><pre>
-private_key is the PEM-encoded ECDSA private key used to sign the certificate<br>
-
-json_name: PrivateKey
-go_name: PrivateKey
-go_tags: json:"PrivateKey" validate:"required"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration is how long the certificate is valid (e.g., 15 years for root CA)<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Output:** [crypto.v1.GenerateCertificateOutput](#crypto-v1-generatecertificateoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>certificate</td>
-<td>bytes</td>
-<td><pre>
-certificate is the PEM-encoded X.509 certificate<br>
-
-json_name: Certificate
-go_name: Certificate
-go_tags: json:"Certificate" validate:"required"</pre></td>
-</tr>
-</table>   
-
-<a name="crypto-v1-messages"></a>
-## Messages
-
-<a name="crypto-v1-createselfsignedcertificateinput"></a>
-### crypto.v1.CreateSelfSignedCertificateInput
-
-<pre>
-CreateSelfSignedCertificateInput specifies where to fetch the key and store the certificate
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>common_name</td>
-<td>string</td>
-<td><pre>
-common_name is the CN field in the certificate subject (e.g., "org1-tls-root-ca")<br>
-
-json_name: CommonName
-go_name: CommonName
-go_tags: json:"CommonName" validate:"required"</pre></td>
-</tr><tr>
-<td>max_path_length</td>
-<td>int32</td>
-<td><pre>
-max_path_length sets the pathLenConstraint in BasicConstraints extension
-Typically set to 1 for root CAs (can issue intermediate CAs)<br>
-
-json_name: MaxPathLength
-go_name: MaxPathLength
-go_tags: json:"MaxPathLength" validate:"min=0"</pre></td>
-</tr><tr>
-<td>organization</td>
-<td>string</td>
-<td><pre>
-organization is the O field in the certificate subject (e.g., "org1")<br>
-
-json_name: Organization
-go_name: Organization
-go_tags: json:"Organization" validate:"required"</pre></td>
-</tr><tr>
-<td>organizational_unit</td>
-<td>string</td>
-<td><pre>
-organizational_unit is the OU field in the certificate subject (e.g., "root-ca")<br>
-
-json_name: OrganizationalUnit
-go_name: OrganizationalUnit
-go_tags: json:"OrganizationalUnit"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration is how long the certificate is valid (e.g., 15 years for root CA)<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration" validate:"required"</pre></td>
-</tr><tr>
-<td>vault_certificate_path</td>
-<td>string</td>
-<td><pre>
-vault_certificate_path is the Vault path to store the certificate at
-Example: "fabric/org1/ca/tls/root/cert"<br>
-
-json_name: VaultCertificatePath
-go_name: VaultCertificatePath
-go_tags: json:"VaultCertificatePath" validate:"required"</pre></td>
-</tr><tr>
-<td>vault_key_path</td>
-<td>string</td>
-<td><pre>
-vault_key_path is the Vault path to fetch the private key from
-Example: "fabric/org1/ca/tls/root/keys"<br>
-
-json_name: VaultKeyPath
-go_name: VaultKeyPath
-go_tags: json:"VaultKeyPath" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="crypto-v1-createselfsignedcertificateoutput"></a>
-### crypto.v1.CreateSelfSignedCertificateOutput
-
-<pre>
-CreateSelfSignedCertificateOutput returns the Vault secret reference
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>secret_ref</td>
-<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
-<td><pre>
-secret_ref is the Vault secret reference with path and version<br>
-
-json_name: SecretRef
-go_name: SecretRef
-go_tags: json:"SecretRef" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="crypto-v1-generateandstorekeypairinput"></a>
-### crypto.v1.GenerateAndStoreKeyPairInput
-
-<pre>
-GenerateAndStoreKeyPairInput specifies where to store the generated key pair
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>vault_path</td>
-<td>string</td>
-<td><pre>
-vault_path is the Vault path to store the key pair at
-Both keys (private and public) are stored at this path
-Example: "fabric/org1/ca/tls/root/keys"<br>
-
-json_name: VaultPath
-go_name: VaultPath
-go_tags: json:"VaultPath" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="crypto-v1-generateandstorekeypairoutput"></a>
-### crypto.v1.GenerateAndStoreKeyPairOutput
-
-<pre>
-GenerateAndStoreKeyPairOutput returns the Vault secret reference
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>secret_ref</td>
-<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
-<td><pre>
-secret_ref is the Vault secret reference with path and version<br>
-
-json_name: SecretRef
-go_name: SecretRef
-go_tags: json:"SecretRef" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="crypto-v1-generateandstorepasswordinput"></a>
-### crypto.v1.GenerateAndStorePasswordInput
-
-<pre>
-GenerateAndStorePasswordInput specifies where to store the generated password
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>username</td>
-<td>string</td>
-<td><pre>
-username is the username to store alongside the password
-Example: "postgres_ca_tls_root"<br>
-
-json_name: Username
-go_name: Username
-go_tags: json:"Username" validate:"required"</pre></td>
-</tr><tr>
-<td>vault_path</td>
-<td>string</td>
-<td><pre>
-vault_path is the Vault path to store the password at
-Example: "fabric/org1/ca/tls/root/admin"<br>
-
-json_name: VaultPath
-go_name: VaultPath
-go_tags: json:"VaultPath" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="crypto-v1-generateandstorepasswordoutput"></a>
-### crypto.v1.GenerateAndStorePasswordOutput
-
-<pre>
-GenerateAndStorePasswordOutput returns the Vault secret reference
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>secret_ref</td>
-<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
-<td><pre>
-secret_ref is the Vault secret reference with path and version<br>
-
-json_name: SecretRef
-go_name: SecretRef
-go_tags: json:"SecretRef" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="crypto-v1-generatecertificateinput"></a>
-### crypto.v1.GenerateCertificateInput
-
-<pre>
-GenerateCertificateInput specifies parameters for self-signed certificate generation
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>common_name</td>
-<td>string</td>
-<td><pre>
-common_name is the CN field in the certificate subject (e.g., "org1-tls-root-ca")<br>
-
-json_name: CommonName
-go_name: CommonName
-go_tags: json:"CommonName" validate:"required"</pre></td>
-</tr><tr>
-<td>max_path_length</td>
-<td>int32</td>
-<td><pre>
-max_path_length sets the pathLenConstraint in BasicConstraints extension
-Typically set to 1 for root CAs (can issue intermediate CAs)<br>
-
-json_name: MaxPathLength
-go_name: MaxPathLength
-go_tags: json:"MaxPathLength" validate:"min=0"</pre></td>
-</tr><tr>
-<td>organization</td>
-<td>string</td>
-<td><pre>
-organization is the O field in the certificate subject (e.g., "org1")<br>
-
-json_name: Organization
-go_name: Organization
-go_tags: json:"Organization" validate:"required"</pre></td>
-</tr><tr>
-<td>organizational_unit</td>
-<td>string</td>
-<td><pre>
-organizational_unit is the OU field in the certificate subject (e.g., "root-ca")<br>
-
-json_name: OrganizationalUnit
-go_name: OrganizationalUnit
-go_tags: json:"OrganizationalUnit"</pre></td>
-</tr><tr>
-<td>private_key</td>
-<td>bytes</td>
-<td><pre>
-private_key is the PEM-encoded ECDSA private key used to sign the certificate<br>
-
-json_name: PrivateKey
-go_name: PrivateKey
-go_tags: json:"PrivateKey" validate:"required"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration is how long the certificate is valid (e.g., 15 years for root CA)<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="crypto-v1-generatecertificateoutput"></a>
-### crypto.v1.GenerateCertificateOutput
-
-<pre>
-GenerateCertificateOutput contains the generated certificate
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>certificate</td>
-<td>bytes</td>
-<td><pre>
-certificate is the PEM-encoded X.509 certificate<br>
-
-json_name: Certificate
-go_name: Certificate
-go_tags: json:"Certificate" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="crypto-v1-generatekeypairinput"></a>
-### crypto.v1.GenerateKeyPairInput
-
-<pre>
-GenerateKeyPairInput specifies key pair generation parameters
-</pre>
-
-
-
-<a name="crypto-v1-generatekeypairoutput"></a>
-### crypto.v1.GenerateKeyPairOutput
-
-<pre>
-GenerateKeyPairOutput contains the generated key pair
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>private_key</td>
-<td>bytes</td>
-<td><pre>
-private_key is the PEM-encoded private key<br>
-
-json_name: PrivateKey
-go_name: PrivateKey
-go_tags: json:"PrivateKey" validate:"required"</pre></td>
-</tr><tr>
-<td>public_key</td>
-<td>bytes</td>
-<td><pre>
-public_key is the PEM-encoded public key<br>
-
-json_name: PublicKey
-go_name: PublicKey
-go_tags: json:"PublicKey" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="crypto-v1-generatepasswordinput"></a>
-### crypto.v1.GeneratePasswordInput
-
-<pre>
-GeneratePasswordInput specifies password generation parameters
-</pre>
-
-
-
-<a name="crypto-v1-generatepasswordoutput"></a>
-### crypto.v1.GeneratePasswordOutput
-
-<pre>
-GeneratePasswordOutput contains the generated password
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>password</td>
-<td>string</td>
-<td><pre>
-password is the generated secure random password<br>
-
-json_name: Password
-go_name: Password
-go_tags: json:"Password" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
 <a name="fabric-v1"></a>
 # fabric.v1
 
@@ -2292,7 +1416,7 @@ go_tags: json:"CertificateAuthorityId" validate:"required"</pre></td>
 </tr>
 <tr>
 <td>credentials_ref</td>
-<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
 credentials_ref is the Vault reference to retrieve the username and password
 The database name can be derived from cert_type and certificate_authority_id using fabric config<br>
@@ -2438,99 +1562,11 @@ This is the first step in identity creation - registration returns an enrollment
 
 **Input:** [fabric.v1.RegisterIdentityInput](#fabric-v1-registeridentityinput)
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>affiliation</td>
-<td>string</td>
-<td><pre>
-affiliation is the identity's organizational affiliation
-Example: "org1.department1"<br>
 
-json_name: Affiliation
-go_name: Affiliation
-go_tags: json:"Affiliation"</pre></td>
-</tr><tr>
-<td>attributes</td>
-<td><a href="#fabric-v1-registeridentityinput-attributesentry">fabric.v1.RegisterIdentityInput.AttributesEntry</a></td>
-<td><pre>
-attributes are custom attributes associated with this identity<br>
-
-json_name: Attributes
-go_name: Attributes
-go_tags: json:"Attributes"</pre></td>
-</tr><tr>
-<td>ca_id</td>
-<td>string</td>
-<td><pre>
-ca_id is the CA identifier ("root" for root CAs, or version ID like "v1" for intermediates)<br>
-
-json_name: CaId
-go_name: CaId
-go_tags: json:"CaId" validate:"required"</pre></td>
-</tr><tr>
-<td>cert_type</td>
-<td>string</td>
-<td><pre>
-cert_type specifies which CA to register with ("tls" or "org")<br>
-
-json_name: CertType
-go_name: CertType
-go_tags: json:"CertType" validate:"required,oneof=tls org"</pre></td>
-</tr><tr>
-<td>max_enrollments</td>
-<td>int32</td>
-<td><pre>
-max_enrollments is the maximum number of times the secret can be used to enroll
-0 or -1 means unlimited<br>
-
-json_name: MaxEnrollments
-go_name: MaxEnrollments
-go_tags: json:"MaxEnrollments"</pre></td>
-</tr><tr>
-<td>name</td>
-<td>string</td>
-<td><pre>
-name is the unique enrollment ID for this identity<br>
-
-json_name: Name
-go_name: Name
-go_tags: json:"Name" validate:"required"</pre></td>
-</tr><tr>
-<td>type</td>
-<td>string</td>
-<td><pre>
-type is the identity type (e.g., "client", "peer", "orderer", "admin")<br>
-
-json_name: Type
-go_name: Type
-go_tags: json:"Type" validate:"required"</pre></td>
-</tr>
-</table>
 
 **Output:** [fabric.v1.RegisterIdentityOutput](#fabric-v1-registeridentityoutput)
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>secret</td>
-<td>string</td>
-<td><pre>
-secret is the enrollment secret that can be used to enroll this identity<br>
-
-json_name: Secret
-go_name: Secret
-go_tags: json:"Secret"</pre></td>
-</tr>
-</table> 
+ 
 
 ---
 <a name="fabric-v1-enrollidentity-activity"></a>
@@ -2543,97 +1579,11 @@ This is the second step in identity creation - enrollment uses the secret from r
 
 **Input:** [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_id</td>
-<td>string</td>
-<td><pre>
-ca_id is the CA identifier ("root" for root CAs, or version ID like "v1" for intermediates)<br>
 
-json_name: CaId
-go_name: CaId
-go_tags: json:"CaId" validate:"required"</pre></td>
-</tr><tr>
-<td>cert_type</td>
-<td>string</td>
-<td><pre>
-cert_type specifies which CA to enroll with ("tls" or "org")<br>
-
-json_name: CertType
-go_name: CertType
-go_tags: json:"CertType" validate:"required,oneof=tls org"</pre></td>
-</tr><tr>
-<td>common_name</td>
-<td>string</td>
-<td><pre>
-common_name is the CN field for the certificate (defaults to name if not provided)<br>
-
-json_name: CommonName
-go_name: CommonName
-go_tags: json:"CommonName"</pre></td>
-</tr><tr>
-<td>hosts</td>
-<td>string</td>
-<td><pre>
-hosts are the Subject Alternative Names (SANs) for the certificate<br>
-
-json_name: Hosts
-go_name: Hosts
-go_tags: json:"Hosts"</pre></td>
-</tr><tr>
-<td>name</td>
-<td>string</td>
-<td><pre>
-name is the enrollment ID for this identity (from registration)<br>
-
-json_name: Name
-go_name: Name
-go_tags: json:"Name" validate:"required"</pre></td>
-</tr><tr>
-<td>secret</td>
-<td>string</td>
-<td><pre>
-secret is the enrollment secret (from registration)<br>
-
-json_name: Secret
-go_name: Secret
-go_tags: json:"Secret" validate:"required"</pre></td>
-</tr>
-</table>
 
 **Output:** [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_certificate</td>
-<td>string</td>
-<td><pre>
-ca_certificate is the PEM-encoded CA certificate chain<br>
-
-json_name: CaCertificate
-go_name: CaCertificate
-go_tags: json:"CaCertificate"</pre></td>
-</tr><tr>
-<td>certificate</td>
-<td>string</td>
-<td><pre>
-certificate is the PEM-encoded signed certificate<br>
-
-json_name: Certificate
-go_name: Certificate
-go_tags: json:"Certificate"</pre></td>
-</tr>
-</table> 
+ 
 
 ---
 <a name="fabric-v1-revokeidentity-activity"></a>
@@ -2646,51 +1596,7 @@ Used to revoke bootstrap admin credentials after permanent admin is created
 
 **Input:** [fabric.v1.RevokeIdentityInput](#fabric-v1-revokeidentityinput)
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_id</td>
-<td>string</td>
-<td><pre>
-ca_id is the CA identifier ("root" for root CAs, or version ID like "v1" for intermediates)<br>
 
-json_name: CaId
-go_name: CaId
-go_tags: json:"CaId" validate:"required"</pre></td>
-</tr><tr>
-<td>cert_type</td>
-<td>string</td>
-<td><pre>
-cert_type specifies which CA to revoke from ("tls" or "org")<br>
-
-json_name: CertType
-go_name: CertType
-go_tags: json:"CertType" validate:"required,oneof=tls org"</pre></td>
-</tr><tr>
-<td>name</td>
-<td>string</td>
-<td><pre>
-name is the enrollment ID of the identity to revoke<br>
-
-json_name: Name
-go_name: Name
-go_tags: json:"Name" validate:"required"</pre></td>
-</tr><tr>
-<td>reason</td>
-<td>string</td>
-<td><pre>
-reason is the reason for revocation (optional)
-Common values: "unspecified", "keycompromise", "cacompromise", "affiliationchanged", "superseded", "cessationofoperation"<br>
-
-json_name: Reason
-go_name: Reason
-go_tags: json:"Reason"</pre></td>
-</tr>
-</table>
 
 **Output:** [fabric.v1.RevokeIdentityOutput](#fabric-v1-revokeidentityoutput)
 
@@ -2840,7 +1746,7 @@ CreateCertificateDatabaseOutput indicates the result of certificate database cre
 </tr>
 <tr>
 <td>credentials_ref</td>
-<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
 credentials_ref is the Vault reference to retrieve the username and password
 The database name can be derived from cert_type and certificate_authority_id using fabric config<br>
@@ -3014,104 +1920,14 @@ Empty for now - will be populated as implementation progresses
 EnrollIdentityInput specifies the parameters for enrolling an identity with a CA
 </pre>
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_id</td>
-<td>string</td>
-<td><pre>
-ca_id is the CA identifier ("root" for root CAs, or version ID like "v1" for intermediates)<br>
-
-json_name: CaId
-go_name: CaId
-go_tags: json:"CaId" validate:"required"</pre></td>
-</tr><tr>
-<td>cert_type</td>
-<td>string</td>
-<td><pre>
-cert_type specifies which CA to enroll with ("tls" or "org")<br>
-
-json_name: CertType
-go_name: CertType
-go_tags: json:"CertType" validate:"required,oneof=tls org"</pre></td>
-</tr><tr>
-<td>common_name</td>
-<td>string</td>
-<td><pre>
-common_name is the CN field for the certificate (defaults to name if not provided)<br>
-
-json_name: CommonName
-go_name: CommonName
-go_tags: json:"CommonName"</pre></td>
-</tr><tr>
-<td>hosts</td>
-<td>string</td>
-<td><pre>
-hosts are the Subject Alternative Names (SANs) for the certificate<br>
-
-json_name: Hosts
-go_name: Hosts
-go_tags: json:"Hosts"</pre></td>
-</tr><tr>
-<td>name</td>
-<td>string</td>
-<td><pre>
-name is the enrollment ID for this identity (from registration)<br>
-
-json_name: Name
-go_name: Name
-go_tags: json:"Name" validate:"required"</pre></td>
-</tr><tr>
-<td>secret</td>
-<td>string</td>
-<td><pre>
-secret is the enrollment secret (from registration)<br>
-
-json_name: Secret
-go_name: Secret
-go_tags: json:"Secret" validate:"required"</pre></td>
-</tr>
-</table>
-
 
 
 <a name="fabric-v1-enrollidentityoutput"></a>
 ### fabric.v1.EnrollIdentityOutput
 
 <pre>
-EnrollIdentityOutput contains the certificate returned by the CA
+EnrollIdentityOutput contains the certificates returned by the CA
 </pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_certificate</td>
-<td>string</td>
-<td><pre>
-ca_certificate is the PEM-encoded CA certificate chain<br>
-
-json_name: CaCertificate
-go_name: CaCertificate
-go_tags: json:"CaCertificate"</pre></td>
-</tr><tr>
-<td>certificate</td>
-<td>string</td>
-<td><pre>
-certificate is the PEM-encoded signed certificate<br>
-
-json_name: Certificate
-go_name: Certificate
-go_tags: json:"Certificate"</pre></td>
-</tr>
-</table>
 
 
 
@@ -3122,106 +1938,6 @@ go_tags: json:"Certificate"</pre></td>
 RegisterIdentityInput specifies the parameters for registering an identity with a CA
 </pre>
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>affiliation</td>
-<td>string</td>
-<td><pre>
-affiliation is the identity's organizational affiliation
-Example: "org1.department1"<br>
-
-json_name: Affiliation
-go_name: Affiliation
-go_tags: json:"Affiliation"</pre></td>
-</tr><tr>
-<td>attributes</td>
-<td><a href="#fabric-v1-registeridentityinput-attributesentry">fabric.v1.RegisterIdentityInput.AttributesEntry</a></td>
-<td><pre>
-attributes are custom attributes associated with this identity<br>
-
-json_name: Attributes
-go_name: Attributes
-go_tags: json:"Attributes"</pre></td>
-</tr><tr>
-<td>ca_id</td>
-<td>string</td>
-<td><pre>
-ca_id is the CA identifier ("root" for root CAs, or version ID like "v1" for intermediates)<br>
-
-json_name: CaId
-go_name: CaId
-go_tags: json:"CaId" validate:"required"</pre></td>
-</tr><tr>
-<td>cert_type</td>
-<td>string</td>
-<td><pre>
-cert_type specifies which CA to register with ("tls" or "org")<br>
-
-json_name: CertType
-go_name: CertType
-go_tags: json:"CertType" validate:"required,oneof=tls org"</pre></td>
-</tr><tr>
-<td>max_enrollments</td>
-<td>int32</td>
-<td><pre>
-max_enrollments is the maximum number of times the secret can be used to enroll
-0 or -1 means unlimited<br>
-
-json_name: MaxEnrollments
-go_name: MaxEnrollments
-go_tags: json:"MaxEnrollments"</pre></td>
-</tr><tr>
-<td>name</td>
-<td>string</td>
-<td><pre>
-name is the unique enrollment ID for this identity<br>
-
-json_name: Name
-go_name: Name
-go_tags: json:"Name" validate:"required"</pre></td>
-</tr><tr>
-<td>type</td>
-<td>string</td>
-<td><pre>
-type is the identity type (e.g., "client", "peer", "orderer", "admin")<br>
-
-json_name: Type
-go_name: Type
-go_tags: json:"Type" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-registeridentityinput-attributesentry"></a>
-### fabric.v1.RegisterIdentityInput.AttributesEntry
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>key</td>
-<td>string</td>
-<td><pre>
-json_name: key
-go_name: Key</pre></td>
-</tr><tr>
-<td>value</td>
-<td>string</td>
-<td><pre>
-json_name: value
-go_name: Value</pre></td>
-</tr>
-</table>
-
 
 
 <a name="fabric-v1-registeridentityoutput"></a>
@@ -3231,24 +1947,6 @@ go_name: Value</pre></td>
 RegisterIdentityOutput contains the enrollment secret returned by the CA
 </pre>
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>secret</td>
-<td>string</td>
-<td><pre>
-secret is the enrollment secret that can be used to enroll this identity<br>
-
-json_name: Secret
-go_name: Secret
-go_tags: json:"Secret"</pre></td>
-</tr>
-</table>
-
 
 
 <a name="fabric-v1-revokeidentityinput"></a>
@@ -3257,52 +1955,6 @@ go_tags: json:"Secret"</pre></td>
 <pre>
 RevokeIdentityInput specifies the parameters for revoking an identity from a CA
 </pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_id</td>
-<td>string</td>
-<td><pre>
-ca_id is the CA identifier ("root" for root CAs, or version ID like "v1" for intermediates)<br>
-
-json_name: CaId
-go_name: CaId
-go_tags: json:"CaId" validate:"required"</pre></td>
-</tr><tr>
-<td>cert_type</td>
-<td>string</td>
-<td><pre>
-cert_type specifies which CA to revoke from ("tls" or "org")<br>
-
-json_name: CertType
-go_name: CertType
-go_tags: json:"CertType" validate:"required,oneof=tls org"</pre></td>
-</tr><tr>
-<td>name</td>
-<td>string</td>
-<td><pre>
-name is the enrollment ID of the identity to revoke<br>
-
-json_name: Name
-go_name: Name
-go_tags: json:"Name" validate:"required"</pre></td>
-</tr><tr>
-<td>reason</td>
-<td>string</td>
-<td><pre>
-reason is the reason for revocation (optional)
-Common values: "unspecified", "keycompromise", "cacompromise", "affiliationchanged", "superseded", "cessationofoperation"<br>
-
-json_name: Reason
-go_name: Reason
-go_tags: json:"Reason"</pre></td>
-</tr>
-</table>
 
 
 
@@ -5075,7 +3727,7 @@ go_tags: json:"Updated" validate:"required"</pre></td>
 ## postgres.v1.Postgres
 
 <pre>
-Postgres service defines activities for PostgreSQL database management
+Postgres service defines activities for PostgreSQL database management.
 </pre>   
 
 <a name="postgres-v1-postgres-activities"></a>
@@ -5086,8 +3738,8 @@ Postgres service defines activities for PostgreSQL database management
 ### postgres.v1.CreateDatabase
 
 <pre>
-CreateDatabase creates a new PostgreSQL database
-Idempotent: returns success if database already exists
+CreateDatabase creates a new PostgreSQL database.
+Idempotent: returns success if database already exists.
 </pre>
 
 **Input:** [postgres.v1.CreateDatabaseInput](#postgres-v1-createdatabaseinput)
@@ -5102,8 +3754,6 @@ Idempotent: returns success if database already exists
 <td>database_name</td>
 <td>string</td>
 <td><pre>
-database_name is the name of the database to create<br>
-
 json_name: DatabaseName
 go_name: DatabaseName
 go_tags: json:"DatabaseName" validate:"required"</pre></td>
@@ -5119,8 +3769,8 @@ go_tags: json:"DatabaseName" validate:"required"</pre></td>
 ### postgres.v1.CreateUser
 
 <pre>
-CreateUser creates a new PostgreSQL user
-Idempotent: returns success if user already exists
+CreateUser creates a new PostgreSQL user with credentials from a SecretRef.
+Idempotent: returns success if user already exists.
 </pre>
 
 **Input:** [postgres.v1.CreateUserInput](#postgres-v1-createuserinput)
@@ -5132,23 +3782,14 @@ Idempotent: returns success if user already exists
 <th>Description</th>
 </tr>
 <tr>
-<td>password</td>
-<td>string</td>
+<td>credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-password is the password for the user<br>
+credentials_ref points to secret containing username and password<br>
 
-json_name: Password
-go_name: Password
-go_tags: json:"Password" validate:"required"</pre></td>
-</tr><tr>
-<td>username</td>
-<td>string</td>
-<td><pre>
-username is the name of the user to create<br>
-
-json_name: Username
-go_name: Username
-go_tags: json:"Username" validate:"required"</pre></td>
+json_name: CredentialsRef
+go_name: CredentialsRef
+go_tags: json:"CredentialsRef" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5161,8 +3802,8 @@ go_tags: json:"Username" validate:"required"</pre></td>
 ### postgres.v1.GrantPrivileges
 
 <pre>
-GrantPrivileges grants privileges to a user on a database
-Idempotent: can be called multiple times safely
+GrantPrivileges grants privileges to a user on a database.
+Idempotent: can be called multiple times safely.
 </pre>
 
 **Input:** [postgres.v1.GrantPrivilegesInput](#postgres-v1-grantprivilegesinput)
@@ -5177,8 +3818,6 @@ Idempotent: can be called multiple times safely
 <td>database_name</td>
 <td>string</td>
 <td><pre>
-database_name is the name of the database to grant privileges on<br>
-
 json_name: DatabaseName
 go_name: DatabaseName
 go_tags: json:"DatabaseName" validate:"required"</pre></td>
@@ -5186,9 +3825,6 @@ go_tags: json:"DatabaseName" validate:"required"</pre></td>
 <td>privileges</td>
 <td><a href="#postgres-v1-privilege">postgres.v1.Privilege</a></td>
 <td><pre>
-privileges is a list of privileges to grant
-If empty, defaults to [PRIVILEGE_ALL]<br>
-
 json_name: Privileges
 go_name: Privileges
 go_tags: json:"Privileges,omitempty" validate:"omitempty"</pre></td>
@@ -5196,8 +3832,6 @@ go_tags: json:"Privileges,omitempty" validate:"omitempty"</pre></td>
 <td>username</td>
 <td>string</td>
 <td><pre>
-username is the name of the user to grant privileges to<br>
-
 json_name: Username
 go_name: Username
 go_tags: json:"Username" validate:"required"</pre></td>
@@ -5214,10 +3848,6 @@ go_tags: json:"Username" validate:"required"</pre></td>
 <a name="postgres-v1-createdatabaseinput"></a>
 ### postgres.v1.CreateDatabaseInput
 
-<pre>
-CreateDatabaseInput specifies parameters for creating a database
-</pre>
-
 <table>
 <tr>
 <th>Attribute</th>
@@ -5228,8 +3858,6 @@ CreateDatabaseInput specifies parameters for creating a database
 <td>database_name</td>
 <td>string</td>
 <td><pre>
-database_name is the name of the database to create<br>
-
 json_name: DatabaseName
 go_name: DatabaseName
 go_tags: json:"DatabaseName" validate:"required"</pre></td>
@@ -5241,18 +3869,10 @@ go_tags: json:"DatabaseName" validate:"required"</pre></td>
 <a name="postgres-v1-createdatabaseoutput"></a>
 ### postgres.v1.CreateDatabaseOutput
 
-<pre>
-CreateDatabaseOutput confirms database creation
-</pre>
-
 
 
 <a name="postgres-v1-createuserinput"></a>
 ### postgres.v1.CreateUserInput
-
-<pre>
-CreateUserInput specifies parameters for creating a user
-</pre>
 
 <table>
 <tr>
@@ -5261,23 +3881,14 @@ CreateUserInput specifies parameters for creating a user
 <th>Description</th>
 </tr>
 <tr>
-<td>password</td>
-<td>string</td>
+<td>credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-password is the password for the user<br>
+credentials_ref points to secret containing username and password<br>
 
-json_name: Password
-go_name: Password
-go_tags: json:"Password" validate:"required"</pre></td>
-</tr><tr>
-<td>username</td>
-<td>string</td>
-<td><pre>
-username is the name of the user to create<br>
-
-json_name: Username
-go_name: Username
-go_tags: json:"Username" validate:"required"</pre></td>
+json_name: CredentialsRef
+go_name: CredentialsRef
+go_tags: json:"CredentialsRef" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5286,18 +3897,10 @@ go_tags: json:"Username" validate:"required"</pre></td>
 <a name="postgres-v1-createuseroutput"></a>
 ### postgres.v1.CreateUserOutput
 
-<pre>
-CreateUserOutput confirms user creation
-</pre>
-
 
 
 <a name="postgres-v1-grantprivilegesinput"></a>
 ### postgres.v1.GrantPrivilegesInput
-
-<pre>
-GrantPrivilegesInput specifies parameters for granting privileges
-</pre>
 
 <table>
 <tr>
@@ -5309,8 +3912,6 @@ GrantPrivilegesInput specifies parameters for granting privileges
 <td>database_name</td>
 <td>string</td>
 <td><pre>
-database_name is the name of the database to grant privileges on<br>
-
 json_name: DatabaseName
 go_name: DatabaseName
 go_tags: json:"DatabaseName" validate:"required"</pre></td>
@@ -5318,9 +3919,6 @@ go_tags: json:"DatabaseName" validate:"required"</pre></td>
 <td>privileges</td>
 <td><a href="#postgres-v1-privilege">postgres.v1.Privilege</a></td>
 <td><pre>
-privileges is a list of privileges to grant
-If empty, defaults to [PRIVILEGE_ALL]<br>
-
 json_name: Privileges
 go_name: Privileges
 go_tags: json:"Privileges,omitempty" validate:"omitempty"</pre></td>
@@ -5328,8 +3926,6 @@ go_tags: json:"Privileges,omitempty" validate:"omitempty"</pre></td>
 <td>username</td>
 <td>string</td>
 <td><pre>
-username is the name of the user to grant privileges to<br>
-
 json_name: Username
 go_name: Username
 go_tags: json:"Username" validate:"required"</pre></td>
@@ -5341,18 +3937,10 @@ go_tags: json:"Username" validate:"required"</pre></td>
 <a name="postgres-v1-grantprivilegesoutput"></a>
 ### postgres.v1.GrantPrivilegesOutput
 
-<pre>
-GrantPrivilegesOutput confirms successful privilege grant
-</pre>
-
 
 
 <a name="postgres-v1-privilege"></a>
 ### postgres.v1.Privilege
-
-<pre>
-Privilege enum for PostgreSQL database permissions
-</pre>
 
 <table>
 <tr><th>Value</th><th>Description</th></tr>
@@ -5400,6 +3988,684 @@ Privilege enum for PostgreSQL database permissions
 <td></td>
 </tr>
 </table>
+
+<a name="secrets-v1"></a>
+# secrets.v1
+
+<a name="secrets-v1-services"></a>
+## Services
+
+<a name="secrets-v1-secrets"></a>
+## secrets.v1.Secrets
+
+<pre>
+Secrets service provides unified secret management operations.
+Includes secret creation/storage, key generation, and access management.
+Nexus-enabled for cross-namespace calls (fabric workers calling CreateAccess on infra worker).
+</pre>
+
+<a name="secrets-v1-secrets-workflows"></a>
+### Workflows
+
+---
+<a name="secrets-v1-createaccess-workflow"></a>
+### secrets.v1.CreateAccess
+
+<pre>
+CreateAccess creates a Vault policy and Kubernetes auth role for secret access.
+Orchestrates CreatePolicy and CreateAuthRole vault activities.
+</pre>
+
+**Input:** [secrets.v1.CreateAccessInput](#secrets-v1-createaccessinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>auth_role_name</td>
+<td>string</td>
+<td><pre>
+auth_role_name is the name of the auth role to create<br>
+
+json_name: AuthRoleName
+go_name: AuthRoleName
+go_tags: json:"AuthRoleName" validate:"required"</pre></td>
+</tr><tr>
+<td>kubernetes_namespace</td>
+<td>string</td>
+<td><pre>
+kubernetes_namespace is where the service account exists<br>
+
+json_name: KubernetesNamespace
+go_name: KubernetesNamespace
+go_tags: json:"KubernetesNamespace" validate:"required"</pre></td>
+</tr><tr>
+<td>policy_document</td>
+<td><a href="#vault-v1-policydocument">vault.v1.PolicyDocument</a></td>
+<td><pre>
+policy_document contains the structured policy rules<br>
+
+json_name: PolicyDocument
+go_name: PolicyDocument
+go_tags: json:"PolicyDocument" validate:"required"</pre></td>
+</tr><tr>
+<td>policy_name</td>
+<td>string</td>
+<td><pre>
+policy_name is the name of the policy to create<br>
+
+json_name: PolicyName
+go_name: PolicyName
+go_tags: json:"PolicyName" validate:"required"</pre></td>
+</tr><tr>
+<td>service_account_name</td>
+<td>string</td>
+<td><pre>
+service_account_name is the Kubernetes service account that can authenticate<br>
+
+json_name: ServiceAccountName
+go_name: ServiceAccountName
+go_tags: json:"ServiceAccountName" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [secrets.v1.CreateAccessOutput](#secrets-v1-createaccessoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>auth_role_name</td>
+<td>string</td>
+<td><pre>
+json_name: AuthRoleName
+go_name: AuthRoleName
+go_tags: json:"AuthRoleName" validate:"required"</pre></td>
+</tr><tr>
+<td>policy_name</td>
+<td>string</td>
+<td><pre>
+json_name: PolicyName
+go_name: PolicyName
+go_tags: json:"PolicyName" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>secrets/create-access/${! PolicyName.or("default") }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>    
+
+<a name="secrets-v1-secrets-activities"></a>
+### Activities
+
+---
+<a name="secrets-v1-createpassword-activity"></a>
+### secrets.v1.CreatePassword
+
+<pre>
+CreatePassword generates a secure password and stores it with the given username.
+</pre>
+
+**Input:** [secrets.v1.CreatePasswordInput](#secrets-v1-createpasswordinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+secret_ref is where credentials should be stored<br>
+
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
+</tr><tr>
+<td>username</td>
+<td>string</td>
+<td><pre>
+username to store alongside the generated password<br>
+
+json_name: Username
+go_name: Username
+go_tags: json:"Username" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [secrets.v1.CreatePasswordOutput](#secrets-v1-createpasswordoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
+</tr>
+</table> 
+
+---
+<a name="secrets-v1-createkeypair-activity"></a>
+### secrets.v1.CreateKeyPair
+
+<pre>
+CreateKeyPair generates an ECDSA key pair (P-256) and stores it.
+</pre>
+
+**Input:** [secrets.v1.CreateKeyPairInput](#secrets-v1-createkeypairinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+secret_ref is where the key pair should be stored<br>
+
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [secrets.v1.CreateKeyPairOutput](#secrets-v1-createkeypairoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
+</tr>
+</table> 
+
+---
+<a name="secrets-v1-createselfsignedcertificate-activity"></a>
+### secrets.v1.CreateSelfSignedCertificate
+
+<pre>
+CreateSelfSignedCertificate fetches a key pair, generates a self-signed certificate, and stores it.
+Used for root CA certificates only. Implemented as an activity to keep secrets out of workflow history.
+</pre>
+
+**Input:** [secrets.v1.CreateSelfSignedCertificateInput](#secrets-v1-createselfsignedcertificateinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+cert_ref is where to store the generated certificate<br>
+
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN field in the certificate subject<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>key_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+key_ref is where to fetch the private key from<br>
+
+json_name: KeyRef
+go_name: KeyRef
+go_tags: json:"KeyRef" validate:"required"</pre></td>
+</tr><tr>
+<td>max_path_length</td>
+<td>int32</td>
+<td><pre>
+max_path_length sets the pathLenConstraint in BasicConstraints<br>
+
+json_name: MaxPathLength
+go_name: MaxPathLength
+go_tags: json:"MaxPathLength" validate:"min=0"</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+organization is the O field in the certificate subject<br>
+
+json_name: Organization
+go_name: Organization
+go_tags: json:"Organization" validate:"required"</pre></td>
+</tr><tr>
+<td>organizational_unit</td>
+<td>string</td>
+<td><pre>
+organizational_unit is the OU field in the certificate subject<br>
+
+json_name: OrganizationalUnit
+go_name: OrganizationalUnit
+go_tags: json:"OrganizationalUnit"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration is how long the certificate is valid<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [secrets.v1.CreateSelfSignedCertificateOutput](#secrets-v1-createselfsignedcertificateoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr>
+</table>   
+
+<a name="secrets-v1-messages"></a>
+## Messages
+
+<a name="secrets-v1-createaccessinput"></a>
+### secrets.v1.CreateAccessInput
+
+<pre>
+CreateAccessInput specifies parameters for creating secret access (policy + auth role)
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>auth_role_name</td>
+<td>string</td>
+<td><pre>
+auth_role_name is the name of the auth role to create<br>
+
+json_name: AuthRoleName
+go_name: AuthRoleName
+go_tags: json:"AuthRoleName" validate:"required"</pre></td>
+</tr><tr>
+<td>kubernetes_namespace</td>
+<td>string</td>
+<td><pre>
+kubernetes_namespace is where the service account exists<br>
+
+json_name: KubernetesNamespace
+go_name: KubernetesNamespace
+go_tags: json:"KubernetesNamespace" validate:"required"</pre></td>
+</tr><tr>
+<td>policy_document</td>
+<td><a href="#vault-v1-policydocument">vault.v1.PolicyDocument</a></td>
+<td><pre>
+policy_document contains the structured policy rules<br>
+
+json_name: PolicyDocument
+go_name: PolicyDocument
+go_tags: json:"PolicyDocument" validate:"required"</pre></td>
+</tr><tr>
+<td>policy_name</td>
+<td>string</td>
+<td><pre>
+policy_name is the name of the policy to create<br>
+
+json_name: PolicyName
+go_name: PolicyName
+go_tags: json:"PolicyName" validate:"required"</pre></td>
+</tr><tr>
+<td>service_account_name</td>
+<td>string</td>
+<td><pre>
+service_account_name is the Kubernetes service account that can authenticate<br>
+
+json_name: ServiceAccountName
+go_name: ServiceAccountName
+go_tags: json:"ServiceAccountName" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-createaccessoutput"></a>
+### secrets.v1.CreateAccessOutput
+
+<pre>
+CreateAccessOutput confirms access was created
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>auth_role_name</td>
+<td>string</td>
+<td><pre>
+json_name: AuthRoleName
+go_name: AuthRoleName
+go_tags: json:"AuthRoleName" validate:"required"</pre></td>
+</tr><tr>
+<td>policy_name</td>
+<td>string</td>
+<td><pre>
+json_name: PolicyName
+go_name: PolicyName
+go_tags: json:"PolicyName" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-createkeypairinput"></a>
+### secrets.v1.CreateKeyPairInput
+
+<pre>
+CreateKeyPairInput specifies where to store the generated key pair
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+secret_ref is where the key pair should be stored<br>
+
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-createkeypairoutput"></a>
+### secrets.v1.CreateKeyPairOutput
+
+<pre>
+CreateKeyPairOutput confirms key pair was stored
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-createpasswordinput"></a>
+### secrets.v1.CreatePasswordInput
+
+<pre>
+CreatePasswordInput specifies where to store generated credentials
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+secret_ref is where credentials should be stored<br>
+
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
+</tr><tr>
+<td>username</td>
+<td>string</td>
+<td><pre>
+username to store alongside the generated password<br>
+
+json_name: Username
+go_name: Username
+go_tags: json:"Username" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-createpasswordoutput"></a>
+### secrets.v1.CreatePasswordOutput
+
+<pre>
+CreatePasswordOutput confirms credentials were stored
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-createselfsignedcertificateinput"></a>
+### secrets.v1.CreateSelfSignedCertificateInput
+
+<pre>
+CreateSelfSignedCertificateInput specifies key location, cert destination, and certificate parameters
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+cert_ref is where to store the generated certificate<br>
+
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN field in the certificate subject<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>key_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+key_ref is where to fetch the private key from<br>
+
+json_name: KeyRef
+go_name: KeyRef
+go_tags: json:"KeyRef" validate:"required"</pre></td>
+</tr><tr>
+<td>max_path_length</td>
+<td>int32</td>
+<td><pre>
+max_path_length sets the pathLenConstraint in BasicConstraints<br>
+
+json_name: MaxPathLength
+go_name: MaxPathLength
+go_tags: json:"MaxPathLength" validate:"min=0"</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+organization is the O field in the certificate subject<br>
+
+json_name: Organization
+go_name: Organization
+go_tags: json:"Organization" validate:"required"</pre></td>
+</tr><tr>
+<td>organizational_unit</td>
+<td>string</td>
+<td><pre>
+organizational_unit is the OU field in the certificate subject<br>
+
+json_name: OrganizationalUnit
+go_name: OrganizationalUnit
+go_tags: json:"OrganizationalUnit"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration is how long the certificate is valid<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-createselfsignedcertificateoutput"></a>
+### secrets.v1.CreateSelfSignedCertificateOutput
+
+<pre>
+CreateSelfSignedCertificateOutput confirms certificate was stored
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-secretref"></a>
+### secrets.v1.SecretRef
+
+<pre>
+SecretRef is a backend-agnostic reference to a secret.
+The ref field is a structured object interpreted based on type.
+Examples:
+  - type: "vault", ref: {path: "fabric/org1/ca/tls/root/admin", version: 1}
+  - type: "k8s", ref: {namespace: "default", name: "my-secret", key: "password"}
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ref</td>
+<td><a href="#google-protobuf-struct">google.protobuf.Struct</a></td>
+<td><pre>
+ref is backend-specific structured reference data<br>
+
+json_name: Ref
+go_name: Ref
+go_tags: json:"Ref" validate:"required"</pre></td>
+</tr><tr>
+<td>type</td>
+<td>string</td>
+<td><pre>
+type identifies the secret backend (e.g., "vault", "k8s")<br>
+
+json_name: Type
+go_name: Type
+go_tags: json:"Type" validate:"required"</pre></td>
+</tr>
+</table>
+
+
 
 <a name="temporal-v1"></a>
 # temporal.v1
@@ -6144,115 +5410,9 @@ go_tags: json:"Endpoint" validate:"required"</pre></td>
 ## vault.v1.Vault
 
 <pre>
-Vault service defines activities related to secret and auth management
-</pre>
-
-<a name="vault-v1-vault-workflows"></a>
-### Workflows
-
----
-<a name="vault-v1-createaccess-workflow"></a>
-### vault.v1.CreateAccess
-
-<pre>
-Access Management
-</pre>
-
-**Input:** [vault.v1.CreateAccessInput](#vault-v1-createaccessinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>auth_role_name</td>
-<td>string</td>
-<td><pre>
-Auth role configuration
-auth_role_name is the name of the Kubernetes auth role to create<br>
-
-json_name: AuthRoleName
-go_name: AuthRoleName
-go_tags: json:"AuthRoleName" validate:"required"</pre></td>
-</tr><tr>
-<td>kubernetes_namespace</td>
-<td>string</td>
-<td><pre>
-kubernetes_namespace is the Kubernetes namespace where the service account exists<br>
-
-json_name: KubernetesNamespace
-go_name: KubernetesNamespace
-go_tags: json:"KubernetesNamespace" validate:"required"</pre></td>
-</tr><tr>
-<td>policy_document</td>
-<td><a href="#vault-v1-policydocument">vault.v1.PolicyDocument</a></td>
-<td><pre>
-policy_document is the structured policy content<br>
-
-json_name: PolicyDocument
-go_name: PolicyDocument
-go_tags: json:"PolicyDocument" validate:"required"</pre></td>
-</tr><tr>
-<td>policy_name</td>
-<td>string</td>
-<td><pre>
-Policy configuration
-policy_name is the name of the policy to create<br>
-
-json_name: PolicyName
-go_name: PolicyName
-go_tags: json:"PolicyName" validate:"required"</pre></td>
-</tr><tr>
-<td>service_account_name</td>
-<td>string</td>
-<td><pre>
-service_account_name is the Kubernetes service account that can authenticate<br>
-
-json_name: ServiceAccountName
-go_name: ServiceAccountName
-go_tags: json:"ServiceAccountName" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Output:** [vault.v1.CreateAccessOutput](#vault-v1-createaccessoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>auth_role_name</td>
-<td>string</td>
-<td><pre>
-auth_role_name is the name of the created Kubernetes auth role<br>
-
-json_name: AuthRoleName
-go_name: AuthRoleName
-go_tags: json:"AuthRoleName" validate:"required"</pre></td>
-</tr><tr>
-<td>policy_name</td>
-<td>string</td>
-<td><pre>
-policy_name is the name of the created policy<br>
-
-json_name: PolicyName
-go_name: PolicyName
-go_tags: json:"PolicyName" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>vault/create-access/${! AuthRoleName.or("default") }</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-<tr><td>parent_close_policy</td><td><pre><code>PARENT_CLOSE_POLICY_REQUEST_CANCEL</code></pre></td></tr>
-</table>    
+Vault service defines low-level Vault operations for auth and policy management.
+These activities are used internally by the secrets service.
+</pre>   
 
 <a name="vault-v1-vault-activities"></a>
 ### Activities
@@ -6262,7 +5422,7 @@ go_tags: json:"PolicyName" validate:"required"</pre></td>
 ### vault.v1.CreateAuthRole
 
 <pre>
-Auth Role Management
+CreateAuthRole creates a Kubernetes auth role binding a service account to policies
 </pre>
 
 **Input:** [vault.v1.CreateAuthRoleInput](#vault-v1-createauthroleinput)
@@ -6277,8 +5437,6 @@ Auth Role Management
 <td>kubernetes_namespace</td>
 <td>string</td>
 <td><pre>
-kubernetes_namespace is the Kubernetes namespace where the service account exists<br>
-
 json_name: KubernetesNamespace
 go_name: KubernetesNamespace
 go_tags: json:"KubernetesNamespace" validate:"required"</pre></td>
@@ -6286,8 +5444,6 @@ go_tags: json:"KubernetesNamespace" validate:"required"</pre></td>
 <td>policy_names</td>
 <td>string</td>
 <td><pre>
-policy_names is a list of Vault policy names to bind to this role<br>
-
 json_name: PolicyNames
 go_name: PolicyNames
 go_tags: json:"PolicyNames" validate:"required"</pre></td>
@@ -6295,8 +5451,6 @@ go_tags: json:"PolicyNames" validate:"required"</pre></td>
 <td>role_name</td>
 <td>string</td>
 <td><pre>
-role_name is the name of the Kubernetes auth role to create<br>
-
 json_name: RoleName
 go_name: RoleName
 go_tags: json:"RoleName" validate:"required"</pre></td>
@@ -6304,8 +5458,6 @@ go_tags: json:"RoleName" validate:"required"</pre></td>
 <td>service_account_name</td>
 <td>string</td>
 <td><pre>
-service_account_name is the Kubernetes service account that can authenticate<br>
-
 json_name: ServiceAccountName
 go_name: ServiceAccountName
 go_tags: json:"ServiceAccountName" validate:"required"</pre></td>
@@ -6324,8 +5476,6 @@ go_tags: json:"ServiceAccountName" validate:"required"</pre></td>
 <td>name</td>
 <td>string</td>
 <td><pre>
-name is the name of the created Kubernetes auth role<br>
-
 json_name: Name
 go_name: Name
 go_tags: json:"Name" validate:"required"</pre></td>
@@ -6336,7 +5486,9 @@ go_tags: json:"Name" validate:"required"</pre></td>
 <a name="vault-v1-deleteauthrole-activity"></a>
 ### vault.v1.DeleteAuthRole
 
-
+<pre>
+DeleteAuthRole deletes an existing Kubernetes auth role
+</pre>
 
 **Input:** [vault.v1.DeleteAuthRoleInput](#vault-v1-deleteauthroleinput)
 
@@ -6350,8 +5502,6 @@ go_tags: json:"Name" validate:"required"</pre></td>
 <td>name</td>
 <td>string</td>
 <td><pre>
-name is the name of the Kubernetes auth role to delete<br>
-
 json_name: Name
 go_name: Name
 go_tags: json:"Name" validate:"required"</pre></td>
@@ -6367,7 +5517,7 @@ go_tags: json:"Name" validate:"required"</pre></td>
 ### vault.v1.CreatePolicy
 
 <pre>
-Policy Management
+CreatePolicy creates a new Vault policy with the specified document
 </pre>
 
 **Input:** [vault.v1.CreatePolicyInput](#vault-v1-createpolicyinput)
@@ -6382,8 +5532,6 @@ Policy Management
 <td>document</td>
 <td><a href="#vault-v1-policydocument">vault.v1.PolicyDocument</a></td>
 <td><pre>
-document contains the structured policy rules<br>
-
 json_name: Document
 go_name: Document
 go_tags: json:"Document" validate:"required"</pre></td>
@@ -6391,8 +5539,6 @@ go_tags: json:"Document" validate:"required"</pre></td>
 <td>name</td>
 <td>string</td>
 <td><pre>
-name is the name of the policy<br>
-
 json_name: Name
 go_name: Name
 go_tags: json:"Name" validate:"required"</pre></td>
@@ -6411,8 +5557,6 @@ go_tags: json:"Name" validate:"required"</pre></td>
 <td>name</td>
 <td>string</td>
 <td><pre>
-name is the name of the created policy<br>
-
 json_name: Name
 go_name: Name
 go_tags: json:"Name" validate:"required"</pre></td>
@@ -6423,7 +5567,9 @@ go_tags: json:"Name" validate:"required"</pre></td>
 <a name="vault-v1-deletepolicy-activity"></a>
 ### vault.v1.DeletePolicy
 
-
+<pre>
+DeletePolicy deletes an existing Vault policy
+</pre>
 
 **Input:** [vault.v1.DeletePolicyInput](#vault-v1-deletepolicyinput)
 
@@ -6437,8 +5583,6 @@ go_tags: json:"Name" validate:"required"</pre></td>
 <td>name</td>
 <td>string</td>
 <td><pre>
-name is the name of the policy to delete<br>
-
 json_name: Name
 go_name: Name
 go_tags: json:"Name" validate:"required"</pre></td>
@@ -6447,151 +5591,6 @@ go_tags: json:"Name" validate:"required"</pre></td>
 
 **Output:** [vault.v1.DeletePolicyOutput](#vault-v1-deletepolicyoutput)
 
- 
-
----
-<a name="vault-v1-storesecret-activity"></a>
-### vault.v1.StoreSecret
-
-<pre>
-Secret Management
-</pre>
-
-**Input:** [vault.v1.StoreSecretInput](#vault-v1-storesecretinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>data</td>
-<td><a href="#vault-v1-storesecretinput-dataentry">vault.v1.StoreSecretInput.DataEntry</a></td>
-<td><pre>
-data is the secret key-value pairs to store<br>
-
-json_name: Data
-go_name: Data
-go_tags: json:"Data" validate:"required"</pre></td>
-</tr><tr>
-<td>path</td>
-<td>string</td>
-<td><pre>
-path is the Vault path to store the secret at<br>
-
-json_name: Path
-go_name: Path
-go_tags: json:"Path" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Output:** [vault.v1.StoreSecretOutput](#vault-v1-storesecretoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>secret_ref</td>
-<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
-<td><pre>
-json_name: SecretRef
-go_name: SecretRef
-go_tags: json:"SecretRef" validate:"required"</pre></td>
-</tr>
-</table> 
-
----
-<a name="vault-v1-fetchsecret-activity"></a>
-### vault.v1.FetchSecret
-
-
-
-**Input:** [vault.v1.FetchSecretInput](#vault-v1-fetchsecretinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>path</td>
-<td>string</td>
-<td><pre>
-path is the Vault path to fetch the secret from<br>
-
-json_name: Path
-go_name: Path
-go_tags: json:"Path" validate:"required"</pre></td>
-</tr><tr>
-<td>version</td>
-<td>int64</td>
-<td><pre>
-version is the specific version to fetch (0 or omit for latest)<br>
-
-json_name: Version
-go_name: Version
-go_tags: json:"Version,omitempty" validate:"omitempty"</pre></td>
-</tr>
-</table>
-
-**Output:** [vault.v1.FetchSecretOutput](#vault-v1-fetchsecretoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>data</td>
-<td><a href="#vault-v1-fetchsecretoutput-dataentry">vault.v1.FetchSecretOutput.DataEntry</a></td>
-<td><pre>
-json_name: Data
-go_name: Data
-go_tags: json:"Data" validate:"required"</pre></td>
-</tr><tr>
-<td>secret_ref</td>
-<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
-<td><pre>
-json_name: SecretRef
-go_name: SecretRef
-go_tags: json:"SecretRef" validate:"required"</pre></td>
-</tr>
-</table> 
-
----
-<a name="vault-v1-deletesecret-activity"></a>
-### vault.v1.DeleteSecret
-
-
-
-**Input:** [vault.v1.DeleteSecretInput](#vault-v1-deletesecretinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>path</td>
-<td>string</td>
-<td><pre>
-path is the Vault path of the secret to delete<br>
-
-json_name: Path
-go_name: Path
-go_tags: json:"Path" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Output:** [vault.v1.DeleteSecretOutput](#vault-v1-deletesecretoutput)
-
    
 
 <a name="vault-v1-messages"></a>
@@ -6599,10 +5598,6 @@ go_tags: json:"Path" validate:"required"</pre></td>
 
 <a name="vault-v1-capability"></a>
 ### vault.v1.Capability
-
-<pre>
-Capability enum for Vault policy permissions
-</pre>
 
 <table>
 <tr><th>Value</th><th>Description</th></tr>
@@ -6642,114 +5637,9 @@ Capability enum for Vault policy permissions
 </tr>
 </table>
 
-<a name="vault-v1-createaccessinput"></a>
-### vault.v1.CreateAccessInput
-
-<pre>
-CreateAccessInput specifies parameters for creating both a policy and auth role
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>auth_role_name</td>
-<td>string</td>
-<td><pre>
-Auth role configuration
-auth_role_name is the name of the Kubernetes auth role to create<br>
-
-json_name: AuthRoleName
-go_name: AuthRoleName
-go_tags: json:"AuthRoleName" validate:"required"</pre></td>
-</tr><tr>
-<td>kubernetes_namespace</td>
-<td>string</td>
-<td><pre>
-kubernetes_namespace is the Kubernetes namespace where the service account exists<br>
-
-json_name: KubernetesNamespace
-go_name: KubernetesNamespace
-go_tags: json:"KubernetesNamespace" validate:"required"</pre></td>
-</tr><tr>
-<td>policy_document</td>
-<td><a href="#vault-v1-policydocument">vault.v1.PolicyDocument</a></td>
-<td><pre>
-policy_document is the structured policy content<br>
-
-json_name: PolicyDocument
-go_name: PolicyDocument
-go_tags: json:"PolicyDocument" validate:"required"</pre></td>
-</tr><tr>
-<td>policy_name</td>
-<td>string</td>
-<td><pre>
-Policy configuration
-policy_name is the name of the policy to create<br>
-
-json_name: PolicyName
-go_name: PolicyName
-go_tags: json:"PolicyName" validate:"required"</pre></td>
-</tr><tr>
-<td>service_account_name</td>
-<td>string</td>
-<td><pre>
-service_account_name is the Kubernetes service account that can authenticate<br>
-
-json_name: ServiceAccountName
-go_name: ServiceAccountName
-go_tags: json:"ServiceAccountName" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="vault-v1-createaccessoutput"></a>
-### vault.v1.CreateAccessOutput
-
-<pre>
-CreateAccessOutput returns the created policy and auth role names
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>auth_role_name</td>
-<td>string</td>
-<td><pre>
-auth_role_name is the name of the created Kubernetes auth role<br>
-
-json_name: AuthRoleName
-go_name: AuthRoleName
-go_tags: json:"AuthRoleName" validate:"required"</pre></td>
-</tr><tr>
-<td>policy_name</td>
-<td>string</td>
-<td><pre>
-policy_name is the name of the created policy<br>
-
-json_name: PolicyName
-go_name: PolicyName
-go_tags: json:"PolicyName" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
 <a name="vault-v1-createauthroleinput"></a>
 ### vault.v1.CreateAuthRoleInput
 
-<pre>
-CreateAuthRoleInput specifies parameters for creating an auth role in Vault
-</pre>
-
 <table>
 <tr>
 <th>Attribute</th>
@@ -6760,8 +5650,6 @@ CreateAuthRoleInput specifies parameters for creating an auth role in Vault
 <td>kubernetes_namespace</td>
 <td>string</td>
 <td><pre>
-kubernetes_namespace is the Kubernetes namespace where the service account exists<br>
-
 json_name: KubernetesNamespace
 go_name: KubernetesNamespace
 go_tags: json:"KubernetesNamespace" validate:"required"</pre></td>
@@ -6769,8 +5657,6 @@ go_tags: json:"KubernetesNamespace" validate:"required"</pre></td>
 <td>policy_names</td>
 <td>string</td>
 <td><pre>
-policy_names is a list of Vault policy names to bind to this role<br>
-
 json_name: PolicyNames
 go_name: PolicyNames
 go_tags: json:"PolicyNames" validate:"required"</pre></td>
@@ -6778,8 +5664,6 @@ go_tags: json:"PolicyNames" validate:"required"</pre></td>
 <td>role_name</td>
 <td>string</td>
 <td><pre>
-role_name is the name of the Kubernetes auth role to create<br>
-
 json_name: RoleName
 go_name: RoleName
 go_tags: json:"RoleName" validate:"required"</pre></td>
@@ -6787,8 +5671,6 @@ go_tags: json:"RoleName" validate:"required"</pre></td>
 <td>service_account_name</td>
 <td>string</td>
 <td><pre>
-service_account_name is the Kubernetes service account that can authenticate<br>
-
 json_name: ServiceAccountName
 go_name: ServiceAccountName
 go_tags: json:"ServiceAccountName" validate:"required"</pre></td>
@@ -6800,10 +5682,6 @@ go_tags: json:"ServiceAccountName" validate:"required"</pre></td>
 <a name="vault-v1-createauthroleoutput"></a>
 ### vault.v1.CreateAuthRoleOutput
 
-<pre>
-CreateAuthRoleOutput returns the created role name
-</pre>
-
 <table>
 <tr>
 <th>Attribute</th>
@@ -6814,8 +5692,6 @@ CreateAuthRoleOutput returns the created role name
 <td>name</td>
 <td>string</td>
 <td><pre>
-name is the name of the created Kubernetes auth role<br>
-
 json_name: Name
 go_name: Name
 go_tags: json:"Name" validate:"required"</pre></td>
@@ -6827,10 +5703,6 @@ go_tags: json:"Name" validate:"required"</pre></td>
 <a name="vault-v1-createpolicyinput"></a>
 ### vault.v1.CreatePolicyInput
 
-<pre>
-CreatePolicyInput specifies parameters for creating a Vault policy
-</pre>
-
 <table>
 <tr>
 <th>Attribute</th>
@@ -6841,8 +5713,6 @@ CreatePolicyInput specifies parameters for creating a Vault policy
 <td>document</td>
 <td><a href="#vault-v1-policydocument">vault.v1.PolicyDocument</a></td>
 <td><pre>
-document contains the structured policy rules<br>
-
 json_name: Document
 go_name: Document
 go_tags: json:"Document" validate:"required"</pre></td>
@@ -6850,8 +5720,6 @@ go_tags: json:"Document" validate:"required"</pre></td>
 <td>name</td>
 <td>string</td>
 <td><pre>
-name is the name of the policy<br>
-
 json_name: Name
 go_name: Name
 go_tags: json:"Name" validate:"required"</pre></td>
@@ -6863,10 +5731,6 @@ go_tags: json:"Name" validate:"required"</pre></td>
 <a name="vault-v1-createpolicyoutput"></a>
 ### vault.v1.CreatePolicyOutput
 
-<pre>
-CreatePolicyOutput returns the created policy name
-</pre>
-
 <table>
 <tr>
 <th>Attribute</th>
@@ -6877,8 +5741,6 @@ CreatePolicyOutput returns the created policy name
 <td>name</td>
 <td>string</td>
 <td><pre>
-name is the name of the created policy<br>
-
 json_name: Name
 go_name: Name
 go_tags: json:"Name" validate:"required"</pre></td>
@@ -6890,10 +5752,6 @@ go_tags: json:"Name" validate:"required"</pre></td>
 <a name="vault-v1-deleteauthroleinput"></a>
 ### vault.v1.DeleteAuthRoleInput
 
-<pre>
-DeleteAuthRoleInput specifies which auth role to delete
-</pre>
-
 <table>
 <tr>
 <th>Attribute</th>
@@ -6904,8 +5762,6 @@ DeleteAuthRoleInput specifies which auth role to delete
 <td>name</td>
 <td>string</td>
 <td><pre>
-name is the name of the Kubernetes auth role to delete<br>
-
 json_name: Name
 go_name: Name
 go_tags: json:"Name" validate:"required"</pre></td>
@@ -6917,18 +5773,10 @@ go_tags: json:"Name" validate:"required"</pre></td>
 <a name="vault-v1-deleteauthroleoutput"></a>
 ### vault.v1.DeleteAuthRoleOutput
 
-<pre>
-DeleteAuthRoleOutput confirms successful auth role deletion
-</pre>
-
 
 
 <a name="vault-v1-deletepolicyinput"></a>
 ### vault.v1.DeletePolicyInput
-
-<pre>
-DeletePolicyInput specifies which policy to delete
-</pre>
 
 <table>
 <tr>
@@ -6940,8 +5788,6 @@ DeletePolicyInput specifies which policy to delete
 <td>name</td>
 <td>string</td>
 <td><pre>
-name is the name of the policy to delete<br>
-
 json_name: Name
 go_name: Name
 go_tags: json:"Name" validate:"required"</pre></td>
@@ -6953,148 +5799,10 @@ go_tags: json:"Name" validate:"required"</pre></td>
 <a name="vault-v1-deletepolicyoutput"></a>
 ### vault.v1.DeletePolicyOutput
 
-<pre>
-DeletePolicyOutput confirms successful policy deletion
-</pre>
-
-
-
-<a name="vault-v1-deletesecretinput"></a>
-### vault.v1.DeleteSecretInput
-
-<pre>
-DeleteSecretInput specifies which secret to delete
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>path</td>
-<td>string</td>
-<td><pre>
-path is the Vault path of the secret to delete<br>
-
-json_name: Path
-go_name: Path
-go_tags: json:"Path" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="vault-v1-deletesecretoutput"></a>
-### vault.v1.DeleteSecretOutput
-
-<pre>
-DeleteSecretOutput confirms successful secret deletion
-</pre>
-
-
-
-<a name="vault-v1-fetchsecretinput"></a>
-### vault.v1.FetchSecretInput
-
-<pre>
-FetchSecretInput specifies which secret to retrieve
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>path</td>
-<td>string</td>
-<td><pre>
-path is the Vault path to fetch the secret from<br>
-
-json_name: Path
-go_name: Path
-go_tags: json:"Path" validate:"required"</pre></td>
-</tr><tr>
-<td>version</td>
-<td>int64</td>
-<td><pre>
-version is the specific version to fetch (0 or omit for latest)<br>
-
-json_name: Version
-go_name: Version
-go_tags: json:"Version,omitempty" validate:"omitempty"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="vault-v1-fetchsecretoutput"></a>
-### vault.v1.FetchSecretOutput
-
-<pre>
-FetchSecretOutput returns the fetched secret with all its data
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>data</td>
-<td><a href="#vault-v1-fetchsecretoutput-dataentry">vault.v1.FetchSecretOutput.DataEntry</a></td>
-<td><pre>
-json_name: Data
-go_name: Data
-go_tags: json:"Data" validate:"required"</pre></td>
-</tr><tr>
-<td>secret_ref</td>
-<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
-<td><pre>
-json_name: SecretRef
-go_name: SecretRef
-go_tags: json:"SecretRef" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="vault-v1-fetchsecretoutput-dataentry"></a>
-### vault.v1.FetchSecretOutput.DataEntry
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>key</td>
-<td>string</td>
-<td><pre>
-json_name: key
-go_name: Key</pre></td>
-</tr><tr>
-<td>value</td>
-<td>bytes</td>
-<td><pre>
-json_name: value
-go_name: Value</pre></td>
-</tr>
-</table>
-
 
 
 <a name="vault-v1-policydocument"></a>
 ### vault.v1.PolicyDocument
-
-<pre>
-PolicyDocument contains structured policy rules
-</pre>
 
 <table>
 <tr>
@@ -7106,8 +5814,6 @@ PolicyDocument contains structured policy rules
 <td>rules</td>
 <td><a href="#vault-v1-policyrule">vault.v1.PolicyRule</a></td>
 <td><pre>
-rules is a list of path-capability mappings<br>
-
 json_name: Rules
 go_name: Rules
 go_tags: json:"Rules" validate:"required"</pre></td>
@@ -7119,10 +5825,6 @@ go_tags: json:"Rules" validate:"required"</pre></td>
 <a name="vault-v1-policyrule"></a>
 ### vault.v1.PolicyRule
 
-<pre>
-PolicyRule defines a single path and its allowed capabilities
-</pre>
-
 <table>
 <tr>
 <th>Attribute</th>
@@ -7133,8 +5835,6 @@ PolicyRule defines a single path and its allowed capabilities
 <td>capabilities</td>
 <td><a href="#vault-v1-capability">vault.v1.Capability</a></td>
 <td><pre>
-capabilities are the allowed capabilities for this path<br>
-
 json_name: Capabilities
 go_name: Capabilities
 go_tags: json:"Capabilities" validate:"required"</pre></td>
@@ -7142,132 +5842,9 @@ go_tags: json:"Capabilities" validate:"required"</pre></td>
 <td>path</td>
 <td>string</td>
 <td><pre>
-path is the Vault path pattern (e.g., "secret/data/myapp/*")<br>
-
 json_name: Path
 go_name: Path
 go_tags: json:"Path" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="vault-v1-secretref"></a>
-### vault.v1.SecretRef
-
-<pre>
-SecretRef is a reference to a secret in Vault
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>path</td>
-<td>string</td>
-<td><pre>
-json_name: Path
-go_name: Path
-go_tags: json:"Path" validate:"required"</pre></td>
-</tr><tr>
-<td>version</td>
-<td>int64</td>
-<td><pre>
-version is the specific version referenced. Set to 0 or omit for latest version<br>
-
-json_name: Version
-go_name: Version
-go_tags: json:"Version,omitempty" validate:"omitempty"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="vault-v1-storesecretinput"></a>
-### vault.v1.StoreSecretInput
-
-<pre>
-StoreSecretInput specifies parameters for storing a secret in Vault
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>data</td>
-<td><a href="#vault-v1-storesecretinput-dataentry">vault.v1.StoreSecretInput.DataEntry</a></td>
-<td><pre>
-data is the secret key-value pairs to store<br>
-
-json_name: Data
-go_name: Data
-go_tags: json:"Data" validate:"required"</pre></td>
-</tr><tr>
-<td>path</td>
-<td>string</td>
-<td><pre>
-path is the Vault path to store the secret at<br>
-
-json_name: Path
-go_name: Path
-go_tags: json:"Path" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="vault-v1-storesecretinput-dataentry"></a>
-### vault.v1.StoreSecretInput.DataEntry
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>key</td>
-<td>string</td>
-<td><pre>
-json_name: key
-go_name: Key</pre></td>
-</tr><tr>
-<td>value</td>
-<td>bytes</td>
-<td><pre>
-json_name: value
-go_name: Value</pre></td>
-</tr>
-</table>
-
-
-
-<a name="vault-v1-storesecretoutput"></a>
-### vault.v1.StoreSecretOutput
-
-<pre>
-StoreSecretOutput returns the secret reference with version information
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>secret_ref</td>
-<td><a href="#vault-v1-secretref">vault.v1.SecretRef</a></td>
-<td><pre>
-json_name: SecretRef
-go_name: SecretRef
-go_tags: json:"SecretRef" validate:"required"</pre></td>
 </tr>
 </table>
 

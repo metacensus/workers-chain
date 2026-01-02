@@ -8,7 +8,6 @@ package vaultv1
 
 import (
 	_ "github.com/alta/protopatch/patch/gopb"
-	_ "github.com/bergundy/nexus-proto-annotations/go/nexus/v1"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -24,7 +23,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Capability enum for Vault policy permissions
 type Capability int32
 
 const (
@@ -98,19 +96,14 @@ func (Capability) EnumDescriptor() ([]byte, []int) {
 	return file_vault_v1_vault_proto_rawDescGZIP(), []int{0}
 }
 
-// CreateAuthRoleInput specifies parameters for creating an auth role in Vault
 type CreateAuthRoleInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// role_name is the name of the Kubernetes auth role to create
-	RoleName string `protobuf:"bytes,1,opt,name=role_name,json=RoleName,proto3" json:"RoleName" validate:"required"`
-	// service_account_name is the Kubernetes service account that can authenticate
-	ServiceAccountName string `protobuf:"bytes,2,opt,name=service_account_name,json=ServiceAccountName,proto3" json:"ServiceAccountName" validate:"required"`
-	// kubernetes_namespace is the Kubernetes namespace where the service account exists
-	KubernetesNamespace string `protobuf:"bytes,3,opt,name=kubernetes_namespace,json=KubernetesNamespace,proto3" json:"KubernetesNamespace" validate:"required"`
-	// policy_names is a list of Vault policy names to bind to this role
-	PolicyNames   []string `protobuf:"bytes,4,rep,name=policy_names,json=PolicyNames,proto3" json:"PolicyNames" validate:"required"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	RoleName            string                 `protobuf:"bytes,1,opt,name=role_name,json=RoleName,proto3" json:"RoleName" validate:"required"`
+	ServiceAccountName  string                 `protobuf:"bytes,2,opt,name=service_account_name,json=ServiceAccountName,proto3" json:"ServiceAccountName" validate:"required"`
+	KubernetesNamespace string                 `protobuf:"bytes,3,opt,name=kubernetes_namespace,json=KubernetesNamespace,proto3" json:"KubernetesNamespace" validate:"required"`
+	PolicyNames         []string               `protobuf:"bytes,4,rep,name=policy_names,json=PolicyNames,proto3" json:"PolicyNames" validate:"required"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *CreateAuthRoleInput) Reset() {
@@ -171,11 +164,9 @@ func (x *CreateAuthRoleInput) GetPolicyNames() []string {
 	return nil
 }
 
-// CreateAuthRoleOutput returns the created role name
 type CreateAuthRoleOutput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// name is the name of the created Kubernetes auth role
-	Name          string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -217,11 +208,9 @@ func (x *CreateAuthRoleOutput) GetName() string {
 	return ""
 }
 
-// DeleteAuthRoleInput specifies which auth role to delete
 type DeleteAuthRoleInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// name is the name of the Kubernetes auth role to delete
-	Name          string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -263,7 +252,6 @@ func (x *DeleteAuthRoleInput) GetName() string {
 	return ""
 }
 
-// DeleteAuthRoleOutput confirms successful auth role deletion
 type DeleteAuthRoleOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -300,13 +288,10 @@ func (*DeleteAuthRoleOutput) Descriptor() ([]byte, []int) {
 	return file_vault_v1_vault_proto_rawDescGZIP(), []int{3}
 }
 
-// PolicyRule defines a single path and its allowed capabilities
 type PolicyRule struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// path is the Vault path pattern (e.g., "secret/data/myapp/*")
-	Path string `protobuf:"bytes,1,opt,name=path,json=Path,proto3" json:"Path" validate:"required"`
-	// capabilities are the allowed capabilities for this path
-	Capabilities  []Capability `protobuf:"varint,2,rep,packed,name=capabilities,json=Capabilities,proto3,enum=vault.v1.Capability" json:"Capabilities" validate:"required"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,json=Path,proto3" json:"Path" validate:"required"`
+	Capabilities  []Capability           `protobuf:"varint,2,rep,packed,name=capabilities,json=Capabilities,proto3,enum=vault.v1.Capability" json:"Capabilities" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -355,11 +340,9 @@ func (x *PolicyRule) GetCapabilities() []Capability {
 	return nil
 }
 
-// PolicyDocument contains structured policy rules
 type PolicyDocument struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// rules is a list of path-capability mappings
-	Rules         []*PolicyRule `protobuf:"bytes,1,rep,name=rules,json=Rules,proto3" json:"Rules" validate:"required"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rules         []*PolicyRule          `protobuf:"bytes,1,rep,name=rules,json=Rules,proto3" json:"Rules" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -401,13 +384,10 @@ func (x *PolicyDocument) GetRules() []*PolicyRule {
 	return nil
 }
 
-// CreatePolicyInput specifies parameters for creating a Vault policy
 type CreatePolicyInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// name is the name of the policy
-	Name string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
-	// document contains the structured policy rules
-	Document      *PolicyDocument `protobuf:"bytes,2,opt,name=document,json=Document,proto3" json:"Document" validate:"required"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
+	Document      *PolicyDocument        `protobuf:"bytes,2,opt,name=document,json=Document,proto3" json:"Document" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -456,11 +436,9 @@ func (x *CreatePolicyInput) GetDocument() *PolicyDocument {
 	return nil
 }
 
-// CreatePolicyOutput returns the created policy name
 type CreatePolicyOutput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// name is the name of the created policy
-	Name          string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -502,11 +480,9 @@ func (x *CreatePolicyOutput) GetName() string {
 	return ""
 }
 
-// DeletePolicyInput specifies which policy to delete
 type DeletePolicyInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// name is the name of the policy to delete
-	Name          string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -548,7 +524,6 @@ func (x *DeletePolicyInput) GetName() string {
 	return ""
 }
 
-// DeletePolicyOutput confirms successful policy deletion
 type DeletePolicyOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -585,495 +560,11 @@ func (*DeletePolicyOutput) Descriptor() ([]byte, []int) {
 	return file_vault_v1_vault_proto_rawDescGZIP(), []int{9}
 }
 
-// SecretRef is a reference to a secret in Vault
-type SecretRef struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Path  string                 `protobuf:"bytes,1,opt,name=path,json=Path,proto3" json:"Path" validate:"required"`
-	// version is the specific version referenced. Set to 0 or omit for latest version
-	Version       int64 `protobuf:"varint,2,opt,name=version,json=Version,proto3" json:"Version,omitempty" validate:"omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SecretRef) Reset() {
-	*x = SecretRef{}
-	mi := &file_vault_v1_vault_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SecretRef) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SecretRef) ProtoMessage() {}
-
-func (x *SecretRef) ProtoReflect() protoreflect.Message {
-	mi := &file_vault_v1_vault_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SecretRef.ProtoReflect.Descriptor instead.
-func (*SecretRef) Descriptor() ([]byte, []int) {
-	return file_vault_v1_vault_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *SecretRef) GetPath() string {
-	if x != nil {
-		return x.Path
-	}
-	return ""
-}
-
-func (x *SecretRef) GetVersion() int64 {
-	if x != nil {
-		return x.Version
-	}
-	return 0
-}
-
-// StoreSecretInput specifies parameters for storing a secret in Vault
-type StoreSecretInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// path is the Vault path to store the secret at
-	Path string `protobuf:"bytes,1,opt,name=path,json=Path,proto3" json:"Path" validate:"required"`
-	// data is the secret key-value pairs to store
-	Data          map[string][]byte `protobuf:"bytes,2,rep,name=data,json=Data,proto3" json:"Data" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StoreSecretInput) Reset() {
-	*x = StoreSecretInput{}
-	mi := &file_vault_v1_vault_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StoreSecretInput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StoreSecretInput) ProtoMessage() {}
-
-func (x *StoreSecretInput) ProtoReflect() protoreflect.Message {
-	mi := &file_vault_v1_vault_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StoreSecretInput.ProtoReflect.Descriptor instead.
-func (*StoreSecretInput) Descriptor() ([]byte, []int) {
-	return file_vault_v1_vault_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *StoreSecretInput) GetPath() string {
-	if x != nil {
-		return x.Path
-	}
-	return ""
-}
-
-func (x *StoreSecretInput) GetData() map[string][]byte {
-	if x != nil {
-		return x.Data
-	}
-	return nil
-}
-
-// StoreSecretOutput returns the secret reference with version information
-type StoreSecretOutput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SecretRef     *SecretRef             `protobuf:"bytes,1,opt,name=secret_ref,json=SecretRef,proto3" json:"SecretRef" validate:"required"` // Reference including actual version assigned by Vault
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StoreSecretOutput) Reset() {
-	*x = StoreSecretOutput{}
-	mi := &file_vault_v1_vault_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StoreSecretOutput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StoreSecretOutput) ProtoMessage() {}
-
-func (x *StoreSecretOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_vault_v1_vault_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StoreSecretOutput.ProtoReflect.Descriptor instead.
-func (*StoreSecretOutput) Descriptor() ([]byte, []int) {
-	return file_vault_v1_vault_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *StoreSecretOutput) GetSecretRef() *SecretRef {
-	if x != nil {
-		return x.SecretRef
-	}
-	return nil
-}
-
-// FetchSecretInput specifies which secret to retrieve
-type FetchSecretInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// path is the Vault path to fetch the secret from
-	Path string `protobuf:"bytes,1,opt,name=path,json=Path,proto3" json:"Path" validate:"required"`
-	// version is the specific version to fetch (0 or omit for latest)
-	Version       int64 `protobuf:"varint,2,opt,name=version,json=Version,proto3" json:"Version,omitempty" validate:"omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *FetchSecretInput) Reset() {
-	*x = FetchSecretInput{}
-	mi := &file_vault_v1_vault_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FetchSecretInput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FetchSecretInput) ProtoMessage() {}
-
-func (x *FetchSecretInput) ProtoReflect() protoreflect.Message {
-	mi := &file_vault_v1_vault_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FetchSecretInput.ProtoReflect.Descriptor instead.
-func (*FetchSecretInput) Descriptor() ([]byte, []int) {
-	return file_vault_v1_vault_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *FetchSecretInput) GetPath() string {
-	if x != nil {
-		return x.Path
-	}
-	return ""
-}
-
-func (x *FetchSecretInput) GetVersion() int64 {
-	if x != nil {
-		return x.Version
-	}
-	return 0
-}
-
-// FetchSecretOutput returns the fetched secret with all its data
-type FetchSecretOutput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SecretRef     *SecretRef             `protobuf:"bytes,1,opt,name=secret_ref,json=SecretRef,proto3" json:"SecretRef" validate:"required"`
-	Data          map[string][]byte      `protobuf:"bytes,2,rep,name=data,json=Data,proto3" json:"Data" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value" validate:"required"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *FetchSecretOutput) Reset() {
-	*x = FetchSecretOutput{}
-	mi := &file_vault_v1_vault_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FetchSecretOutput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FetchSecretOutput) ProtoMessage() {}
-
-func (x *FetchSecretOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_vault_v1_vault_proto_msgTypes[14]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FetchSecretOutput.ProtoReflect.Descriptor instead.
-func (*FetchSecretOutput) Descriptor() ([]byte, []int) {
-	return file_vault_v1_vault_proto_rawDescGZIP(), []int{14}
-}
-
-func (x *FetchSecretOutput) GetSecretRef() *SecretRef {
-	if x != nil {
-		return x.SecretRef
-	}
-	return nil
-}
-
-func (x *FetchSecretOutput) GetData() map[string][]byte {
-	if x != nil {
-		return x.Data
-	}
-	return nil
-}
-
-// DeleteSecretInput specifies which secret to delete
-type DeleteSecretInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// path is the Vault path of the secret to delete
-	Path          string `protobuf:"bytes,1,opt,name=path,json=Path,proto3" json:"Path" validate:"required"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeleteSecretInput) Reset() {
-	*x = DeleteSecretInput{}
-	mi := &file_vault_v1_vault_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteSecretInput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteSecretInput) ProtoMessage() {}
-
-func (x *DeleteSecretInput) ProtoReflect() protoreflect.Message {
-	mi := &file_vault_v1_vault_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteSecretInput.ProtoReflect.Descriptor instead.
-func (*DeleteSecretInput) Descriptor() ([]byte, []int) {
-	return file_vault_v1_vault_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *DeleteSecretInput) GetPath() string {
-	if x != nil {
-		return x.Path
-	}
-	return ""
-}
-
-// DeleteSecretOutput confirms successful secret deletion
-type DeleteSecretOutput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeleteSecretOutput) Reset() {
-	*x = DeleteSecretOutput{}
-	mi := &file_vault_v1_vault_proto_msgTypes[16]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteSecretOutput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteSecretOutput) ProtoMessage() {}
-
-func (x *DeleteSecretOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_vault_v1_vault_proto_msgTypes[16]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteSecretOutput.ProtoReflect.Descriptor instead.
-func (*DeleteSecretOutput) Descriptor() ([]byte, []int) {
-	return file_vault_v1_vault_proto_rawDescGZIP(), []int{16}
-}
-
-// CreateAccessInput specifies parameters for creating both a policy and auth role
-type CreateAccessInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Policy configuration
-	// policy_name is the name of the policy to create
-	PolicyName string `protobuf:"bytes,1,opt,name=policy_name,json=PolicyName,proto3" json:"PolicyName" validate:"required"`
-	// policy_document is the structured policy content
-	PolicyDocument *PolicyDocument `protobuf:"bytes,2,opt,name=policy_document,json=PolicyDocument,proto3" json:"PolicyDocument" validate:"required"`
-	// Auth role configuration
-	// auth_role_name is the name of the Kubernetes auth role to create
-	AuthRoleName string `protobuf:"bytes,3,opt,name=auth_role_name,json=AuthRoleName,proto3" json:"AuthRoleName" validate:"required"`
-	// service_account_name is the Kubernetes service account that can authenticate
-	ServiceAccountName string `protobuf:"bytes,4,opt,name=service_account_name,json=ServiceAccountName,proto3" json:"ServiceAccountName" validate:"required"`
-	// kubernetes_namespace is the Kubernetes namespace where the service account exists
-	KubernetesNamespace string `protobuf:"bytes,5,opt,name=kubernetes_namespace,json=KubernetesNamespace,proto3" json:"KubernetesNamespace" validate:"required"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *CreateAccessInput) Reset() {
-	*x = CreateAccessInput{}
-	mi := &file_vault_v1_vault_proto_msgTypes[17]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateAccessInput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateAccessInput) ProtoMessage() {}
-
-func (x *CreateAccessInput) ProtoReflect() protoreflect.Message {
-	mi := &file_vault_v1_vault_proto_msgTypes[17]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateAccessInput.ProtoReflect.Descriptor instead.
-func (*CreateAccessInput) Descriptor() ([]byte, []int) {
-	return file_vault_v1_vault_proto_rawDescGZIP(), []int{17}
-}
-
-func (x *CreateAccessInput) GetPolicyName() string {
-	if x != nil {
-		return x.PolicyName
-	}
-	return ""
-}
-
-func (x *CreateAccessInput) GetPolicyDocument() *PolicyDocument {
-	if x != nil {
-		return x.PolicyDocument
-	}
-	return nil
-}
-
-func (x *CreateAccessInput) GetAuthRoleName() string {
-	if x != nil {
-		return x.AuthRoleName
-	}
-	return ""
-}
-
-func (x *CreateAccessInput) GetServiceAccountName() string {
-	if x != nil {
-		return x.ServiceAccountName
-	}
-	return ""
-}
-
-func (x *CreateAccessInput) GetKubernetesNamespace() string {
-	if x != nil {
-		return x.KubernetesNamespace
-	}
-	return ""
-}
-
-// CreateAccessOutput returns the created policy and auth role names
-type CreateAccessOutput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// policy_name is the name of the created policy
-	PolicyName string `protobuf:"bytes,1,opt,name=policy_name,json=PolicyName,proto3" json:"PolicyName" validate:"required"`
-	// auth_role_name is the name of the created Kubernetes auth role
-	AuthRoleName  string `protobuf:"bytes,2,opt,name=auth_role_name,json=AuthRoleName,proto3" json:"AuthRoleName" validate:"required"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateAccessOutput) Reset() {
-	*x = CreateAccessOutput{}
-	mi := &file_vault_v1_vault_proto_msgTypes[18]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateAccessOutput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateAccessOutput) ProtoMessage() {}
-
-func (x *CreateAccessOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_vault_v1_vault_proto_msgTypes[18]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateAccessOutput.ProtoReflect.Descriptor instead.
-func (*CreateAccessOutput) Descriptor() ([]byte, []int) {
-	return file_vault_v1_vault_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *CreateAccessOutput) GetPolicyName() string {
-	if x != nil {
-		return x.PolicyName
-	}
-	return ""
-}
-
-func (x *CreateAccessOutput) GetAuthRoleName() string {
-	if x != nil {
-		return x.AuthRoleName
-	}
-	return ""
-}
-
 var File_vault_v1_vault_proto protoreflect.FileDescriptor
 
 const file_vault_v1_vault_proto_rawDesc = "" +
 	"\n" +
-	"\x14vault/v1/vault.proto\x12\bvault.v1\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\x82\x03\n" +
+	"\x14vault/v1/vault.proto\x12\bvault.v1\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\x82\x03\n" +
 	"\x13CreateAuthRoleInput\x12G\n" +
 	"\trole_name\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"RoleName\" validate:\"required\"R\bRoleName\x12f\n" +
 	"\x14service_account_name\x18\x02 \x01(\tB4ʵ\x030\xa2\x01-json:\"ServiceAccountName\" validate:\"required\"R\x12ServiceAccountName\x12h\n" +
@@ -1097,43 +588,7 @@ const file_vault_v1_vault_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\"O\n" +
 	"\x11DeletePolicyInput\x12:\n" +
 	"\x04name\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\"\x14\n" +
-	"\x12DeletePolicyOutput\"\x97\x01\n" +
-	"\tSecretRef\x12:\n" +
-	"\x04path\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Path\" validate:\"required\"R\x04Path\x12N\n" +
-	"\aversion\x18\x02 \x01(\x03B4ʵ\x030\xa2\x01-json:\"Version,omitempty\" validate:\"omitempty\"R\aVersion\"\xe9\x01\n" +
-	"\x10StoreSecretInput\x12:\n" +
-	"\x04path\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Path\" validate:\"required\"R\x04Path\x12`\n" +
-	"\x04data\x18\x02 \x03(\v2$.vault.v1.StoreSecretInput.DataEntryB&ʵ\x03\"\xa2\x01\x1fjson:\"Data\" validate:\"required\"R\x04Data\x1a7\n" +
-	"\tDataEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\"t\n" +
-	"\x11StoreSecretOutput\x12_\n" +
-	"\n" +
-	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefB+ʵ\x03'\xa2\x01$json:\"SecretRef\" validate:\"required\"R\tSecretRef\"\x9e\x01\n" +
-	"\x10FetchSecretInput\x12:\n" +
-	"\x04path\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Path\" validate:\"required\"R\x04Path\x12N\n" +
-	"\aversion\x18\x02 \x01(\x03B4ʵ\x030\xa2\x01-json:\"Version,omitempty\" validate:\"omitempty\"R\aVersion\"\x90\x02\n" +
-	"\x11FetchSecretOutput\x12_\n" +
-	"\n" +
-	"secret_ref\x18\x01 \x01(\v2\x13.vault.v1.SecretRefB+ʵ\x03'\xa2\x01$json:\"SecretRef\" validate:\"required\"R\tSecretRef\x12a\n" +
-	"\x04data\x18\x02 \x03(\v2%.vault.v1.FetchSecretOutput.DataEntryB&ʵ\x03\"\xa2\x01\x1fjson:\"Data\" validate:\"required\"R\x04Data\x1a7\n" +
-	"\tDataEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\"O\n" +
-	"\x11DeleteSecretInput\x12:\n" +
-	"\x04path\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Path\" validate:\"required\"R\x04Path\"\x14\n" +
-	"\x12DeleteSecretOutput\"\xff\x03\n" +
-	"\x11CreateAccessInput\x12M\n" +
-	"\vpolicy_name\x18\x01 \x01(\tB,ʵ\x03(\xa2\x01%json:\"PolicyName\" validate:\"required\"R\n" +
-	"PolicyName\x12s\n" +
-	"\x0fpolicy_document\x18\x02 \x01(\v2\x18.vault.v1.PolicyDocumentB0ʵ\x03,\xa2\x01)json:\"PolicyDocument\" validate:\"required\"R\x0ePolicyDocument\x12T\n" +
-	"\x0eauth_role_name\x18\x03 \x01(\tB.ʵ\x03*\xa2\x01'json:\"AuthRoleName\" validate:\"required\"R\fAuthRoleName\x12f\n" +
-	"\x14service_account_name\x18\x04 \x01(\tB4ʵ\x030\xa2\x01-json:\"ServiceAccountName\" validate:\"required\"R\x12ServiceAccountName\x12h\n" +
-	"\x14kubernetes_namespace\x18\x05 \x01(\tB5ʵ\x031\xa2\x01.json:\"KubernetesNamespace\" validate:\"required\"R\x13KubernetesNamespace\"\xb9\x01\n" +
-	"\x12CreateAccessOutput\x12M\n" +
-	"\vpolicy_name\x18\x01 \x01(\tB,ʵ\x03(\xa2\x01%json:\"PolicyName\" validate:\"required\"R\n" +
-	"PolicyName\x12T\n" +
-	"\x0eauth_role_name\x18\x02 \x01(\tB.ʵ\x03*\xa2\x01'json:\"AuthRoleName\" validate:\"required\"R\fAuthRoleName*\x89\x02\n" +
+	"\x12DeletePolicyOutput*\x89\x02\n" +
 	"\n" +
 	"Capability\x12\x1a\n" +
 	"\x16CAPABILITY_UNSPECIFIED\x10\x00\x12\x15\n" +
@@ -1147,24 +602,13 @@ const file_vault_v1_vault_proto_rawDesc = "" +
 	"\x0fCAPABILITY_DENY\x10\b\x12\x18\n" +
 	"\x14CAPABILITY_SUBSCRIBE\x10\t\x12\x16\n" +
 	"\x12CAPABILITY_RECOVER\x10\n" +
-	"2\xb0\b\n" +
-	"\x05Vault\x12\x81\x01\n" +
-	"\x0eCreateAuthRole\x12\x1d.vault.v1.CreateAuthRoleInput\x1a\x1e.vault.v1.CreateAuthRoleOutput\"0\x92\xc4\x03\x1e\x12\x03\b\xac\x02:\x17vault.v1.CreateAuthRole҂\x04\n" +
-	"\x12\bactivity\x12\x81\x01\n" +
-	"\x0eDeleteAuthRole\x12\x1d.vault.v1.DeleteAuthRoleInput\x1a\x1e.vault.v1.DeleteAuthRoleOutput\"0\x92\xc4\x03\x1e\x12\x03\b\xac\x02:\x17vault.v1.DeleteAuthRole҂\x04\n" +
-	"\x12\bactivity\x12y\n" +
-	"\fCreatePolicy\x12\x1b.vault.v1.CreatePolicyInput\x1a\x1c.vault.v1.CreatePolicyOutput\".\x92\xc4\x03\x1c\x12\x03\b\xac\x02:\x15vault.v1.CreatePolicy҂\x04\n" +
-	"\x12\bactivity\x12y\n" +
-	"\fDeletePolicy\x12\x1b.vault.v1.DeletePolicyInput\x1a\x1c.vault.v1.DeletePolicyOutput\".\x92\xc4\x03\x1c\x12\x03\b\xac\x02:\x15vault.v1.DeletePolicy҂\x04\n" +
-	"\x12\bactivity\x12u\n" +
-	"\vStoreSecret\x12\x1a.vault.v1.StoreSecretInput\x1a\x1b.vault.v1.StoreSecretOutput\"-\x92\xc4\x03\x1b\x12\x03\b\xac\x02:\x14vault.v1.StoreSecret҂\x04\n" +
-	"\x12\bactivity\x12t\n" +
-	"\vFetchSecret\x12\x1a.vault.v1.FetchSecretInput\x1a\x1b.vault.v1.FetchSecretOutput\",\x92\xc4\x03\x1a\x12\x02\b<:\x14vault.v1.FetchSecret҂\x04\n" +
-	"\x12\bactivity\x12y\n" +
-	"\fDeleteSecret\x12\x1b.vault.v1.DeleteSecretInput\x1a\x1c.vault.v1.DeleteSecretOutput\".\x92\xc4\x03\x1c\x12\x03\b\xac\x02:\x15vault.v1.DeleteSecret҂\x04\n" +
-	"\x12\bactivity\x12\xa0\x01\n" +
-	"\fCreateAccess\x12\x1b.vault.v1.CreateAccessInput\x1a\x1c.vault.v1.CreateAccessOutput\"U\x8a\xc4\x03Q*4vault/create-access/${! AuthRoleName.or(\"default\") }0\x01@\x03r\x15vault.v1.CreateAccess\x1a\x1e\x8a\xc4\x03\a\n" +
-	"\x05infraʂ\x04\x0f\x12\rnexus-enabledB\xa0\x01\n" +
+	"2\xd8\x03\n" +
+	"\x05Vault\x12s\n" +
+	"\x0eCreateAuthRole\x12\x1d.vault.v1.CreateAuthRoleInput\x1a\x1e.vault.v1.CreateAuthRoleOutput\"\"\x92\xc4\x03\x1e\x12\x03\b\xac\x02:\x17vault.v1.CreateAuthRole\x12s\n" +
+	"\x0eDeleteAuthRole\x12\x1d.vault.v1.DeleteAuthRoleInput\x1a\x1e.vault.v1.DeleteAuthRoleOutput\"\"\x92\xc4\x03\x1e\x12\x03\b\xac\x02:\x17vault.v1.DeleteAuthRole\x12k\n" +
+	"\fCreatePolicy\x12\x1b.vault.v1.CreatePolicyInput\x1a\x1c.vault.v1.CreatePolicyOutput\" \x92\xc4\x03\x1c\x12\x03\b\xac\x02:\x15vault.v1.CreatePolicy\x12k\n" +
+	"\fDeletePolicy\x12\x1b.vault.v1.DeletePolicyInput\x1a\x1c.vault.v1.DeletePolicyOutput\" \x92\xc4\x03\x1c\x12\x03\b\xac\x02:\x15vault.v1.DeletePolicy\x1a\v\x8a\xc4\x03\a\n" +
+	"\x05infraB\xa0\x01\n" +
 	"\fcom.vault.v1B\n" +
 	"VaultProtoP\x01ZCgithub.com/metacensus/infra/temporal/gen/workflows/vault/v1;vaultv1\xa2\x02\x03VXX\xaa\x02\bVault.V1\xca\x02\bVault\\V1\xe2\x02\x14Vault\\V1\\GPBMetadata\xea\x02\tVault::V1b\x06proto3"
 
@@ -1181,7 +625,7 @@ func file_vault_v1_vault_proto_rawDescGZIP() []byte {
 }
 
 var file_vault_v1_vault_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_vault_v1_vault_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_vault_v1_vault_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_vault_v1_vault_proto_goTypes = []any{
 	(Capability)(0),              // 0: vault.v1.Capability
 	(*CreateAuthRoleInput)(nil),  // 1: vault.v1.CreateAuthRoleInput
@@ -1194,48 +638,24 @@ var file_vault_v1_vault_proto_goTypes = []any{
 	(*CreatePolicyOutput)(nil),   // 8: vault.v1.CreatePolicyOutput
 	(*DeletePolicyInput)(nil),    // 9: vault.v1.DeletePolicyInput
 	(*DeletePolicyOutput)(nil),   // 10: vault.v1.DeletePolicyOutput
-	(*SecretRef)(nil),            // 11: vault.v1.SecretRef
-	(*StoreSecretInput)(nil),     // 12: vault.v1.StoreSecretInput
-	(*StoreSecretOutput)(nil),    // 13: vault.v1.StoreSecretOutput
-	(*FetchSecretInput)(nil),     // 14: vault.v1.FetchSecretInput
-	(*FetchSecretOutput)(nil),    // 15: vault.v1.FetchSecretOutput
-	(*DeleteSecretInput)(nil),    // 16: vault.v1.DeleteSecretInput
-	(*DeleteSecretOutput)(nil),   // 17: vault.v1.DeleteSecretOutput
-	(*CreateAccessInput)(nil),    // 18: vault.v1.CreateAccessInput
-	(*CreateAccessOutput)(nil),   // 19: vault.v1.CreateAccessOutput
-	nil,                          // 20: vault.v1.StoreSecretInput.DataEntry
-	nil,                          // 21: vault.v1.FetchSecretOutput.DataEntry
 }
 var file_vault_v1_vault_proto_depIdxs = []int32{
 	0,  // 0: vault.v1.PolicyRule.capabilities:type_name -> vault.v1.Capability
 	5,  // 1: vault.v1.PolicyDocument.rules:type_name -> vault.v1.PolicyRule
 	6,  // 2: vault.v1.CreatePolicyInput.document:type_name -> vault.v1.PolicyDocument
-	20, // 3: vault.v1.StoreSecretInput.data:type_name -> vault.v1.StoreSecretInput.DataEntry
-	11, // 4: vault.v1.StoreSecretOutput.secret_ref:type_name -> vault.v1.SecretRef
-	11, // 5: vault.v1.FetchSecretOutput.secret_ref:type_name -> vault.v1.SecretRef
-	21, // 6: vault.v1.FetchSecretOutput.data:type_name -> vault.v1.FetchSecretOutput.DataEntry
-	6,  // 7: vault.v1.CreateAccessInput.policy_document:type_name -> vault.v1.PolicyDocument
-	1,  // 8: vault.v1.Vault.CreateAuthRole:input_type -> vault.v1.CreateAuthRoleInput
-	3,  // 9: vault.v1.Vault.DeleteAuthRole:input_type -> vault.v1.DeleteAuthRoleInput
-	7,  // 10: vault.v1.Vault.CreatePolicy:input_type -> vault.v1.CreatePolicyInput
-	9,  // 11: vault.v1.Vault.DeletePolicy:input_type -> vault.v1.DeletePolicyInput
-	12, // 12: vault.v1.Vault.StoreSecret:input_type -> vault.v1.StoreSecretInput
-	14, // 13: vault.v1.Vault.FetchSecret:input_type -> vault.v1.FetchSecretInput
-	16, // 14: vault.v1.Vault.DeleteSecret:input_type -> vault.v1.DeleteSecretInput
-	18, // 15: vault.v1.Vault.CreateAccess:input_type -> vault.v1.CreateAccessInput
-	2,  // 16: vault.v1.Vault.CreateAuthRole:output_type -> vault.v1.CreateAuthRoleOutput
-	4,  // 17: vault.v1.Vault.DeleteAuthRole:output_type -> vault.v1.DeleteAuthRoleOutput
-	8,  // 18: vault.v1.Vault.CreatePolicy:output_type -> vault.v1.CreatePolicyOutput
-	10, // 19: vault.v1.Vault.DeletePolicy:output_type -> vault.v1.DeletePolicyOutput
-	13, // 20: vault.v1.Vault.StoreSecret:output_type -> vault.v1.StoreSecretOutput
-	15, // 21: vault.v1.Vault.FetchSecret:output_type -> vault.v1.FetchSecretOutput
-	17, // 22: vault.v1.Vault.DeleteSecret:output_type -> vault.v1.DeleteSecretOutput
-	19, // 23: vault.v1.Vault.CreateAccess:output_type -> vault.v1.CreateAccessOutput
-	16, // [16:24] is the sub-list for method output_type
-	8,  // [8:16] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	1,  // 3: vault.v1.Vault.CreateAuthRole:input_type -> vault.v1.CreateAuthRoleInput
+	3,  // 4: vault.v1.Vault.DeleteAuthRole:input_type -> vault.v1.DeleteAuthRoleInput
+	7,  // 5: vault.v1.Vault.CreatePolicy:input_type -> vault.v1.CreatePolicyInput
+	9,  // 6: vault.v1.Vault.DeletePolicy:input_type -> vault.v1.DeletePolicyInput
+	2,  // 7: vault.v1.Vault.CreateAuthRole:output_type -> vault.v1.CreateAuthRoleOutput
+	4,  // 8: vault.v1.Vault.DeleteAuthRole:output_type -> vault.v1.DeleteAuthRoleOutput
+	8,  // 9: vault.v1.Vault.CreatePolicy:output_type -> vault.v1.CreatePolicyOutput
+	10, // 10: vault.v1.Vault.DeletePolicy:output_type -> vault.v1.DeletePolicyOutput
+	7,  // [7:11] is the sub-list for method output_type
+	3,  // [3:7] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_vault_v1_vault_proto_init() }
@@ -1249,7 +669,7 @@ func file_vault_v1_vault_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_vault_v1_vault_proto_rawDesc), len(file_vault_v1_vault_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   21,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

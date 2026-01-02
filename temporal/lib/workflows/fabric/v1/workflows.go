@@ -6,46 +6,42 @@ import (
 	"time"
 
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
-	cryptopb "github.com/metacensus/infra/temporal/gen/workflows/crypto/v1"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	kubepb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
 	postgrespb "github.com/metacensus/infra/temporal/gen/workflows/postgres/v1"
-	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
-	"github.com/metacensus/infra/temporal/gen/workflows/vault/v1/vaultv1nexustemporal"
+	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
+	"github.com/metacensus/infra/temporal/gen/workflows/secrets/v1/secretsv1nexustemporal"
+	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-// Nexus endpoint names for cross-namespace calls to infra worker
-const (
-	vaultCreateAccessNexusEndpoint = "vault-CreateAccess"
-)
+// Nexus endpoint name for CreateAccess calls to infra worker
+const secretsCreateAccessNexusEndpoint = "secrets-CreateAccess"
 
 // Sentinel errors for fabric workflows
 var (
-	ErrBootstrapCertificateAuthorities      = errors.New("bootstrap certificate authorities")
-	ErrDeployCertificateStore               = errors.New("deploy certificate store")
-	ErrCreateCertificateDatabase            = errors.New("create certificate database")
-	ErrDeployRootCertificateAuthority       = errors.New("deploy root certificate authority")
-	ErrDeployCertificateAuthority           = errors.New("deploy certificate authority")
-	ErrBootstrapCertificateAuthorityAdmin   = errors.New("bootstrap certificate authority admin")
-	ErrCreateIdentity                       = errors.New("create identity")
-	ErrCreateVaultAccess                    = errors.New("create vault access via nexus")
-	ErrInvalidCertType                      = errors.New("invalid cert type")
+	ErrBootstrapCertificateAuthorities    = errors.New("bootstrap certificate authorities")
+	ErrDeployCertificateStore             = errors.New("deploy certificate store")
+	ErrCreateCertificateDatabase          = errors.New("create certificate database")
+	ErrDeployRootCertificateAuthority     = errors.New("deploy root certificate authority")
+	ErrDeployCertificateAuthority         = errors.New("deploy certificate authority")
+	ErrBootstrapCertificateAuthorityAdmin = errors.New("bootstrap certificate authority admin")
+	ErrCreateIdentity                     = errors.New("create identity")
+	ErrCreateAccess                       = errors.New("create access")
+	ErrInvalidCertType                    = errors.New("invalid cert type")
 )
 
-// Workflows implements the FabricWorkflows interface from generated code
+// Workflows implements the FabricWorkflows interface
 type Workflows struct {
 	fabricConfig fabricconfig.FabricConfig
 }
 
-// NewWorkflows creates a new Workflows instance with fabric configuration
+// NewWorkflows creates a new Workflows instance
 func NewWorkflows(fabricConfig fabricconfig.FabricConfig) *Workflows {
-	return &Workflows{
-		fabricConfig: fabricConfig,
-	}
+	return &Workflows{fabricConfig: fabricConfig}
 }
 
 // BootstrapShard implements the BootstrapShard workflow
@@ -56,15 +52,12 @@ func (w *Workflows) BootstrapShard(ctx workflow.Context, input *pb.BootstrapShar
 	}, nil
 }
 
-// bootstrapShardWorkflow implements pb.BootstrapShardWorkflow
 type bootstrapShardWorkflow struct {
 	input        *pb.BootstrapShardWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
 }
 
-// Execute deploys all Fabric components (CAs, peers, orderers) for the organization.
 func (w *bootstrapShardWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapShardOutput, error) {
-	// Bootstrap all certificate authorities (store, root CA, intermediate CAs)
 	if _, err := pb.BootstrapCertificateAuthoritiesChild(ctx, &pb.BootstrapCertificateAuthoritiesInput{}); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrBootstrapCertificateAuthorities, err)
 	}
@@ -74,7 +67,7 @@ func (w *bootstrapShardWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapSha
 	return &pb.BootstrapShardOutput{}, nil
 }
 
-// BootstrapCertificateAuthorities implements the BootstrapCertificateAuthorities workflow
+// BootstrapCertificateAuthorities implements the workflow
 func (w *Workflows) BootstrapCertificateAuthorities(ctx workflow.Context, input *pb.BootstrapCertificateAuthoritiesWorkflowInput) (pb.BootstrapCertificateAuthoritiesWorkflow, error) {
 	return &bootstrapCertificateAuthoritiesWorkflow{
 		input:        input,
@@ -82,33 +75,26 @@ func (w *Workflows) BootstrapCertificateAuthorities(ctx workflow.Context, input 
 	}, nil
 }
 
-// bootstrapCertificateAuthoritiesWorkflow implements pb.BootstrapCertificateAuthoritiesWorkflow
 type bootstrapCertificateAuthoritiesWorkflow struct {
 	input        *pb.BootstrapCertificateAuthoritiesWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
 }
 
-// Execute orchestrates the deployment of all certificate authorities for the organization.
 func (w *bootstrapCertificateAuthoritiesWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapCertificateAuthoritiesOutput, error) {
-	// Deploy the shared certificate store (PostgreSQL)
 	if _, err := pb.DeployCertificateStoreChild(ctx, &pb.DeployCertificateStoreInput{}); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrDeployCertificateStore, err)
 	}
 
-	// Deploy Certificate Authorities for both TLS and Org cert types
 	for _, certType := range []string{"tls", "org"} {
-		// Deploy root certificate authority for this cert type
 		if _, err := pb.DeployRootCertificateAuthorityChild(ctx, &pb.DeployRootCertificateAuthorityInput{
 			CertType: certType,
 		}); err != nil {
 			return nil, fmt.Errorf("%w (certType=%s): %w", ErrDeployRootCertificateAuthority, certType, err)
 		}
 
-		// Deploy intermediate certificate authority for this cert type
-		// TODO: Generate unique ID for intermediate CA (e.g., timestamp-based or sequential)
 		if _, err := pb.DeployCertificateAuthorityChild(ctx, &pb.DeployCertificateAuthorityInput{
 			CertType: certType,
-			Id:       "v1", // Initial intermediate CA version
+			Id:       "v1",
 		}); err != nil {
 			return nil, fmt.Errorf("%w (certType=%s): %w", ErrDeployCertificateAuthority, certType, err)
 		}
@@ -117,7 +103,7 @@ func (w *bootstrapCertificateAuthoritiesWorkflow) Execute(ctx workflow.Context) 
 	return &pb.BootstrapCertificateAuthoritiesOutput{}, nil
 }
 
-// DeployCertificateStore implements the DeployCertificateStore workflow
+// DeployCertificateStore implements the workflow
 func (w *Workflows) DeployCertificateStore(ctx workflow.Context, input *pb.DeployCertificateStoreWorkflowInput) (pb.DeployCertificateStoreWorkflow, error) {
 	return &deployCertificateStoreWorkflow{
 		input:        input,
@@ -125,23 +111,29 @@ func (w *Workflows) DeployCertificateStore(ctx workflow.Context, input *pb.Deplo
 	}, nil
 }
 
-// deployCertificateStoreWorkflow implements pb.DeployCertificateStoreWorkflow
 type deployCertificateStoreWorkflow struct {
 	input        *pb.DeployCertificateStoreWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
 }
 
-// Execute deploys the shared certificate store (PostgreSQL) for the organization.
 func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.DeployCertificateStoreOutput, error) {
 	logger := workflow.GetLogger(ctx)
-
-	// Get certificate store config
 	certStore := w.fabricConfig.CertificateStore()
 
-	// Step 1: Request Vault access via Nexus call to infra worker
-	// This creates the policy and auth role needed for the certificate store pod to access its secrets
-	vaultClient := vaultv1nexustemporal.NewVaultNexusClient(vaultCreateAccessNexusEndpoint)
-	_, err := vaultClient.CreateAccess(ctx, &vaultpb.CreateAccessInput{
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    3,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
+
+	// Step 1: Create Vault access via Nexus call to infra worker
+	nexusClient := secretsv1nexustemporal.NewSecretsNexusClient(secretsCreateAccessNexusEndpoint)
+	_, err := nexusClient.CreateAccess(ctx, &secretspb.CreateAccessInput{
 		PolicyName:          certStore.PolicyName(),
 		PolicyDocument:      certStore.VaultPolicy(),
 		AuthRoleName:        certStore.AuthRoleName(),
@@ -151,20 +143,20 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 		ScheduleToCloseTimeout: 5 * time.Minute,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCreateVaultAccess, err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateAccess, err)
 	}
 
-	// Step 2: Generate PostgreSQL credentials (username + password)
-	_, err = cryptopb.GenerateAndStorePasswordChild(ctx, &cryptopb.GenerateAndStorePasswordInput{
-		VaultPath: certStore.VaultAdminCredentialsPath(),
+	// Step 2: Generate PostgreSQL credentials
+	credentialsRef := secrets.NewVaultRef(certStore.VaultAdminCredentialsPath())
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
+		SecretRef: credentialsRef,
 		Username:  "admin",
-	})
+	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate postgres credentials: %w", err)
 	}
 
-	// Step 3: Deploy PostgreSQL StatefulSet for certificate storage
-	// The StatefulSet will use Vault CSI driver to fetch credentials at runtime
+	// Step 3: Deploy PostgreSQL StatefulSet
 	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
 		Org:       w.fabricConfig.OrgID,
 		Component: certStore.ComponentName(),
@@ -174,15 +166,14 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 	}
 
 	// Step 4: Wait for certificate store to be ready
-	// Use activity retry policy to poll until ready (GetStatus fails if not ready)
 	logger.Info("Waiting for certificate store to be ready", "org", w.fabricConfig.OrgID)
 	waitOptions := workflow.ActivityOptions{
 		StartToCloseTimeout: 10 * time.Minute,
 		RetryPolicy: &temporal.RetryPolicy{
-			InitialInterval:    5 * time.Second, // Start checking after 5s
-			BackoffCoefficient: 1.0,             // No backoff - consistent 5s interval
-			MaximumInterval:    5 * time.Second, // Keep at 5s
-			MaximumAttempts:    120,             // 120 * 5s = 10 minutes max
+			InitialInterval:    5 * time.Second,
+			BackoffCoefficient: 1.0,
+			MaximumInterval:    5 * time.Second,
+			MaximumAttempts:    120,
 		},
 	}
 	waitCtx := workflow.WithActivityOptions(ctx, waitOptions)
@@ -200,7 +191,7 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 	return &pb.DeployCertificateStoreOutput{}, nil
 }
 
-// CreateCertificateDatabase implements the CreateCertificateDatabase workflow
+// CreateCertificateDatabase implements the workflow
 func (w *Workflows) CreateCertificateDatabase(ctx workflow.Context, input *pb.CreateCertificateDatabaseWorkflowInput) (pb.CreateCertificateDatabaseWorkflow, error) {
 	return &createCertificateDatabaseWorkflow{
 		input:        input,
@@ -208,19 +199,15 @@ func (w *Workflows) CreateCertificateDatabase(ctx workflow.Context, input *pb.Cr
 	}, nil
 }
 
-// createCertificateDatabaseWorkflow implements pb.CreateCertificateDatabaseWorkflow
 type createCertificateDatabaseWorkflow struct {
 	input        *pb.CreateCertificateDatabaseWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
 }
 
-// Execute creates a dedicated database and user for a certificate authority.
 func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.CreateCertificateDatabaseOutput, error) {
-	// Extract input parameters
 	certType := w.input.Req.GetCertType()
 	caID := w.input.Req.GetCertificateAuthorityId()
 
-	// Validate input
 	if certType != "tls" && certType != "org" {
 		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidCertType, certType)
 	}
@@ -228,10 +215,8 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 		return nil, fmt.Errorf("certificate_authority_id cannot be empty")
 	}
 
-	// Get CA config
 	caConfig := w.fabricConfig.CertificateAuthority(certType, caID)
 
-	// Set up activity options with timeouts
 	ao := workflow.ActivityOptions{
 		StartToCloseTimeout: 5 * time.Minute,
 		RetryPolicy: &temporal.RetryPolicy{
@@ -244,74 +229,47 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
 	// Step 1: Create the PostgreSQL database
-	var createDBOutput *postgrespb.CreateDatabaseOutput
 	err := workflow.ExecuteActivity(activityCtx, postgrespb.CreateDatabaseActivityName, &postgrespb.CreateDatabaseInput{
 		DatabaseName: caConfig.DatabaseName(),
-	}).Get(activityCtx, &createDBOutput)
+	}).Get(activityCtx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database: %w", err)
 	}
 
-	// Step 2: Generate and store credentials (username + password) in Vault
-	credentialsOutput, err := cryptopb.GenerateAndStorePasswordChild(ctx, &cryptopb.GenerateAndStorePasswordInput{
-		VaultPath: caConfig.VaultDatabaseCredentialsPath(),
+	// Step 2: Generate and store credentials in Vault
+	credentialsRef := secrets.NewVaultRef(caConfig.VaultDatabaseCredentialsPath())
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
+		SecretRef: credentialsRef,
 		Username:  caConfig.DatabaseUsername(),
-	})
+	}).Get(activityCtx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate credentials: %w", err)
 	}
 
-	// Step 3: Fetch the generated credentials from Vault
-	// We need both username and password values to create the PostgreSQL user
-	var fetchOutput *vaultpb.FetchSecretOutput
-	err = workflow.ExecuteActivity(activityCtx, vaultpb.FetchSecretActivityName, &vaultpb.FetchSecretInput{
-		Path:    credentialsOutput.GetSecretRef().GetPath(),
-		Version: credentialsOutput.GetSecretRef().GetVersion(),
-	}).Get(activityCtx, &fetchOutput)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch credentials from Vault: %w", err)
-	}
-
-	// Extract username and password from secret data
-	usernameBytes, ok := fetchOutput.GetData()["username"]
-	if !ok {
-		return nil, fmt.Errorf("username not found in Vault secret")
-	}
-	username := string(usernameBytes)
-
-	passwordBytes, ok := fetchOutput.GetData()["password"]
-	if !ok {
-		return nil, fmt.Errorf("password not found in Vault secret")
-	}
-	password := string(passwordBytes)
-
-	// Step 4: Create the PostgreSQL user with the generated credentials
-	var createUserOutput *postgrespb.CreateUserOutput
+	// Step 3: Create the PostgreSQL user (fetches credentials internally)
 	err = workflow.ExecuteActivity(activityCtx, postgrespb.CreateUserActivityName, &postgrespb.CreateUserInput{
-		Username: username,
-		Password: password,
-	}).Get(activityCtx, &createUserOutput)
+		CredentialsRef: credentialsRef,
+	}).Get(activityCtx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	// Step 5: Grant all privileges on the database to the user
-	var grantOutput *postgrespb.GrantPrivilegesOutput
+	// Step 4: Grant privileges
 	err = workflow.ExecuteActivity(activityCtx, postgrespb.GrantPrivilegesActivityName, &postgrespb.GrantPrivilegesInput{
-		Username:     username,
+		Username:     caConfig.DatabaseUsername(),
 		DatabaseName: caConfig.DatabaseName(),
-		Privileges:   []postgrespb.Privilege{postgrespb.Privilege_PRIVILEGE_ALL}, // Full access for CA to manage its certificates
-	}).Get(activityCtx, &grantOutput)
+		Privileges:   []postgrespb.Privilege{postgrespb.Privilege_PRIVILEGE_ALL},
+	}).Get(activityCtx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to grant privileges: %w", err)
 	}
 
 	return &pb.CreateCertificateDatabaseOutput{
-		CredentialsRef: credentialsOutput.GetSecretRef(),
+		CredentialsRef: credentialsRef,
 	}, nil
 }
 
-// DeployRootCertificateAuthority implements the DeployRootCertificateAuthority workflow
+// DeployRootCertificateAuthority implements the workflow
 func (w *Workflows) DeployRootCertificateAuthority(ctx workflow.Context, input *pb.DeployRootCertificateAuthorityWorkflowInput) (pb.DeployRootCertificateAuthorityWorkflow, error) {
 	return &deployRootCertificateAuthorityWorkflow{
 		input:        input,
@@ -319,28 +277,34 @@ func (w *Workflows) DeployRootCertificateAuthority(ctx workflow.Context, input *
 	}, nil
 }
 
-// deployRootCertificateAuthorityWorkflow implements pb.DeployRootCertificateAuthorityWorkflow
 type deployRootCertificateAuthorityWorkflow struct {
 	input        *pb.DeployRootCertificateAuthorityWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
 }
 
-// Execute deploys the root certificate authority for the organization.
 func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.DeployRootCertificateAuthorityOutput, error) {
 	certType := w.input.Req.GetCertType()
 
-	// Validate cert type
 	if certType != "tls" && certType != "org" {
 		return nil, ErrInvalidCertType
 	}
 
-	// Get root CA config
 	rootCA := w.fabricConfig.CertificateAuthority(certType, "root")
 
-	// Request Vault access via Nexus call to infra worker
-	// This creates the policy and auth role needed for the root CA pod to access its secrets
-	vaultClient := vaultv1nexustemporal.NewVaultNexusClient(vaultCreateAccessNexusEndpoint)
-	_, err := vaultClient.CreateAccess(ctx, &vaultpb.CreateAccessInput{
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    3,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
+
+	// Step 1: Create Vault access via Nexus call to infra worker
+	nexusClient := secretsv1nexustemporal.NewSecretsNexusClient(secretsCreateAccessNexusEndpoint)
+	_, err := nexusClient.CreateAccess(ctx, &secretspb.CreateAccessInput{
 		PolicyName:          rootCA.PolicyName(),
 		PolicyDocument:      rootCA.VaultPolicy(),
 		AuthRoleName:        rootCA.AuthRoleName(),
@@ -350,10 +314,10 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		ScheduleToCloseTimeout: 5 * time.Minute,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCreateVaultAccess, err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateAccess, err)
 	}
 
-	// Create certificate database for this root CA
+	// Step 2: Create certificate database
 	if _, err := pb.CreateCertificateDatabaseChild(ctx, &pb.CreateCertificateDatabaseInput{
 		CertType:               certType,
 		CertificateAuthorityId: "root",
@@ -361,41 +325,42 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		return nil, fmt.Errorf("%w (certType=%s): %w", ErrCreateCertificateDatabase, certType, err)
 	}
 
-	// Generate root CA key pair and store in Vault
-	_, err = cryptopb.GenerateAndStoreKeyPairChild(ctx, &cryptopb.GenerateAndStoreKeyPairInput{
-		VaultPath: rootCA.VaultKeyPairPath(),
-	})
+	// Step 3: Generate root CA key pair
+	keyPairRef := secrets.NewVaultRef(rootCA.VaultKeyPairPath())
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
+		SecretRef: keyPairRef,
+	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate root CA key pair: %w", err)
 	}
 
-	// Generate self-signed root CA certificate and store in Vault
-	// Root CAs are valid for 15 years
+	// Step 4: Generate self-signed root CA certificate
+	certRef := secrets.NewVaultRef(rootCA.VaultCertificatePath())
 	certValidityDuration := 15 * 365 * 24 * time.Hour
-	_, err = cryptopb.CreateSelfSignedCertificateChild(ctx, &cryptopb.CreateSelfSignedCertificateInput{
-		VaultKeyPath:         rootCA.VaultKeyPairPath(),
-		VaultCertificatePath: rootCA.VaultCertificatePath(),
-		CommonName:           rootCA.ComponentName(),
-		Organization:         w.fabricConfig.OrgID,
-		OrganizationalUnit:   rootCA.OrganizationalUnit(),
-		ValidityDuration:     durationpb.New(certValidityDuration),
-		MaxPathLength:        1, // Can issue intermediate CAs
-	})
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateSelfSignedCertificateActivityName, &secretspb.CreateSelfSignedCertificateInput{
+		KeyRef:             keyPairRef,
+		CertRef:            certRef,
+		CommonName:         rootCA.ComponentName(),
+		Organization:       w.fabricConfig.OrgID,
+		OrganizationalUnit: rootCA.OrganizationalUnit(),
+		ValidityDuration:   durationpb.New(certValidityDuration),
+		MaxPathLength:      1,
+	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate root CA certificate: %w", err)
 	}
 
-	// Generate bootstrap admin credentials (username + password) for CA initial setup
-	// These credentials will be used in the deployment to configure the CA's initial admin user
-	_, err = cryptopb.GenerateAndStorePasswordChild(ctx, &cryptopb.GenerateAndStorePasswordInput{
-		VaultPath: rootCA.VaultAdminCredentialsPath(),
+	// Step 5: Generate bootstrap admin credentials
+	adminCredentialsRef := secrets.NewVaultRef(rootCA.VaultAdminCredentialsPath())
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
+		SecretRef: adminCredentialsRef,
 		Username:  "admin",
-	})
+	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate bootstrap admin credentials: %w", err)
 	}
 
-	// Deploy root CA pod
+	// Step 6: Deploy root CA pod
 	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
 		Org:       w.fabricConfig.OrgID,
 		Component: rootCA.ComponentName(),
@@ -409,7 +374,7 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 	return &pb.DeployRootCertificateAuthorityOutput{}, nil
 }
 
-// DeployCertificateAuthority implements the DeployCertificateAuthority workflow
+// DeployCertificateAuthority implements the workflow
 func (w *Workflows) DeployCertificateAuthority(ctx workflow.Context, input *pb.DeployCertificateAuthorityWorkflowInput) (pb.DeployCertificateAuthorityWorkflow, error) {
 	return &deployCertificateAuthorityWorkflow{
 		input:        input,
@@ -417,29 +382,24 @@ func (w *Workflows) DeployCertificateAuthority(ctx workflow.Context, input *pb.D
 	}, nil
 }
 
-// deployCertificateAuthorityWorkflow implements pb.DeployCertificateAuthorityWorkflow
 type deployCertificateAuthorityWorkflow struct {
 	input        *pb.DeployCertificateAuthorityWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
 }
 
-// Execute deploys an intermediate certificate authority for the organization.
 func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.DeployCertificateAuthorityOutput, error) {
 	certType := w.input.Req.GetCertType()
 	caID := w.input.Req.GetId()
 
-	// Validate cert type
 	if certType != "tls" && certType != "org" {
 		return nil, ErrInvalidCertType
 	}
 
-	// Get intermediate CA config
 	intermediateCA := w.fabricConfig.CertificateAuthority(certType, caID)
 
-	// Request Vault access via Nexus call to infra worker
-	// This creates the policy and auth role needed for the intermediate CA pod to access its secrets
-	vaultClient := vaultv1nexustemporal.NewVaultNexusClient(vaultCreateAccessNexusEndpoint)
-	_, err := vaultClient.CreateAccess(ctx, &vaultpb.CreateAccessInput{
+	// Step 1: Create Vault access via Nexus call to infra worker
+	nexusClient := secretsv1nexustemporal.NewSecretsNexusClient(secretsCreateAccessNexusEndpoint)
+	_, err := nexusClient.CreateAccess(ctx, &secretspb.CreateAccessInput{
 		PolicyName:          intermediateCA.PolicyName(),
 		PolicyDocument:      intermediateCA.VaultPolicy(),
 		AuthRoleName:        intermediateCA.AuthRoleName(),
@@ -449,10 +409,10 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 		ScheduleToCloseTimeout: 5 * time.Minute,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCreateVaultAccess, err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateAccess, err)
 	}
 
-	// Create certificate database for this intermediate CA
+	// Step 2: Create certificate database
 	if _, err := pb.CreateCertificateDatabaseChild(ctx, &pb.CreateCertificateDatabaseInput{
 		CertType:               certType,
 		CertificateAuthorityId: caID,
@@ -469,7 +429,7 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 	return &pb.DeployCertificateAuthorityOutput{}, nil
 }
 
-// BootstrapCertificateAuthorityAdmin implements the BootstrapCertificateAuthorityAdmin workflow
+// BootstrapCertificateAuthorityAdmin implements the workflow
 func (w *Workflows) BootstrapCertificateAuthorityAdmin(ctx workflow.Context, input *pb.BootstrapCertificateAuthorityAdminWorkflowInput) (pb.BootstrapCertificateAuthorityAdminWorkflow, error) {
 	return &bootstrapCertificateAuthorityAdminWorkflow{
 		input:        input,
@@ -477,35 +437,28 @@ func (w *Workflows) BootstrapCertificateAuthorityAdmin(ctx workflow.Context, inp
 	}, nil
 }
 
-// bootstrapCertificateAuthorityAdminWorkflow implements pb.BootstrapCertificateAuthorityAdminWorkflow
 type bootstrapCertificateAuthorityAdminWorkflow struct {
 	input        *pb.BootstrapCertificateAuthorityAdminWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
 }
 
-// Execute bootstraps the admin user for a certificate authority
 func (w *bootstrapCertificateAuthorityAdminWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapCertificateAuthorityAdminOutput, error) {
 	certType := w.input.Req.GetCertType()
 	caID := w.input.Req.GetCertificateAuthorityId()
 
-	// Validate cert type
 	if certType != "tls" && certType != "org" {
 		return nil, ErrInvalidCertType
 	}
 
-	// TODO: Create admin identities for both tls and org
-	// for each ("tls", "org")
-	//   └─ Workflow: fabric.v1.CreateIdentity
-
+	// TODO: Create admin identities
 	// TODO: Revoke bootstrap admin credentials
-	// └─ Activity: fabric.v1.RevokeIdentity
 
-	_ = caID // TODO: Use caID in implementation
+	_ = caID
 
 	return &pb.BootstrapCertificateAuthorityAdminOutput{}, nil
 }
 
-// CreateIdentity implements the CreateIdentity workflow
+// CreateIdentity implements the workflow
 func (w *Workflows) CreateIdentity(ctx workflow.Context, input *pb.CreateIdentityWorkflowInput) (pb.CreateIdentityWorkflow, error) {
 	return &createIdentityWorkflow{
 		input:        input,
@@ -513,35 +466,25 @@ func (w *Workflows) CreateIdentity(ctx workflow.Context, input *pb.CreateIdentit
 	}, nil
 }
 
-// createIdentityWorkflow implements pb.CreateIdentityWorkflow
 type createIdentityWorkflow struct {
 	input        *pb.CreateIdentityWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
 }
 
-// Execute creates a new Fabric identity by generating keys, registering with CA, and enrolling
 func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdentityOutput, error) {
 	certType := w.input.Req.GetCertType()
 	identityName := w.input.Req.GetIdentityName()
 
-	// Validate cert type
 	if certType != "tls" && certType != "org" {
 		return nil, ErrInvalidCertType
 	}
 
-	// TODO: Generate key pair for identity
-	// └─ Workflow: crypto.v1.GenerateAndStoreKeyPair
-
+	// TODO: Generate key pair for identity using secrets.v1.CreateKeyPair
 	// TODO: Register identity with CA
-	// └─ Activity: fabric.v1.RegisterIdentity
-
 	// TODO: Enroll identity with CA
-	// └─ Activity: fabric.v1.EnrollIdentity
+	// TODO: Store identity certificate
 
-	// TODO: Store identity certificate in Vault
-	// └─ Activity: vault.v1.StoreSecret
-
-	_ = identityName // TODO: Use identityName in implementation
+	_ = identityName
 
 	return &pb.CreateIdentityOutput{}, nil
 }

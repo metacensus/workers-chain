@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/postgres/v1"
+	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 	"go.temporal.io/sdk/activity"
 )
 
@@ -17,43 +18,41 @@ var (
 	ErrCheckUserExistence     = errors.New("check user existence")
 	ErrCreateUser             = errors.New("create user")
 	ErrGrantPrivileges        = errors.New("grant privileges")
+	ErrFetchCredentials       = errors.New("fetch credentials")
 )
 
 // ClientProvider is an interface for getting postgres clients
-// This allows for easier testing by injecting mock providers
 type ClientProvider interface {
 	GetClient(ctx context.Context) (PostgresClient, error)
 }
 
-// Activities implements the PostgresActivities interface from generated code
+// Activities implements the PostgresActivities interface
 type Activities struct {
 	clientProvider ClientProvider
+	secretProvider secrets.SecretProvider
 }
 
 // NewActivities creates a new Activities instance
-func NewActivities(clientProvider ClientProvider) *Activities {
+func NewActivities(clientProvider ClientProvider, secretProvider secrets.SecretProvider) *Activities {
 	return &Activities{
 		clientProvider: clientProvider,
+		secretProvider: secretProvider,
 	}
 }
 
 // CreateDatabase creates a new PostgreSQL database
-// Idempotent: returns success if database already exists
 func (a *Activities) CreateDatabase(ctx context.Context, req *pb.CreateDatabaseInput) (*pb.CreateDatabaseOutput, error) {
 	logger := activity.GetLogger(ctx)
 
-	// Validate required fields
 	if req.DatabaseName == "" {
 		return nil, errors.New("database name cannot be empty")
 	}
 
-	// Get postgres client (fetches credentials from Vault on first call)
 	client, err := a.clientProvider.GetClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get postgres client: %w", err)
 	}
 
-	// Check if database already exists
 	exists, err := a.databaseExists(ctx, client, req.DatabaseName)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCheckDatabaseExistence, err)
@@ -64,14 +63,10 @@ func (a *Activities) CreateDatabase(ctx context.Context, req *pb.CreateDatabaseI
 		return &pb.CreateDatabaseOutput{}, nil
 	}
 
-	// Create the database
-	// PostgreSQL doesn't support IF NOT EXISTS for CREATE DATABASE, so we check first
-	// We need to escape the database name to prevent SQL injection
 	escapedName := escapeIdentifier(req.DatabaseName)
 	createSQL := fmt.Sprintf("CREATE DATABASE %s", escapedName)
 
 	if err := client.Exec(ctx, createSQL); err != nil {
-		// Check if error is because database already exists (race condition)
 		if strings.Contains(err.Error(), "already exists") {
 			logger.Info("Database already exists (race condition)", "database_name", req.DatabaseName)
 			return &pb.CreateDatabaseOutput{}, nil
@@ -82,46 +77,42 @@ func (a *Activities) CreateDatabase(ctx context.Context, req *pb.CreateDatabaseI
 	return &pb.CreateDatabaseOutput{}, nil
 }
 
-// CreateUser creates a new PostgreSQL user
-// Idempotent: returns success if user already exists
+// CreateUser creates a new PostgreSQL user with credentials fetched from SecretProvider
 func (a *Activities) CreateUser(ctx context.Context, req *pb.CreateUserInput) (*pb.CreateUserOutput, error) {
 	logger := activity.GetLogger(ctx)
 
-	// Validate required fields
-	if req.Username == "" {
-		return nil, errors.New("username cannot be empty")
-	}
-	if req.Password == "" {
-		return nil, errors.New("password cannot be empty")
+	if req.CredentialsRef == nil {
+		return nil, errors.New("credentials_ref is required")
 	}
 
-	// Get postgres client (fetches credentials from Vault on first call)
+	// Fetch credentials from secret provider
+	creds, err := a.secretProvider.FetchCredentials(ctx, req.CredentialsRef)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrFetchCredentials, err)
+	}
+
 	client, err := a.clientProvider.GetClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get postgres client: %w", err)
 	}
 
-	// Check if user already exists
-	exists, err := a.userExists(ctx, client, req.Username)
+	exists, err := a.userExists(ctx, client, creds.Username)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCheckUserExistence, err)
 	}
 
 	if exists {
-		logger.Info("User already exists", "username", req.Username)
+		logger.Info("User already exists", "username", creds.Username)
 		return &pb.CreateUserOutput{}, nil
 	}
 
-	// Create the user (PostgreSQL uses CREATE ROLE)
-	// We need to escape identifiers and quote the password
-	escapedUsername := escapeIdentifier(req.Username)
-	escapedPassword := escapeStringLiteral(req.Password)
+	escapedUsername := escapeIdentifier(creds.Username)
+	escapedPassword := escapeStringLiteral(creds.Password)
 	createSQL := fmt.Sprintf("CREATE ROLE %s WITH LOGIN PASSWORD %s", escapedUsername, escapedPassword)
 
 	if err := client.Exec(ctx, createSQL); err != nil {
-		// Check if error is because user already exists (race condition)
 		if strings.Contains(err.Error(), "already exists") {
-			logger.Info("User already exists (race condition)", "username", req.Username)
+			logger.Info("User already exists (race condition)", "username", creds.Username)
 			return &pb.CreateUserOutput{}, nil
 		}
 		return nil, fmt.Errorf("%w: %w", ErrCreateUser, err)
@@ -131,9 +122,7 @@ func (a *Activities) CreateUser(ctx context.Context, req *pb.CreateUserInput) (*
 }
 
 // GrantPrivileges grants privileges to a user on a database
-// Idempotent: can be called multiple times safely
 func (a *Activities) GrantPrivileges(ctx context.Context, req *pb.GrantPrivilegesInput) (*pb.GrantPrivilegesOutput, error) {
-	// Validate required fields
 	if req.Username == "" {
 		return nil, errors.New("username cannot be empty")
 	}
@@ -141,23 +130,14 @@ func (a *Activities) GrantPrivileges(ctx context.Context, req *pb.GrantPrivilege
 		return nil, errors.New("database name cannot be empty")
 	}
 
-	// Get postgres client (fetches credentials from Vault on first call)
 	client, err := a.clientProvider.GetClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get postgres client: %w", err)
 	}
 
-	// We need to escape identifiers
 	escapedUsername := escapeIdentifier(req.Username)
 	escapedDatabaseName := escapeIdentifier(req.DatabaseName)
 
-	// Make the user the owner of the database
-	// This gives them full control including:
-	// - CONNECT to the database
-	// - CREATE schemas
-	// - CREATE tables in the public schema (required for PostgreSQL 15+)
-	// - All other database operations within this database
-	// Permissions are isolated - the user cannot access other databases
 	alterOwnerSQL := fmt.Sprintf("ALTER DATABASE %s OWNER TO %s", escapedDatabaseName, escapedUsername)
 	if err := client.Exec(ctx, alterOwnerSQL); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrGrantPrivileges, err)
@@ -166,64 +146,48 @@ func (a *Activities) GrantPrivileges(ctx context.Context, req *pb.GrantPrivilege
 	return &pb.GrantPrivilegesOutput{}, nil
 }
 
-// databaseExists checks if a database exists
 func (a *Activities) databaseExists(ctx context.Context, client PostgresClient, dbName string) (bool, error) {
-	// Query pg_database to check if database exists
 	query := "SELECT 1 FROM pg_database WHERE datname = $1"
 	rows, err := client.Query(ctx, query, dbName)
 	if err != nil {
 		return false, err
 	}
 	defer rows.Close()
-
 	return rows.Next(), nil
 }
 
-// userExists checks if a user (role) exists
 func (a *Activities) userExists(ctx context.Context, client PostgresClient, username string) (bool, error) {
-	// Query pg_roles to check if role exists
 	query := "SELECT 1 FROM pg_roles WHERE rolname = $1"
 	rows, err := client.Query(ctx, query, username)
 	if err != nil {
 		return false, err
 	}
 	defer rows.Close()
-
 	return rows.Next(), nil
 }
 
-// escapeIdentifier escapes a PostgreSQL identifier to prevent SQL injection
-// PostgreSQL identifiers are case-insensitive unless quoted, and should be quoted if they contain special characters
 func escapeIdentifier(identifier string) string {
-	// For simplicity, we'll quote all identifiers
-	// Replace double quotes with double double quotes (PostgreSQL escaping)
 	escaped := strings.ReplaceAll(identifier, `"`, `""`)
 	return fmt.Sprintf(`"%s"`, escaped)
 }
 
-// escapeStringLiteral escapes a PostgreSQL string literal to prevent SQL injection
 func escapeStringLiteral(s string) string {
-	// Replace single quotes with two single quotes (PostgreSQL escaping)
 	escaped := strings.ReplaceAll(s, `'`, `''`)
 	return fmt.Sprintf(`'%s'`, escaped)
 }
 
 // ConvertPrivilegesToSQL converts Privilege enums to PostgreSQL SQL privilege strings
 func ConvertPrivilegesToSQL(privileges []pb.Privilege) string {
-	// Default to ALL if no privileges specified or only UNSPECIFIED
 	if len(privileges) == 0 {
 		return "ALL"
 	}
 
-	// Filter out UNSPECIFIED and convert to SQL strings
 	var sqlPrivileges []string
 	for _, priv := range privileges {
 		switch priv {
 		case pb.Privilege_PRIVILEGE_UNSPECIFIED:
-			// Skip unspecified
 			continue
 		case pb.Privilege_PRIVILEGE_ALL:
-			// ALL is a special case - if present, just return ALL
 			return "ALL"
 		case pb.Privilege_PRIVILEGE_SELECT:
 			sqlPrivileges = append(sqlPrivileges, "SELECT")
@@ -252,11 +216,9 @@ func ConvertPrivilegesToSQL(privileges []pb.Privilege) string {
 		}
 	}
 
-	// If all were UNSPECIFIED, default to ALL
 	if len(sqlPrivileges) == 0 {
 		return "ALL"
 	}
 
-	// Join multiple privileges with commas
 	return strings.Join(sqlPrivileges, ", ")
 }

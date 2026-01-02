@@ -13,231 +13,9 @@ import (
 )
 
 var (
-	// Test error sentinels for client errors
 	errClientConnectionRefused = errors.New("connection refused")
 	errClientForbidden         = errors.New("forbidden")
 )
-
-func TestStoreSecretActivity(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     *pb.StoreSecretInput
-		clientErr error
-	}{
-		{
-			name: "success",
-			input: &pb.StoreSecretInput{
-				Path: "fabric/metacensus/msp/peer-peer0",
-				Data: map[string][]byte{
-					"key": []byte("value"),
-				},
-			},
-		},
-		{
-			name: "client error propagated",
-			input: &pb.StoreSecretInput{
-				Path: "fabric/test/msp/peer-peer1",
-			},
-			clientErr: errClientConnectionRefused,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			testSuite := &testsuite.WorkflowTestSuite{}
-			env := testSuite.NewTestActivityEnvironment()
-
-			mockClient := vaultmocks.NewMockVaultClient(t)
-			mockClient.EXPECT().
-				Write(mock.Anything, mock.Anything, mock.MatchedBy(func(data map[string]any) bool {
-					// Verify the data structure contains what we expect
-					if _, ok := data["data"]; !ok {
-						return false
-					}
-					return true
-				})).
-				Return(tt.clientErr).
-				Maybe() // Only if test case uses this path
-
-			activities := NewActivities(mockClient)
-			env.RegisterActivity(activities.StoreSecret)
-
-			// Execute activity
-			val, err := env.ExecuteActivity(activities.StoreSecret, tt.input)
-
-			if tt.clientErr != nil {
-				// Expect error - activity test environment returns errors from ExecuteActivity
-				// Note: Temporal wraps errors multiple levels, so we just verify an error occurred
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-			} else {
-				// Expect success
-				if err != nil {
-					t.Fatalf("unexpected error from ExecuteActivity: %v", err)
-				}
-				var result *pb.StoreSecretOutput
-				if err := val.Get(&result); err != nil {
-					t.Fatalf("unexpected error from Get: %v", err)
-				}
-				if result.SecretRef == nil {
-					t.Errorf("result.SecretRef is nil")
-				}
-				if result.SecretRef.Path != tt.input.Path {
-					t.Errorf("result.SecretRef.Path mismatch: got %s, want %s", result.SecretRef.Path, tt.input.Path)
-				}
-			}
-		})
-	}
-}
-
-func TestFetchSecretActivity(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     *pb.FetchSecretInput
-		mockData  map[string]any
-		clientErr error
-	}{
-		{
-			name: "success - latest version",
-			input: &pb.FetchSecretInput{
-				Path:    "fabric/metacensus/msp/peer-peer0",
-				Version: 0, // Latest
-			},
-			mockData: map[string]any{
-				"key": "value",
-			},
-		},
-		{
-			name: "success - specific version",
-			input: &pb.FetchSecretInput{
-				Path:    "fabric/metacensus/msp/peer-peer0",
-				Version: 3,
-			},
-			mockData: map[string]any{
-				"key": "value",
-			},
-		},
-		{
-			name: "client error propagated",
-			input: &pb.FetchSecretInput{
-				Path:    "fabric/test/msp/peer-peer1",
-				Version: 0,
-			},
-			clientErr: ErrNotFound,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			testSuite := &testsuite.WorkflowTestSuite{}
-			env := testSuite.NewTestActivityEnvironment()
-
-			mockClient := vaultmocks.NewMockVaultClient(t)
-
-			// Setup mock based on whether we expect an error
-			if tt.clientErr != nil {
-				mockClient.EXPECT().
-					FetchSecret(mock.Anything, tt.input.Path).
-					Return(nil, tt.clientErr)
-			} else {
-				mockClient.EXPECT().
-					FetchSecret(mock.Anything, tt.input.Path).
-					Return(tt.mockData, nil)
-			}
-
-			activities := NewActivities(mockClient)
-			env.RegisterActivity(activities.FetchSecret)
-
-			// Execute activity
-			val, err := env.ExecuteActivity(activities.FetchSecret, tt.input)
-
-			if tt.clientErr != nil {
-				// Expect error
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-			} else {
-				// Expect success
-				if err != nil {
-					t.Fatalf("unexpected error from ExecuteActivity: %v", err)
-				}
-				var result *pb.FetchSecretOutput
-				if err := val.Get(&result); err != nil {
-					t.Fatalf("unexpected error from Get: %v", err)
-				}
-				if result.SecretRef == nil {
-					t.Errorf("result.SecretRef is nil")
-				}
-				if result.SecretRef.Path != tt.input.Path {
-					t.Errorf("result.SecretRef.Path mismatch: got %s, want %s", result.SecretRef.Path, tt.input.Path)
-				}
-				if len(result.Data) == 0 {
-					t.Errorf("result.Data is empty")
-				}
-			}
-		})
-	}
-}
-
-func TestDeleteSecretActivity(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     *pb.DeleteSecretInput
-		clientErr error
-	}{
-		{
-			name: "success",
-			input: &pb.DeleteSecretInput{
-				Path: "fabric/metacensus/msp/peer-peer0",
-			},
-		},
-		{
-			name: "client error propagated",
-			input: &pb.DeleteSecretInput{
-				Path: "fabric/test/msp/peer-peer1",
-			},
-			clientErr: ErrNotFound,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			testSuite := &testsuite.WorkflowTestSuite{}
-			env := testSuite.NewTestActivityEnvironment()
-
-			mockClient := vaultmocks.NewMockVaultClient(t)
-			mockClient.EXPECT().
-				Delete(mock.Anything, mock.MatchedBy(func(path string) bool {
-					return path == fmt.Sprintf("secret/data/%s", tt.input.Path)
-				})).
-				Return(tt.clientErr).
-				Maybe()
-
-			activities := NewActivities(mockClient)
-			env.RegisterActivity(activities.DeleteSecret)
-
-			// Execute activity
-			val, err := env.ExecuteActivity(activities.DeleteSecret, tt.input)
-
-			if tt.clientErr != nil {
-				// Expect error
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-			} else {
-				// Expect success
-				if err != nil {
-					t.Fatalf("unexpected error from ExecuteActivity: %v", err)
-				}
-				var result *pb.DeleteSecretOutput
-				if err := val.Get(&result); err != nil {
-					t.Fatalf("unexpected error from Get: %v", err)
-				}
-			}
-		})
-	}
-}
 
 func TestCreateAuthRoleActivity(t *testing.T) {
 	tests := []struct {
@@ -324,14 +102,12 @@ func TestCreateAuthRoleActivity(t *testing.T) {
 
 			mockClient := vaultmocks.NewMockVaultClient(t)
 
-			// Setup mock expectations only for valid inputs
 			if tt.input.RoleName != "" && tt.input.ServiceAccountName != "" &&
 				tt.input.KubernetesNamespace != "" && len(tt.input.PolicyNames) > 0 {
 				mockClient.EXPECT().
 					Write(mock.Anything, mock.MatchedBy(func(path string) bool {
 						return path == fmt.Sprintf("auth/kubernetes/role/%s", tt.input.RoleName)
 					}), mock.MatchedBy(func(data map[string]any) bool {
-						// Verify request structure
 						if _, ok := data["bound_service_account_names"]; !ok {
 							return false
 						}
@@ -587,16 +363,13 @@ func TestCreatePolicyActivity(t *testing.T) {
 
 			mockClient := vaultmocks.NewMockVaultClient(t)
 
-			// Setup mock expectations only for valid inputs
 			if tt.input.Name != "" && tt.input.Document != nil && len(tt.input.Document.Rules) > 0 {
-				// Verify conversion to HCL was successful
 				_, conversionErr := policyDocumentToHCL(tt.input.Document)
 				if conversionErr == nil {
 					mockClient.EXPECT().
 						Write(mock.Anything, mock.MatchedBy(func(path string) bool {
 							return path == fmt.Sprintf("sys/policies/acl/%s", tt.input.Name)
 						}), mock.MatchedBy(func(data map[string]any) bool {
-							// Verify HCL policy is present
 							_, ok := data["policy"]
 							return ok
 						})).
@@ -893,9 +666,7 @@ func TestPolicyDocumentToHCL(t *testing.T) {
 	}
 }
 
-// Helper function for test readability
 func TestPolicyDocumentToHCLOutputFormat(t *testing.T) {
-	// Test that output is valid HCL with proper formatting
 	doc := &pb.PolicyDocument{
 		Rules: []*pb.PolicyRule{
 			{
@@ -914,18 +685,15 @@ func TestPolicyDocumentToHCLOutputFormat(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Verify proper HCL structure
 	lines := strings.Split(hcl, "\n")
 	if len(lines) < 8 {
 		t.Errorf("HCL output too short: %d lines", len(lines))
 	}
 
-	// Verify blank lines between rules
 	if !strings.Contains(hcl, "}\n\npath") {
 		t.Error("expected blank line between rules")
 	}
 
-	// Verify no trailing blank lines
 	if strings.HasSuffix(hcl, "\n\n") {
 		t.Error("HCL should not end with blank line")
 	}

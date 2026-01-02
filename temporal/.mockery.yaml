@@ -23,7 +23,6 @@ packages:
     config:
       dir: "mocks/workflows/vault/v1"
     interfaces:
-      VaultWorkflows:
       VaultActivities:
 
   # S3 Provider v1
@@ -68,13 +67,6 @@ packages:
       dir: "mocks/workflows/postgres/v1"
     interfaces:
       PostgresActivities:
-
-  # Crypto v1
-  github.com/metacensus/infra/temporal/gen/workflows/crypto/v1:
-    config:
-      dir: "mocks/workflows/crypto/v1"
-    interfaces:
-      CryptoActivities:
 
   # ============================================================================
   # IMPLEMENTATION INTERFACES - Clients from implementation code

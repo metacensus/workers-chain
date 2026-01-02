@@ -10,6 +10,7 @@ import (
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	fabricpb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1nexustemporal"
+	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	temporalpb "github.com/metacensus/infra/temporal/gen/workflows/temporal/v1"
 	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
@@ -23,12 +24,15 @@ const (
 
 	// Fabric secret path structure
 	fabricSecretBase = "fabric"
+
+	// Nexus endpoint name for secrets.CreateAccess
+	secretsCreateAccessNexusEndpoint = "secrets-CreateAccess"
 )
 
 // Sentinel errors for workflows
 var (
 	// BootstrapInfra errors
-	ErrCreateVaultNexusEndpoint = errors.New("create vault nexus endpoint")
+	ErrCreateSecretsNexusEndpoint = errors.New("create secrets nexus endpoint")
 
 	// InitFabricShard errors
 	ErrOrgRequired               = errors.New("org is required")
@@ -41,7 +45,7 @@ var (
 	ErrBootstrapShard            = errors.New("bootstrap shard via nexus")
 )
 
-// Workflows implements the CellWorkflows interface from generated code
+// Workflows implements the CellWorkflows interface
 type Workflows struct{}
 
 // NewWorkflows creates a new Workflows instance
@@ -54,25 +58,20 @@ func (w *Workflows) BootstrapInfra(ctx workflow.Context, input *pb.BootstrapInfr
 	return &bootstrapInfraWorkflow{input: input}, nil
 }
 
-// bootstrapInfraWorkflow implements pb.BootstrapInfraWorkflow
 type bootstrapInfraWorkflow struct {
 	input *pb.BootstrapInfraWorkflowInput
 }
 
 // Execute orchestrates the initialization of the infrastructure platform.
-// This workflow sets up platform-level services and Nexus endpoints that enable
-// other workflows to communicate across namespaces.
 func (w *bootstrapInfraWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapInfraOutput, error) {
-	// Register Nexus endpoint for vault.v1.CreateAccess service
-	// This endpoint is called from fabric shards to request vault access setup in the infra namespace
+	// Register Nexus endpoint for secrets.v1.CreateAccess service
 	temporalCfg := config.GetTemporal()
-	vaultNexusEndpointName := "vault-CreateAccess"
 	if _, err := temporalpb.CreateNexusEndpoint(ctx, &temporalpb.CreateNexusEndpointInput{
-		Name:      vaultNexusEndpointName,
+		Name:      secretsCreateAccessNexusEndpoint,
 		Namespace: temporalCfg.Namespace,
 		TaskQueue: temporalCfg.TaskQueue,
 	}); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCreateVaultNexusEndpoint, err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateSecretsNexusEndpoint, err)
 	}
 
 	return &pb.BootstrapInfraOutput{}, nil
@@ -83,7 +82,6 @@ func (w *Workflows) InitFabricShard(ctx workflow.Context, input *pb.InitFabricSh
 	return &initFabricShardWorkflow{input: input}, nil
 }
 
-// initFabricShardWorkflow implements pb.InitFabricShardWorkflow
 type initFabricShardWorkflow struct {
 	input *pb.InitFabricShardWorkflowInput
 }
@@ -94,7 +92,6 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 		return nil, ErrOrgRequired
 	}
 
-	// OrgConfig created inline per-execution since this workflow handles different orgs (not pulled from FX)
 	orgCfg := config.OrgConfig{OrgID: w.input.Req.Org}
 
 	// Create Temporal namespace
@@ -119,7 +116,7 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 	}
 
 	// Create Vault access policies for the fabric worker
-	if _, err := vaultpb.CreateAccessChild(ctx, &vaultpb.CreateAccessInput{
+	if _, err := secretspb.CreateAccessChild(ctx, &secretspb.CreateAccessInput{
 		PolicyName:          orgCfg.WorkerVaultPolicyName(),
 		PolicyDocument:      buildFabricWorkerPolicy(orgCfg),
 		AuthRoleName:        orgCfg.WorkerVaultAuthRole(),
@@ -146,7 +143,7 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 		return nil, fmt.Errorf("%w: %w", ErrCreateNexusEndpoint, err)
 	}
 
-	// Call BootstrapShard workflow via Nexus using generated client
+	// Call BootstrapShard workflow via Nexus
 	nexusClient := fabricv1nexustemporal.NewFabricNexusClient(orgCfg.NexusEndpointBootstrapShard())
 	bootstrapOutput, err := nexusClient.BootstrapShard(ctx, &fabricpb.BootstrapShardInput{}, workflow.NexusOperationOptions{
 		ScheduleToCloseTimeout: 30 * time.Minute,
@@ -154,21 +151,18 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrBootstrapShard, err)
 	}
-	_ = bootstrapOutput // Unused for now
+	_ = bootstrapOutput
 
 	return &pb.InitFabricShardOutput{}, nil
 }
 
 // buildFabricWorkerPolicy creates a Vault policy document for a fabric worker
-// The policy grants read/write access to all secrets under secret/fabric/{org}/*
 func buildFabricWorkerPolicy(orgCfg config.OrgConfig) *vaultpb.PolicyDocument {
-	// Build path patterns for the org
 	dataPathPattern := path.Join(vaultSecretDataPrefix, fabricSecretBase, orgCfg.OrgID, "*")
 	metadataPathPattern := path.Join(vaultSecretMetadataPrefix, fabricSecretBase, orgCfg.OrgID, "*")
 
 	return &vaultpb.PolicyDocument{
 		Rules: []*vaultpb.PolicyRule{
-			// KV v2 data path - read/write access to all org secrets
 			{
 				Path: dataPathPattern,
 				Capabilities: []vaultpb.Capability{
@@ -178,7 +172,6 @@ func buildFabricWorkerPolicy(orgCfg config.OrgConfig) *vaultpb.PolicyDocument {
 					vaultpb.Capability_CAPABILITY_LIST,
 				},
 			},
-			// KV v2 metadata path - list and read metadata
 			{
 				Path: metadataPathPattern,
 				Capabilities: []vaultpb.Capability{

@@ -11,8 +11,8 @@ import (
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	fabricpb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1nexus"
+	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	temporalpb "github.com/metacensus/infra/temporal/gen/workflows/temporal/v1"
-	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	cell "github.com/metacensus/infra/temporal/lib/workflows/cell/v1"
 	temporalmocks "github.com/metacensus/infra/temporal/mocks/workflows/temporal/v1"
 	"github.com/stretchr/testify/mock"
@@ -41,8 +41,8 @@ func registerChildWorkflowStubs(env *testsuite.TestWorkflowEnvironment) {
 		func(workflow.Context, *clusterpb.CreateServiceAccountInput) (*clusterpb.CreateServiceAccountOutput, error) {
 			return nil, nil
 		})
-	register(vaultpb.CreateAccessWorkflowName,
-		func(workflow.Context, *vaultpb.CreateAccessInput) (*vaultpb.CreateAccessOutput, error) {
+	register(secretspb.CreateAccessWorkflowName,
+		func(workflow.Context, *secretspb.CreateAccessInput) (*secretspb.CreateAccessOutput, error) {
 			return nil, nil
 		})
 	register(clusterpb.CreateDeploymentWorkflowName,
@@ -101,7 +101,7 @@ func TestInitFabricShardWorkflow(t *testing.T) {
 			mockChildWorkflow[temporalpb.CreateNamespaceOutput](env, temporalpb.CreateNamespaceWorkflowName, tt.createTemporalNamespaceErr)
 			mockChildWorkflow[clusterpb.CreateNamespaceOutput](env, clusterpb.CreateNamespaceWorkflowName, tt.createKubernetesNamespaceErr)
 			mockChildWorkflow[clusterpb.CreateServiceAccountOutput](env, clusterpb.CreateServiceAccountWorkflowName, tt.createServiceAccountErr)
-			mockChildWorkflow[vaultpb.CreateAccessOutput](env, vaultpb.CreateAccessWorkflowName, tt.createVaultAccessErr)
+			mockChildWorkflow[secretspb.CreateAccessOutput](env, secretspb.CreateAccessWorkflowName, tt.createVaultAccessErr)
 			mockChildWorkflow[clusterpb.CreateDeploymentOutput](env, clusterpb.CreateDeploymentWorkflowName, tt.createDeploymentErr)
 
 			// Mock CreateNexusEndpoint activity

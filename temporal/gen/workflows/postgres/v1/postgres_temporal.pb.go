@@ -29,16 +29,16 @@ const (
 
 // PostgresActivities describes available worker activities
 type PostgresActivities interface {
-	// CreateDatabase creates a new PostgreSQL database
-	// Idempotent: returns success if database already exists
+	// CreateDatabase creates a new PostgreSQL database.
+	// Idempotent: returns success if database already exists.
 	CreateDatabase(ctx context.Context, req *CreateDatabaseInput) (*CreateDatabaseOutput, error)
 
-	// CreateUser creates a new PostgreSQL user
-	// Idempotent: returns success if user already exists
+	// CreateUser creates a new PostgreSQL user with credentials from a SecretRef.
+	// Idempotent: returns success if user already exists.
 	CreateUser(ctx context.Context, req *CreateUserInput) (*CreateUserOutput, error)
 
-	// GrantPrivileges grants privileges to a user on a database
-	// Idempotent: can be called multiple times safely
+	// GrantPrivileges grants privileges to a user on a database.
+	// Idempotent: can be called multiple times safely.
 	GrantPrivileges(ctx context.Context, req *GrantPrivilegesInput) (*GrantPrivilegesOutput, error)
 }
 
@@ -79,14 +79,14 @@ func (f *CreateDatabaseFuture) Select(sel workflow.Selector, fn func(*CreateData
 	})
 }
 
-// CreateDatabase creates a new PostgreSQL database
-// Idempotent: returns success if database already exists
+// CreateDatabase creates a new PostgreSQL database.
+// Idempotent: returns success if database already exists.
 func CreateDatabase(ctx workflow.Context, req *CreateDatabaseInput, options ...*CreateDatabaseActivityOptions) (*CreateDatabaseOutput, error) {
 	return CreateDatabaseAsync(ctx, req, options...).Get(ctx)
 }
 
-// CreateDatabase creates a new PostgreSQL database
-// Idempotent: returns success if database already exists
+// CreateDatabase creates a new PostgreSQL database.
+// Idempotent: returns success if database already exists.
 func CreateDatabaseAsync(ctx workflow.Context, req *CreateDatabaseInput, options ...*CreateDatabaseActivityOptions) *CreateDatabaseFuture {
 	var o *CreateDatabaseActivityOptions
 	if len(options) > 0 && options[0] != nil {
@@ -108,14 +108,14 @@ func CreateDatabaseAsync(ctx workflow.Context, req *CreateDatabaseInput, options
 	return future
 }
 
-// CreateDatabase creates a new PostgreSQL database
-// Idempotent: returns success if database already exists
+// CreateDatabase creates a new PostgreSQL database.
+// Idempotent: returns success if database already exists.
 func CreateDatabaseLocal(ctx workflow.Context, req *CreateDatabaseInput, options ...*CreateDatabaseLocalActivityOptions) (*CreateDatabaseOutput, error) {
 	return CreateDatabaseLocalAsync(ctx, req, options...).Get(ctx)
 }
 
-// CreateDatabase creates a new PostgreSQL database
-// Idempotent: returns success if database already exists
+// CreateDatabase creates a new PostgreSQL database.
+// Idempotent: returns success if database already exists.
 func CreateDatabaseLocalAsync(ctx workflow.Context, req *CreateDatabaseInput, options ...*CreateDatabaseLocalActivityOptions) *CreateDatabaseFuture {
 	var o *CreateDatabaseLocalActivityOptions
 	if len(options) > 0 && options[0] != nil {
@@ -343,14 +343,14 @@ func (f *CreateUserFuture) Select(sel workflow.Selector, fn func(*CreateUserFutu
 	})
 }
 
-// CreateUser creates a new PostgreSQL user
-// Idempotent: returns success if user already exists
+// CreateUser creates a new PostgreSQL user with credentials from a SecretRef.
+// Idempotent: returns success if user already exists.
 func CreateUser(ctx workflow.Context, req *CreateUserInput, options ...*CreateUserActivityOptions) (*CreateUserOutput, error) {
 	return CreateUserAsync(ctx, req, options...).Get(ctx)
 }
 
-// CreateUser creates a new PostgreSQL user
-// Idempotent: returns success if user already exists
+// CreateUser creates a new PostgreSQL user with credentials from a SecretRef.
+// Idempotent: returns success if user already exists.
 func CreateUserAsync(ctx workflow.Context, req *CreateUserInput, options ...*CreateUserActivityOptions) *CreateUserFuture {
 	var o *CreateUserActivityOptions
 	if len(options) > 0 && options[0] != nil {
@@ -372,14 +372,14 @@ func CreateUserAsync(ctx workflow.Context, req *CreateUserInput, options ...*Cre
 	return future
 }
 
-// CreateUser creates a new PostgreSQL user
-// Idempotent: returns success if user already exists
+// CreateUser creates a new PostgreSQL user with credentials from a SecretRef.
+// Idempotent: returns success if user already exists.
 func CreateUserLocal(ctx workflow.Context, req *CreateUserInput, options ...*CreateUserLocalActivityOptions) (*CreateUserOutput, error) {
 	return CreateUserLocalAsync(ctx, req, options...).Get(ctx)
 }
 
-// CreateUser creates a new PostgreSQL user
-// Idempotent: returns success if user already exists
+// CreateUser creates a new PostgreSQL user with credentials from a SecretRef.
+// Idempotent: returns success if user already exists.
 func CreateUserLocalAsync(ctx workflow.Context, req *CreateUserInput, options ...*CreateUserLocalActivityOptions) *CreateUserFuture {
 	var o *CreateUserLocalActivityOptions
 	if len(options) > 0 && options[0] != nil {
@@ -607,14 +607,14 @@ func (f *GrantPrivilegesFuture) Select(sel workflow.Selector, fn func(*GrantPriv
 	})
 }
 
-// GrantPrivileges grants privileges to a user on a database
-// Idempotent: can be called multiple times safely
+// GrantPrivileges grants privileges to a user on a database.
+// Idempotent: can be called multiple times safely.
 func GrantPrivileges(ctx workflow.Context, req *GrantPrivilegesInput, options ...*GrantPrivilegesActivityOptions) (*GrantPrivilegesOutput, error) {
 	return GrantPrivilegesAsync(ctx, req, options...).Get(ctx)
 }
 
-// GrantPrivileges grants privileges to a user on a database
-// Idempotent: can be called multiple times safely
+// GrantPrivileges grants privileges to a user on a database.
+// Idempotent: can be called multiple times safely.
 func GrantPrivilegesAsync(ctx workflow.Context, req *GrantPrivilegesInput, options ...*GrantPrivilegesActivityOptions) *GrantPrivilegesFuture {
 	var o *GrantPrivilegesActivityOptions
 	if len(options) > 0 && options[0] != nil {
@@ -636,14 +636,14 @@ func GrantPrivilegesAsync(ctx workflow.Context, req *GrantPrivilegesInput, optio
 	return future
 }
 
-// GrantPrivileges grants privileges to a user on a database
-// Idempotent: can be called multiple times safely
+// GrantPrivileges grants privileges to a user on a database.
+// Idempotent: can be called multiple times safely.
 func GrantPrivilegesLocal(ctx workflow.Context, req *GrantPrivilegesInput, options ...*GrantPrivilegesLocalActivityOptions) (*GrantPrivilegesOutput, error) {
 	return GrantPrivilegesLocalAsync(ctx, req, options...).Get(ctx)
 }
 
-// GrantPrivileges grants privileges to a user on a database
-// Idempotent: can be called multiple times safely
+// GrantPrivileges grants privileges to a user on a database.
+// Idempotent: can be called multiple times safely.
 func GrantPrivilegesLocalAsync(ctx workflow.Context, req *GrantPrivilegesInput, options ...*GrantPrivilegesLocalActivityOptions) *GrantPrivilegesFuture {
 	var o *GrantPrivilegesLocalActivityOptions
 	if len(options) > 0 && options[0] != nil {

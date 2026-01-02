@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
-	"go.temporal.io/sdk/activity"
 )
 
 // Sentinel errors for vault activities
@@ -17,9 +16,6 @@ var (
 	ErrConvertPolicyToHCL = errors.New("convert policy to HCL")
 	ErrCreatePolicy       = errors.New("create policy")
 	ErrDeletePolicy       = errors.New("delete policy")
-	ErrStoreSecret        = errors.New("store secret")
-	ErrFetchSecret        = errors.New("fetch secret")
-	ErrDeleteSecret       = errors.New("delete secret")
 )
 
 // Vault path components
@@ -30,36 +26,21 @@ const (
 
 // Vault API field names
 const (
-	vaultFieldData                          = "data"
-	vaultFieldMetadata                      = "metadata"
-	vaultFieldVersion                       = "version"
 	vaultFieldPolicy                        = "policy"
 	vaultFieldBoundServiceAccountNames      = "bound_service_account_names"
 	vaultFieldBoundServiceAccountNamespaces = "bound_service_account_namespaces"
 	vaultFieldPolicies                      = "policies"
 )
 
-// buildAuthRolePath constructs the Vault path for a Kubernetes auth role
 func buildAuthRolePath(roleName string) string {
 	return fmt.Sprintf("%s/%s", authKubernetesRolePath, roleName)
 }
 
-// buildPolicyPath constructs the Vault path for a policy
 func buildPolicyPath(policyName string) string {
 	return fmt.Sprintf("%s/%s", sysPoliciesACLPath, policyName)
 }
 
-// policyDocumentToHCL converts a structured PolicyDocument with rules and capabilities
-// into Vault HCL policy format suitable for the Vault API.
-//
-// Example output:
-//
-//	path "secret/data/fabric/*" {
-//	  capabilities = ["read", "list"]
-//	}
-//	path "auth/kubernetes/login" {
-//	  capabilities = ["create"]
-//	}
+// policyDocumentToHCL converts a structured PolicyDocument to Vault HCL format
 func policyDocumentToHCL(doc *pb.PolicyDocument) (string, error) {
 	if doc == nil {
 		return "", errors.New("policy document is nil")
@@ -68,17 +49,14 @@ func policyDocumentToHCL(doc *pb.PolicyDocument) (string, error) {
 		return "", errors.New("policy document must contain at least one rule")
 	}
 
-	// Map proto enum name to lowercase capability name (e.g., "CAPABILITY_READ" -> "read")
 	capabilityToVaultName := func(cap pb.Capability) (string, error) {
 		if cap == pb.Capability_CAPABILITY_UNSPECIFIED {
 			return "", errors.New("capability cannot be unspecified")
 		}
-		// Use generated proto name map, then lowercase and trim prefix
 		protoName, ok := pb.Capability_name[int32(cap)]
 		if !ok {
 			return "", fmt.Errorf("unknown capability: %d", cap)
 		}
-		// "CAPABILITY_READ" -> "read"
 		vaultName := strings.ToLower(strings.TrimPrefix(protoName, "CAPABILITY_"))
 		return vaultName, nil
 	}
@@ -93,11 +71,9 @@ func policyDocumentToHCL(doc *pb.PolicyDocument) (string, error) {
 			return "", fmt.Errorf("rule %d (%s): must have at least one capability", i, rule.Path)
 		}
 
-		// Write path block
 		hcl.WriteString(fmt.Sprintf(`path "%s" {`, rule.Path))
 		hcl.WriteString("\n")
 
-		// Write capabilities array
 		hcl.WriteString("  capabilities = [")
 		for j, cap := range rule.Capabilities {
 			vaultName, err := capabilityToVaultName(cap)
@@ -112,7 +88,6 @@ func policyDocumentToHCL(doc *pb.PolicyDocument) (string, error) {
 		hcl.WriteString("]\n")
 		hcl.WriteString("}\n")
 
-		// Add blank line between rules (except after last rule)
 		if i < len(doc.Rules)-1 {
 			hcl.WriteString("\n")
 		}
@@ -121,21 +96,18 @@ func policyDocumentToHCL(doc *pb.PolicyDocument) (string, error) {
 	return hcl.String(), nil
 }
 
-// Activities implements the VaultActivities interface from generated code
+// Activities implements the VaultActivities interface
 type Activities struct {
 	client VaultClient
 }
 
 // NewActivities creates a new Activities instance
 func NewActivities(client VaultClient) *Activities {
-	return &Activities{
-		client: client,
-	}
+	return &Activities{client: client}
 }
 
 // CreateAuthRole creates a Kubernetes auth role in Vault
 func (a *Activities) CreateAuthRole(ctx context.Context, req *pb.CreateAuthRoleInput) (*pb.CreateAuthRoleOutput, error) {
-	// Validate required fields
 	if req.RoleName == "" {
 		return nil, errors.New("role name cannot be empty")
 	}
@@ -151,7 +123,6 @@ func (a *Activities) CreateAuthRole(ctx context.Context, req *pb.CreateAuthRoleI
 
 	path := buildAuthRolePath(req.RoleName)
 
-	// Prepare request body for Vault Kubernetes auth role
 	body := map[string]any{
 		vaultFieldBoundServiceAccountNames:      []string{req.ServiceAccountName},
 		vaultFieldBoundServiceAccountNamespaces: []string{req.KubernetesNamespace},
@@ -162,9 +133,7 @@ func (a *Activities) CreateAuthRole(ctx context.Context, req *pb.CreateAuthRoleI
 		return nil, fmt.Errorf("%w: %w", ErrCreateAuthRole, err)
 	}
 
-	return &pb.CreateAuthRoleOutput{
-		Name: req.RoleName,
-	}, nil
+	return &pb.CreateAuthRoleOutput{Name: req.RoleName}, nil
 }
 
 // DeleteAuthRole deletes a Kubernetes auth role from Vault
@@ -188,7 +157,6 @@ func (a *Activities) CreatePolicy(ctx context.Context, req *pb.CreatePolicyInput
 		return nil, errors.New("policy name cannot be empty")
 	}
 
-	// Convert structured PolicyDocument to HCL format
 	hcl, err := policyDocumentToHCL(req.Document)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrConvertPolicyToHCL, err)
@@ -196,7 +164,6 @@ func (a *Activities) CreatePolicy(ctx context.Context, req *pb.CreatePolicyInput
 
 	path := buildPolicyPath(req.Name)
 
-	// Prepare request body for Vault policy
 	body := map[string]any{
 		vaultFieldPolicy: hcl,
 	}
@@ -205,9 +172,7 @@ func (a *Activities) CreatePolicy(ctx context.Context, req *pb.CreatePolicyInput
 		return nil, fmt.Errorf("%w: %w", ErrCreatePolicy, err)
 	}
 
-	return &pb.CreatePolicyOutput{
-		Name: req.Name,
-	}, nil
+	return &pb.CreatePolicyOutput{Name: req.Name}, nil
 }
 
 // DeletePolicy deletes a Vault policy
@@ -223,79 +188,4 @@ func (a *Activities) DeletePolicy(ctx context.Context, req *pb.DeletePolicyInput
 	}
 
 	return &pb.DeletePolicyOutput{}, nil
-}
-
-// StoreSecret stores a secret in Vault at the specified path
-func (a *Activities) StoreSecret(ctx context.Context, req *pb.StoreSecretInput) (*pb.StoreSecretOutput, error) {
-	// Vault KV v2 path structure: <mount>/data/<path>
-	vaultPath := fmt.Sprintf("secret/data/%s", req.Path)
-
-	// Convert byte data to strings for Vault KV v2 storage
-	dataStr := make(map[string]string)
-	for k, v := range req.Data {
-		dataStr[k] = string(v)
-	}
-
-	// Prepare request body with Vault KV v2 format
-	body := map[string]any{
-		vaultFieldData: dataStr,
-	}
-
-	if err := a.client.Write(ctx, vaultPath, body); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrStoreSecret, err)
-	}
-
-	return &pb.StoreSecretOutput{
-		SecretRef: &pb.SecretRef{
-			Path:    req.Path,
-			Version: 1, // Initial version
-		},
-	}, nil
-}
-
-// FetchSecret retrieves a secret from Vault
-func (a *Activities) FetchSecret(ctx context.Context, req *pb.FetchSecretInput) (*pb.FetchSecretOutput, error) {
-	logger := activity.GetLogger(ctx)
-
-	// TODO: Support version parameter (req.Version) - client.FetchSecret currently doesn't support versioning
-	// For now, we always fetch the latest version
-
-	// Use the client's FetchSecret method which handles KV v2 unwrapping
-	secretData, err := a.client.FetchSecret(ctx, req.Path)
-	if err != nil {
-		// Check if it's a not found error
-		if errors.Is(err, ErrNotFound) {
-			logger.Warn("Secret not found", "path", req.Path)
-			return nil, fmt.Errorf("%w: %w", ErrFetchSecret, err)
-		}
-		return nil, fmt.Errorf("%w: %w", ErrFetchSecret, err)
-	}
-
-	// Convert strings to bytes for the protobuf response
-	data := make(map[string][]byte)
-	for k, v := range secretData {
-		if strVal, ok := v.(string); ok {
-			data[k] = []byte(strVal)
-		}
-	}
-
-	return &pb.FetchSecretOutput{
-		SecretRef: &pb.SecretRef{
-			Path:    req.Path,
-			Version: 0, // TODO: Extract version from metadata when client supports it
-		},
-		Data: data,
-	}, nil
-}
-
-// DeleteSecret deletes a secret from Vault
-func (a *Activities) DeleteSecret(ctx context.Context, req *pb.DeleteSecretInput) (*pb.DeleteSecretOutput, error) {
-	// Vault KV v2 path structure: <mount>/data/<path>
-	vaultPath := fmt.Sprintf("secret/data/%s", req.Path)
-
-	if err := a.client.Delete(ctx, vaultPath); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrDeleteSecret, err)
-	}
-
-	return &pb.DeleteSecretOutput{}, nil
 }

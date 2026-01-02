@@ -4,23 +4,24 @@
 //	protoc-gen-go_temporal dev (latest)
 //	protoc (unknown)
 //
-// source: vault/v1/vault.proto
-package vaultv1temporal
+// source: secrets/v1/secrets.proto
+package secretsv1temporal
 
 import (
 	"context"
-	v1 "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
-	vaultv1nexus "github.com/metacensus/infra/temporal/gen/workflows/vault/v1/vaultv1nexus"
+	v1 "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
+	secretsv1nexus "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1/secretsv1nexus"
 	nexus "github.com/nexus-rpc/sdk-go/nexus"
 	temporalnexus "go.temporal.io/sdk/temporalnexus"
 	worker "go.temporal.io/sdk/worker"
 )
 
-// Nexus handler for vault.v1.Vault
-type VaultNexusHandler struct{}
+// Nexus handler for secrets.v1.Secrets
+type SecretsNexusHandler struct{}
 
-// Access Management
-func (h *VaultNexusHandler) CreateAccess(name string) nexus.Operation[*v1.CreateAccessInput, *v1.CreateAccessOutput] {
+// CreateAccess creates a Vault policy and Kubernetes auth role for secret access.
+// Orchestrates CreatePolicy and CreateAuthRole vault activities.
+func (h *SecretsNexusHandler) CreateAccess(name string) nexus.Operation[*v1.CreateAccessInput, *v1.CreateAccessOutput] {
 	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.CreateAccessInput, *v1.CreateAccessOutput]{
 		Handler: func(ctx context.Context, input *v1.CreateAccessInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.CreateAccessOutput], error) {
 			o, err := v1.NewCreateAccessOptions().Build(input.ProtoReflect())
@@ -33,9 +34,9 @@ func (h *VaultNexusHandler) CreateAccess(name string) nexus.Operation[*v1.Create
 	})
 }
 
-// RegisterVaultNexusService initializes a new Vault nexus service and registers it with the provided registry
-func RegisterVaultNexusService(r worker.NexusServiceRegistry) error {
-	svc, err := vaultv1nexus.NewVaultNexusService(&VaultNexusHandler{})
+// RegisterSecretsNexusService initializes a new Secrets nexus service and registers it with the provided registry
+func RegisterSecretsNexusService(r worker.NexusServiceRegistry) error {
+	svc, err := secretsv1nexus.NewSecretsNexusService(&SecretsNexusHandler{})
 	if err != nil {
 		return err
 	}

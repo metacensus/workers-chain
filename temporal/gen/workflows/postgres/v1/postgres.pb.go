@@ -9,6 +9,7 @@ package postgresv1
 import (
 	_ "github.com/alta/protopatch/patch/gopb"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
+	v1 "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -23,24 +24,23 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Privilege enum for PostgreSQL database permissions
 type Privilege int32
 
 const (
 	Privilege_PRIVILEGE_UNSPECIFIED Privilege = 0
-	Privilege_PRIVILEGE_ALL         Privilege = 1  // All available privileges
-	Privilege_PRIVILEGE_SELECT      Privilege = 2  // Query data
-	Privilege_PRIVILEGE_INSERT      Privilege = 3  // Insert data
-	Privilege_PRIVILEGE_UPDATE      Privilege = 4  // Update data
-	Privilege_PRIVILEGE_DELETE      Privilege = 5  // Delete data
-	Privilege_PRIVILEGE_TRUNCATE    Privilege = 6  // Truncate tables
-	Privilege_PRIVILEGE_REFERENCES  Privilege = 7  // Create foreign key constraints
-	Privilege_PRIVILEGE_TRIGGER     Privilege = 8  // Create triggers
-	Privilege_PRIVILEGE_CREATE      Privilege = 9  // Create schemas/tables
-	Privilege_PRIVILEGE_CONNECT     Privilege = 10 // Connect to database
-	Privilege_PRIVILEGE_TEMPORARY   Privilege = 11 // Create temporary tables
-	Privilege_PRIVILEGE_EXECUTE     Privilege = 12 // Execute functions
-	Privilege_PRIVILEGE_USAGE       Privilege = 13 // Use schemas/sequences
+	Privilege_PRIVILEGE_ALL         Privilege = 1
+	Privilege_PRIVILEGE_SELECT      Privilege = 2
+	Privilege_PRIVILEGE_INSERT      Privilege = 3
+	Privilege_PRIVILEGE_UPDATE      Privilege = 4
+	Privilege_PRIVILEGE_DELETE      Privilege = 5
+	Privilege_PRIVILEGE_TRUNCATE    Privilege = 6
+	Privilege_PRIVILEGE_REFERENCES  Privilege = 7
+	Privilege_PRIVILEGE_TRIGGER     Privilege = 8
+	Privilege_PRIVILEGE_CREATE      Privilege = 9
+	Privilege_PRIVILEGE_CONNECT     Privilege = 10
+	Privilege_PRIVILEGE_TEMPORARY   Privilege = 11
+	Privilege_PRIVILEGE_EXECUTE     Privilege = 12
+	Privilege_PRIVILEGE_USAGE       Privilege = 13
 )
 
 // Enum value maps for Privilege.
@@ -106,11 +106,9 @@ func (Privilege) EnumDescriptor() ([]byte, []int) {
 	return file_postgres_v1_postgres_proto_rawDescGZIP(), []int{0}
 }
 
-// CreateDatabaseInput specifies parameters for creating a database
 type CreateDatabaseInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// database_name is the name of the database to create
-	DatabaseName  string `protobuf:"bytes,1,opt,name=database_name,json=DatabaseName,proto3" json:"DatabaseName" validate:"required"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DatabaseName  string                 `protobuf:"bytes,1,opt,name=database_name,json=DatabaseName,proto3" json:"DatabaseName" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -152,7 +150,6 @@ func (x *CreateDatabaseInput) GetDatabaseName() string {
 	return ""
 }
 
-// CreateDatabaseOutput confirms database creation
 type CreateDatabaseOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -189,15 +186,12 @@ func (*CreateDatabaseOutput) Descriptor() ([]byte, []int) {
 	return file_postgres_v1_postgres_proto_rawDescGZIP(), []int{1}
 }
 
-// CreateUserInput specifies parameters for creating a user
 type CreateUserInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// username is the name of the user to create
-	Username string `protobuf:"bytes,1,opt,name=username,json=Username,proto3" json:"Username" validate:"required"`
-	// password is the password for the user
-	Password      string `protobuf:"bytes,2,opt,name=password,json=Password,proto3" json:"Password" validate:"required"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// credentials_ref points to secret containing username and password
+	CredentialsRef *v1.SecretRef `protobuf:"bytes,1,opt,name=credentials_ref,json=CredentialsRef,proto3" json:"CredentialsRef" validate:"required"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreateUserInput) Reset() {
@@ -230,21 +224,13 @@ func (*CreateUserInput) Descriptor() ([]byte, []int) {
 	return file_postgres_v1_postgres_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *CreateUserInput) GetUsername() string {
+func (x *CreateUserInput) GetCredentialsRef() *v1.SecretRef {
 	if x != nil {
-		return x.Username
+		return x.CredentialsRef
 	}
-	return ""
+	return nil
 }
 
-func (x *CreateUserInput) GetPassword() string {
-	if x != nil {
-		return x.Password
-	}
-	return ""
-}
-
-// CreateUserOutput confirms user creation
 type CreateUserOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -281,16 +267,11 @@ func (*CreateUserOutput) Descriptor() ([]byte, []int) {
 	return file_postgres_v1_postgres_proto_rawDescGZIP(), []int{3}
 }
 
-// GrantPrivilegesInput specifies parameters for granting privileges
 type GrantPrivilegesInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// username is the name of the user to grant privileges to
-	Username string `protobuf:"bytes,1,opt,name=username,json=Username,proto3" json:"Username" validate:"required"`
-	// database_name is the name of the database to grant privileges on
-	DatabaseName string `protobuf:"bytes,2,opt,name=database_name,json=DatabaseName,proto3" json:"DatabaseName" validate:"required"`
-	// privileges is a list of privileges to grant
-	// If empty, defaults to [PRIVILEGE_ALL]
-	Privileges    []Privilege `protobuf:"varint,3,rep,packed,name=privileges,json=Privileges,proto3,enum=postgres.v1.Privilege" json:"Privileges,omitempty" validate:"omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,json=Username,proto3" json:"Username" validate:"required"`
+	DatabaseName  string                 `protobuf:"bytes,2,opt,name=database_name,json=DatabaseName,proto3" json:"DatabaseName" validate:"required"`
+	Privileges    []Privilege            `protobuf:"varint,3,rep,packed,name=privileges,json=Privileges,proto3,enum=postgres.v1.Privilege" json:"Privileges,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -346,7 +327,6 @@ func (x *GrantPrivilegesInput) GetPrivileges() []Privilege {
 	return nil
 }
 
-// GrantPrivilegesOutput confirms successful privilege grant
 type GrantPrivilegesOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -387,13 +367,12 @@ var File_postgres_v1_postgres_proto protoreflect.FileDescriptor
 
 const file_postgres_v1_postgres_proto_rawDesc = "" +
 	"\n" +
-	"\x1apostgres/v1/postgres.proto\x12\vpostgres.v1\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"j\n" +
+	"\x1apostgres/v1/postgres.proto\x12\vpostgres.v1\x1a\x0epatch/go.proto\x1a\x18secrets/v1/secrets.proto\x1a\x1atemporal/v1/temporal.proto\"j\n" +
 	"\x13CreateDatabaseInput\x12S\n" +
 	"\rdatabase_name\x18\x01 \x01(\tB.ʵ\x03*\xa2\x01'json:\"DatabaseName\" validate:\"required\"R\fDatabaseName\"\x16\n" +
-	"\x14CreateDatabaseOutput\"\xa1\x01\n" +
-	"\x0fCreateUserInput\x12F\n" +
-	"\busername\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"Username\" validate:\"required\"R\bUsername\x12F\n" +
-	"\bpassword\x18\x02 \x01(\tB*ʵ\x03&\xa2\x01#json:\"Password\" validate:\"required\"R\bPassword\"\x12\n" +
+	"\x14CreateDatabaseOutput\"\x83\x01\n" +
+	"\x0fCreateUserInput\x12p\n" +
+	"\x0fcredentials_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB0ʵ\x03,\xa2\x01)json:\"CredentialsRef\" validate:\"required\"R\x0eCredentialsRef\"\x12\n" +
 	"\x10CreateUserOutput\"\xa4\x02\n" +
 	"\x14GrantPrivilegesInput\x12F\n" +
 	"\busername\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"Username\" validate:\"required\"R\bUsername\x12S\n" +
@@ -448,20 +427,22 @@ var file_postgres_v1_postgres_proto_goTypes = []any{
 	(*CreateUserOutput)(nil),      // 4: postgres.v1.CreateUserOutput
 	(*GrantPrivilegesInput)(nil),  // 5: postgres.v1.GrantPrivilegesInput
 	(*GrantPrivilegesOutput)(nil), // 6: postgres.v1.GrantPrivilegesOutput
+	(*v1.SecretRef)(nil),          // 7: secrets.v1.SecretRef
 }
 var file_postgres_v1_postgres_proto_depIdxs = []int32{
-	0, // 0: postgres.v1.GrantPrivilegesInput.privileges:type_name -> postgres.v1.Privilege
-	1, // 1: postgres.v1.Postgres.CreateDatabase:input_type -> postgres.v1.CreateDatabaseInput
-	3, // 2: postgres.v1.Postgres.CreateUser:input_type -> postgres.v1.CreateUserInput
-	5, // 3: postgres.v1.Postgres.GrantPrivileges:input_type -> postgres.v1.GrantPrivilegesInput
-	2, // 4: postgres.v1.Postgres.CreateDatabase:output_type -> postgres.v1.CreateDatabaseOutput
-	4, // 5: postgres.v1.Postgres.CreateUser:output_type -> postgres.v1.CreateUserOutput
-	6, // 6: postgres.v1.Postgres.GrantPrivileges:output_type -> postgres.v1.GrantPrivilegesOutput
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	7, // 0: postgres.v1.CreateUserInput.credentials_ref:type_name -> secrets.v1.SecretRef
+	0, // 1: postgres.v1.GrantPrivilegesInput.privileges:type_name -> postgres.v1.Privilege
+	1, // 2: postgres.v1.Postgres.CreateDatabase:input_type -> postgres.v1.CreateDatabaseInput
+	3, // 3: postgres.v1.Postgres.CreateUser:input_type -> postgres.v1.CreateUserInput
+	5, // 4: postgres.v1.Postgres.GrantPrivileges:input_type -> postgres.v1.GrantPrivilegesInput
+	2, // 5: postgres.v1.Postgres.CreateDatabase:output_type -> postgres.v1.CreateDatabaseOutput
+	4, // 6: postgres.v1.Postgres.CreateUser:output_type -> postgres.v1.CreateUserOutput
+	6, // 7: postgres.v1.Postgres.GrantPrivileges:output_type -> postgres.v1.GrantPrivilegesOutput
+	5, // [5:8] is the sub-list for method output_type
+	2, // [2:5] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_postgres_v1_postgres_proto_init() }
