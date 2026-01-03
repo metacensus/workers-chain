@@ -2,15 +2,10 @@ package fabric
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"fmt"
 
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib"
-	"github.com/hyperledger/fabric-lib-go/bccsp"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/fabric/config"
@@ -187,11 +182,6 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 		return nil, fmt.Errorf("%w: failed to parse key pair: %w", ErrFetchSecret, err)
 	}
 
-	privateKey, err := parseECDSAPrivateKey(keyPair.PrivateKey)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrParseKey, err)
-	}
-
 	// Step 2: Fetch TLS certificate if provided
 	var tlsCertPEM []byte
 	if req.GetCaTlsCertRef() != nil {
@@ -219,35 +209,22 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 	}
 	defer bootstrapClient.Close()
 
-	// Step 4: Import our pre-generated key into the client's BCCSP
-	// This ensures the Fabric CA client uses OUR key during enrollment instead of generating a new one
-	if err := importKeyIntoClientBCCSP(bootstrapClient, privateKey); err != nil {
-		return nil, fmt.Errorf("%w: failed to import key into BCCSP: %w", ErrEnrollIdentity, err)
+	// Step 4: Enroll with our pre-generated key
+	// This ensures the certificate matches our private key
+	csrInfo := &api.CSRInfo{
+		CN: req.GetCommonName(),
 	}
 
-	// Step 5: Build enrollment request
-	// The client will use our imported key to generate the CSR
-	enrollReq := &api.EnrollmentRequest{
-		Name:   identityName,
-		Secret: req.GetEnrollmentSecret(),
-		CSR: &api.CSRInfo{
-			CN: req.GetCommonName(),
-		},
-	}
-
-	// Step 6: Enroll with the CA using our imported key
-	enrollResp, err := bootstrapClient.Enroll(ctx, enrollReq)
+	enrollResp, err := bootstrapClient.EnrollWithKey(ctx, keyPair.PrivateKey, csrInfo)
 	if err != nil {
 		return nil, fmt.Errorf("%w: enrollment failed: %w", ErrEnrollIdentity, err)
 	}
 
-	// Step 7: Extract the certificate
+	// Step 5: Extract the certificate
 	certPEM := enrollResp.Identity.GetECert().Cert()
 
-	// Step 8: Store our original keypair + the certificate at a single location
-	// They match because the CA used our key during enrollment
-	credentialsRef := secrets.NewVaultRef(fmt.Sprintf("%s/%s/keypair", caConfig.VaultBasePath(), identityName))
-
+	// Step 6: Update the keypair secret with the certificate
+	// Store at the same location we fetched the key from
 	identityCreds := &secrets.IdentityCredentials{
 		PrivateKey:  keyPair.PrivateKey,
 		PublicKey:   keyPair.PublicKey,
@@ -255,12 +232,12 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 	}
 
 	identitySecret := secrets.FromIdentityCredentials(identityCreds)
-	if err := a.secretProvider.UpdateSecret(ctx, credentialsRef, identitySecret); err != nil {
+	if err := a.secretProvider.UpdateSecret(ctx, req.GetKeyRef(), identitySecret); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrStoreSecret, err)
 	}
 
 	return &pb.EnrollIdentityOutput{
-		CertRef: credentialsRef,
+		CertRef: req.GetKeyRef(), // Return the same ref - it now contains key + cert
 	}, nil
 }
 
@@ -319,11 +296,6 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 		return nil, fmt.Errorf("%w: failed to parse key pair: %w", ErrFetchSecret, err)
 	}
 
-	privateKey, err := parseECDSAPrivateKey(keyPair.PrivateKey)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrParseKey, err)
-	}
-
 	// Step 2: Create bootstrap client
 	bootstrapClient, err := a.getBootstrapClient(ctx, req.GetBootstrapCredentialsRef(), req.GetCaUrl(), req.GetCaTlsCertRef())
 	if err != nil {
@@ -331,43 +303,21 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 	}
 	defer bootstrapClient.Close()
 
-	// Step 3: Import our pre-generated key into the client's BCCSP
-	// This ensures the Fabric CA client uses OUR key during enrollment instead of generating a new one
-	if err := importKeyIntoClientBCCSP(bootstrapClient, privateKey); err != nil {
-		return nil, fmt.Errorf("%w: failed to import key into BCCSP: %w", ErrBootstrapEnrollIdentity, err)
+	// Step 3: Enroll with our pre-generated key
+	// This ensures the certificate matches our private key
+	csrInfo := &api.CSRInfo{
+		CN: req.GetCommonName(),
 	}
 
-	// Step 4: Get bootstrap credentials
-	credsSecret, err := a.secretProvider.FetchSecret(ctx, req.GetBootstrapCredentialsRef())
-	if err != nil {
-		return nil, fmt.Errorf("%w: failed to fetch credentials secret: %w", ErrFetchSecret, err)
-	}
-
-	creds, err := credsSecret.Credentials()
-	if err != nil {
-		return nil, fmt.Errorf("%w: failed to parse credentials: %w", ErrFetchSecret, err)
-	}
-
-	// Step 5: Build enrollment request
-	// The client will use our imported key to generate the CSR
-	enrollReq := &api.EnrollmentRequest{
-		Name:   creds.Username,
-		Secret: creds.Password,
-		CSR: &api.CSRInfo{
-			CN: req.GetCommonName(),
-		},
-	}
-
-	// Step 6: Enroll with the CA using our imported key
-	enrollResp, err := bootstrapClient.Enroll(ctx, enrollReq)
+	enrollResp, err := bootstrapClient.EnrollWithKey(ctx, keyPair.PrivateKey, csrInfo)
 	if err != nil {
 		return nil, fmt.Errorf("%w: enrollment failed: %w", ErrBootstrapEnrollIdentity, err)
 	}
 
 	certPEM := enrollResp.Identity.GetECert().Cert()
 
-	// Step 7: Store our original keypair + the certificate
-	// They match because the CA used our key during enrollment
+	// Step 4: Store our original keypair + the certificate
+	// They match because the CA signed a CSR generated with our key
 	identityCreds := &secrets.IdentityCredentials{
 		PrivateKey:  keyPair.PrivateKey,
 		PublicKey:   keyPair.PublicKey,
@@ -382,67 +332,4 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 	return &pb.BootstrapEnrollIdentityOutput{
 		CertRef: req.GetCertRef(),
 	}, nil
-}
-
-// importKeyIntoClientBCCSP imports a private key into the Fabric CA client's BCCSP
-// so that enrollment operations use this key instead of generating a new one.
-func importKeyIntoClientBCCSP(bootstrapClient certauthority.BootstrapClient, privateKey *ecdsa.PrivateKey) error {
-	// Get the underlying lib.Client to access BCCSP
-	fabricClient, err := getUnderlyingFabricClient(bootstrapClient)
-	if err != nil {
-		return err
-	}
-
-	// Marshal the private key to PKCS8 DER format for BCCSP import
-	privateKeyDER, err := x509.MarshalPKCS8PrivateKey(privateKey)
-	if err != nil {
-		return fmt.Errorf("failed to marshal private key: %w", err)
-	}
-
-	// Import the key into BCCSP (ephemeral, in-memory only)
-	csp := fabricClient.GetCSP()
-	_, err = csp.KeyImport(privateKeyDER, &bccsp.ECDSAPrivateKeyImportOpts{Temporary: true})
-	if err != nil {
-		return fmt.Errorf("failed to import key into BCCSP: %w", err)
-	}
-
-	return nil
-}
-
-// getUnderlyingFabricClient extracts the underlying lib.Client from a BootstrapClient
-func getUnderlyingFabricClient(bc certauthority.BootstrapClient) (*lib.Client, error) {
-	// Type assert to access the underlying fabricClient
-	// The BootstrapClient interface doesn't expose this, but we need it to access BCCSP
-	type fabricClientGetter interface {
-		GetFabricClient() *lib.Client
-	}
-
-	if getter, ok := bc.(fabricClientGetter); ok {
-		return getter.GetFabricClient(), nil
-	}
-
-	return nil, fmt.Errorf("bootstrap client does not expose underlying Fabric CA client")
-}
-
-// parseECDSAPrivateKey parses a PEM-encoded ECDSA private key in PKCS8 format.
-// All keys in this system are generated in PKCS8 format (see secrets/v1/generator.go).
-func parseECDSAPrivateKey(privateKeyPEM []byte) (*ecdsa.PrivateKey, error) {
-	block, _ := pem.Decode(privateKeyPEM)
-	if block == nil {
-		return nil, fmt.Errorf("failed to decode PEM block")
-	}
-
-	// Parse PKCS8 format (standard format used by our key generation)
-	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse PKCS8 private key: %w", err)
-	}
-
-	// Verify it's an ECDSA key
-	ecKey, ok := key.(*ecdsa.PrivateKey)
-	if !ok {
-		return nil, fmt.Errorf("PKCS8 key is not an ECDSA key, got %T", key)
-	}
-
-	return ecKey, nil
 }

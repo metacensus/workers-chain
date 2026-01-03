@@ -359,16 +359,11 @@ message CreateIdentityInput {
 
 // CreateIdentityOutput indicates the result of identity creation
 message CreateIdentityOutput {
-  // key_ref points to the private key in Vault
-  secrets.v1.SecretRef key_ref = 1 [
-    json_name = "KeyRef",
-    (go.field).tags = 'json:"KeyRef" validate:"required"'
-  ];
-
-  // cert_ref points to the certificate in Vault
-  secrets.v1.SecretRef cert_ref = 2 [
-    json_name = "CertRef",
-    (go.field).tags = 'json:"CertRef" validate:"required"'
+  // credentials_ref points to the identity credentials in Vault
+  // Contains private_key, public_key, and certificate
+  secrets.v1.SecretRef credentials_ref = 1 [
+    json_name = "CredentialsRef",
+    (go.field).tags = 'json:"CredentialsRef" validate:"required"'
   ];
 }
 

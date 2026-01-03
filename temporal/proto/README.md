@@ -1617,23 +1617,15 @@ go_tags: json:"OrganizationalUnit" validate:"required"</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>cert_ref</td>
+<td>credentials_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-cert_ref points to the certificate in Vault<br>
+credentials_ref points to the identity credentials in Vault
+Contains private_key, public_key, and certificate<br>
 
-json_name: CertRef
-go_name: CertRef
-go_tags: json:"CertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>key_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-key_ref points to the private key in Vault<br>
-
-json_name: KeyRef
-go_name: KeyRef
-go_tags: json:"KeyRef" validate:"required"</pre></td>
+json_name: CredentialsRef
+go_name: CredentialsRef
+go_tags: json:"CredentialsRef" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2505,23 +2497,15 @@ CreateIdentityOutput indicates the result of identity creation
 <th>Description</th>
 </tr>
 <tr>
-<td>cert_ref</td>
+<td>credentials_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-cert_ref points to the certificate in Vault<br>
+credentials_ref points to the identity credentials in Vault
+Contains private_key, public_key, and certificate<br>
 
-json_name: CertRef
-go_name: CertRef
-go_tags: json:"CertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>key_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-key_ref points to the private key in Vault<br>
-
-json_name: KeyRef
-go_name: KeyRef
-go_tags: json:"KeyRef" validate:"required"</pre></td>
+json_name: CredentialsRef
+go_name: CredentialsRef
+go_tags: json:"CredentialsRef" validate:"required"</pre></td>
 </tr>
 </table>
 
