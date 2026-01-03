@@ -30,38 +30,33 @@ type CertStorePostgresConfig struct {
 // GetSecretRefs returns a map of named secret references
 func (c CertStorePostgresConfig) GetSecretRefs() map[string]*pb.SecretRef {
 	return map[string]*pb.SecretRef{
-		"credentials": c.VaultAdminCredentialsRef(),
+		"credentials": c.VaultAdminRef(),
 	}
 }
 
 // GetCacheKey returns a unique key for caching the postgres client
 func (c CertStorePostgresConfig) GetCacheKey() string {
 	// Use the Vault path as the cache key
-	return c.VaultAdminCredentialsRef().GetRef().Fields["path"].GetStringValue()
+	return c.VaultAdminRef().GetRef().Fields["path"].GetStringValue()
 }
 
 // Hydrate injects secret data (username/password) into a PostgresConfig
 func (c CertStorePostgresConfig) Hydrate(secretsMap map[string]secrets.Secret) (PostgresConfig, error) {
-	creds, ok := secretsMap["credentials"]
+	credsSecret, ok := secretsMap["credentials"]
 	if !ok {
 		return PostgresConfig{}, fmt.Errorf("missing credentials secret")
 	}
 
-	username, ok := creds["username"].(string)
-	if !ok {
-		return PostgresConfig{}, fmt.Errorf("missing or invalid username in secret")
-	}
-
-	password, ok := creds["password"].(string)
-	if !ok {
-		return PostgresConfig{}, fmt.Errorf("missing or invalid password in secret")
+	creds, err := credsSecret.Credentials()
+	if err != nil {
+		return PostgresConfig{}, fmt.Errorf("failed to extract credentials: %w", err)
 	}
 
 	return PostgresConfig{
 		Host:     c.ServiceHost(),
 		Port:     c.Port(),
-		User:     username,
-		Password: password,
+		User:     creds.Username,
+		Password: creds.Password,
 		Database: c.AdminDatabase(),
 	}, nil
 }

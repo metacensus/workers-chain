@@ -61,17 +61,26 @@ func NewActivities(
 // These are NOT cached - each call creates a fresh client.
 func (a *Activities) getBootstrapClient(ctx context.Context, credentialsRef *secretspb.SecretRef, caURL string, tlsCertRef *secretspb.SecretRef) (certauthority.BootstrapClient, error) {
 	// Fetch credentials from secret provider
-	creds, err := a.secretProvider.FetchCredentials(ctx, credentialsRef)
+	secret, err := a.secretProvider.FetchSecret(ctx, credentialsRef)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch bootstrap credentials: %w", err)
+	}
+
+	creds, err := secret.Credentials()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse credentials: %w", err)
 	}
 
 	// Fetch TLS certificate if provided
 	var tlsCertPEM []byte
 	if tlsCertRef != nil {
-		cert, err := a.secretProvider.FetchCertificate(ctx, tlsCertRef)
+		certSecret, err := a.secretProvider.FetchSecret(ctx, tlsCertRef)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch TLS certificate: %w", err)
+		}
+		cert, err := certSecret.Certificate()
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse certificate: %w", err)
 		}
 		tlsCertPEM = cert.Certificate
 	}
@@ -173,9 +182,14 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
 
 	// Fetch the private key from Vault
-	keyPair, err := a.secretProvider.FetchKeyPair(ctx, req.GetKeyRef())
+	secret, err := a.secretProvider.FetchSecret(ctx, req.GetKeyRef())
 	if err != nil {
-		return nil, fmt.Errorf("%w: failed to fetch key pair: %w", ErrFetchSecret, err)
+		return nil, fmt.Errorf("%w: failed to fetch secret: %w", ErrFetchSecret, err)
+	}
+
+	keyPair, err := secret.KeyPair()
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to parse key pair: %w", ErrFetchSecret, err)
 	}
 
 	// Parse the private key for CSR generation
@@ -201,9 +215,13 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 	// Fetch TLS certificate if provided
 	var tlsCertPEM []byte
 	if req.GetCaTlsCertRef() != nil {
-		cert, err := a.secretProvider.FetchCertificate(ctx, req.GetCaTlsCertRef())
+		certSecret, err := a.secretProvider.FetchSecret(ctx, req.GetCaTlsCertRef())
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch TLS certificate: %w", err)
+		}
+		cert, err := certSecret.Certificate()
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse certificate: %w", err)
 		}
 		tlsCertPEM = cert.Certificate
 	}
@@ -251,7 +269,8 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 		Certificate: certPEM,
 	}
 
-	if err := a.secretProvider.StoreIdentityCredentials(ctx, credentialsRef, identityCreds); err != nil {
+	identitySecret := secrets.FromIdentityCredentials(identityCreds)
+	if err := a.secretProvider.UpdateSecret(ctx, credentialsRef, identitySecret); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrStoreSecret, err)
 	}
 
@@ -309,9 +328,14 @@ func (a *Activities) RevokeIdentity(ctx context.Context, req *pb.RevokeIdentityI
 // BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password).
 // This is used ONLY during CA initialization to obtain the bootstrap admin's certificate.
 func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.BootstrapEnrollIdentityInput) (*pb.BootstrapEnrollIdentityOutput, error) {
-	keyPair, err := a.secretProvider.FetchKeyPair(ctx, req.GetKeyRef())
+	secret, err := a.secretProvider.FetchSecret(ctx, req.GetKeyRef())
 	if err != nil {
-		return nil, fmt.Errorf("%w: failed to fetch key pair: %w", ErrFetchSecret, err)
+		return nil, fmt.Errorf("%w: failed to fetch secret: %w", ErrFetchSecret, err)
+	}
+
+	keyPair, err := secret.KeyPair()
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to parse key pair: %w", ErrFetchSecret, err)
 	}
 
 	privateKey, err := parseECDSAPrivateKey(keyPair.PrivateKey)
@@ -340,9 +364,14 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 	// Clean up temporary TLS cert file when done
 	defer bootstrapClient.Close()
 
-	creds, err := a.secretProvider.FetchCredentials(ctx, req.GetBootstrapCredentialsRef())
+	credsSecret, err := a.secretProvider.FetchSecret(ctx, req.GetBootstrapCredentialsRef())
 	if err != nil {
-		return nil, fmt.Errorf("%w: failed to fetch credentials: %w", ErrFetchSecret, err)
+		return nil, fmt.Errorf("%w: failed to fetch credentials secret: %w", ErrFetchSecret, err)
+	}
+
+	creds, err := credsSecret.Credentials()
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to parse credentials: %w", ErrFetchSecret, err)
 	}
 
 	enrollReq := &api.EnrollmentRequest{
@@ -367,7 +396,8 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 		Certificate: certPEM,
 	}
 
-	if err := a.secretProvider.StoreIdentityCredentials(ctx, req.GetCertRef(), identityCreds); err != nil {
+	identitySecret := secrets.FromIdentityCredentials(identityCreds)
+	if err := a.secretProvider.UpdateSecret(ctx, req.GetCertRef(), identitySecret); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrStoreSecret, err)
 	}
 

@@ -113,10 +113,11 @@ func (cs CertificateStoreConfig) AuthRoleName() string {
 	return cs.PolicyName()
 }
 
-// VaultAdminCredentialsRef returns a SecretRef for postgres admin credentials.
-// Example path: "fabric/org1/certstore/admin/credentials"
-func (cs CertificateStoreConfig) VaultAdminCredentialsRef() *pb.SecretRef {
-	path := fmt.Sprintf("fabric/%s/certstore/admin/credentials", cs.OrgID)
+// VaultAdminRef returns a SecretRef for the certificate store admin identity.
+// Stores username, password for postgres admin.
+// Example path: "fabric/org1/certstore/admin"
+func (cs CertificateStoreConfig) VaultAdminRef() *pb.SecretRef {
+	path := fmt.Sprintf("fabric/%s/certstore/admin", cs.OrgID)
 	return secrets.NewVaultRef(path)
 }
 
@@ -221,59 +222,43 @@ func (ca CertificateAuthorityConfig) AuthRoleName() string {
 	return ca.PolicyName()
 }
 
-// VaultDatabaseCredentialsRef returns a SecretRef for the CA's database credentials.
+// VaultDatabaseUserRef returns a SecretRef for the CA's database user identity.
+// Stores username, password for database access to the certificate store.
 // Each CA has its own database user for accessing the certificate store.
-// Example path: "fabric/org1/ca/tls/root/certstore/user/credentials"
-func (ca CertificateAuthorityConfig) VaultDatabaseCredentialsRef() *pb.SecretRef {
-	path := fmt.Sprintf("fabric/%s/ca/%s/%s/certstore/user/credentials",
+// Example path: "fabric/org1/ca/tls/root/certstore/user"
+func (ca CertificateAuthorityConfig) VaultDatabaseUserRef() *pb.SecretRef {
+	path := fmt.Sprintf("fabric/%s/ca/%s/%s/certstore/user",
 		ca.OrgID, ca.certType, ca.caID)
 	return secrets.NewVaultRef(path)
 }
 
-// VaultKeyPairRef returns a SecretRef for the CA's signing key pair.
-// Example path: "fabric/org1/ca/tls/root/keys"
-func (ca CertificateAuthorityConfig) VaultKeyPairRef() *pb.SecretRef {
-	path := fmt.Sprintf("fabric/%s/ca/%s/%s/keys",
+// VaultServerRef returns a SecretRef for the CA server identity.
+// Stores private_key, public_key, certificate for the CA's signing identity.
+// Example path: "fabric/org1/ca/tls/root/server"
+func (ca CertificateAuthorityConfig) VaultServerRef() *pb.SecretRef {
+	path := fmt.Sprintf("fabric/%s/ca/%s/%s/server",
 		ca.OrgID, ca.certType, ca.caID)
 	return secrets.NewVaultRef(path)
 }
 
-// VaultCertificateRef returns a SecretRef for the CA's certificate.
-// Example path: "fabric/org1/ca/tls/root/cert"
-func (ca CertificateAuthorityConfig) VaultCertificateRef() *pb.SecretRef {
-	path := fmt.Sprintf("fabric/%s/ca/%s/%s/cert",
+// VaultBootstrapAdminRef returns a SecretRef for the CA bootstrap admin identity.
+// Stores username, password, private_key, public_key, certificate.
+// The bootstrap admin is created during CA deployment with username/password,
+// enrolled to get keypair+cert, used to create permanent admin, then revoked.
+// Example path: "fabric/org1/ca/tls/root/bootstrap-admin"
+func (ca CertificateAuthorityConfig) VaultBootstrapAdminRef() *pb.SecretRef {
+	path := fmt.Sprintf("fabric/%s/ca/%s/%s/bootstrap-admin",
 		ca.OrgID, ca.certType, ca.caID)
 	return secrets.NewVaultRef(path)
 }
 
-// VaultBootstrapAdminCredentialsRef returns a SecretRef for CA bootstrap admin credentials.
-// These are the initial username/password credentials created during CA deployment.
-// Used ONLY during bootstrap enrollment, then replaced with keypair-based authentication.
-// Example path: "fabric/org1/ca/tls/root/bootstrap-admin/credentials"
-func (ca CertificateAuthorityConfig) VaultBootstrapAdminCredentialsRef() *pb.SecretRef {
-	path := fmt.Sprintf("fabric/%s/ca/%s/%s/bootstrap-admin/credentials",
-		ca.OrgID, ca.certType, ca.caID)
-	return secrets.NewVaultRef(path)
-}
-
-// VaultBootstrapAdminKeyPairRef returns a SecretRef for the bootstrap admin's keypair+cert.
-// After bootstrap enrollment, the bootstrap admin gets a keypair and certificate.
-// This is used temporarily to create the permanent admin, then revoked.
-// Stores: {private_key: PEM, public_key: PEM, certificate: PEM}
-// Example path: "fabric/org1/ca/tls/root/bootstrap-admin/keypair"
-func (ca CertificateAuthorityConfig) VaultBootstrapAdminKeyPairRef() *pb.SecretRef {
-	path := fmt.Sprintf("fabric/%s/ca/%s/%s/bootstrap-admin/keypair",
-		ca.OrgID, ca.certType, ca.caID)
-	return secrets.NewVaultRef(path)
-}
-
-// VaultAdminKeyPairRef returns a SecretRef for the permanent admin's keypair+cert.
+// VaultAdminRef returns a SecretRef for the permanent admin identity.
+// Stores private_key, public_key, certificate.
 // This is the long-lived admin identity used for all CA administrative operations.
-// Stores: {private_key: PEM, public_key: PEM, certificate: PEM}
-// This is distinct from VaultKeyPairPath, which stores the CA's own signing key.
-// Example path: "fabric/org1/ca/tls/root/admin/keypair"
-func (ca CertificateAuthorityConfig) VaultAdminKeyPairRef() *pb.SecretRef {
-	path := fmt.Sprintf("fabric/%s/ca/%s/%s/admin/keypair",
+// This is distinct from VaultServerRef, which stores the CA's own signing key.
+// Example path: "fabric/org1/ca/tls/root/admin"
+func (ca CertificateAuthorityConfig) VaultAdminRef() *pb.SecretRef {
+	path := fmt.Sprintf("fabric/%s/ca/%s/%s/admin",
 		ca.OrgID, ca.certType, ca.caID)
 	return secrets.NewVaultRef(path)
 }

@@ -24,19 +24,18 @@ var (
 
 // VaultClient defines generic path-based operations for Vault
 type VaultClient interface {
-	// Write performs a PUT request to the given path with data
+	// Low-level generic operations (path-based)
 	Write(ctx context.Context, path string, data map[string]any) error
-
-	// Read performs a GET request to the given path and returns the response data
 	Read(ctx context.Context, path string) (map[string]any, error)
-
-	// Delete performs a DELETE request to the given path
 	Delete(ctx context.Context, path string) error
 
-	// FetchSecret fetches a secret from KV v2 secrets engine and unwraps the response
-	// path should be the logical path without the mount prefix (e.g., "fabric/org1/credentials")
-	// Returns the unwrapped secret data as map[string]interface{}
+	// Low-level secret operations (path-based)
 	FetchSecret(ctx context.Context, path string) (map[string]interface{}, error)
+
+	// High-level secret operations (ref-based, for SecretClient interface)
+	FetchSecretByRef(ctx context.Context, ref map[string]interface{}) (map[string]interface{}, error)
+	StoreSecretByRef(ctx context.Context, ref map[string]interface{}, secret map[string]interface{}) error
+	UpdateSecretByRef(ctx context.Context, ref map[string]interface{}, partialSecret map[string]interface{}) error
 }
 
 // vaultClient implements VaultClient
@@ -262,4 +261,78 @@ func (vc *vaultClient) checkError(resp *http.Response) error {
 	default:
 		return fmt.Errorf("vault: request failed with status %d: %s", resp.StatusCode, errMsg)
 	}
+}
+
+// =============================================================================
+// High-level secret operations (for SecretClient compatibility)
+// =============================================================================
+
+const vaultFieldData = "data"
+
+// extractVaultPath extracts the "path" field from a ref map
+func extractVaultPath(ref map[string]interface{}) (string, error) {
+	if ref == nil {
+		return "", fmt.Errorf("ref is nil")
+	}
+	pathValue, ok := ref["path"]
+	if !ok {
+		return "", fmt.Errorf("missing 'path' field in ref")
+	}
+	path, ok := pathValue.(string)
+	if !ok || path == "" {
+		return "", fmt.Errorf("'path' field is invalid or empty")
+	}
+	return path, nil
+}
+
+func buildKVPath(path string) string {
+	return fmt.Sprintf("secret/data/%s", path)
+}
+
+// FetchSecretByRef fetches a secret using a ref map (implements SecretClient interface)
+func (vc *vaultClient) FetchSecretByRef(ctx context.Context, ref map[string]interface{}) (map[string]interface{}, error) {
+	path, err := extractVaultPath(ref)
+	if err != nil {
+		return nil, err
+	}
+	return vc.FetchSecret(ctx, path)
+}
+
+// StoreSecretByRef stores a secret using a ref map (implements SecretClient interface)
+func (vc *vaultClient) StoreSecretByRef(ctx context.Context, ref map[string]interface{}, secret map[string]interface{}) error {
+	path, err := extractVaultPath(ref)
+	if err != nil {
+		return err
+	}
+
+	body := map[string]any{
+		vaultFieldData: secret,
+	}
+	return vc.Write(ctx, buildKVPath(path), body)
+}
+
+// UpdateSecretByRef merges new fields with existing secret data (implements SecretClient interface)
+func (vc *vaultClient) UpdateSecretByRef(ctx context.Context, ref map[string]interface{}, partialSecret map[string]interface{}) error {
+	path, err := extractVaultPath(ref)
+	if err != nil {
+		return err
+	}
+
+	// Fetch existing secret (if it exists)
+	existingSecret, err := vc.FetchSecret(ctx, path)
+	if err != nil {
+		// If secret doesn't exist, create it with the partial data
+		existingSecret = make(map[string]interface{})
+	}
+
+	// Merge: new fields override existing ones
+	for key, value := range partialSecret {
+		existingSecret[key] = value
+	}
+
+	// Write back the merged secret
+	body := map[string]any{
+		vaultFieldData: existingSecret,
+	}
+	return vc.Write(ctx, buildKVPath(path), body)
 }

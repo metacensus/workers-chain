@@ -41,7 +41,8 @@ func (a *Activities) CreatePassword(ctx context.Context, req *pb.CreatePasswordI
 		Username: req.GetUsername(),
 		Password: password,
 	}
-	if err := a.provider.StoreCredentials(ctx, ref, creds); err != nil {
+	secret := FromCredentials(creds)
+	if err := a.provider.UpdateSecret(ctx, ref, secret); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreatePassword, err)
 	}
 
@@ -60,7 +61,8 @@ func (a *Activities) CreateKeyPair(ctx context.Context, req *pb.CreateKeyPairInp
 		return nil, fmt.Errorf("%w: %w", ErrCreateKeyPair, err)
 	}
 
-	if err := a.provider.StoreKeyPair(ctx, ref, kp); err != nil {
+	secret := FromKeyPair(kp)
+	if err := a.provider.UpdateSecret(ctx, ref, secret); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateKeyPair, err)
 	}
 
@@ -79,9 +81,14 @@ func (a *Activities) CreateSelfSignedCertificate(ctx context.Context, req *pb.Cr
 		return nil, fmt.Errorf("%w: cert_ref is required", ErrCreateSelfSignedCertificate)
 	}
 
-	kp, err := a.provider.FetchKeyPair(ctx, keyRef)
+	secret, err := a.provider.FetchSecret(ctx, keyRef)
 	if err != nil {
-		return nil, fmt.Errorf("%w: fetch key pair: %w", ErrCreateSelfSignedCertificate, err)
+		return nil, fmt.Errorf("%w: fetch secret: %w", ErrCreateSelfSignedCertificate, err)
+	}
+	
+	kp, err := secret.KeyPair()
+	if err != nil {
+		return nil, fmt.Errorf("%w: parse key pair: %w", ErrCreateSelfSignedCertificate, err)
 	}
 
 	params := &CertificateParams{
@@ -97,7 +104,8 @@ func (a *Activities) CreateSelfSignedCertificate(ctx context.Context, req *pb.Cr
 		return nil, fmt.Errorf("%w: generate certificate: %w", ErrCreateSelfSignedCertificate, err)
 	}
 
-	if err := a.provider.StoreCertificate(ctx, certRef, cert); err != nil {
+	certSecret := FromCertificate(cert)
+	if err := a.provider.UpdateSecret(ctx, certRef, certSecret); err != nil {
 		return nil, fmt.Errorf("%w: store certificate: %w", ErrCreateSelfSignedCertificate, err)
 	}
 
@@ -115,32 +123,10 @@ func (a *Activities) StoreCertificate(ctx context.Context, req *pb.StoreCertific
 		Certificate: req.GetCertificatePem(),
 	}
 
-	if err := a.provider.StoreCertificate(ctx, certRef, cert); err != nil {
+	secret := FromCertificate(cert)
+	if err := a.provider.UpdateSecret(ctx, certRef, secret); err != nil {
 		return nil, fmt.Errorf("failed to store certificate: %w", err)
 	}
 
 	return &pb.StoreCertificateOutput{CertRef: certRef}, nil
-}
-
-// StoreIdentityCredentials stores keypair+certificate together at one location
-// This is used for storing admin identity credentials where the CA client needs both
-func (a *Activities) StoreIdentityCredentials(ctx context.Context, req *pb.StoreIdentityCredentialsInput) (*pb.StoreIdentityCredentialsOutput, error) {
-	credentialsRef := req.GetCredentialsRef()
-	if credentialsRef == nil {
-		return nil, fmt.Errorf("credentials_ref is required")
-	}
-
-	// Store as IdentityCredentials which includes both keypair and certificate
-	creds := &IdentityCredentials{
-		PrivateKey:  req.GetPrivateKeyPem(),
-		PublicKey:   req.GetPublicKeyPem(),
-		Certificate: req.GetCertificatePem(),
-		CAChain:     req.GetCaChainPem(),
-	}
-
-	if err := a.provider.StoreIdentityCredentials(ctx, credentialsRef, creds); err != nil {
-		return nil, fmt.Errorf("failed to store identity credentials: %w", err)
-	}
-
-	return &pb.StoreIdentityCredentialsOutput{CredentialsRef: credentialsRef}, nil
 }

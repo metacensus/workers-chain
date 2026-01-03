@@ -127,6 +127,65 @@ func (_c *MockVaultClient_FetchSecret_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
+// FetchSecretByRef provides a mock function with given fields: ctx, ref
+func (_m *MockVaultClient) FetchSecretByRef(ctx context.Context, ref map[string]interface{}) (map[string]interface{}, error) {
+	ret := _m.Called(ctx, ref)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FetchSecretByRef")
+	}
+
+	var r0 map[string]interface{}
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, map[string]interface{}) (map[string]interface{}, error)); ok {
+		return rf(ctx, ref)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, map[string]interface{}) map[string]interface{}); ok {
+		r0 = rf(ctx, ref)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]interface{})
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, map[string]interface{}) error); ok {
+		r1 = rf(ctx, ref)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockVaultClient_FetchSecretByRef_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FetchSecretByRef'
+type MockVaultClient_FetchSecretByRef_Call struct {
+	*mock.Call
+}
+
+// FetchSecretByRef is a helper method to define mock.On call
+//   - ctx context.Context
+//   - ref map[string]interface{}
+func (_e *MockVaultClient_Expecter) FetchSecretByRef(ctx interface{}, ref interface{}) *MockVaultClient_FetchSecretByRef_Call {
+	return &MockVaultClient_FetchSecretByRef_Call{Call: _e.mock.On("FetchSecretByRef", ctx, ref)}
+}
+
+func (_c *MockVaultClient_FetchSecretByRef_Call) Run(run func(ctx context.Context, ref map[string]interface{})) *MockVaultClient_FetchSecretByRef_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(map[string]interface{}))
+	})
+	return _c
+}
+
+func (_c *MockVaultClient_FetchSecretByRef_Call) Return(_a0 map[string]interface{}, _a1 error) *MockVaultClient_FetchSecretByRef_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockVaultClient_FetchSecretByRef_Call) RunAndReturn(run func(context.Context, map[string]interface{}) (map[string]interface{}, error)) *MockVaultClient_FetchSecretByRef_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Read provides a mock function with given fields: ctx, path
 func (_m *MockVaultClient) Read(ctx context.Context, path string) (map[string]any, error) {
 	ret := _m.Called(ctx, path)
@@ -182,6 +241,102 @@ func (_c *MockVaultClient_Read_Call) Return(_a0 map[string]any, _a1 error) *Mock
 }
 
 func (_c *MockVaultClient_Read_Call) RunAndReturn(run func(context.Context, string) (map[string]any, error)) *MockVaultClient_Read_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// StoreSecretByRef provides a mock function with given fields: ctx, ref, secret
+func (_m *MockVaultClient) StoreSecretByRef(ctx context.Context, ref map[string]interface{}, secret map[string]interface{}) error {
+	ret := _m.Called(ctx, ref, secret)
+
+	if len(ret) == 0 {
+		panic("no return value specified for StoreSecretByRef")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, map[string]interface{}, map[string]interface{}) error); ok {
+		r0 = rf(ctx, ref, secret)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockVaultClient_StoreSecretByRef_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StoreSecretByRef'
+type MockVaultClient_StoreSecretByRef_Call struct {
+	*mock.Call
+}
+
+// StoreSecretByRef is a helper method to define mock.On call
+//   - ctx context.Context
+//   - ref map[string]interface{}
+//   - secret map[string]interface{}
+func (_e *MockVaultClient_Expecter) StoreSecretByRef(ctx interface{}, ref interface{}, secret interface{}) *MockVaultClient_StoreSecretByRef_Call {
+	return &MockVaultClient_StoreSecretByRef_Call{Call: _e.mock.On("StoreSecretByRef", ctx, ref, secret)}
+}
+
+func (_c *MockVaultClient_StoreSecretByRef_Call) Run(run func(ctx context.Context, ref map[string]interface{}, secret map[string]interface{})) *MockVaultClient_StoreSecretByRef_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(map[string]interface{}), args[2].(map[string]interface{}))
+	})
+	return _c
+}
+
+func (_c *MockVaultClient_StoreSecretByRef_Call) Return(_a0 error) *MockVaultClient_StoreSecretByRef_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockVaultClient_StoreSecretByRef_Call) RunAndReturn(run func(context.Context, map[string]interface{}, map[string]interface{}) error) *MockVaultClient_StoreSecretByRef_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateSecretByRef provides a mock function with given fields: ctx, ref, partialSecret
+func (_m *MockVaultClient) UpdateSecretByRef(ctx context.Context, ref map[string]interface{}, partialSecret map[string]interface{}) error {
+	ret := _m.Called(ctx, ref, partialSecret)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateSecretByRef")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, map[string]interface{}, map[string]interface{}) error); ok {
+		r0 = rf(ctx, ref, partialSecret)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockVaultClient_UpdateSecretByRef_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateSecretByRef'
+type MockVaultClient_UpdateSecretByRef_Call struct {
+	*mock.Call
+}
+
+// UpdateSecretByRef is a helper method to define mock.On call
+//   - ctx context.Context
+//   - ref map[string]interface{}
+//   - partialSecret map[string]interface{}
+func (_e *MockVaultClient_Expecter) UpdateSecretByRef(ctx interface{}, ref interface{}, partialSecret interface{}) *MockVaultClient_UpdateSecretByRef_Call {
+	return &MockVaultClient_UpdateSecretByRef_Call{Call: _e.mock.On("UpdateSecretByRef", ctx, ref, partialSecret)}
+}
+
+func (_c *MockVaultClient_UpdateSecretByRef_Call) Run(run func(ctx context.Context, ref map[string]interface{}, partialSecret map[string]interface{})) *MockVaultClient_UpdateSecretByRef_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(map[string]interface{}), args[2].(map[string]interface{}))
+	})
+	return _c
+}
+
+func (_c *MockVaultClient_UpdateSecretByRef_Call) Return(_a0 error) *MockVaultClient_UpdateSecretByRef_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockVaultClient_UpdateSecretByRef_Call) RunAndReturn(run func(context.Context, map[string]interface{}, map[string]interface{}) error) *MockVaultClient_UpdateSecretByRef_Call {
 	_c.Call.Return(run)
 	return _c
 }

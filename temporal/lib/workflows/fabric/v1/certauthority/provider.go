@@ -15,7 +15,7 @@ import (
 // BootstrapConfig wraps CertificateAuthorityConfig and implements
 // common.ConfigHydrator[BootstrapClientConfig] for creating BootstrapClients.
 //
-// This config hydrates from the VaultAdminCredentialsPath which contains
+// This config hydrates from the VaultBootstrapAdminRef which contains
 // the bootstrap username/password.
 type BootstrapConfig struct {
 	fabricconfig.CertificateAuthorityConfig
@@ -24,31 +24,26 @@ type BootstrapConfig struct {
 // GetSecretRefs returns a map of named secret references
 func (c BootstrapConfig) GetSecretRefs() map[string]*pb.SecretRef {
 	return map[string]*pb.SecretRef{
-		"credentials": c.VaultBootstrapAdminCredentialsRef(),
+		"credentials": c.VaultBootstrapAdminRef(),
 	}
 }
 
 // GetCacheKey returns a unique key for caching the bootstrap client
 func (c BootstrapConfig) GetCacheKey() string {
 	// Use the Vault path as the cache key
-	return c.VaultBootstrapAdminCredentialsRef().GetRef().Fields["path"].GetStringValue()
+	return c.VaultBootstrapAdminRef().GetRef().Fields["path"].GetStringValue()
 }
 
 // Hydrate injects secret data (username/password) into a BootstrapClientConfig
 func (c BootstrapConfig) Hydrate(secretsMap map[string]secrets.Secret) (BootstrapClientConfig, error) {
-	creds, ok := secretsMap["credentials"]
+	credsSecret, ok := secretsMap["credentials"]
 	if !ok {
 		return BootstrapClientConfig{}, fmt.Errorf("missing credentials secret")
 	}
 
-	username, ok := creds["username"].(string)
-	if !ok {
-		return BootstrapClientConfig{}, fmt.Errorf("missing or invalid username in secret")
-	}
-
-	password, ok := creds["password"].(string)
-	if !ok {
-		return BootstrapClientConfig{}, fmt.Errorf("missing or invalid password in secret")
+	creds, err := credsSecret.Credentials()
+	if err != nil {
+		return BootstrapClientConfig{}, fmt.Errorf("failed to extract credentials: %w", err)
 	}
 
 	// Build CA URL from config
@@ -58,8 +53,8 @@ func (c BootstrapConfig) Hydrate(secretsMap map[string]secrets.Secret) (Bootstra
 
 	return BootstrapClientConfig{
 		URL:      caURL,
-		Username: username,
-		Password: password,
+		Username: creds.Username,
+		Password: creds.Password,
 		CAName:   c.ComponentName(),
 	}, nil
 }
@@ -76,7 +71,7 @@ func NewBootstrapConfig(certAuthConfig fabricconfig.CertificateAuthorityConfig) 
 // Config wraps CertificateAuthorityConfig and implements
 // common.ConfigHydrator[ClientConfig] for creating Clients.
 //
-// This config hydrates from VaultAdminKeyPairPath which contains the permanent admin's
+// This config hydrates from VaultAdminRef which contains the permanent admin's
 // private key, public key, and certificate (all stored together after CreateIdentity).
 type Config struct {
 	fabricconfig.CertificateAuthorityConfig
@@ -85,40 +80,26 @@ type Config struct {
 // GetSecretRefs returns a map of named secret references
 func (c Config) GetSecretRefs() map[string]*pb.SecretRef {
 	return map[string]*pb.SecretRef{
-		"identity": c.VaultAdminKeyPairRef(),
+		"identity": c.VaultAdminRef(),
 	}
 }
 
 // GetCacheKey returns a unique key for caching the CA admin client
 func (c Config) GetCacheKey() string {
 	// Use the Vault path as the cache key
-	return c.VaultAdminKeyPairRef().GetRef().Fields["path"].GetStringValue()
+	return c.VaultAdminRef().GetRef().Fields["path"].GetStringValue()
 }
 
 // Hydrate injects secret data (cert/key) into a ClientConfig
 func (c Config) Hydrate(secretsMap map[string]secrets.Secret) (ClientConfig, error) {
-	identity, ok := secretsMap["identity"]
+	identitySecret, ok := secretsMap["identity"]
 	if !ok {
 		return ClientConfig{}, fmt.Errorf("missing identity secret")
 	}
 
-	// The identity secret should contain both the certificate and private key
-	certPEM, ok := identity["certificate"].(string)
-	if !ok {
-		// Try "cert" as alternative
-		certPEM, ok = identity["cert"].(string)
-		if !ok {
-			return ClientConfig{}, fmt.Errorf("missing or invalid certificate in secret")
-		}
-	}
-
-	keyPEM, ok := identity["private_key"].(string)
-	if !ok {
-		// Try "key" as alternative
-		keyPEM, ok = identity["key"].(string)
-		if !ok {
-			return ClientConfig{}, fmt.Errorf("missing or invalid key in secret")
-		}
+	identity, err := identitySecret.IdentityCredentials()
+	if err != nil {
+		return ClientConfig{}, fmt.Errorf("failed to extract identity credentials: %w", err)
 	}
 
 	// Build CA URL from config
@@ -129,8 +110,8 @@ func (c Config) Hydrate(secretsMap map[string]secrets.Secret) (ClientConfig, err
 	return ClientConfig{
 		URL:       caURL,
 		CAName:    c.ComponentName(),
-		AdminCert: []byte(certPEM),
-		AdminKey:  []byte(keyPEM),
+		AdminCert: identity.Certificate,
+		AdminKey:  identity.PrivateKey,
 	}, nil
 }
 
@@ -166,28 +147,14 @@ func (c ConfigWithAdminRef) GetCacheKey() string {
 
 // Hydrate injects secret data (cert/key) into a ClientConfig
 func (c ConfigWithAdminRef) Hydrate(secretsMap map[string]secrets.Secret) (ClientConfig, error) {
-	identity, ok := secretsMap["identity"]
+	identitySecret, ok := secretsMap["identity"]
 	if !ok {
 		return ClientConfig{}, fmt.Errorf("missing identity secret")
 	}
 
-	// The identity secret should contain both the certificate and private key
-	certPEM, ok := identity["certificate"].(string)
-	if !ok {
-		// Try "cert" as alternative
-		certPEM, ok = identity["cert"].(string)
-		if !ok {
-			return ClientConfig{}, fmt.Errorf("missing or invalid certificate in secret")
-		}
-	}
-
-	keyPEM, ok := identity["private_key"].(string)
-	if !ok {
-		// Try "key" as alternative
-		keyPEM, ok = identity["key"].(string)
-		if !ok {
-			return ClientConfig{}, fmt.Errorf("missing or invalid key in secret")
-		}
+	identity, err := identitySecret.IdentityCredentials()
+	if err != nil {
+		return ClientConfig{}, fmt.Errorf("failed to extract identity credentials: %w", err)
 	}
 
 	// Build CA URL from config
@@ -198,8 +165,8 @@ func (c ConfigWithAdminRef) Hydrate(secretsMap map[string]secrets.Secret) (Clien
 	return ClientConfig{
 		URL:       caURL,
 		CAName:    c.ComponentName(),
-		AdminCert: []byte(certPEM),
-		AdminKey:  []byte(keyPEM),
+		AdminCert: identity.Certificate,
+		AdminKey:  identity.PrivateKey,
 	}, nil
 }
 

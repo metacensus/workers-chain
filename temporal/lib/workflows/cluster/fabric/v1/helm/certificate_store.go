@@ -62,7 +62,7 @@ func NewCertificateStoreValues(certStoreConfig fabricconfig.CertificateStoreConf
 		},
 		Vault: CertStoreVaultConfig{
 			RoleName:   certStoreConfig.AuthRoleName(),
-			SecretPath: "secret/data/" + certStoreConfig.VaultAdminCredentialsRef().GetRef().Fields["path"].GetStringValue(),
+			SecretPath: "secret/data/" + certStoreConfig.VaultAdminRef().GetRef().Fields["path"].GetStringValue(),
 		},
 		Service: ServiceConfig{
 			Type: "ClusterIP",

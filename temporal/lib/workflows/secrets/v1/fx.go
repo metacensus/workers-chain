@@ -12,8 +12,8 @@ import (
 var Module = fx.Options(
 	fx.Provide(func(vaultClient vault.VaultClient) SecretProvider {
 		provider := NewSecretProvider()
-		vaultSecretClient := NewVaultSecretClient(vaultClient)
-		provider.RegisterClient(TypeVault, vaultSecretClient)
+		// VaultClient now implements SecretClient interface directly
+		provider.RegisterClient(TypeVault, vaultClient)
 		return provider
 	}),
 

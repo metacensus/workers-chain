@@ -541,133 +541,6 @@ func (x *StoreCertificateOutput) GetCertRef() *SecretRef {
 	return nil
 }
 
-// StoreIdentityCredentialsInput specifies keypair+certificate to store together
-type StoreIdentityCredentialsInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// credentials_ref is where to store the identity credentials (key + cert together)
-	CredentialsRef *SecretRef `protobuf:"bytes,1,opt,name=credentials_ref,json=CredentialsRef,proto3" json:"CredentialsRef" validate:"required"`
-	// private_key_pem is the PEM-encoded private key
-	PrivateKeyPem []byte `protobuf:"bytes,2,opt,name=private_key_pem,json=PrivateKeyPem,proto3" json:"PrivateKeyPem" validate:"required"`
-	// public_key_pem is the PEM-encoded public key
-	PublicKeyPem []byte `protobuf:"bytes,3,opt,name=public_key_pem,json=PublicKeyPem,proto3" json:"PublicKeyPem" validate:"required"`
-	// certificate_pem is the PEM-encoded certificate
-	CertificatePem []byte `protobuf:"bytes,4,opt,name=certificate_pem,json=CertificatePem,proto3" json:"CertificatePem" validate:"required"`
-	// ca_chain_pem is the optional PEM-encoded CA certificate chain
-	CaChainPem    []byte `protobuf:"bytes,5,opt,name=ca_chain_pem,json=CaChainPem,proto3" json:"CaChainPem"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StoreIdentityCredentialsInput) Reset() {
-	*x = StoreIdentityCredentialsInput{}
-	mi := &file_secrets_v1_secrets_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StoreIdentityCredentialsInput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StoreIdentityCredentialsInput) ProtoMessage() {}
-
-func (x *StoreIdentityCredentialsInput) ProtoReflect() protoreflect.Message {
-	mi := &file_secrets_v1_secrets_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StoreIdentityCredentialsInput.ProtoReflect.Descriptor instead.
-func (*StoreIdentityCredentialsInput) Descriptor() ([]byte, []int) {
-	return file_secrets_v1_secrets_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *StoreIdentityCredentialsInput) GetCredentialsRef() *SecretRef {
-	if x != nil {
-		return x.CredentialsRef
-	}
-	return nil
-}
-
-func (x *StoreIdentityCredentialsInput) GetPrivateKeyPem() []byte {
-	if x != nil {
-		return x.PrivateKeyPem
-	}
-	return nil
-}
-
-func (x *StoreIdentityCredentialsInput) GetPublicKeyPem() []byte {
-	if x != nil {
-		return x.PublicKeyPem
-	}
-	return nil
-}
-
-func (x *StoreIdentityCredentialsInput) GetCertificatePem() []byte {
-	if x != nil {
-		return x.CertificatePem
-	}
-	return nil
-}
-
-func (x *StoreIdentityCredentialsInput) GetCaChainPem() []byte {
-	if x != nil {
-		return x.CaChainPem
-	}
-	return nil
-}
-
-// StoreIdentityCredentialsOutput confirms credentials were stored
-type StoreIdentityCredentialsOutput struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	CredentialsRef *SecretRef             `protobuf:"bytes,1,opt,name=credentials_ref,json=CredentialsRef,proto3" json:"CredentialsRef" validate:"required"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *StoreIdentityCredentialsOutput) Reset() {
-	*x = StoreIdentityCredentialsOutput{}
-	mi := &file_secrets_v1_secrets_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StoreIdentityCredentialsOutput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StoreIdentityCredentialsOutput) ProtoMessage() {}
-
-func (x *StoreIdentityCredentialsOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_secrets_v1_secrets_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StoreIdentityCredentialsOutput.ProtoReflect.Descriptor instead.
-func (*StoreIdentityCredentialsOutput) Descriptor() ([]byte, []int) {
-	return file_secrets_v1_secrets_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *StoreIdentityCredentialsOutput) GetCredentialsRef() *SecretRef {
-	if x != nil {
-		return x.CredentialsRef
-	}
-	return nil
-}
-
 // CreateAccessInput specifies parameters for creating secret access (policy + auth role)
 type CreateAccessInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -687,7 +560,7 @@ type CreateAccessInput struct {
 
 func (x *CreateAccessInput) Reset() {
 	*x = CreateAccessInput{}
-	mi := &file_secrets_v1_secrets_proto_msgTypes[11]
+	mi := &file_secrets_v1_secrets_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -699,7 +572,7 @@ func (x *CreateAccessInput) String() string {
 func (*CreateAccessInput) ProtoMessage() {}
 
 func (x *CreateAccessInput) ProtoReflect() protoreflect.Message {
-	mi := &file_secrets_v1_secrets_proto_msgTypes[11]
+	mi := &file_secrets_v1_secrets_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -712,7 +585,7 @@ func (x *CreateAccessInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAccessInput.ProtoReflect.Descriptor instead.
 func (*CreateAccessInput) Descriptor() ([]byte, []int) {
-	return file_secrets_v1_secrets_proto_rawDescGZIP(), []int{11}
+	return file_secrets_v1_secrets_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CreateAccessInput) GetPolicyName() string {
@@ -761,7 +634,7 @@ type CreateAccessOutput struct {
 
 func (x *CreateAccessOutput) Reset() {
 	*x = CreateAccessOutput{}
-	mi := &file_secrets_v1_secrets_proto_msgTypes[12]
+	mi := &file_secrets_v1_secrets_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -773,7 +646,7 @@ func (x *CreateAccessOutput) String() string {
 func (*CreateAccessOutput) ProtoMessage() {}
 
 func (x *CreateAccessOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_secrets_v1_secrets_proto_msgTypes[12]
+	mi := &file_secrets_v1_secrets_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -786,7 +659,7 @@ func (x *CreateAccessOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAccessOutput.ProtoReflect.Descriptor instead.
 func (*CreateAccessOutput) Descriptor() ([]byte, []int) {
-	return file_secrets_v1_secrets_proto_rawDescGZIP(), []int{12}
+	return file_secrets_v1_secrets_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CreateAccessOutput) GetPolicyName() string {
@@ -843,16 +716,7 @@ const file_secrets_v1_secrets_proto_rawDesc = "" +
 	"\fca_chain_pem\x18\x03 \x01(\fB\x18ʵ\x03\x14\xa2\x01\x11json:\"CaChainPem\"R\n" +
 	"CaChainPem\"u\n" +
 	"\x16StoreCertificateOutput\x12[\n" +
-	"\bcert_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB)ʵ\x03%\xa2\x01\"json:\"CertRef\" validate:\"required\"R\aCertRef\"\xd7\x03\n" +
-	"\x1dStoreIdentityCredentialsInput\x12p\n" +
-	"\x0fcredentials_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB0ʵ\x03,\xa2\x01)json:\"CredentialsRef\" validate:\"required\"R\x0eCredentialsRef\x12W\n" +
-	"\x0fprivate_key_pem\x18\x02 \x01(\fB/ʵ\x03+\xa2\x01(json:\"PrivateKeyPem\" validate:\"required\"R\rPrivateKeyPem\x12T\n" +
-	"\x0epublic_key_pem\x18\x03 \x01(\fB.ʵ\x03*\xa2\x01'json:\"PublicKeyPem\" validate:\"required\"R\fPublicKeyPem\x12Y\n" +
-	"\x0fcertificate_pem\x18\x04 \x01(\fB0ʵ\x03,\xa2\x01)json:\"CertificatePem\" validate:\"required\"R\x0eCertificatePem\x12:\n" +
-	"\fca_chain_pem\x18\x05 \x01(\fB\x18ʵ\x03\x14\xa2\x01\x11json:\"CaChainPem\"R\n" +
-	"CaChainPem\"\x92\x01\n" +
-	"\x1eStoreIdentityCredentialsOutput\x12p\n" +
-	"\x0fcredentials_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB0ʵ\x03,\xa2\x01)json:\"CredentialsRef\" validate:\"required\"R\x0eCredentialsRef\"\xff\x03\n" +
+	"\bcert_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB)ʵ\x03%\xa2\x01\"json:\"CertRef\" validate:\"required\"R\aCertRef\"\xff\x03\n" +
 	"\x11CreateAccessInput\x12M\n" +
 	"\vpolicy_name\x18\x01 \x01(\tB,ʵ\x03(\xa2\x01%json:\"PolicyName\" validate:\"required\"R\n" +
 	"PolicyName\x12s\n" +
@@ -863,7 +727,7 @@ const file_secrets_v1_secrets_proto_rawDesc = "" +
 	"\x12CreateAccessOutput\x12M\n" +
 	"\vpolicy_name\x18\x01 \x01(\tB,ʵ\x03(\xa2\x01%json:\"PolicyName\" validate:\"required\"R\n" +
 	"PolicyName\x12T\n" +
-	"\x0eauth_role_name\x18\x02 \x01(\tB.ʵ\x03*\xa2\x01'json:\"AuthRoleName\" validate:\"required\"R\fAuthRoleName2\xde\a\n" +
+	"\x0eauth_role_name\x18\x02 \x01(\tB.ʵ\x03*\xa2\x01'json:\"AuthRoleName\" validate:\"required\"R\fAuthRoleName2\xad\x06\n" +
 	"\aSecrets\x12\x86\x01\n" +
 	"\x0eCreatePassword\x12\x1f.secrets.v1.CreatePasswordInput\x1a .secrets.v1.CreatePasswordOutput\"1\x92\xc4\x03\x1f\x12\x02\b<:\x19secrets.v1.CreatePassword҂\x04\n" +
 	"\x12\bactivity\x12\x82\x01\n" +
@@ -872,8 +736,6 @@ const file_secrets_v1_secrets_proto_rawDesc = "" +
 	"\x1bCreateSelfSignedCertificate\x12,.secrets.v1.CreateSelfSignedCertificateInput\x1a-.secrets.v1.CreateSelfSignedCertificateOutput\"?\x92\xc4\x03-\x12\x03\b\xac\x02:&secrets.v1.CreateSelfSignedCertificate҂\x04\n" +
 	"\x12\bactivity\x12\x8e\x01\n" +
 	"\x10StoreCertificate\x12!.secrets.v1.StoreCertificateInput\x1a\".secrets.v1.StoreCertificateOutput\"3\x92\xc4\x03!\x12\x02\b<:\x1bsecrets.v1.StoreCertificate҂\x04\n" +
-	"\x12\bactivity\x12\xae\x01\n" +
-	"\x18StoreIdentityCredentials\x12).secrets.v1.StoreIdentityCredentialsInput\x1a*.secrets.v1.StoreIdentityCredentialsOutput\";\x92\xc4\x03)\x12\x02\b<:#secrets.v1.StoreIdentityCredentials҂\x04\n" +
 	"\x12\bactivity\x12\xa4\x01\n" +
 	"\fCreateAccess\x12\x1d.secrets.v1.CreateAccessInput\x1a\x1e.secrets.v1.CreateAccessOutput\"U\x8a\xc4\x03Q*4secrets/create-access/${! PolicyName.or(\"default\") }0\x01r\x17secrets.v1.CreateAccess\x1a\x1e\x8a\xc4\x03\a\n" +
 	"\x05infraʂ\x04\x0f\x12\rnexus-enabledB\xb0\x01\n" +
@@ -893,7 +755,7 @@ func file_secrets_v1_secrets_proto_rawDescGZIP() []byte {
 	return file_secrets_v1_secrets_proto_rawDescData
 }
 
-var file_secrets_v1_secrets_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_secrets_v1_secrets_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_secrets_v1_secrets_proto_goTypes = []any{
 	(*SecretRef)(nil),                         // 0: secrets.v1.SecretRef
 	(*CreatePasswordInput)(nil),               // 1: secrets.v1.CreatePasswordInput
@@ -904,46 +766,40 @@ var file_secrets_v1_secrets_proto_goTypes = []any{
 	(*CreateSelfSignedCertificateOutput)(nil), // 6: secrets.v1.CreateSelfSignedCertificateOutput
 	(*StoreCertificateInput)(nil),             // 7: secrets.v1.StoreCertificateInput
 	(*StoreCertificateOutput)(nil),            // 8: secrets.v1.StoreCertificateOutput
-	(*StoreIdentityCredentialsInput)(nil),     // 9: secrets.v1.StoreIdentityCredentialsInput
-	(*StoreIdentityCredentialsOutput)(nil),    // 10: secrets.v1.StoreIdentityCredentialsOutput
-	(*CreateAccessInput)(nil),                 // 11: secrets.v1.CreateAccessInput
-	(*CreateAccessOutput)(nil),                // 12: secrets.v1.CreateAccessOutput
-	(*structpb.Struct)(nil),                   // 13: google.protobuf.Struct
-	(*durationpb.Duration)(nil),               // 14: google.protobuf.Duration
-	(*v1.PolicyDocument)(nil),                 // 15: vault.v1.PolicyDocument
+	(*CreateAccessInput)(nil),                 // 9: secrets.v1.CreateAccessInput
+	(*CreateAccessOutput)(nil),                // 10: secrets.v1.CreateAccessOutput
+	(*structpb.Struct)(nil),                   // 11: google.protobuf.Struct
+	(*durationpb.Duration)(nil),               // 12: google.protobuf.Duration
+	(*v1.PolicyDocument)(nil),                 // 13: vault.v1.PolicyDocument
 }
 var file_secrets_v1_secrets_proto_depIdxs = []int32{
-	13, // 0: secrets.v1.SecretRef.ref:type_name -> google.protobuf.Struct
+	11, // 0: secrets.v1.SecretRef.ref:type_name -> google.protobuf.Struct
 	0,  // 1: secrets.v1.CreatePasswordInput.secret_ref:type_name -> secrets.v1.SecretRef
 	0,  // 2: secrets.v1.CreatePasswordOutput.secret_ref:type_name -> secrets.v1.SecretRef
 	0,  // 3: secrets.v1.CreateKeyPairInput.secret_ref:type_name -> secrets.v1.SecretRef
 	0,  // 4: secrets.v1.CreateKeyPairOutput.secret_ref:type_name -> secrets.v1.SecretRef
 	0,  // 5: secrets.v1.CreateSelfSignedCertificateInput.key_ref:type_name -> secrets.v1.SecretRef
 	0,  // 6: secrets.v1.CreateSelfSignedCertificateInput.cert_ref:type_name -> secrets.v1.SecretRef
-	14, // 7: secrets.v1.CreateSelfSignedCertificateInput.validity_duration:type_name -> google.protobuf.Duration
+	12, // 7: secrets.v1.CreateSelfSignedCertificateInput.validity_duration:type_name -> google.protobuf.Duration
 	0,  // 8: secrets.v1.CreateSelfSignedCertificateOutput.cert_ref:type_name -> secrets.v1.SecretRef
 	0,  // 9: secrets.v1.StoreCertificateInput.cert_ref:type_name -> secrets.v1.SecretRef
 	0,  // 10: secrets.v1.StoreCertificateOutput.cert_ref:type_name -> secrets.v1.SecretRef
-	0,  // 11: secrets.v1.StoreIdentityCredentialsInput.credentials_ref:type_name -> secrets.v1.SecretRef
-	0,  // 12: secrets.v1.StoreIdentityCredentialsOutput.credentials_ref:type_name -> secrets.v1.SecretRef
-	15, // 13: secrets.v1.CreateAccessInput.policy_document:type_name -> vault.v1.PolicyDocument
-	1,  // 14: secrets.v1.Secrets.CreatePassword:input_type -> secrets.v1.CreatePasswordInput
-	3,  // 15: secrets.v1.Secrets.CreateKeyPair:input_type -> secrets.v1.CreateKeyPairInput
-	5,  // 16: secrets.v1.Secrets.CreateSelfSignedCertificate:input_type -> secrets.v1.CreateSelfSignedCertificateInput
-	7,  // 17: secrets.v1.Secrets.StoreCertificate:input_type -> secrets.v1.StoreCertificateInput
-	9,  // 18: secrets.v1.Secrets.StoreIdentityCredentials:input_type -> secrets.v1.StoreIdentityCredentialsInput
-	11, // 19: secrets.v1.Secrets.CreateAccess:input_type -> secrets.v1.CreateAccessInput
-	2,  // 20: secrets.v1.Secrets.CreatePassword:output_type -> secrets.v1.CreatePasswordOutput
-	4,  // 21: secrets.v1.Secrets.CreateKeyPair:output_type -> secrets.v1.CreateKeyPairOutput
-	6,  // 22: secrets.v1.Secrets.CreateSelfSignedCertificate:output_type -> secrets.v1.CreateSelfSignedCertificateOutput
-	8,  // 23: secrets.v1.Secrets.StoreCertificate:output_type -> secrets.v1.StoreCertificateOutput
-	10, // 24: secrets.v1.Secrets.StoreIdentityCredentials:output_type -> secrets.v1.StoreIdentityCredentialsOutput
-	12, // 25: secrets.v1.Secrets.CreateAccess:output_type -> secrets.v1.CreateAccessOutput
-	20, // [20:26] is the sub-list for method output_type
-	14, // [14:20] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	13, // 11: secrets.v1.CreateAccessInput.policy_document:type_name -> vault.v1.PolicyDocument
+	1,  // 12: secrets.v1.Secrets.CreatePassword:input_type -> secrets.v1.CreatePasswordInput
+	3,  // 13: secrets.v1.Secrets.CreateKeyPair:input_type -> secrets.v1.CreateKeyPairInput
+	5,  // 14: secrets.v1.Secrets.CreateSelfSignedCertificate:input_type -> secrets.v1.CreateSelfSignedCertificateInput
+	7,  // 15: secrets.v1.Secrets.StoreCertificate:input_type -> secrets.v1.StoreCertificateInput
+	9,  // 16: secrets.v1.Secrets.CreateAccess:input_type -> secrets.v1.CreateAccessInput
+	2,  // 17: secrets.v1.Secrets.CreatePassword:output_type -> secrets.v1.CreatePasswordOutput
+	4,  // 18: secrets.v1.Secrets.CreateKeyPair:output_type -> secrets.v1.CreateKeyPairOutput
+	6,  // 19: secrets.v1.Secrets.CreateSelfSignedCertificate:output_type -> secrets.v1.CreateSelfSignedCertificateOutput
+	8,  // 20: secrets.v1.Secrets.StoreCertificate:output_type -> secrets.v1.StoreCertificateOutput
+	10, // 21: secrets.v1.Secrets.CreateAccess:output_type -> secrets.v1.CreateAccessOutput
+	17, // [17:22] is the sub-list for method output_type
+	12, // [12:17] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_secrets_v1_secrets_proto_init() }
@@ -957,7 +813,7 @@ func file_secrets_v1_secrets_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_secrets_v1_secrets_proto_rawDesc), len(file_secrets_v1_secrets_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

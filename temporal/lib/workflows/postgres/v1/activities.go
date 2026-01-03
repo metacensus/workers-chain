@@ -86,7 +86,12 @@ func (a *Activities) CreateUser(ctx context.Context, req *pb.CreateUserInput) (*
 	}
 
 	// Fetch credentials from secret provider
-	creds, err := a.secretProvider.FetchCredentials(ctx, req.CredentialsRef)
+	secret, err := a.secretProvider.FetchSecret(ctx, req.CredentialsRef)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrFetchCredentials, err)
+	}
+	
+	creds, err := secret.Credentials()
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrFetchCredentials, err)
 	}
