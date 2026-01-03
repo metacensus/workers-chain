@@ -6,6 +6,7 @@ import (
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	"github.com/metacensus/infra/temporal/lib/workflows/common"
 	"github.com/metacensus/infra/temporal/lib/workflows/fabric/v1/certauthority"
+	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 	vault "github.com/metacensus/infra/temporal/lib/workflows/vault/v1"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/fx"
@@ -45,15 +46,15 @@ var Module = fx.Options(
 
 	// Provide Activities with CA client providers and config
 	// Activities get:
-	// - vaultClient: for creating BootstrapClients on-the-fly during bootstrap
-	// - clientProvider: for cached Client access
+	// - secretProvider: for fetching/storing secrets with type safety
+	// - clientProvider: for cached Client access (Register/Revoke operations)
 	// - fabricConfig: for building CA-specific configurations
 	fx.Provide(func(
-		vaultClient vault.VaultClient,
+		secretProvider secrets.SecretProvider,
 		clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig],
 		fabricConfig fabricconfig.FabricConfig,
 	) *Activities {
-		return NewActivities(vaultClient, clientProvider, fabricConfig)
+		return NewActivities(secretProvider, clientProvider, fabricConfig)
 	}),
 )
 

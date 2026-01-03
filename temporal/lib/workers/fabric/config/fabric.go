@@ -178,6 +178,14 @@ func (ca CertificateAuthorityConfig) ComponentName() string {
 	return fmt.Sprintf("certificate-authority-%s-%s", ca.certType, ca.caID)
 }
 
+// URL returns the Fabric CA server URL for client connections.
+// Uses the Kubernetes service DNS name with the CA port (7054).
+// Example: "https://certificate-authority-tls-root.fabric-org1.svc.cluster.local:7054"
+func (ca CertificateAuthorityConfig) URL() string {
+	return fmt.Sprintf("https://%s.%s.svc.cluster.local:7054",
+		ca.ComponentName(), ca.KubernetesNamespace())
+}
+
 // ServiceAccountName returns the Kubernetes service account name.
 func (ca CertificateAuthorityConfig) ServiceAccountName() string {
 	return ca.ComponentName()
@@ -186,6 +194,17 @@ func (ca CertificateAuthorityConfig) ServiceAccountName() string {
 // KubernetesNamespace returns the Kubernetes namespace for deployment.
 func (ca CertificateAuthorityConfig) KubernetesNamespace() string {
 	return ca.OrgConfig.KubernetesNamespace()
+}
+
+// ResourceIdentifier returns the Kubernetes resource identifier for waiting on deployment readiness.
+// The certificate authority is deployed as a Deployment.
+func (ca CertificateAuthorityConfig) ResourceIdentifier() *kubev1.ResourceIdentifier {
+	return &kubev1.ResourceIdentifier{
+		ApiVersion: "apps/v1",
+		Kind:       "Deployment",
+		Name:       ca.ComponentName(),
+		Namespace:  ca.KubernetesNamespace(),
+	}
 }
 
 // ------------ Vault Properties ------------
@@ -236,6 +255,23 @@ func (ca CertificateAuthorityConfig) VaultKeyPairPath() string {
 // Example: "fabric/org1/ca/tls/root/cert"
 func (ca CertificateAuthorityConfig) VaultCertificatePath() string {
 	return fmt.Sprintf("fabric/%s/ca/%s/%s/cert",
+		ca.OrgID, ca.certType, ca.caID)
+}
+
+// VaultAdminKeyPath returns the path where the enrolled admin's private key is stored.
+// This is distinct from VaultKeyPairPath, which stores the CA's own signing key.
+// The admin key is used to authenticate admin operations against the CA.
+// Example: "fabric/org1/ca/tls/root/admin/key"
+func (ca CertificateAuthorityConfig) VaultAdminKeyPath() string {
+	return fmt.Sprintf("fabric/%s/ca/%s/%s/admin/key",
+		ca.OrgID, ca.certType, ca.caID)
+}
+
+// VaultAdminCertPath returns the path where the enrolled admin's certificate is stored.
+// This is the certificate issued by the CA for the admin identity.
+// Example: "fabric/org1/ca/tls/root/admin/cert"
+func (ca CertificateAuthorityConfig) VaultAdminCertPath() string {
+	return fmt.Sprintf("fabric/%s/ca/%s/%s/admin/cert",
 		ca.OrgID, ca.certType, ca.caID)
 }
 
@@ -338,6 +374,12 @@ func (ca CertificateAuthorityConfig) OrganizationalUnit() string {
 		return "root-ca"
 	}
 	return ca.caID
+}
+
+// AdminCommonName returns the common name for the CA admin certificate.
+// Example: "admin@certificate-authority-tls-root"
+func (ca CertificateAuthorityConfig) AdminCommonName() string {
+	return fmt.Sprintf("admin@%s", ca.ComponentName())
 }
 
 // ------------ Helper Functions ------------

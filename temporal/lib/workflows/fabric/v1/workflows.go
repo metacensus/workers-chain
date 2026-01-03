@@ -11,8 +11,8 @@ import (
 	postgrespb "github.com/metacensus/infra/temporal/gen/workflows/postgres/v1"
 	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	"github.com/metacensus/infra/temporal/gen/workflows/secrets/v1/secretsv1nexustemporal"
-	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
+	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -165,29 +165,7 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 		return nil, fmt.Errorf("failed to create certificate store deployment: %w", err)
 	}
 
-	// Step 4: Wait for certificate store to be ready
-	logger.Info("Waiting for certificate store to be ready", "org", w.fabricConfig.OrgID)
-	waitOptions := workflow.ActivityOptions{
-		StartToCloseTimeout: 10 * time.Minute,
-		RetryPolicy: &temporal.RetryPolicy{
-			InitialInterval:    5 * time.Second,
-			BackoffCoefficient: 1.0,
-			MaximumInterval:    5 * time.Second,
-			MaximumAttempts:    120,
-		},
-	}
-	waitCtx := workflow.WithActivityOptions(ctx, waitOptions)
-
-	err = workflow.ExecuteActivity(waitCtx, kubepb.GetStatusActivityName, &kubepb.GetStatusInput{
-		Resources: map[string]*kubepb.ResourceIdentifier{
-			"certificate-store": certStore.ResourceIdentifier(),
-		},
-	}).Get(waitCtx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("certificate store did not become ready: %w", err)
-	}
-
-	logger.Info("Certificate store deployed and ready", "org", w.fabricConfig.OrgID)
+	logger.Info("Certificate store deployment initiated", "org", w.fabricConfig.OrgID)
 	return &pb.DeployCertificateStoreOutput{}, nil
 }
 
@@ -205,6 +183,7 @@ type createCertificateDatabaseWorkflow struct {
 }
 
 func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.CreateCertificateDatabaseOutput, error) {
+	logger := workflow.GetLogger(ctx)
 	certType := w.input.Req.GetCertType()
 	caID := w.input.Req.GetCertificateAuthorityId()
 
@@ -216,6 +195,31 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 	}
 
 	caConfig := w.fabricConfig.CertificateAuthority(certType, caID)
+	certStore := w.fabricConfig.CertificateStore()
+
+	// Step 0: Wait for certificate store to be ready
+	logger.Info("Waiting for certificate store to be ready", "org", w.fabricConfig.OrgID)
+	waitOptions := workflow.ActivityOptions{
+		StartToCloseTimeout: 10 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    5 * time.Second,
+			BackoffCoefficient: 1.0,
+			MaximumInterval:    5 * time.Second,
+			MaximumAttempts:    0, // Infinite retry
+		},
+	}
+	waitCtx := workflow.WithActivityOptions(ctx, waitOptions)
+
+	err := workflow.ExecuteActivity(waitCtx, kubepb.GetStatusActivityName, &kubepb.GetStatusInput{
+		Resources: map[string]*kubepb.ResourceIdentifier{
+			"certificate-store": certStore.ResourceIdentifier(),
+		},
+	}).Get(waitCtx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("certificate store did not become ready: %w", err)
+	}
+
+	logger.Info("Certificate store ready", "org", w.fabricConfig.OrgID)
 
 	ao := workflow.ActivityOptions{
 		StartToCloseTimeout: 5 * time.Minute,
@@ -229,7 +233,7 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
 	// Step 1: Create the PostgreSQL database
-	err := workflow.ExecuteActivity(activityCtx, postgrespb.CreateDatabaseActivityName, &postgrespb.CreateDatabaseInput{
+	err = workflow.ExecuteActivity(activityCtx, postgrespb.CreateDatabaseActivityName, &postgrespb.CreateDatabaseInput{
 		DatabaseName: caConfig.DatabaseName(),
 	}).Get(activityCtx, nil)
 	if err != nil {
@@ -283,6 +287,7 @@ type deployRootCertificateAuthorityWorkflow struct {
 }
 
 func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.DeployRootCertificateAuthorityOutput, error) {
+	logger := workflow.GetLogger(ctx)
 	certType := w.input.Req.GetCertType()
 
 	if certType != "tls" && certType != "org" {
@@ -302,7 +307,6 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 	}
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
-	// Step 1: Create Vault access via Nexus call to infra worker
 	nexusClient := secretsv1nexustemporal.NewSecretsNexusClient(secretsCreateAccessNexusEndpoint)
 	_, err := nexusClient.CreateAccess(ctx, &secretspb.CreateAccessInput{
 		PolicyName:          rootCA.PolicyName(),
@@ -317,15 +321,13 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		return nil, fmt.Errorf("%w: %w", ErrCreateAccess, err)
 	}
 
-	// Step 2: Create certificate database
 	if _, err := pb.CreateCertificateDatabaseChild(ctx, &pb.CreateCertificateDatabaseInput{
 		CertType:               certType,
-		CertificateAuthorityId: "root",
+		CertificateAuthorityId: rootCA.CAID(),
 	}); err != nil {
 		return nil, fmt.Errorf("%w (certType=%s): %w", ErrCreateCertificateDatabase, certType, err)
 	}
 
-	// Step 3: Generate root CA key pair
 	keyPairRef := secrets.NewVaultRef(rootCA.VaultKeyPairPath())
 	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
 		SecretRef: keyPairRef,
@@ -334,9 +336,13 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		return nil, fmt.Errorf("failed to generate root CA key pair: %w", err)
 	}
 
-	// Step 4: Generate self-signed root CA certificate
 	certRef := secrets.NewVaultRef(rootCA.VaultCertificatePath())
 	certValidityDuration := 15 * 365 * 24 * time.Hour
+
+	// Construct DNS SANs for TLS certificate validation
+	// Pattern: {component-name}.{namespace}.svc.cluster.local
+	serviceHostname := fmt.Sprintf("%s.%s.svc.cluster.local", rootCA.ComponentName(), rootCA.KubernetesNamespace())
+
 	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateSelfSignedCertificateActivityName, &secretspb.CreateSelfSignedCertificateInput{
 		KeyRef:             keyPairRef,
 		CertRef:            certRef,
@@ -345,12 +351,12 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		OrganizationalUnit: rootCA.OrganizationalUnit(),
 		ValidityDuration:   durationpb.New(certValidityDuration),
 		MaxPathLength:      1,
+		DnsNames:           []string{serviceHostname}, // Required for TLS verification
 	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate root CA certificate: %w", err)
 	}
 
-	// Step 5: Generate bootstrap admin credentials
 	adminCredentialsRef := secrets.NewVaultRef(rootCA.VaultAdminCredentialsPath())
 	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
 		SecretRef: adminCredentialsRef,
@@ -360,7 +366,6 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		return nil, fmt.Errorf("failed to generate bootstrap admin credentials: %w", err)
 	}
 
-	// Step 6: Deploy root CA pod
 	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
 		Org:       w.fabricConfig.OrgID,
 		Component: rootCA.ComponentName(),
@@ -369,7 +374,16 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		return nil, fmt.Errorf("failed to deploy root CA: %w", err)
 	}
 
-	// TODO: Bootstrap root CA admin
+	logger.Info("Certificate authority deployment initiated", "org", w.fabricConfig.OrgID, "certType", certType)
+
+	_, err = pb.BootstrapCertificateAuthorityAdminChild(ctx, &pb.BootstrapCertificateAuthorityAdminInput{
+		CertType:                certType,
+		CertificateAuthorityId:  rootCA.CAID(),
+		BootstrapCredentialsRef: adminCredentialsRef,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w (certType=%s): %w", ErrBootstrapCertificateAuthorityAdmin, certType, err)
+	}
 
 	return &pb.DeployRootCertificateAuthorityOutput{}, nil
 }
@@ -443,17 +457,74 @@ type bootstrapCertificateAuthorityAdminWorkflow struct {
 }
 
 func (w *bootstrapCertificateAuthorityAdminWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapCertificateAuthorityAdminOutput, error) {
+	logger := workflow.GetLogger(ctx)
 	certType := w.input.Req.GetCertType()
 	caID := w.input.Req.GetCertificateAuthorityId()
 
 	if certType != "tls" && certType != "org" {
-		return nil, ErrInvalidCertType
+		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidCertType, certType)
 	}
 
-	// TODO: Create admin identities
-	// TODO: Revoke bootstrap admin credentials
+	caConfig := w.fabricConfig.CertificateAuthority(certType, caID)
 
-	_ = caID
+	// Step 0: Wait for certificate authority to be ready
+	logger.Info("Waiting for certificate authority to be ready", "org", w.fabricConfig.OrgID, "certType", certType, "caID", caID)
+	waitOptions := workflow.ActivityOptions{
+		StartToCloseTimeout: 10 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    5 * time.Second,
+			BackoffCoefficient: 1.0,
+			MaximumInterval:    5 * time.Second,
+			MaximumAttempts:    0, // Infinite retry
+		},
+	}
+	waitCtx := workflow.WithActivityOptions(ctx, waitOptions)
+
+	err := workflow.ExecuteActivity(waitCtx, kubepb.GetStatusActivityName, &kubepb.GetStatusInput{
+		Resources: map[string]*kubepb.ResourceIdentifier{
+			caConfig.ComponentName(): caConfig.ResourceIdentifier(),
+		},
+	}).Get(waitCtx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("certificate authority did not become ready: %w", err)
+	}
+
+	logger.Info("Certificate authority ready", "org", w.fabricConfig.OrgID, "certType", certType, "caID", caID)
+
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    3,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
+
+	adminKeyRef := secrets.NewVaultRef(caConfig.VaultAdminKeyPath())
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
+		SecretRef: adminKeyRef,
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate admin key pair: %w", err)
+	}
+
+	adminCertRef := secrets.NewVaultRef(caConfig.VaultAdminCertPath())
+	caTlsCertRef := secrets.NewVaultRef(caConfig.VaultCertificatePath())
+	err = workflow.ExecuteActivity(activityCtx, pb.BootstrapEnrollIdentityActivityName, &pb.BootstrapEnrollIdentityInput{
+		CaUrl:                   caConfig.URL(),
+		BootstrapCredentialsRef: w.input.Req.GetBootstrapCredentialsRef(),
+		KeyRef:                  adminKeyRef,
+		CertRef:                 adminCertRef,
+		CommonName:              caConfig.AdminCommonName(),
+		Organization:            w.fabricConfig.OrgID,
+		OrganizationalUnit:      caConfig.OrganizationalUnit(),
+		CaTlsCertRef:            caTlsCertRef,
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to bootstrap enroll admin identity: %w", err)
+	}
 
 	return &pb.BootstrapCertificateAuthorityAdminOutput{}, nil
 }

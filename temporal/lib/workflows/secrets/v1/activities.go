@@ -90,6 +90,7 @@ func (a *Activities) CreateSelfSignedCertificate(ctx context.Context, req *pb.Cr
 		OrganizationalUnit: req.GetOrganizationalUnit(),
 		ValidityDuration:   req.GetValidityDuration().AsDuration(),
 		MaxPathLength:      req.GetMaxPathLength(),
+		DNSNames:           req.GetDnsNames(),
 	}
 	cert, err := GenerateSelfSignedCertificate(kp.PrivateKey, params)
 	if err != nil {
@@ -101,4 +102,22 @@ func (a *Activities) CreateSelfSignedCertificate(ctx context.Context, req *pb.Cr
 	}
 
 	return &pb.CreateSelfSignedCertificateOutput{CertRef: certRef}, nil
+}
+
+// StoreCertificate stores certificate data at the specified location
+func (a *Activities) StoreCertificate(ctx context.Context, req *pb.StoreCertificateInput) (*pb.StoreCertificateOutput, error) {
+	certRef := req.GetCertRef()
+	if certRef == nil {
+		return nil, fmt.Errorf("cert_ref is required")
+	}
+
+	cert := &Certificate{
+		Certificate: req.GetCertificatePem(),
+	}
+
+	if err := a.provider.StoreCertificate(ctx, certRef, cert); err != nil {
+		return nil, fmt.Errorf("failed to store certificate: %w", err)
+	}
+
+	return &pb.StoreCertificateOutput{CertRef: certRef}, nil
 }

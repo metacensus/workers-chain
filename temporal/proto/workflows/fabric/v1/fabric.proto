@@ -89,7 +89,7 @@ service Fabric {
   rpc BootstrapCertificateAuthorityAdmin(BootstrapCertificateAuthorityAdminInput) returns (BootstrapCertificateAuthorityAdminOutput) {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.BootstrapCertificateAuthorityAdmin"
-      id: 'fabric/bootstrap-ca-admin/${! CertType }/${! CertificateAuthorityId }'
+      id: 'fabric/bootstrap-certificate-authority-admin/${! CertType }/${! CertificateAuthorityId }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -135,6 +135,16 @@ service FabricActivities {
   rpc RevokeIdentity(RevokeIdentityInput) returns (RevokeIdentityOutput) {
     option (temporal.v1.activity) = {
       name: "fabric.v1.RevokeIdentity"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+
+  // BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
+  // This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
+  // The activity generates a CSR internally and submits it to the CA
+  rpc BootstrapEnrollIdentity(BootstrapEnrollIdentityInput) returns (BootstrapEnrollIdentityOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.BootstrapEnrollIdentity"
       schedule_to_close_timeout: {seconds: 60}
     };
   }
@@ -272,6 +282,12 @@ message BootstrapCertificateAuthorityAdminInput {
     json_name = "CertificateAuthorityId",
     (go.field).tags = 'json:"CertificateAuthorityId" validate:"required"'
   ];
+
+  // bootstrap_credentials_ref points to the bootstrap admin username/password in Vault
+  secrets.v1.SecretRef bootstrap_credentials_ref = 3 [
+    json_name = "BootstrapCredentialsRef",
+    (go.field).tags = 'json:"BootstrapCredentialsRef" validate:"required"'
+  ];
 }
 
 // BootstrapCertificateAuthorityAdminOutput indicates the result of CA admin bootstrap
@@ -338,4 +354,67 @@ message RevokeIdentityInput {
 // RevokeIdentityOutput indicates the result of identity revocation
 message RevokeIdentityOutput {
   // Empty for now - will be populated during implementation
+}
+
+// ==================== BootstrapEnrollIdentity Activity Messages ====================
+
+// BootstrapEnrollIdentityInput specifies the parameters for bootstrap enrollment
+message BootstrapEnrollIdentityInput {
+  // ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric-org1.svc.cluster.local:7054")
+  string ca_url = 1 [
+    json_name = "CaUrl",
+    (go.field).tags = 'json:"CaUrl" validate:"required,url"'
+  ];
+
+  // bootstrap_credentials_ref points to the bootstrap admin username/password in Vault
+  secrets.v1.SecretRef bootstrap_credentials_ref = 2 [
+    json_name = "BootstrapCredentialsRef",
+    (go.field).tags = 'json:"BootstrapCredentialsRef" validate:"required"'
+  ];
+
+  // key_ref points to the private key in Vault to use for CSR generation
+  secrets.v1.SecretRef key_ref = 3 [
+    json_name = "KeyRef",
+    (go.field).tags = 'json:"KeyRef" validate:"required"'
+  ];
+
+  // cert_ref is where to store the enrolled certificate
+  secrets.v1.SecretRef cert_ref = 4 [
+    json_name = "CertRef",
+    (go.field).tags = 'json:"CertRef" validate:"required"'
+  ];
+
+  // common_name is the CN for the certificate subject
+  string common_name = 5 [
+    json_name = "CommonName",
+    (go.field).tags = 'json:"CommonName" validate:"required"'
+  ];
+
+  // organization is the O for the certificate subject
+  string organization = 6 [
+    json_name = "Organization",
+    (go.field).tags = 'json:"Organization" validate:"required"'
+  ];
+
+  // organizational_unit is the OU for the certificate subject
+  string organizational_unit = 7 [
+    json_name = "OrganizationalUnit",
+    (go.field).tags = 'json:"OrganizationalUnit" validate:"required"'
+  ];
+
+  // ca_tls_cert_ref points to the CA's TLS certificate in Vault
+  // This certificate is used to verify the CA server's TLS connection
+  secrets.v1.SecretRef ca_tls_cert_ref = 8 [
+    json_name = "CaTlsCertRef",
+    (go.field).tags = 'json:"CaTlsCertRef" validate:"required"'
+  ];
+}
+
+// BootstrapEnrollIdentityOutput confirms the certificate was enrolled and stored
+message BootstrapEnrollIdentityOutput {
+  // cert_ref is where the certificate was stored
+  secrets.v1.SecretRef cert_ref = 1 [
+    json_name = "CertRef",
+    (go.field).tags = 'json:"CertRef" validate:"required"'
+  ];
 }

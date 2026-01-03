@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/lib/tls"
 )
 
 // Sentinel errors for CA client operations
@@ -26,10 +28,11 @@ var (
 
 // BootstrapClientConfig represents the configuration for username/password authentication
 type BootstrapClientConfig struct {
-	URL      string // CA server URL (e.g., "https://ca.fabric-org1.svc.cluster.local:7054")
-	Username string // Username for authentication
-	Password string // Password/secret for authentication
-	CAName   string // Optional CA name (for multi-CA servers)
+	URL         string // CA server URL (e.g., "https://ca.fabric-org1.svc.cluster.local:7054")
+	Username    string // Username for authentication
+	Password    string // Password/secret for authentication
+	CAName      string // Optional CA name (for multi-CA servers)
+	TLSCertPEM  []byte // PEM-encoded TLS certificate to verify CA server (optional, but recommended for self-signed certs)
 }
 
 // Validate checks if the BootstrapClientConfig has all required fields
@@ -56,12 +59,25 @@ type BootstrapClient interface {
 
 	// GetCAInfo retrieves information about the CA (certificate chain, etc.)
 	GetCAInfo(ctx context.Context) (*lib.GetCAInfoResponse, error)
+
+	// Close cleans up any temporary resources (like TLS cert files)
+	// Should be called when the client is no longer needed.
+	Close() error
 }
 
 // bootstrapClient implements BootstrapClient
 type bootstrapClient struct {
 	fabricClient *lib.Client
 	config       BootstrapClientConfig
+	tlsCertFile  string // Path to temporary TLS cert file (empty if not using TLS)
+}
+
+// Close cleans up temporary resources (like TLS cert file)
+func (c *bootstrapClient) Close() error {
+	if c.tlsCertFile != "" {
+		return os.Remove(c.tlsCertFile)
+	}
+	return nil
 }
 
 // NewBootstrapClient creates a new bootstrap-only client.
@@ -78,18 +94,46 @@ func NewBootstrapClient(config BootstrapClientConfig) (BootstrapClient, error) {
 		MSPDir: "", // In-memory operations only
 	}
 
+	// Configure TLS if certificate is provided
+	// We write the cert to a temporary file because fabric-ca library expects file paths
+	var tlsCertFile string
+	if len(config.TLSCertPEM) > 0 {
+		tmpFile, err := os.CreateTemp("", "ca-tls-cert-*.pem")
+		if err != nil {
+			return nil, fmt.Errorf("%w: failed to create temp file for TLS cert: %v", ErrClientInit, err)
+		}
+		tlsCertFile = tmpFile.Name()
+
+		if _, err := tmpFile.Write(config.TLSCertPEM); err != nil {
+			tmpFile.Close()
+			os.Remove(tlsCertFile)
+			return nil, fmt.Errorf("%w: failed to write TLS cert to temp file: %v", ErrClientInit, err)
+		}
+		tmpFile.Close()
+
+		fabricCAConfig.TLS = tls.ClientTLSConfig{
+			Enabled:   true,
+			CertFiles: []string{tlsCertFile},
+		}
+	}
+
 	fabricCAClient := &lib.Client{
 		HomeDir: "",
 		Config:  fabricCAConfig,
 	}
 
 	if err := fabricCAClient.Init(); err != nil {
+		// Clean up temp file on error
+		if tlsCertFile != "" {
+			os.Remove(tlsCertFile)
+		}
 		return nil, fmt.Errorf("%w: %v", ErrClientInit, err)
 	}
 
 	return &bootstrapClient{
 		fabricClient: fabricCAClient,
 		config:       config,
+		tlsCertFile:  tlsCertFile,
 	}, nil
 }
 

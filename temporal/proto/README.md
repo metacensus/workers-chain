@@ -53,11 +53,14 @@
         - [fabric.v1.RegisterIdentity](#fabric-v1-registeridentity-activity)
         - [fabric.v1.EnrollIdentity](#fabric-v1-enrollidentity-activity)
         - [fabric.v1.RevokeIdentity](#fabric-v1-revokeidentity-activity)
+        - [fabric.v1.BootstrapEnrollIdentity](#fabric-v1-bootstrapenrollidentity-activity)
   - Messages
     - [fabric.v1.BootstrapCertificateAuthoritiesInput](#fabric-v1-bootstrapcertificateauthoritiesinput)
     - [fabric.v1.BootstrapCertificateAuthoritiesOutput](#fabric-v1-bootstrapcertificateauthoritiesoutput)
     - [fabric.v1.BootstrapCertificateAuthorityAdminInput](#fabric-v1-bootstrapcertificateauthorityadmininput)
     - [fabric.v1.BootstrapCertificateAuthorityAdminOutput](#fabric-v1-bootstrapcertificateauthorityadminoutput)
+    - [fabric.v1.BootstrapEnrollIdentityInput](#fabric-v1-bootstrapenrollidentityinput)
+    - [fabric.v1.BootstrapEnrollIdentityOutput](#fabric-v1-bootstrapenrollidentityoutput)
     - [fabric.v1.BootstrapShardInput](#fabric-v1-bootstrapshardinput)
     - [fabric.v1.BootstrapShardOutput](#fabric-v1-bootstrapshardoutput)
     - [fabric.v1.CreateCertificateDatabaseInput](#fabric-v1-createcertificatedatabaseinput)
@@ -153,6 +156,7 @@
         - [secrets.v1.CreatePassword](#secrets-v1-createpassword-activity)
         - [secrets.v1.CreateKeyPair](#secrets-v1-createkeypair-activity)
         - [secrets.v1.CreateSelfSignedCertificate](#secrets-v1-createselfsignedcertificate-activity)
+        - [secrets.v1.StoreCertificate](#secrets-v1-storecertificate-activity)
   - Messages
     - [secrets.v1.CreateAccessInput](#secrets-v1-createaccessinput)
     - [secrets.v1.CreateAccessOutput](#secrets-v1-createaccessoutput)
@@ -163,6 +167,8 @@
     - [secrets.v1.CreateSelfSignedCertificateInput](#secrets-v1-createselfsignedcertificateinput)
     - [secrets.v1.CreateSelfSignedCertificateOutput](#secrets-v1-createselfsignedcertificateoutput)
     - [secrets.v1.SecretRef](#secrets-v1-secretref)
+    - [secrets.v1.StoreCertificateInput](#secrets-v1-storecertificateinput)
+    - [secrets.v1.StoreCertificateOutput](#secrets-v1-storecertificateoutput)
 - [temporal.v1](#temporal-v1)
   - Services
     - [temporal.v1.Admin](#temporal-v1-admin)
@@ -1454,6 +1460,15 @@ then revokes the bootstrap admin credentials
 <th>Description</th>
 </tr>
 <tr>
+<td>bootstrap_credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+bootstrap_credentials_ref points to the bootstrap admin username/password in Vault<br>
+
+json_name: BootstrapCredentialsRef
+go_name: BootstrapCredentialsRef
+go_tags: json:"BootstrapCredentialsRef" validate:"required"</pre></td>
+</tr><tr>
 <td>cert_type</td>
 <td>string</td>
 <td><pre>
@@ -1600,7 +1615,121 @@ Used to revoke bootstrap admin credentials after permanent admin is created
 
 **Output:** [fabric.v1.RevokeIdentityOutput](#fabric-v1-revokeidentityoutput)
 
-   
+ 
+
+---
+<a name="fabric-v1-bootstrapenrollidentity-activity"></a>
+### fabric.v1.BootstrapEnrollIdentity
+
+<pre>
+BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
+This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
+The activity generates a CSR internally and submits it to the CA
+</pre>
+
+**Input:** [fabric.v1.BootstrapEnrollIdentityInput](#fabric-v1-bootstrapenrollidentityinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>bootstrap_credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+bootstrap_credentials_ref points to the bootstrap admin username/password in Vault<br>
+
+json_name: BootstrapCredentialsRef
+go_name: BootstrapCredentialsRef
+go_tags: json:"BootstrapCredentialsRef" validate:"required"</pre></td>
+</tr><tr>
+<td>ca_tls_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+ca_tls_cert_ref points to the CA's TLS certificate in Vault
+This certificate is used to verify the CA server's TLS connection<br>
+
+json_name: CaTlsCertRef
+go_name: CaTlsCertRef
+go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>ca_url</td>
+<td>string</td>
+<td><pre>
+ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric-org1.svc.cluster.local:7054")<br>
+
+json_name: CaUrl
+go_name: CaUrl
+go_tags: json:"CaUrl" validate:"required,url"</pre></td>
+</tr><tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+cert_ref is where to store the enrolled certificate<br>
+
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN for the certificate subject<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>key_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+key_ref points to the private key in Vault to use for CSR generation<br>
+
+json_name: KeyRef
+go_name: KeyRef
+go_tags: json:"KeyRef" validate:"required"</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+organization is the O for the certificate subject<br>
+
+json_name: Organization
+go_name: Organization
+go_tags: json:"Organization" validate:"required"</pre></td>
+</tr><tr>
+<td>organizational_unit</td>
+<td>string</td>
+<td><pre>
+organizational_unit is the OU for the certificate subject<br>
+
+json_name: OrganizationalUnit
+go_name: OrganizationalUnit
+go_tags: json:"OrganizationalUnit" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.v1.BootstrapEnrollIdentityOutput](#fabric-v1-bootstrapenrollidentityoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+cert_ref is where the certificate was stored<br>
+
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr>
+</table>   
 
 <a name="fabric-v1-messages"></a>
 ## Messages
@@ -1639,6 +1768,15 @@ BootstrapCertificateAuthorityAdminInput specifies the parameters for bootstrappi
 <th>Description</th>
 </tr>
 <tr>
+<td>bootstrap_credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+bootstrap_credentials_ref points to the bootstrap admin username/password in Vault<br>
+
+json_name: BootstrapCredentialsRef
+go_name: BootstrapCredentialsRef
+go_tags: json:"BootstrapCredentialsRef" validate:"required"</pre></td>
+</tr><tr>
 <td>cert_type</td>
 <td>string</td>
 <td><pre>
@@ -1670,6 +1808,124 @@ go_tags: json:"CertificateAuthorityId" validate:"required"</pre></td>
 BootstrapCertificateAuthorityAdminOutput indicates the result of CA admin bootstrap
 Empty for now - will be populated as implementation progresses
 </pre>
+
+
+
+<a name="fabric-v1-bootstrapenrollidentityinput"></a>
+### fabric.v1.BootstrapEnrollIdentityInput
+
+<pre>
+BootstrapEnrollIdentityInput specifies the parameters for bootstrap enrollment
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>bootstrap_credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+bootstrap_credentials_ref points to the bootstrap admin username/password in Vault<br>
+
+json_name: BootstrapCredentialsRef
+go_name: BootstrapCredentialsRef
+go_tags: json:"BootstrapCredentialsRef" validate:"required"</pre></td>
+</tr><tr>
+<td>ca_tls_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+ca_tls_cert_ref points to the CA's TLS certificate in Vault
+This certificate is used to verify the CA server's TLS connection<br>
+
+json_name: CaTlsCertRef
+go_name: CaTlsCertRef
+go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>ca_url</td>
+<td>string</td>
+<td><pre>
+ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric-org1.svc.cluster.local:7054")<br>
+
+json_name: CaUrl
+go_name: CaUrl
+go_tags: json:"CaUrl" validate:"required,url"</pre></td>
+</tr><tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+cert_ref is where to store the enrolled certificate<br>
+
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN for the certificate subject<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>key_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+key_ref points to the private key in Vault to use for CSR generation<br>
+
+json_name: KeyRef
+go_name: KeyRef
+go_tags: json:"KeyRef" validate:"required"</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+organization is the O for the certificate subject<br>
+
+json_name: Organization
+go_name: Organization
+go_tags: json:"Organization" validate:"required"</pre></td>
+</tr><tr>
+<td>organizational_unit</td>
+<td>string</td>
+<td><pre>
+organizational_unit is the OU for the certificate subject<br>
+
+json_name: OrganizationalUnit
+go_name: OrganizationalUnit
+go_tags: json:"OrganizationalUnit" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-bootstrapenrollidentityoutput"></a>
+### fabric.v1.BootstrapEnrollIdentityOutput
+
+<pre>
+BootstrapEnrollIdentityOutput confirms the certificate was enrolled and stored
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+cert_ref is where the certificate was stored<br>
+
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr>
+</table>
 
 
 
@@ -4245,6 +4501,16 @@ json_name: CommonName
 go_name: CommonName
 go_tags: json:"CommonName" validate:"required"</pre></td>
 </tr><tr>
+<td>dns_names</td>
+<td>string</td>
+<td><pre>
+dns_names are Subject Alternative Names (SANs) for TLS server certificates
+Required for TLS certificate validation - modern clients require SANs even if CN matches<br>
+
+json_name: DnsNames
+go_name: DnsNames
+go_tags: json:"DnsNames"</pre></td>
+</tr><tr>
 <td>key_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
@@ -4293,6 +4559,71 @@ go_tags: json:"ValidityDuration" validate:"required"</pre></td>
 </table>
 
 **Output:** [secrets.v1.CreateSelfSignedCertificateOutput](#secrets-v1-createselfsignedcertificateoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr>
+</table> 
+
+---
+<a name="secrets-v1-storecertificate-activity"></a>
+### secrets.v1.StoreCertificate
+
+<pre>
+StoreCertificate stores certificate data at the specified location.
+Implemented as an activity to keep certificate data out of workflow history.
+</pre>
+
+**Input:** [secrets.v1.StoreCertificateInput](#secrets-v1-storecertificateinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_chain_pem</td>
+<td>bytes</td>
+<td><pre>
+ca_chain_pem is the optional PEM-encoded CA certificate chain<br>
+
+json_name: CaChainPem
+go_name: CaChainPem
+go_tags: json:"CaChainPem"</pre></td>
+</tr><tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+cert_ref is where to store the certificate<br>
+
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>certificate_pem</td>
+<td>bytes</td>
+<td><pre>
+certificate_pem is the PEM-encoded certificate to store<br>
+
+json_name: CertificatePem
+go_name: CertificatePem
+go_tags: json:"CertificatePem" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [secrets.v1.StoreCertificateOutput](#secrets-v1-storecertificateoutput)
 
 <table>
 <tr>
@@ -4553,6 +4884,16 @@ json_name: CommonName
 go_name: CommonName
 go_tags: json:"CommonName" validate:"required"</pre></td>
 </tr><tr>
+<td>dns_names</td>
+<td>string</td>
+<td><pre>
+dns_names are Subject Alternative Names (SANs) for TLS server certificates
+Required for TLS certificate validation - modern clients require SANs even if CN matches<br>
+
+json_name: DnsNames
+go_name: DnsNames
+go_tags: json:"DnsNames"</pre></td>
+</tr><tr>
 <td>key_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
@@ -4662,6 +5003,76 @@ type identifies the secret backend (e.g., "vault", "k8s")<br>
 json_name: Type
 go_name: Type
 go_tags: json:"Type" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-storecertificateinput"></a>
+### secrets.v1.StoreCertificateInput
+
+<pre>
+StoreCertificateInput specifies certificate data to store
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_chain_pem</td>
+<td>bytes</td>
+<td><pre>
+ca_chain_pem is the optional PEM-encoded CA certificate chain<br>
+
+json_name: CaChainPem
+go_name: CaChainPem
+go_tags: json:"CaChainPem"</pre></td>
+</tr><tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+cert_ref is where to store the certificate<br>
+
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>certificate_pem</td>
+<td>bytes</td>
+<td><pre>
+certificate_pem is the PEM-encoded certificate to store<br>
+
+json_name: CertificatePem
+go_name: CertificatePem
+go_tags: json:"CertificatePem" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-storecertificateoutput"></a>
+### secrets.v1.StoreCertificateOutput
+
+<pre>
+StoreCertificateOutput confirms certificate was stored
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
 </tr>
 </table>
 

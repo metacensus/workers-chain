@@ -5200,13 +5200,19 @@ var FabricActivitiesTaskQueue = "infra"
 
 // fabric.v1.FabricActivities activity names
 const (
-	EnrollIdentityActivityName   = "fabric.v1.EnrollIdentity"
-	RegisterIdentityActivityName = "fabric.v1.RegisterIdentity"
-	RevokeIdentityActivityName   = "fabric.v1.RevokeIdentity"
+	BootstrapEnrollIdentityActivityName = "fabric.v1.BootstrapEnrollIdentity"
+	EnrollIdentityActivityName          = "fabric.v1.EnrollIdentity"
+	RegisterIdentityActivityName        = "fabric.v1.RegisterIdentity"
+	RevokeIdentityActivityName          = "fabric.v1.RevokeIdentity"
 )
 
 // FabricActivitiesActivities describes available worker activities
 type FabricActivitiesActivities interface {
+	// BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
+	// This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
+	// The activity generates a CSR internally and submits it to the CA
+	BootstrapEnrollIdentity(ctx context.Context, req *BootstrapEnrollIdentityInput) (*BootstrapEnrollIdentityOutput, error)
+
 	// EnrollIdentity enrolls a registered identity and retrieves certificates
 	// This is the second step in identity creation - enrollment uses the secret from registration
 	EnrollIdentity(ctx context.Context, req *EnrollIdentityInput) (*EnrollIdentityOutput, error)
@@ -5222,9 +5228,278 @@ type FabricActivitiesActivities interface {
 
 // RegisterFabricActivitiesActivities registers activities with a worker
 func RegisterFabricActivitiesActivities(r worker.ActivityRegistry, activities FabricActivitiesActivities) {
+	RegisterBootstrapEnrollIdentityActivity(r, activities.BootstrapEnrollIdentity)
 	RegisterEnrollIdentityActivity(r, activities.EnrollIdentity)
 	RegisterRegisterIdentityActivity(r, activities.RegisterIdentity)
 	RegisterRevokeIdentityActivity(r, activities.RevokeIdentity)
+}
+
+// RegisterBootstrapEnrollIdentityActivity registers a fabric.v1.BootstrapEnrollIdentity activity
+func RegisterBootstrapEnrollIdentityActivity(r worker.ActivityRegistry, fn func(context.Context, *BootstrapEnrollIdentityInput) (*BootstrapEnrollIdentityOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: BootstrapEnrollIdentityActivityName,
+	})
+}
+
+// BootstrapEnrollIdentityFuture describes a(n) fabric.v1.BootstrapEnrollIdentity activity execution
+type BootstrapEnrollIdentityFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *BootstrapEnrollIdentityFuture) Get(ctx workflow.Context) (*BootstrapEnrollIdentityOutput, error) {
+	var resp BootstrapEnrollIdentityOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *BootstrapEnrollIdentityFuture) Select(sel workflow.Selector, fn func(*BootstrapEnrollIdentityFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
+// This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
+// The activity generates a CSR internally and submits it to the CA
+func BootstrapEnrollIdentity(ctx workflow.Context, req *BootstrapEnrollIdentityInput, options ...*BootstrapEnrollIdentityActivityOptions) (*BootstrapEnrollIdentityOutput, error) {
+	return BootstrapEnrollIdentityAsync(ctx, req, options...).Get(ctx)
+}
+
+// BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
+// This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
+// The activity generates a CSR internally and submits it to the CA
+func BootstrapEnrollIdentityAsync(ctx workflow.Context, req *BootstrapEnrollIdentityInput, options ...*BootstrapEnrollIdentityActivityOptions) *BootstrapEnrollIdentityFuture {
+	var o *BootstrapEnrollIdentityActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewBootstrapEnrollIdentityActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &BootstrapEnrollIdentityFuture{Future: errF}
+	}
+	activity := BootstrapEnrollIdentityActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &BootstrapEnrollIdentityFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
+// This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
+// The activity generates a CSR internally and submits it to the CA
+func BootstrapEnrollIdentityLocal(ctx workflow.Context, req *BootstrapEnrollIdentityInput, options ...*BootstrapEnrollIdentityLocalActivityOptions) (*BootstrapEnrollIdentityOutput, error) {
+	return BootstrapEnrollIdentityLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
+// This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
+// The activity generates a CSR internally and submits it to the CA
+func BootstrapEnrollIdentityLocalAsync(ctx workflow.Context, req *BootstrapEnrollIdentityInput, options ...*BootstrapEnrollIdentityLocalActivityOptions) *BootstrapEnrollIdentityFuture {
+	var o *BootstrapEnrollIdentityLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewBootstrapEnrollIdentityLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &BootstrapEnrollIdentityFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = BootstrapEnrollIdentityActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &BootstrapEnrollIdentityFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// BootstrapEnrollIdentityActivityOptions provides configuration for a(n) fabric.v1.BootstrapEnrollIdentity activity
+type BootstrapEnrollIdentityActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewBootstrapEnrollIdentityActivityOptions initializes a new BootstrapEnrollIdentityActivityOptions value
+func NewBootstrapEnrollIdentityActivityOptions() *BootstrapEnrollIdentityActivityOptions {
+	return &BootstrapEnrollIdentityActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *BootstrapEnrollIdentityActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricActivitiesTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *BootstrapEnrollIdentityActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *BootstrapEnrollIdentityActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *BootstrapEnrollIdentityActivityOptions) WithDataConverter(dc converter.DataConverter) *BootstrapEnrollIdentityActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *BootstrapEnrollIdentityActivityOptions) WithHeartbeatTimeout(d time.Duration) *BootstrapEnrollIdentityActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *BootstrapEnrollIdentityActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *BootstrapEnrollIdentityActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *BootstrapEnrollIdentityActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *BootstrapEnrollIdentityActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *BootstrapEnrollIdentityActivityOptions) WithScheduleToStartTimeout(d time.Duration) *BootstrapEnrollIdentityActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *BootstrapEnrollIdentityActivityOptions) WithStartToCloseTimeout(d time.Duration) *BootstrapEnrollIdentityActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *BootstrapEnrollIdentityActivityOptions) WithTaskQueue(tq string) *BootstrapEnrollIdentityActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *BootstrapEnrollIdentityActivityOptions) WithWaitForCancellation(wait bool) *BootstrapEnrollIdentityActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// BootstrapEnrollIdentityLocalActivityOptions provides configuration for a(n) fabric.v1.BootstrapEnrollIdentity activity
+type BootstrapEnrollIdentityLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *BootstrapEnrollIdentityInput) (*BootstrapEnrollIdentityOutput, error)
+}
+
+// NewBootstrapEnrollIdentityLocalActivityOptions initializes a new BootstrapEnrollIdentityLocalActivityOptions value
+func NewBootstrapEnrollIdentityLocalActivityOptions() *BootstrapEnrollIdentityLocalActivityOptions {
+	return &BootstrapEnrollIdentityLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *BootstrapEnrollIdentityLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom fabric.v1.BootstrapEnrollIdentity implementation
+func (o *BootstrapEnrollIdentityLocalActivityOptions) Local(fn func(context.Context, *BootstrapEnrollIdentityInput) (*BootstrapEnrollIdentityOutput, error)) *BootstrapEnrollIdentityLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *BootstrapEnrollIdentityLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *BootstrapEnrollIdentityLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *BootstrapEnrollIdentityLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *BootstrapEnrollIdentityLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *BootstrapEnrollIdentityLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *BootstrapEnrollIdentityLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *BootstrapEnrollIdentityLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *BootstrapEnrollIdentityLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *BootstrapEnrollIdentityLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *BootstrapEnrollIdentityLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
 }
 
 // RegisterEnrollIdentityActivity registers a fabric.v1.EnrollIdentity activity

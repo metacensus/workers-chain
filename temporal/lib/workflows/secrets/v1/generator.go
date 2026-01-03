@@ -65,6 +65,7 @@ type CertificateParams struct {
 	OrganizationalUnit string
 	ValidityDuration   time.Duration
 	MaxPathLength      int32
+	DNSNames           []string // Subject Alternative Names for TLS certificates
 }
 
 // GenerateSelfSignedCertificate generates a self-signed X.509 CA certificate.
@@ -106,6 +107,7 @@ func GenerateSelfSignedCertificate(privateKeyPEM []byte, params *CertificatePara
 			Organization:       []string{params.Organization},
 			OrganizationalUnit: []string{params.OrganizationalUnit},
 		},
+		DNSNames:              params.DNSNames, // Subject Alternative Names for TLS validation
 		NotBefore:             notBefore,
 		NotAfter:              notAfter,
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
@@ -128,4 +130,3 @@ func GenerateSelfSignedCertificate(privateKeyPEM []byte, params *CertificatePara
 
 	return &Certificate{Certificate: certPEM}, nil
 }
-

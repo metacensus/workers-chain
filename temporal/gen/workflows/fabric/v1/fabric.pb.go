@@ -547,8 +547,10 @@ type BootstrapCertificateAuthorityAdminInput struct {
 	// certificate_authority_id identifies which CA to bootstrap the admin for
 	// Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs
 	CertificateAuthorityId string `protobuf:"bytes,2,opt,name=certificate_authority_id,json=CertificateAuthorityId,proto3" json:"CertificateAuthorityId" validate:"required"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// bootstrap_credentials_ref points to the bootstrap admin username/password in Vault
+	BootstrapCredentialsRef *v1.SecretRef `protobuf:"bytes,3,opt,name=bootstrap_credentials_ref,json=BootstrapCredentialsRef,proto3" json:"BootstrapCredentialsRef" validate:"required"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *BootstrapCertificateAuthorityAdminInput) Reset() {
@@ -593,6 +595,13 @@ func (x *BootstrapCertificateAuthorityAdminInput) GetCertificateAuthorityId() st
 		return x.CertificateAuthorityId
 	}
 	return ""
+}
+
+func (x *BootstrapCertificateAuthorityAdminInput) GetBootstrapCredentialsRef() *v1.SecretRef {
+	if x != nil {
+		return x.BootstrapCredentialsRef
+	}
+	return nil
 }
 
 // BootstrapCertificateAuthorityAdminOutput indicates the result of CA admin bootstrap
@@ -949,6 +958,162 @@ func (*RevokeIdentityOutput) Descriptor() ([]byte, []int) {
 	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{21}
 }
 
+// BootstrapEnrollIdentityInput specifies the parameters for bootstrap enrollment
+type BootstrapEnrollIdentityInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric-org1.svc.cluster.local:7054")
+	CaUrl string `protobuf:"bytes,1,opt,name=ca_url,json=CaUrl,proto3" json:"CaUrl" validate:"required,url"`
+	// bootstrap_credentials_ref points to the bootstrap admin username/password in Vault
+	BootstrapCredentialsRef *v1.SecretRef `protobuf:"bytes,2,opt,name=bootstrap_credentials_ref,json=BootstrapCredentialsRef,proto3" json:"BootstrapCredentialsRef" validate:"required"`
+	// key_ref points to the private key in Vault to use for CSR generation
+	KeyRef *v1.SecretRef `protobuf:"bytes,3,opt,name=key_ref,json=KeyRef,proto3" json:"KeyRef" validate:"required"`
+	// cert_ref is where to store the enrolled certificate
+	CertRef *v1.SecretRef `protobuf:"bytes,4,opt,name=cert_ref,json=CertRef,proto3" json:"CertRef" validate:"required"`
+	// common_name is the CN for the certificate subject
+	CommonName string `protobuf:"bytes,5,opt,name=common_name,json=CommonName,proto3" json:"CommonName" validate:"required"`
+	// organization is the O for the certificate subject
+	Organization string `protobuf:"bytes,6,opt,name=organization,json=Organization,proto3" json:"Organization" validate:"required"`
+	// organizational_unit is the OU for the certificate subject
+	OrganizationalUnit string `protobuf:"bytes,7,opt,name=organizational_unit,json=OrganizationalUnit,proto3" json:"OrganizationalUnit" validate:"required"`
+	// ca_tls_cert_ref points to the CA's TLS certificate in Vault
+	// This certificate is used to verify the CA server's TLS connection
+	CaTlsCertRef  *v1.SecretRef `protobuf:"bytes,8,opt,name=ca_tls_cert_ref,json=CaTlsCertRef,proto3" json:"CaTlsCertRef" validate:"required"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BootstrapEnrollIdentityInput) Reset() {
+	*x = BootstrapEnrollIdentityInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BootstrapEnrollIdentityInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BootstrapEnrollIdentityInput) ProtoMessage() {}
+
+func (x *BootstrapEnrollIdentityInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BootstrapEnrollIdentityInput.ProtoReflect.Descriptor instead.
+func (*BootstrapEnrollIdentityInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *BootstrapEnrollIdentityInput) GetCaUrl() string {
+	if x != nil {
+		return x.CaUrl
+	}
+	return ""
+}
+
+func (x *BootstrapEnrollIdentityInput) GetBootstrapCredentialsRef() *v1.SecretRef {
+	if x != nil {
+		return x.BootstrapCredentialsRef
+	}
+	return nil
+}
+
+func (x *BootstrapEnrollIdentityInput) GetKeyRef() *v1.SecretRef {
+	if x != nil {
+		return x.KeyRef
+	}
+	return nil
+}
+
+func (x *BootstrapEnrollIdentityInput) GetCertRef() *v1.SecretRef {
+	if x != nil {
+		return x.CertRef
+	}
+	return nil
+}
+
+func (x *BootstrapEnrollIdentityInput) GetCommonName() string {
+	if x != nil {
+		return x.CommonName
+	}
+	return ""
+}
+
+func (x *BootstrapEnrollIdentityInput) GetOrganization() string {
+	if x != nil {
+		return x.Organization
+	}
+	return ""
+}
+
+func (x *BootstrapEnrollIdentityInput) GetOrganizationalUnit() string {
+	if x != nil {
+		return x.OrganizationalUnit
+	}
+	return ""
+}
+
+func (x *BootstrapEnrollIdentityInput) GetCaTlsCertRef() *v1.SecretRef {
+	if x != nil {
+		return x.CaTlsCertRef
+	}
+	return nil
+}
+
+// BootstrapEnrollIdentityOutput confirms the certificate was enrolled and stored
+type BootstrapEnrollIdentityOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// cert_ref is where the certificate was stored
+	CertRef       *v1.SecretRef `protobuf:"bytes,1,opt,name=cert_ref,json=CertRef,proto3" json:"CertRef" validate:"required"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BootstrapEnrollIdentityOutput) Reset() {
+	*x = BootstrapEnrollIdentityOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BootstrapEnrollIdentityOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BootstrapEnrollIdentityOutput) ProtoMessage() {}
+
+func (x *BootstrapEnrollIdentityOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BootstrapEnrollIdentityOutput.ProtoReflect.Descriptor instead.
+func (*BootstrapEnrollIdentityOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *BootstrapEnrollIdentityOutput) GetCertRef() *v1.SecretRef {
+	if x != nil {
+		return x.CertRef
+	}
+	return nil
+}
+
 var File_fabric_v1_fabric_proto protoreflect.FileDescriptor
 
 const file_fabric_v1_fabric_proto_rawDesc = "" +
@@ -971,10 +1136,11 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\tcert_type\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"CertType\" validate:\"required\"R\bCertType\x12r\n" +
 	"\x18certificate_authority_id\x18\x02 \x01(\tB8ʵ\x034\xa2\x011json:\"CertificateAuthorityId\" validate:\"required\"R\x16CertificateAuthorityId\"\x93\x01\n" +
 	"\x1fCreateCertificateDatabaseOutput\x12p\n" +
-	"\x0fcredentials_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB0ʵ\x03,\xa2\x01)json:\"CredentialsRef\" validate:\"required\"R\x0eCredentialsRef\"\xe6\x01\n" +
+	"\x0fcredentials_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB0ʵ\x03,\xa2\x01)json:\"CredentialsRef\" validate:\"required\"R\x0eCredentialsRef\"\xf5\x02\n" +
 	"'BootstrapCertificateAuthorityAdminInput\x12G\n" +
 	"\tcert_type\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"CertType\" validate:\"required\"R\bCertType\x12r\n" +
-	"\x18certificate_authority_id\x18\x02 \x01(\tB8ʵ\x034\xa2\x011json:\"CertificateAuthorityId\" validate:\"required\"R\x16CertificateAuthorityId\"*\n" +
+	"\x18certificate_authority_id\x18\x02 \x01(\tB8ʵ\x034\xa2\x011json:\"CertificateAuthorityId\" validate:\"required\"R\x16CertificateAuthorityId\x12\x8c\x01\n" +
+	"\x19bootstrap_credentials_ref\x18\x03 \x01(\v2\x15.secrets.v1.SecretRefB9ʵ\x035\xa2\x012json:\"BootstrapCredentialsRef\" validate:\"required\"R\x17BootstrapCredentialsRef\"*\n" +
 	"(BootstrapCertificateAuthorityAdminOutput\"\xb3\x01\n" +
 	"\x13CreateIdentityInput\x12G\n" +
 	"\tcert_type\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"CertType\" validate:\"required\"R\bCertType\x12S\n" +
@@ -985,7 +1151,19 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x13EnrollIdentityInput\"\x16\n" +
 	"\x14EnrollIdentityOutput\"\x15\n" +
 	"\x13RevokeIdentityInput\"\x16\n" +
-	"\x14RevokeIdentityOutput2\xd2\r\n" +
+	"\x14RevokeIdentityOutput\"\xa0\x06\n" +
+	"\x1cBootstrapEnrollIdentityInput\x12B\n" +
+	"\x06ca_url\x18\x01 \x01(\tB+ʵ\x03'\xa2\x01$json:\"CaUrl\" validate:\"required,url\"R\x05CaUrl\x12\x8c\x01\n" +
+	"\x19bootstrap_credentials_ref\x18\x02 \x01(\v2\x15.secrets.v1.SecretRefB9ʵ\x035\xa2\x012json:\"BootstrapCredentialsRef\" validate:\"required\"R\x17BootstrapCredentialsRef\x12X\n" +
+	"\akey_ref\x18\x03 \x01(\v2\x15.secrets.v1.SecretRefB(ʵ\x03$\xa2\x01!json:\"KeyRef\" validate:\"required\"R\x06KeyRef\x12[\n" +
+	"\bcert_ref\x18\x04 \x01(\v2\x15.secrets.v1.SecretRefB)ʵ\x03%\xa2\x01\"json:\"CertRef\" validate:\"required\"R\aCertRef\x12M\n" +
+	"\vcommon_name\x18\x05 \x01(\tB,ʵ\x03(\xa2\x01%json:\"CommonName\" validate:\"required\"R\n" +
+	"CommonName\x12R\n" +
+	"\forganization\x18\x06 \x01(\tB.ʵ\x03*\xa2\x01'json:\"Organization\" validate:\"required\"R\fOrganization\x12e\n" +
+	"\x13organizational_unit\x18\a \x01(\tB4ʵ\x030\xa2\x01-json:\"OrganizationalUnit\" validate:\"required\"R\x12OrganizationalUnit\x12l\n" +
+	"\x0fca_tls_cert_ref\x18\b \x01(\v2\x15.secrets.v1.SecretRefB.ʵ\x03*\xa2\x01'json:\"CaTlsCertRef\" validate:\"required\"R\fCaTlsCertRef\"|\n" +
+	"\x1dBootstrapEnrollIdentityOutput\x12[\n" +
+	"\bcert_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB)ʵ\x03%\xa2\x01\"json:\"CertRef\" validate:\"required\"R\aCertRef2\xd2\r\n" +
 	"\x06Fabric\x12\x8b\x01\n" +
 	"\x0eBootstrapShard\x12\x1e.fabric.v1.BootstrapShardInput\x1a\x1f.fabric.v1.BootstrapShardOutput\"8\x8a\xc4\x034*\x16fabric/bootstrap-shard0\x01r\x18fabric.v1.BootstrapShard\x12\xe1\x01\n" +
 	"\x1fBootstrapCertificateAuthorities\x12/.fabric.v1.BootstrapCertificateAuthoritiesInput\x1a0.fabric.v1.BootstrapCertificateAuthoritiesOutput\"[\x8a\xc4\x03W*(fabric/bootstrap-certificate-authorities0\x01r)fabric.v1.BootstrapCertificateAuthorities\x12\xb4\x01\n" +
@@ -995,11 +1173,12 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x19CreateCertificateDatabase\x12).fabric.v1.CreateCertificateDatabaseInput\x1a*.fabric.v1.CreateCertificateDatabaseOutput\"{\x8a\xc4\x03w*Nfabric/create-certificate-database/${! CertType }/${! CertificateAuthorityId }0\x01r#fabric.v1.CreateCertificateDatabase\x12\x8a\x02\n" +
 	"\"BootstrapCertificateAuthorityAdmin\x122.fabric.v1.BootstrapCertificateAuthorityAdminInput\x1a3.fabric.v1.BootstrapCertificateAuthorityAdminOutput\"{\x8a\xc4\x03w*Efabric/bootstrap-ca-admin/${! CertType }/${! CertificateAuthorityId }0\x01r,fabric.v1.BootstrapCertificateAuthorityAdmin\x12\xad\x01\n" +
 	"\x0eCreateIdentity\x12\x1e.fabric.v1.CreateIdentityInput\x1a\x1f.fabric.v1.CreateIdentityOutput\"Z\x8a\xc4\x03V*8fabric/create-identity/${! CertType }/${! IdentityName }0\x01r\x18fabric.v1.CreateIdentity\x1a\x1e\x8a\xc4\x03\a\n" +
-	"\x05infraʂ\x04\x0f\x12\rnexus-enabled2\x8c\x03\n" +
+	"\x05infraʂ\x04\x0f\x12\rnexus-enabled2\xa8\x04\n" +
 	"\x10FabricActivities\x12}\n" +
 	"\x10RegisterIdentity\x12 .fabric.v1.RegisterIdentityInput\x1a!.fabric.v1.RegisterIdentityOutput\"$\x92\xc4\x03 \x12\x02\b<:\x1afabric.v1.RegisterIdentity\x12u\n" +
 	"\x0eEnrollIdentity\x12\x1e.fabric.v1.EnrollIdentityInput\x1a\x1f.fabric.v1.EnrollIdentityOutput\"\"\x92\xc4\x03\x1e\x12\x02\b<:\x18fabric.v1.EnrollIdentity\x12u\n" +
-	"\x0eRevokeIdentity\x12\x1e.fabric.v1.RevokeIdentityInput\x1a\x1f.fabric.v1.RevokeIdentityOutput\"\"\x92\xc4\x03\x1e\x12\x02\b<:\x18fabric.v1.RevokeIdentity\x1a\v\x8a\xc4\x03\a\n" +
+	"\x0eRevokeIdentity\x12\x1e.fabric.v1.RevokeIdentityInput\x1a\x1f.fabric.v1.RevokeIdentityOutput\"\"\x92\xc4\x03\x1e\x12\x02\b<:\x18fabric.v1.RevokeIdentity\x12\x99\x01\n" +
+	"\x17BootstrapEnrollIdentity\x12'.fabric.v1.BootstrapEnrollIdentityInput\x1a(.fabric.v1.BootstrapEnrollIdentityOutput\"+\x92\xc4\x03'\x12\x02\b<:!fabric.v1.BootstrapEnrollIdentity\x1a\v\x8a\xc4\x03\a\n" +
 	"\x05infraB\xa8\x01\n" +
 	"\rcom.fabric.v1B\vFabricProtoP\x01ZEgithub.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1\xa2\x02\x03FXX\xaa\x02\tFabric.V1\xca\x02\tFabric\\V1\xe2\x02\x15Fabric\\V1\\GPBMetadata\xea\x02\n" +
 	"Fabric::V1b\x06proto3"
@@ -1016,7 +1195,7 @@ func file_fabric_v1_fabric_proto_rawDescGZIP() []byte {
 	return file_fabric_v1_fabric_proto_rawDescData
 }
 
-var file_fabric_v1_fabric_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_fabric_v1_fabric_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_fabric_v1_fabric_proto_goTypes = []any{
 	(*BootstrapShardInput)(nil),                      // 0: fabric.v1.BootstrapShardInput
 	(*BootstrapShardOutput)(nil),                     // 1: fabric.v1.BootstrapShardOutput
@@ -1040,37 +1219,47 @@ var file_fabric_v1_fabric_proto_goTypes = []any{
 	(*EnrollIdentityOutput)(nil),                     // 19: fabric.v1.EnrollIdentityOutput
 	(*RevokeIdentityInput)(nil),                      // 20: fabric.v1.RevokeIdentityInput
 	(*RevokeIdentityOutput)(nil),                     // 21: fabric.v1.RevokeIdentityOutput
-	(*v1.SecretRef)(nil),                             // 22: secrets.v1.SecretRef
+	(*BootstrapEnrollIdentityInput)(nil),             // 22: fabric.v1.BootstrapEnrollIdentityInput
+	(*BootstrapEnrollIdentityOutput)(nil),            // 23: fabric.v1.BootstrapEnrollIdentityOutput
+	(*v1.SecretRef)(nil),                             // 24: secrets.v1.SecretRef
 }
 var file_fabric_v1_fabric_proto_depIdxs = []int32{
-	22, // 0: fabric.v1.CreateCertificateDatabaseOutput.credentials_ref:type_name -> secrets.v1.SecretRef
-	0,  // 1: fabric.v1.Fabric.BootstrapShard:input_type -> fabric.v1.BootstrapShardInput
-	2,  // 2: fabric.v1.Fabric.BootstrapCertificateAuthorities:input_type -> fabric.v1.BootstrapCertificateAuthoritiesInput
-	4,  // 3: fabric.v1.Fabric.DeployCertificateStore:input_type -> fabric.v1.DeployCertificateStoreInput
-	6,  // 4: fabric.v1.Fabric.DeployRootCertificateAuthority:input_type -> fabric.v1.DeployRootCertificateAuthorityInput
-	8,  // 5: fabric.v1.Fabric.DeployCertificateAuthority:input_type -> fabric.v1.DeployCertificateAuthorityInput
-	10, // 6: fabric.v1.Fabric.CreateCertificateDatabase:input_type -> fabric.v1.CreateCertificateDatabaseInput
-	12, // 7: fabric.v1.Fabric.BootstrapCertificateAuthorityAdmin:input_type -> fabric.v1.BootstrapCertificateAuthorityAdminInput
-	14, // 8: fabric.v1.Fabric.CreateIdentity:input_type -> fabric.v1.CreateIdentityInput
-	16, // 9: fabric.v1.FabricActivities.RegisterIdentity:input_type -> fabric.v1.RegisterIdentityInput
-	18, // 10: fabric.v1.FabricActivities.EnrollIdentity:input_type -> fabric.v1.EnrollIdentityInput
-	20, // 11: fabric.v1.FabricActivities.RevokeIdentity:input_type -> fabric.v1.RevokeIdentityInput
-	1,  // 12: fabric.v1.Fabric.BootstrapShard:output_type -> fabric.v1.BootstrapShardOutput
-	3,  // 13: fabric.v1.Fabric.BootstrapCertificateAuthorities:output_type -> fabric.v1.BootstrapCertificateAuthoritiesOutput
-	5,  // 14: fabric.v1.Fabric.DeployCertificateStore:output_type -> fabric.v1.DeployCertificateStoreOutput
-	7,  // 15: fabric.v1.Fabric.DeployRootCertificateAuthority:output_type -> fabric.v1.DeployRootCertificateAuthorityOutput
-	9,  // 16: fabric.v1.Fabric.DeployCertificateAuthority:output_type -> fabric.v1.DeployCertificateAuthorityOutput
-	11, // 17: fabric.v1.Fabric.CreateCertificateDatabase:output_type -> fabric.v1.CreateCertificateDatabaseOutput
-	13, // 18: fabric.v1.Fabric.BootstrapCertificateAuthorityAdmin:output_type -> fabric.v1.BootstrapCertificateAuthorityAdminOutput
-	15, // 19: fabric.v1.Fabric.CreateIdentity:output_type -> fabric.v1.CreateIdentityOutput
-	17, // 20: fabric.v1.FabricActivities.RegisterIdentity:output_type -> fabric.v1.RegisterIdentityOutput
-	19, // 21: fabric.v1.FabricActivities.EnrollIdentity:output_type -> fabric.v1.EnrollIdentityOutput
-	21, // 22: fabric.v1.FabricActivities.RevokeIdentity:output_type -> fabric.v1.RevokeIdentityOutput
-	12, // [12:23] is the sub-list for method output_type
-	1,  // [1:12] is the sub-list for method input_type
-	1,  // [1:1] is the sub-list for extension type_name
-	1,  // [1:1] is the sub-list for extension extendee
-	0,  // [0:1] is the sub-list for field type_name
+	24, // 0: fabric.v1.CreateCertificateDatabaseOutput.credentials_ref:type_name -> secrets.v1.SecretRef
+	24, // 1: fabric.v1.BootstrapCertificateAuthorityAdminInput.bootstrap_credentials_ref:type_name -> secrets.v1.SecretRef
+	24, // 2: fabric.v1.BootstrapEnrollIdentityInput.bootstrap_credentials_ref:type_name -> secrets.v1.SecretRef
+	24, // 3: fabric.v1.BootstrapEnrollIdentityInput.key_ref:type_name -> secrets.v1.SecretRef
+	24, // 4: fabric.v1.BootstrapEnrollIdentityInput.cert_ref:type_name -> secrets.v1.SecretRef
+	24, // 5: fabric.v1.BootstrapEnrollIdentityInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
+	24, // 6: fabric.v1.BootstrapEnrollIdentityOutput.cert_ref:type_name -> secrets.v1.SecretRef
+	0,  // 7: fabric.v1.Fabric.BootstrapShard:input_type -> fabric.v1.BootstrapShardInput
+	2,  // 8: fabric.v1.Fabric.BootstrapCertificateAuthorities:input_type -> fabric.v1.BootstrapCertificateAuthoritiesInput
+	4,  // 9: fabric.v1.Fabric.DeployCertificateStore:input_type -> fabric.v1.DeployCertificateStoreInput
+	6,  // 10: fabric.v1.Fabric.DeployRootCertificateAuthority:input_type -> fabric.v1.DeployRootCertificateAuthorityInput
+	8,  // 11: fabric.v1.Fabric.DeployCertificateAuthority:input_type -> fabric.v1.DeployCertificateAuthorityInput
+	10, // 12: fabric.v1.Fabric.CreateCertificateDatabase:input_type -> fabric.v1.CreateCertificateDatabaseInput
+	12, // 13: fabric.v1.Fabric.BootstrapCertificateAuthorityAdmin:input_type -> fabric.v1.BootstrapCertificateAuthorityAdminInput
+	14, // 14: fabric.v1.Fabric.CreateIdentity:input_type -> fabric.v1.CreateIdentityInput
+	16, // 15: fabric.v1.FabricActivities.RegisterIdentity:input_type -> fabric.v1.RegisterIdentityInput
+	18, // 16: fabric.v1.FabricActivities.EnrollIdentity:input_type -> fabric.v1.EnrollIdentityInput
+	20, // 17: fabric.v1.FabricActivities.RevokeIdentity:input_type -> fabric.v1.RevokeIdentityInput
+	22, // 18: fabric.v1.FabricActivities.BootstrapEnrollIdentity:input_type -> fabric.v1.BootstrapEnrollIdentityInput
+	1,  // 19: fabric.v1.Fabric.BootstrapShard:output_type -> fabric.v1.BootstrapShardOutput
+	3,  // 20: fabric.v1.Fabric.BootstrapCertificateAuthorities:output_type -> fabric.v1.BootstrapCertificateAuthoritiesOutput
+	5,  // 21: fabric.v1.Fabric.DeployCertificateStore:output_type -> fabric.v1.DeployCertificateStoreOutput
+	7,  // 22: fabric.v1.Fabric.DeployRootCertificateAuthority:output_type -> fabric.v1.DeployRootCertificateAuthorityOutput
+	9,  // 23: fabric.v1.Fabric.DeployCertificateAuthority:output_type -> fabric.v1.DeployCertificateAuthorityOutput
+	11, // 24: fabric.v1.Fabric.CreateCertificateDatabase:output_type -> fabric.v1.CreateCertificateDatabaseOutput
+	13, // 25: fabric.v1.Fabric.BootstrapCertificateAuthorityAdmin:output_type -> fabric.v1.BootstrapCertificateAuthorityAdminOutput
+	15, // 26: fabric.v1.Fabric.CreateIdentity:output_type -> fabric.v1.CreateIdentityOutput
+	17, // 27: fabric.v1.FabricActivities.RegisterIdentity:output_type -> fabric.v1.RegisterIdentityOutput
+	19, // 28: fabric.v1.FabricActivities.EnrollIdentity:output_type -> fabric.v1.EnrollIdentityOutput
+	21, // 29: fabric.v1.FabricActivities.RevokeIdentity:output_type -> fabric.v1.RevokeIdentityOutput
+	23, // 30: fabric.v1.FabricActivities.BootstrapEnrollIdentity:output_type -> fabric.v1.BootstrapEnrollIdentityOutput
+	19, // [19:31] is the sub-list for method output_type
+	7,  // [7:19] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_fabric_v1_fabric_proto_init() }
@@ -1084,7 +1273,7 @@ func file_fabric_v1_fabric_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_fabric_v1_fabric_proto_rawDesc), len(file_fabric_v1_fabric_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   22,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

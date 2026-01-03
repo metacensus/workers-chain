@@ -46,6 +46,7 @@ const (
 	CreateKeyPairActivityName               = "secrets.v1.CreateKeyPair"
 	CreatePasswordActivityName              = "secrets.v1.CreatePassword"
 	CreateSelfSignedCertificateActivityName = "secrets.v1.CreateSelfSignedCertificate"
+	StoreCertificateActivityName            = "secrets.v1.StoreCertificate"
 )
 
 // SecretsClient describes a client for a(n) secrets.v1.Secrets worker
@@ -700,6 +701,10 @@ type SecretsActivities interface {
 	// CreateSelfSignedCertificate fetches a key pair, generates a self-signed certificate, and stores it.
 	// Used for root CA certificates only. Implemented as an activity to keep secrets out of workflow history.
 	CreateSelfSignedCertificate(ctx context.Context, req *CreateSelfSignedCertificateInput) (*CreateSelfSignedCertificateOutput, error)
+
+	// StoreCertificate stores certificate data at the specified location.
+	// Implemented as an activity to keep certificate data out of workflow history.
+	StoreCertificate(ctx context.Context, req *StoreCertificateInput) (*StoreCertificateOutput, error)
 }
 
 // RegisterSecretsActivities registers activities with a worker
@@ -707,6 +712,7 @@ func RegisterSecretsActivities(r worker.ActivityRegistry, activities SecretsActi
 	RegisterCreateKeyPairActivity(r, activities.CreateKeyPair)
 	RegisterCreatePasswordActivity(r, activities.CreatePassword)
 	RegisterCreateSelfSignedCertificateActivity(r, activities.CreateSelfSignedCertificate)
+	RegisterStoreCertificateActivity(r, activities.StoreCertificate)
 }
 
 // RegisterCreateKeyPairActivity registers a secrets.v1.CreateKeyPair activity
@@ -1489,6 +1495,270 @@ func (o *CreateSelfSignedCertificateLocalActivityOptions) WithScheduleToCloseTim
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
 func (o *CreateSelfSignedCertificateLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *CreateSelfSignedCertificateLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterStoreCertificateActivity registers a secrets.v1.StoreCertificate activity
+func RegisterStoreCertificateActivity(r worker.ActivityRegistry, fn func(context.Context, *StoreCertificateInput) (*StoreCertificateOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: StoreCertificateActivityName,
+	})
+}
+
+// StoreCertificateFuture describes a(n) secrets.v1.StoreCertificate activity execution
+type StoreCertificateFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *StoreCertificateFuture) Get(ctx workflow.Context) (*StoreCertificateOutput, error) {
+	var resp StoreCertificateOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *StoreCertificateFuture) Select(sel workflow.Selector, fn func(*StoreCertificateFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// StoreCertificate stores certificate data at the specified location.
+// Implemented as an activity to keep certificate data out of workflow history.
+func StoreCertificate(ctx workflow.Context, req *StoreCertificateInput, options ...*StoreCertificateActivityOptions) (*StoreCertificateOutput, error) {
+	return StoreCertificateAsync(ctx, req, options...).Get(ctx)
+}
+
+// StoreCertificate stores certificate data at the specified location.
+// Implemented as an activity to keep certificate data out of workflow history.
+func StoreCertificateAsync(ctx workflow.Context, req *StoreCertificateInput, options ...*StoreCertificateActivityOptions) *StoreCertificateFuture {
+	var o *StoreCertificateActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewStoreCertificateActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &StoreCertificateFuture{Future: errF}
+	}
+	activity := StoreCertificateActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &StoreCertificateFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// StoreCertificate stores certificate data at the specified location.
+// Implemented as an activity to keep certificate data out of workflow history.
+func StoreCertificateLocal(ctx workflow.Context, req *StoreCertificateInput, options ...*StoreCertificateLocalActivityOptions) (*StoreCertificateOutput, error) {
+	return StoreCertificateLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// StoreCertificate stores certificate data at the specified location.
+// Implemented as an activity to keep certificate data out of workflow history.
+func StoreCertificateLocalAsync(ctx workflow.Context, req *StoreCertificateInput, options ...*StoreCertificateLocalActivityOptions) *StoreCertificateFuture {
+	var o *StoreCertificateLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewStoreCertificateLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &StoreCertificateFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = StoreCertificateActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &StoreCertificateFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// StoreCertificateActivityOptions provides configuration for a(n) secrets.v1.StoreCertificate activity
+type StoreCertificateActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewStoreCertificateActivityOptions initializes a new StoreCertificateActivityOptions value
+func NewStoreCertificateActivityOptions() *StoreCertificateActivityOptions {
+	return &StoreCertificateActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *StoreCertificateActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = SecretsTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *StoreCertificateActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *StoreCertificateActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *StoreCertificateActivityOptions) WithDataConverter(dc converter.DataConverter) *StoreCertificateActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *StoreCertificateActivityOptions) WithHeartbeatTimeout(d time.Duration) *StoreCertificateActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *StoreCertificateActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *StoreCertificateActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *StoreCertificateActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *StoreCertificateActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *StoreCertificateActivityOptions) WithScheduleToStartTimeout(d time.Duration) *StoreCertificateActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *StoreCertificateActivityOptions) WithStartToCloseTimeout(d time.Duration) *StoreCertificateActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *StoreCertificateActivityOptions) WithTaskQueue(tq string) *StoreCertificateActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *StoreCertificateActivityOptions) WithWaitForCancellation(wait bool) *StoreCertificateActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// StoreCertificateLocalActivityOptions provides configuration for a(n) secrets.v1.StoreCertificate activity
+type StoreCertificateLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *StoreCertificateInput) (*StoreCertificateOutput, error)
+}
+
+// NewStoreCertificateLocalActivityOptions initializes a new StoreCertificateLocalActivityOptions value
+func NewStoreCertificateLocalActivityOptions() *StoreCertificateLocalActivityOptions {
+	return &StoreCertificateLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *StoreCertificateLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom secrets.v1.StoreCertificate implementation
+func (o *StoreCertificateLocalActivityOptions) Local(fn func(context.Context, *StoreCertificateInput) (*StoreCertificateOutput, error)) *StoreCertificateLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *StoreCertificateLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *StoreCertificateLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *StoreCertificateLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *StoreCertificateLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *StoreCertificateLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *StoreCertificateLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *StoreCertificateLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *StoreCertificateLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *StoreCertificateLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *StoreCertificateLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }
