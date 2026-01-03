@@ -74,10 +74,10 @@ func NewCertificateAuthorityValues(caConfig fabricconfig.CertificateAuthorityCon
 		},
 		Vault: CAVaultConfig{
 			RoleName:             caConfig.AuthRoleName(),
-			KeyPairPath:          "secret/data/" + caConfig.VaultKeyPairPath(),
-			CertificatePath:      "secret/data/" + caConfig.VaultCertificatePath(),
-			AdminCredentialsPath: "secret/data/" + caConfig.VaultBootstrapAdminCredentialsPath(),
-			DbCredentialsPath:    "secret/data/" + caConfig.VaultDatabaseCredentialsPath(),
+			KeyPairPath:          "secret/data/" + caConfig.VaultKeyPairRef().GetRef().Fields["path"].GetStringValue(),
+			CertificatePath:      "secret/data/" + caConfig.VaultCertificateRef().GetRef().Fields["path"].GetStringValue(),
+			AdminCredentialsPath: "secret/data/" + caConfig.VaultBootstrapAdminCredentialsRef().GetRef().Fields["path"].GetStringValue(),
+			DbCredentialsPath:    "secret/data/" + caConfig.VaultDatabaseCredentialsRef().GetRef().Fields["path"].GetStringValue(),
 		},
 		Service: ServiceConfig{
 			Type: "ClusterIP",

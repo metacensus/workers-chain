@@ -147,7 +147,7 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 	}
 
 	// Step 2: Generate PostgreSQL credentials
-	credentialsRef := secrets.NewVaultRef(certStore.VaultAdminCredentialsPath())
+	credentialsRef := certStore.VaultAdminCredentialsRef()
 	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
 		SecretRef: credentialsRef,
 		Username:  "admin",
@@ -241,7 +241,7 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 	}
 
 	// Step 2: Generate and store credentials in Vault
-	credentialsRef := secrets.NewVaultRef(caConfig.VaultDatabaseCredentialsPath())
+	credentialsRef := caConfig.VaultDatabaseCredentialsRef()
 	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
 		SecretRef: credentialsRef,
 		Username:  caConfig.DatabaseUsername(),
@@ -328,7 +328,7 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		return nil, fmt.Errorf("%w (certType=%s): %w", ErrCreateCertificateDatabase, certType, err)
 	}
 
-	keyPairRef := secrets.NewVaultRef(rootCA.VaultKeyPairPath())
+	keyPairRef := rootCA.VaultKeyPairRef()
 	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
 		SecretRef: keyPairRef,
 	}).Get(ctx, nil)
@@ -336,7 +336,7 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		return nil, fmt.Errorf("failed to generate root CA key pair: %w", err)
 	}
 
-	certRef := secrets.NewVaultRef(rootCA.VaultCertificatePath())
+	certRef := rootCA.VaultCertificateRef()
 	certValidityDuration := 15 * 365 * 24 * time.Hour
 
 	// Construct DNS SANs for TLS certificate validation
@@ -358,7 +358,7 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 	}
 
 	// Generate bootstrap admin credentials (username/password) for initial CA enrollment
-	bootstrapCredentialsRef := secrets.NewVaultRef(rootCA.VaultBootstrapAdminCredentialsPath())
+	bootstrapCredentialsRef := rootCA.VaultBootstrapAdminCredentialsRef()
 	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
 		SecretRef: bootstrapCredentialsRef,
 		Username:  "admin",
@@ -505,7 +505,7 @@ func (w *bootstrapCertificateAuthorityAdminWorkflow) Execute(ctx workflow.Contex
 
 	// Step 1: Create a keypair for the bootstrap admin identity to use for initial enrollment
 	// We'll temporarily store the keypair separately, then consolidate with cert later
-	bootstrapAdminKeyPairRef := secrets.NewVaultRef(caConfig.VaultBootstrapAdminKeyPairPath())
+	bootstrapAdminKeyPairRef := caConfig.VaultBootstrapAdminKeyPairRef()
 	var createKeyPairOutput secretspb.CreateKeyPairOutput
 	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
 		SecretRef: bootstrapAdminKeyPairRef,
@@ -516,7 +516,7 @@ func (w *bootstrapCertificateAuthorityAdminWorkflow) Execute(ctx workflow.Contex
 
 	// Step 2: Bootstrap enroll using the bootstrap credentials
 	// This obtains the bootstrap admin's certificate and stores keypair+cert together
-	caTlsCertRef := secrets.NewVaultRef(caConfig.VaultCertificatePath())
+	caTlsCertRef := caConfig.VaultCertificateRef()
 	var bootstrapEnrollOutput pb.BootstrapEnrollIdentityOutput
 	err = workflow.ExecuteActivity(activityCtx, pb.BootstrapEnrollIdentityActivityName, &pb.BootstrapEnrollIdentityInput{
 		CaUrl:                   caConfig.URL(),
@@ -617,7 +617,7 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 	}
 
 	// Step 3: Enroll identity with CA
-	caTlsCertRef := secrets.NewVaultRef(caConfig.VaultCertificatePath())
+	caTlsCertRef := caConfig.VaultCertificateRef()
 	var enrollOutput pb.EnrollIdentityOutput
 	err = workflow.ExecuteActivity(activityCtx, pb.EnrollIdentityActivityName, &pb.EnrollIdentityInput{
 		CertType:               certType,

@@ -56,44 +56,6 @@ func NewActivities(
 	}
 }
 
-// getClient returns a cached Client for the specified CA.
-// Clients use keypair/cert auth loaded from Vault and support Register/Revoke.
-// If adminCredsRef is provided, it uses those credentials; otherwise uses default admin creds.
-func (a *Activities) getClient(ctx context.Context, certType, caID string, adminCredsRef *secretspb.SecretRef) (certauthority.Client, error) {
-	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
-	
-	// If specific admin credentials provided, fetch and create a one-time client
-	if adminCredsRef != nil {
-		creds, err := a.secretProvider.FetchIdentityCredentials(ctx, adminCredsRef)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch admin credentials: %w", err)
-		}
-
-		clientConfig := certauthority.ClientConfig{
-			URL:       caConfig.URL(),
-			CAName:    caConfig.ComponentName(),
-			AdminCert: creds.Certificate,
-			AdminKey:  creds.PrivateKey,
-		}
-
-		client, err := certauthority.NewClient(clientConfig)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create client with provided credentials: %w", err)
-		}
-
-		return client, nil
-	}
-
-	// Use default admin credentials (permanent admin)
-	hydrator := certauthority.NewConfig(caConfig)
-	client, err := a.clientProvider.GetClient(ctx, hydrator)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get client for %s-%s: %w", certType, caID, err)
-	}
-
-	return client, nil
-}
-
 // getBootstrapClient creates a new BootstrapClient for the specified CA.
 // BootstrapClients use username/password auth and only support Enroll.
 // These are NOT cached - each call creates a fresh client.
@@ -140,11 +102,22 @@ func (a *Activities) RegisterIdentity(ctx context.Context, req *pb.RegisterIdent
 		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidInput, certType)
 	}
 
-	// Get the CA client (uses admin credentials from Vault)
-	// If admin_credentials_ref is provided, use those; otherwise use permanent admin
-	client, err := a.getClient(ctx, certType, caID, req.GetAdminCredentialsRef())
+	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
+
+	// Create the appropriate hydrator based on which admin credentials to use
+	var hydrator common.ConfigHydrator[certauthority.ClientConfig]
+	if req.GetAdminCredentialsRef() != nil {
+		// Use specific admin credentials (e.g., bootstrap admin during CA setup)
+		hydrator = certauthority.NewConfigWithAdminRef(caConfig, req.GetAdminCredentialsRef())
+	} else {
+		// Use default permanent admin credentials
+		hydrator = certauthority.NewConfig(caConfig)
+	}
+
+	// Get the CA client - the clientProvider handles fetching secrets, hydrating config, and caching
+	client, err := a.clientProvider.GetClient(ctx, hydrator)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrRegisterIdentity, err)
+		return nil, fmt.Errorf("%w: failed to get CA client: %w", ErrRegisterIdentity, err)
 	}
 
 	// Build registration request
@@ -239,9 +212,9 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 	// The enrollment secret is passed in the EnrollmentRequest, not in the client config
 	bootstrapClient, err := certauthority.NewBootstrapClient(certauthority.BootstrapClientConfig{
 		URL:        caConfig.URL(),
-		Username:   identityName,            // Use identity name as username for enrollment
+		Username:   identityName,              // Use identity name as username for enrollment
 		Password:   req.GetEnrollmentSecret(), // Use enrollment secret as password
-		CAName:     "",                       // Default CA
+		CAName:     "",                        // Default CA
 		TLSCertPEM: tlsCertPEM,
 	})
 	if err != nil {
@@ -271,7 +244,7 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 	// For the permanent admin created by CreateIdentity, this will be VaultAdminKeyPairPath()
 	// The workflow determines the path based on identity name and CA config
 	credentialsRef := secrets.NewVaultRef(fmt.Sprintf("%s/%s/keypair", caConfig.VaultBasePath(), identityName))
-	
+
 	identityCreds := &secrets.IdentityCredentials{
 		PrivateKey:  keyPair.PrivateKey,
 		PublicKey:   keyPair.PublicKey,
@@ -298,11 +271,22 @@ func (a *Activities) RevokeIdentity(ctx context.Context, req *pb.RevokeIdentityI
 		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidInput, certType)
 	}
 
-	// Get the CA client (uses admin credentials from Vault)
-	// If admin_credentials_ref is provided, use those; otherwise use permanent admin
-	client, err := a.getClient(ctx, certType, caID, req.GetAdminCredentialsRef())
+	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
+
+	// Create the appropriate hydrator based on which admin credentials to use
+	var hydrator common.ConfigHydrator[certauthority.ClientConfig]
+	if req.GetAdminCredentialsRef() != nil {
+		// Use specific admin credentials (e.g., permanent admin revoking bootstrap admin)
+		hydrator = certauthority.NewConfigWithAdminRef(caConfig, req.GetAdminCredentialsRef())
+	} else {
+		// Use default permanent admin credentials
+		hydrator = certauthority.NewConfig(caConfig)
+	}
+
+	// Get the CA client - the clientProvider handles fetching secrets, hydrating config, and caching
+	client, err := a.clientProvider.GetClient(ctx, hydrator)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrRevokeIdentity, err)
+		return nil, fmt.Errorf("%w: failed to get CA client: %w", ErrRevokeIdentity, err)
 	}
 
 	// Build revocation request

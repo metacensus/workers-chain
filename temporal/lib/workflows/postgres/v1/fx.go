@@ -4,7 +4,6 @@ import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/postgres/v1"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
-	vault "github.com/metacensus/infra/temporal/lib/workflows/vault/v1"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/fx"
 )
@@ -16,9 +15,9 @@ var Module = fx.Options(
 		return NewCertStorePostgresConfig(certStoreConfig)
 	}),
 
-	// Provide ClientProvider that fetches credentials from Vault
-	fx.Provide(func(config CertStorePostgresConfig, vaultClient vault.VaultClient) ClientProvider {
-		return NewPostgresClientProvider(config, vaultClient)
+	// Provide ClientProvider that fetches credentials from secrets
+	fx.Provide(func(config CertStorePostgresConfig, secretProvider secrets.SecretProvider) ClientProvider {
+		return NewPostgresClientProvider(config, secretProvider)
 	}),
 
 	// Provide Activities with ClientProvider and SecretProvider

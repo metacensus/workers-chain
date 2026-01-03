@@ -18,12 +18,6 @@ import (
 
 	// Generates mocks for testing
 	_ "github.com/vektra/mockery/v2/pkg/config"
-
-	// Generates Nexus service interface from protobuf
-	_ "github.com/bergundy/protoc-gen-go-nexus/cmd/protoc-gen-go-nexus"
-
-	// Generates Nexus client for calling Nexus from workflows
-	_ "github.com/bergundy/protoc-gen-go-nexus-temporal/cmd/protoc-gen-go-nexus-temporal"
 )
 
 // Note: protoc-gen-go is installed via Makefile's install-tools target

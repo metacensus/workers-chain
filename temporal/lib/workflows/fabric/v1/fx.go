@@ -7,7 +7,6 @@ import (
 	"github.com/metacensus/infra/temporal/lib/workflows/common"
 	"github.com/metacensus/infra/temporal/lib/workflows/fabric/v1/certauthority"
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
-	vault "github.com/metacensus/infra/temporal/lib/workflows/vault/v1"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/fx"
 )
@@ -34,12 +33,12 @@ var Module = fx.Options(
 	}),
 
 	// Provide Client multi-client provider
-	// Clients are cached because they have stable keypair/cert auth from Vault.
+	// Clients are cached because they have stable keypair/cert auth from secrets.
 	// Uses MultiClientProvider because there are many CAs (tls-root, org-root, etc.)
 	// and the specific CA is only known at activity call time.
-	fx.Provide(func(vaultClient vault.VaultClient) *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig] {
+	fx.Provide(func(secretProvider secrets.SecretProvider) *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig] {
 		return common.NewMultiClientProvider(
-			vaultClient,
+			secretProvider,
 			certauthority.NewClient,
 		)
 	}),

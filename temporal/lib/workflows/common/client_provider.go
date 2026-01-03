@@ -4,37 +4,38 @@ import (
 	"context"
 	"fmt"
 	"sync"
+
+	pb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
+	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 )
 
 // ConfigHydrator knows how to fetch secrets and inject them into a client config.
-// The GetVaultPath is used both for fetching secrets and as the cache key for ClientProviderFactory.
 type ConfigHydrator[ClientConfigT any] interface {
-	// GetVaultPath returns the Vault path where secrets are stored.
-	// This path also serves as the unique cache key for ClientProviderFactory.
-	GetVaultPath() string
+	// GetSecretRefs returns a map of named secret references.
+	// For simple cases with a single secret, use a standard key like "default".
+	// For complex cases with multiple secrets, use descriptive keys like "credentials", "tls-cert", etc.
+	GetSecretRefs() map[string]*pb.SecretRef
 
-	// Hydrate takes secret data from Vault and produces a complete client config
-	Hydrate(secretData map[string]interface{}) (ClientConfigT, error)
+	// GetCacheKey returns a unique key for caching clients.
+	// This should uniquely identify the client configuration.
+	GetCacheKey() string
+
+	// Hydrate takes a map of named secrets and produces a complete client config
+	Hydrate(secrets map[string]secrets.Secret) (ClientConfigT, error)
 }
 
 // ClientConstructor creates a client from a hydrated config
 type ClientConstructor[ClientT any, ClientConfigT any] func(config ClientConfigT) (ClientT, error)
-
-// VaultClient is the interface for fetching secrets (avoids circular dependency)
-// This matches the vault.VaultClient.FetchSecret method signature
-type VaultClient interface {
-	FetchSecret(ctx context.Context, path string) (map[string]interface{}, error)
-}
 
 // -----------------------------------------------------------------------------
 // ClientProvider: Single-client pattern
 // Use when the hydrator/config is known at construction time (e.g., postgres)
 // -----------------------------------------------------------------------------
 
-// ClientProvider provides a single client instance, created on-demand with Vault credentials.
+// ClientProvider provides a single client instance, created on-demand with secrets.
 // Use this when there is exactly one client needed and the configuration is known at construction time.
 type ClientProvider[ClientT any, ClientConfigT any] struct {
-	vaultClient       VaultClient
+	secretProvider    secrets.SecretProvider
 	hydrator          ConfigHydrator[ClientConfigT]
 	clientConstructor ClientConstructor[ClientT, ClientConfigT]
 
@@ -46,11 +47,11 @@ type ClientProvider[ClientT any, ClientConfigT any] struct {
 // The hydrator is fixed at construction time.
 func NewClientProvider[ClientT any, ClientConfigT any](
 	hydrator ConfigHydrator[ClientConfigT],
-	vaultClient VaultClient,
+	secretProvider secrets.SecretProvider,
 	clientConstructor ClientConstructor[ClientT, ClientConfigT],
 ) *ClientProvider[ClientT, ClientConfigT] {
 	return &ClientProvider[ClientT, ClientConfigT]{
-		vaultClient:       vaultClient,
+		secretProvider:    secretProvider,
 		hydrator:          hydrator,
 		clientConstructor: clientConstructor,
 	}
@@ -68,7 +69,7 @@ func (p *ClientProvider[ClientT, ClientConfigT]) GetClient(ctx context.Context) 
 	}
 
 	// Create client using shared logic
-	client, err := createClient(ctx, p.vaultClient, p.hydrator, p.clientConstructor)
+	client, err := createClient(ctx, p.secretProvider, p.hydrator, p.clientConstructor)
 	if err != nil {
 		var zero ClientT
 		return zero, err
@@ -87,38 +88,38 @@ func (p *ClientProvider[ClientT, ClientConfigT]) GetClient(ctx context.Context) 
 // Use this when multiple clients may be needed and the specific configuration
 // is only known at call time (determined by activity input).
 //
-// Clients are cached by their hydrator's GetVaultPath(), so repeated calls
+// Clients are cached by their hydrator's GetCacheKey(), so repeated calls
 // with the same configuration return the cached client.
 type MultiClientProvider[ClientT any, ClientConfigT any] struct {
-	vaultClient       VaultClient
+	secretProvider    secrets.SecretProvider
 	clientConstructor ClientConstructor[ClientT, ClientConfigT]
 
 	clientMu sync.Mutex
-	clients  map[string]*ClientT // keyed by hydrator.GetVaultPath()
+	clients  map[string]*ClientT // keyed by hydrator.GetCacheKey()
 }
 
 // NewMultiClientProvider creates a new provider for managing multiple clients.
 // The hydrator is provided per-call to GetClient.
 func NewMultiClientProvider[ClientT any, ClientConfigT any](
-	vaultClient VaultClient,
+	secretProvider secrets.SecretProvider,
 	clientConstructor ClientConstructor[ClientT, ClientConfigT],
 ) *MultiClientProvider[ClientT, ClientConfigT] {
 	return &MultiClientProvider[ClientT, ClientConfigT]{
-		vaultClient:       vaultClient,
+		secretProvider:    secretProvider,
 		clientConstructor: clientConstructor,
 		clients:           make(map[string]*ClientT),
 	}
 }
 
 // GetClient returns a client for the given hydrator, creating and caching it on first call.
-// The hydrator's GetVaultPath() is used as the cache key.
-// Subsequent calls with hydrators that return the same VaultPath return the cached client.
+// The hydrator's GetCacheKey() is used as the cache key.
+// Subsequent calls with hydrators that return the same cache key return the cached client.
 func (f *MultiClientProvider[ClientT, ClientConfigT]) GetClient(
 	ctx context.Context,
 	hydrator ConfigHydrator[ClientConfigT],
 ) (ClientT, error) {
-	// Use VaultPath as cache key - it uniquely identifies the client configuration
-	key := hydrator.GetVaultPath()
+	// Use cache key - it uniquely identifies the client configuration
+	key := hydrator.GetCacheKey()
 
 	f.clientMu.Lock()
 	defer f.clientMu.Unlock()
@@ -129,7 +130,7 @@ func (f *MultiClientProvider[ClientT, ClientConfigT]) GetClient(
 	}
 
 	// Create client using shared logic
-	client, err := createClient(ctx, f.vaultClient, hydrator, f.clientConstructor)
+	client, err := createClient(ctx, f.secretProvider, hydrator, f.clientConstructor)
 	if err != nil {
 		var zero ClientT
 		return zero, err
@@ -146,21 +147,26 @@ func (f *MultiClientProvider[ClientT, ClientConfigT]) GetClient(
 // createClient handles the common logic of fetching secrets, hydrating config, and creating a client
 func createClient[ClientT any, ClientConfigT any](
 	ctx context.Context,
-	vaultClient VaultClient,
+	secretProvider secrets.SecretProvider,
 	hydrator ConfigHydrator[ClientConfigT],
 	clientConstructor ClientConstructor[ClientT, ClientConfigT],
 ) (ClientT, error) {
 	var zero ClientT
 
-	// Fetch secrets from Vault
-	vaultPath := hydrator.GetVaultPath()
-	secretData, err := vaultClient.FetchSecret(ctx, vaultPath)
-	if err != nil {
-		return zero, fmt.Errorf("failed to fetch secrets from %s: %w", vaultPath, err)
+	// Fetch all secrets specified by the hydrator
+	secretRefs := hydrator.GetSecretRefs()
+	fetchedSecrets := make(map[string]secrets.Secret)
+	
+	for name, ref := range secretRefs {
+		secret, err := secretProvider.FetchSecret(ctx, ref)
+		if err != nil {
+			return zero, fmt.Errorf("failed to fetch secret %q from %v: %w", name, ref, err)
+		}
+		fetchedSecrets[name] = secret
 	}
 
-	// Hydrate config with secrets
-	config, err := hydrator.Hydrate(secretData)
+	// Hydrate config with fetched secrets
+	config, err := hydrator.Hydrate(fetchedSecrets)
 	if err != nil {
 		return zero, fmt.Errorf("failed to hydrate config: %w", err)
 	}

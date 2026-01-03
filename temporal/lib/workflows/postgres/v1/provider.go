@@ -3,17 +3,18 @@ package postgres
 import (
 	"fmt"
 
+	pb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	"github.com/metacensus/infra/temporal/lib/workflows/common"
-	vault "github.com/metacensus/infra/temporal/lib/workflows/vault/v1"
+	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 )
 
-// NewPostgresClientProvider creates a ClientProvider for postgres with Vault-backed credentials.
+// NewPostgresClientProvider creates a ClientProvider for postgres with secret-backed credentials.
 // Uses ClientProvider (single-client pattern) because there is exactly one postgres deployment.
-func NewPostgresClientProvider(config CertStorePostgresConfig, vaultClient vault.VaultClient) *common.ClientProvider[PostgresClient, PostgresConfig] {
+func NewPostgresClientProvider(config CertStorePostgresConfig, secretProvider secrets.SecretProvider) *common.ClientProvider[PostgresClient, PostgresConfig] {
 	return common.NewClientProvider(
 		config,
-		vaultClient,
+		secretProvider,
 		NewPostgresClient, // ClientConstructor
 	)
 }
@@ -26,19 +27,32 @@ type CertStorePostgresConfig struct {
 	fabricconfig.CertificateStoreConfig
 }
 
-// GetVaultPath returns where to find PostgreSQL admin credentials in Vault
-func (c CertStorePostgresConfig) GetVaultPath() string {
-	return c.VaultAdminCredentialsPath()
+// GetSecretRefs returns a map of named secret references
+func (c CertStorePostgresConfig) GetSecretRefs() map[string]*pb.SecretRef {
+	return map[string]*pb.SecretRef{
+		"credentials": c.VaultAdminCredentialsRef(),
+	}
 }
 
-// Hydrate injects Vault secret data (username/password) into a PostgresConfig
-func (c CertStorePostgresConfig) Hydrate(secretData map[string]interface{}) (PostgresConfig, error) {
-	username, ok := secretData["username"].(string)
+// GetCacheKey returns a unique key for caching the postgres client
+func (c CertStorePostgresConfig) GetCacheKey() string {
+	// Use the Vault path as the cache key
+	return c.VaultAdminCredentialsRef().GetRef().Fields["path"].GetStringValue()
+}
+
+// Hydrate injects secret data (username/password) into a PostgresConfig
+func (c CertStorePostgresConfig) Hydrate(secretsMap map[string]secrets.Secret) (PostgresConfig, error) {
+	creds, ok := secretsMap["credentials"]
+	if !ok {
+		return PostgresConfig{}, fmt.Errorf("missing credentials secret")
+	}
+
+	username, ok := creds["username"].(string)
 	if !ok {
 		return PostgresConfig{}, fmt.Errorf("missing or invalid username in secret")
 	}
 
-	password, ok := secretData["password"].(string)
+	password, ok := creds["password"].(string)
 	if !ok {
 		return PostgresConfig{}, fmt.Errorf("missing or invalid password in secret")
 	}

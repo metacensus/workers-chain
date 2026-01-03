@@ -3,7 +3,9 @@ package certauthority
 import (
 	"fmt"
 
+	pb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
+	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 )
 
 // =============================================================================
@@ -19,20 +21,32 @@ type BootstrapConfig struct {
 	fabricconfig.CertificateAuthorityConfig
 }
 
-// GetVaultPath returns where to find CA bootstrap admin credentials (username/password) in Vault.
-// This path is unique per CA and is used as the cache key if caching is enabled.
-func (c BootstrapConfig) GetVaultPath() string {
-	return c.VaultBootstrapAdminCredentialsPath()
+// GetSecretRefs returns a map of named secret references
+func (c BootstrapConfig) GetSecretRefs() map[string]*pb.SecretRef {
+	return map[string]*pb.SecretRef{
+		"credentials": c.VaultBootstrapAdminCredentialsRef(),
+	}
 }
 
-// Hydrate injects Vault secret data (username/password) into a BootstrapClientConfig
-func (c BootstrapConfig) Hydrate(secretData map[string]interface{}) (BootstrapClientConfig, error) {
-	username, ok := secretData["username"].(string)
+// GetCacheKey returns a unique key for caching the bootstrap client
+func (c BootstrapConfig) GetCacheKey() string {
+	// Use the Vault path as the cache key
+	return c.VaultBootstrapAdminCredentialsRef().GetRef().Fields["path"].GetStringValue()
+}
+
+// Hydrate injects secret data (username/password) into a BootstrapClientConfig
+func (c BootstrapConfig) Hydrate(secretsMap map[string]secrets.Secret) (BootstrapClientConfig, error) {
+	creds, ok := secretsMap["credentials"]
+	if !ok {
+		return BootstrapClientConfig{}, fmt.Errorf("missing credentials secret")
+	}
+
+	username, ok := creds["username"].(string)
 	if !ok {
 		return BootstrapClientConfig{}, fmt.Errorf("missing or invalid username in secret")
 	}
 
-	password, ok := secretData["password"].(string)
+	password, ok := creds["password"].(string)
 	if !ok {
 		return BootstrapClientConfig{}, fmt.Errorf("missing or invalid password in secret")
 	}
@@ -68,24 +82,43 @@ type Config struct {
 	fabricconfig.CertificateAuthorityConfig
 }
 
-// GetVaultPath returns where to find admin keypair/cert in Vault.
-// This is the path where the permanent admin's certificate and key are stored together.
-func (c Config) GetVaultPath() string {
-	// Use the admin keypair path - this has both key and cert together
-	return c.VaultAdminKeyPairPath()
+// GetSecretRefs returns a map of named secret references
+func (c Config) GetSecretRefs() map[string]*pb.SecretRef {
+	return map[string]*pb.SecretRef{
+		"identity": c.VaultAdminKeyPairRef(),
+	}
 }
 
-// Hydrate injects Vault secret data (cert/key) into a ClientConfig
-func (c Config) Hydrate(secretData map[string]interface{}) (ClientConfig, error) {
-	// The keypair secret should contain both the certificate and private key
-	certPEM, ok := secretData["cert"].(string)
+// GetCacheKey returns a unique key for caching the CA admin client
+func (c Config) GetCacheKey() string {
+	// Use the Vault path as the cache key
+	return c.VaultAdminKeyPairRef().GetRef().Fields["path"].GetStringValue()
+}
+
+// Hydrate injects secret data (cert/key) into a ClientConfig
+func (c Config) Hydrate(secretsMap map[string]secrets.Secret) (ClientConfig, error) {
+	identity, ok := secretsMap["identity"]
 	if !ok {
-		return ClientConfig{}, fmt.Errorf("missing or invalid cert in secret")
+		return ClientConfig{}, fmt.Errorf("missing identity secret")
 	}
 
-	keyPEM, ok := secretData["key"].(string)
+	// The identity secret should contain both the certificate and private key
+	certPEM, ok := identity["certificate"].(string)
 	if !ok {
-		return ClientConfig{}, fmt.Errorf("missing or invalid key in secret")
+		// Try "cert" as alternative
+		certPEM, ok = identity["cert"].(string)
+		if !ok {
+			return ClientConfig{}, fmt.Errorf("missing or invalid certificate in secret")
+		}
+	}
+
+	keyPEM, ok := identity["private_key"].(string)
+	if !ok {
+		// Try "key" as alternative
+		keyPEM, ok = identity["key"].(string)
+		if !ok {
+			return ClientConfig{}, fmt.Errorf("missing or invalid key in secret")
+		}
 	}
 
 	// Build CA URL from config
@@ -104,4 +137,76 @@ func (c Config) Hydrate(secretData map[string]interface{}) (ClientConfig, error)
 // NewConfig wraps a CertificateAuthorityConfig for Client creation.
 func NewConfig(certAuthConfig fabricconfig.CertificateAuthorityConfig) Config {
 	return Config{CertificateAuthorityConfig: certAuthConfig}
+}
+
+// =============================================================================
+// ConfigWithAdminRef - For Client with custom admin credentials
+// =============================================================================
+
+// ConfigWithAdminRef wraps CertificateAuthorityConfig and allows specifying
+// custom admin credentials (e.g., bootstrap admin during CA setup).
+// This is used when the permanent admin credentials don't exist yet.
+type ConfigWithAdminRef struct {
+	fabricconfig.CertificateAuthorityConfig
+	AdminCredentialsRef *pb.SecretRef
+}
+
+// GetSecretRefs returns a map of named secret references
+func (c ConfigWithAdminRef) GetSecretRefs() map[string]*pb.SecretRef {
+	return map[string]*pb.SecretRef{
+		"identity": c.AdminCredentialsRef,
+	}
+}
+
+// GetCacheKey returns a unique key for caching the client
+func (c ConfigWithAdminRef) GetCacheKey() string {
+	// Use the Vault path as the cache key
+	return c.AdminCredentialsRef.GetRef().Fields["path"].GetStringValue()
+}
+
+// Hydrate injects secret data (cert/key) into a ClientConfig
+func (c ConfigWithAdminRef) Hydrate(secretsMap map[string]secrets.Secret) (ClientConfig, error) {
+	identity, ok := secretsMap["identity"]
+	if !ok {
+		return ClientConfig{}, fmt.Errorf("missing identity secret")
+	}
+
+	// The identity secret should contain both the certificate and private key
+	certPEM, ok := identity["certificate"].(string)
+	if !ok {
+		// Try "cert" as alternative
+		certPEM, ok = identity["cert"].(string)
+		if !ok {
+			return ClientConfig{}, fmt.Errorf("missing or invalid certificate in secret")
+		}
+	}
+
+	keyPEM, ok := identity["private_key"].(string)
+	if !ok {
+		// Try "key" as alternative
+		keyPEM, ok = identity["key"].(string)
+		if !ok {
+			return ClientConfig{}, fmt.Errorf("missing or invalid key in secret")
+		}
+	}
+
+	// Build CA URL from config
+	caURL := fmt.Sprintf("https://%s.%s.svc.cluster.local:7054",
+		c.ComponentName(),
+		c.KubernetesNamespace())
+
+	return ClientConfig{
+		URL:       caURL,
+		CAName:    c.ComponentName(),
+		AdminCert: []byte(certPEM),
+		AdminKey:  []byte(keyPEM),
+	}, nil
+}
+
+// NewConfigWithAdminRef creates a config that uses specific admin credentials.
+func NewConfigWithAdminRef(certAuthConfig fabricconfig.CertificateAuthorityConfig, adminRef *pb.SecretRef) ConfigWithAdminRef {
+	return ConfigWithAdminRef{
+		CertificateAuthorityConfig: certAuthConfig,
+		AdminCredentialsRef:        adminRef,
+	}
 }

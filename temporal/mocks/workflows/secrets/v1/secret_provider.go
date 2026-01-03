@@ -260,6 +260,65 @@ func (_c *MockSecretProvider_FetchKeyPair_Call) RunAndReturn(run func(context.Co
 	return _c
 }
 
+// FetchSecret provides a mock function with given fields: ctx, ref
+func (_m *MockSecretProvider) FetchSecret(ctx context.Context, ref *secretsv1.SecretRef) (secrets.Secret, error) {
+	ret := _m.Called(ctx, ref)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FetchSecret")
+	}
+
+	var r0 secrets.Secret
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *secretsv1.SecretRef) (secrets.Secret, error)); ok {
+		return rf(ctx, ref)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *secretsv1.SecretRef) secrets.Secret); ok {
+		r0 = rf(ctx, ref)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(secrets.Secret)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *secretsv1.SecretRef) error); ok {
+		r1 = rf(ctx, ref)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockSecretProvider_FetchSecret_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FetchSecret'
+type MockSecretProvider_FetchSecret_Call struct {
+	*mock.Call
+}
+
+// FetchSecret is a helper method to define mock.On call
+//   - ctx context.Context
+//   - ref *secretsv1.SecretRef
+func (_e *MockSecretProvider_Expecter) FetchSecret(ctx interface{}, ref interface{}) *MockSecretProvider_FetchSecret_Call {
+	return &MockSecretProvider_FetchSecret_Call{Call: _e.mock.On("FetchSecret", ctx, ref)}
+}
+
+func (_c *MockSecretProvider_FetchSecret_Call) Run(run func(ctx context.Context, ref *secretsv1.SecretRef)) *MockSecretProvider_FetchSecret_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*secretsv1.SecretRef))
+	})
+	return _c
+}
+
+func (_c *MockSecretProvider_FetchSecret_Call) Return(_a0 secrets.Secret, _a1 error) *MockSecretProvider_FetchSecret_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockSecretProvider_FetchSecret_Call) RunAndReturn(run func(context.Context, *secretsv1.SecretRef) (secrets.Secret, error)) *MockSecretProvider_FetchSecret_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // StoreCertificate provides a mock function with given fields: ctx, ref, cert
 func (_m *MockSecretProvider) StoreCertificate(ctx context.Context, ref *secretsv1.SecretRef, cert *secrets.Certificate) error {
 	ret := _m.Called(ctx, ref, cert)
@@ -448,6 +507,54 @@ func (_c *MockSecretProvider_StoreKeyPair_Call) Return(_a0 error) *MockSecretPro
 }
 
 func (_c *MockSecretProvider_StoreKeyPair_Call) RunAndReturn(run func(context.Context, *secretsv1.SecretRef, *secrets.KeyPair) error) *MockSecretProvider_StoreKeyPair_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// StoreSecret provides a mock function with given fields: ctx, ref, secret
+func (_m *MockSecretProvider) StoreSecret(ctx context.Context, ref *secretsv1.SecretRef, secret secrets.Secret) error {
+	ret := _m.Called(ctx, ref, secret)
+
+	if len(ret) == 0 {
+		panic("no return value specified for StoreSecret")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *secretsv1.SecretRef, secrets.Secret) error); ok {
+		r0 = rf(ctx, ref, secret)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockSecretProvider_StoreSecret_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StoreSecret'
+type MockSecretProvider_StoreSecret_Call struct {
+	*mock.Call
+}
+
+// StoreSecret is a helper method to define mock.On call
+//   - ctx context.Context
+//   - ref *secretsv1.SecretRef
+//   - secret secrets.Secret
+func (_e *MockSecretProvider_Expecter) StoreSecret(ctx interface{}, ref interface{}, secret interface{}) *MockSecretProvider_StoreSecret_Call {
+	return &MockSecretProvider_StoreSecret_Call{Call: _e.mock.On("StoreSecret", ctx, ref, secret)}
+}
+
+func (_c *MockSecretProvider_StoreSecret_Call) Run(run func(ctx context.Context, ref *secretsv1.SecretRef, secret secrets.Secret)) *MockSecretProvider_StoreSecret_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*secretsv1.SecretRef), args[2].(secrets.Secret))
+	})
+	return _c
+}
+
+func (_c *MockSecretProvider_StoreSecret_Call) Return(_a0 error) *MockSecretProvider_StoreSecret_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockSecretProvider_StoreSecret_Call) RunAndReturn(run func(context.Context, *secretsv1.SecretRef, secrets.Secret) error) *MockSecretProvider_StoreSecret_Call {
 	_c.Call.Return(run)
 	return _c
 }
