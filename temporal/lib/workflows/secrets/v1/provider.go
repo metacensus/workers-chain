@@ -18,13 +18,15 @@ const (
 
 // Sentinel errors
 var (
-	ErrUnknownSecretType = errors.New("unknown secret type")
-	ErrFetchCredentials  = errors.New("failed to fetch credentials")
-	ErrStoreCredentials  = errors.New("failed to store credentials")
-	ErrFetchKeyPair      = errors.New("failed to fetch key pair")
-	ErrStoreKeyPair      = errors.New("failed to store key pair")
-	ErrFetchCertificate  = errors.New("failed to fetch certificate")
-	ErrStoreCertificate  = errors.New("failed to store certificate")
+	ErrUnknownSecretType         = errors.New("unknown secret type")
+	ErrFetchCredentials          = errors.New("failed to fetch credentials")
+	ErrStoreCredentials          = errors.New("failed to store credentials")
+	ErrFetchKeyPair              = errors.New("failed to fetch key pair")
+	ErrStoreKeyPair              = errors.New("failed to store key pair")
+	ErrFetchCertificate          = errors.New("failed to fetch certificate")
+	ErrStoreCertificate          = errors.New("failed to store certificate")
+	ErrFetchIdentityCredentials  = errors.New("failed to fetch identity credentials")
+	ErrStoreIdentityCredentials  = errors.New("failed to store identity credentials")
 )
 
 // =============================================================================
@@ -48,6 +50,15 @@ type Certificate struct {
 	Certificate []byte
 }
 
+// IdentityCredentials represents a complete identity (keypair + certificate)
+// This is used for storing admin credentials where both key and cert are needed together
+type IdentityCredentials struct {
+	PrivateKey  []byte
+	PublicKey   []byte
+	Certificate []byte
+	CAChain     []byte // Optional CA certificate chain
+}
+
 // =============================================================================
 // SecretClient Interface
 // =============================================================================
@@ -66,6 +77,10 @@ type SecretClient interface {
 	// Certificates
 	FetchCertificate(ctx context.Context, ref *structpb.Struct) (*Certificate, error)
 	StoreCertificate(ctx context.Context, ref *structpb.Struct, cert *Certificate) error
+
+	// Identity Credentials (keypair + certificate together)
+	FetchIdentityCredentials(ctx context.Context, ref *structpb.Struct) (*IdentityCredentials, error)
+	StoreIdentityCredentials(ctx context.Context, ref *structpb.Struct, creds *IdentityCredentials) error
 }
 
 // =============================================================================
@@ -85,6 +100,10 @@ type SecretProvider interface {
 	// Certificates
 	FetchCertificate(ctx context.Context, ref *pb.SecretRef) (*Certificate, error)
 	StoreCertificate(ctx context.Context, ref *pb.SecretRef, cert *Certificate) error
+
+	// Identity Credentials (keypair + certificate together)
+	FetchIdentityCredentials(ctx context.Context, ref *pb.SecretRef) (*IdentityCredentials, error)
+	StoreIdentityCredentials(ctx context.Context, ref *pb.SecretRef, creds *IdentityCredentials) error
 }
 
 // =============================================================================
@@ -186,6 +205,29 @@ func (p *secretProvider) StoreCertificate(ctx context.Context, ref *pb.SecretRef
 	}
 	if err := client.StoreCertificate(ctx, ref.GetRef(), cert); err != nil {
 		return fmt.Errorf("%w: %w", ErrStoreCertificate, err)
+	}
+	return nil
+}
+
+func (p *secretProvider) FetchIdentityCredentials(ctx context.Context, ref *pb.SecretRef) (*IdentityCredentials, error) {
+	client, err := p.getClient(ref.GetType())
+	if err != nil {
+		return nil, err
+	}
+	creds, err := client.FetchIdentityCredentials(ctx, ref.GetRef())
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrFetchIdentityCredentials, err)
+	}
+	return creds, nil
+}
+
+func (p *secretProvider) StoreIdentityCredentials(ctx context.Context, ref *pb.SecretRef, creds *IdentityCredentials) error {
+	client, err := p.getClient(ref.GetType())
+	if err != nil {
+		return err
+	}
+	if err := client.StoreIdentityCredentials(ctx, ref.GetRef(), creds); err != nil {
+		return fmt.Errorf("%w: %w", ErrStoreIdentityCredentials, err)
 	}
 	return nil
 }

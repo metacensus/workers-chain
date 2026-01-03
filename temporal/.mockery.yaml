@@ -105,6 +105,7 @@ packages:
       outpkg: "postgresv1"
     interfaces:
       PostgresClient:
+      ClientProvider:
 
   # Temporal v1 clients - namespace and operator service
   go.temporal.io/sdk/client:
@@ -121,5 +122,21 @@ packages:
     interfaces:
       OperatorServiceClient:
 
-  # NOTE: Terraform and S3 client mocks will be added once implementations are created
+  # Secrets v1 provider (for testing activities that fetch/store secrets)
+  github.com/metacensus/infra/temporal/lib/workflows/secrets/v1:
+    config:
+      dir: "mocks/workflows/secrets/v1"
+      outpkg: "secretsv1"
+    interfaces:
+      SecretProvider:
+
+  # S3 client (for testing S3 activities)
+  github.com/metacensus/infra/temporal/lib/workflows/provider/aws/s3:
+    config:
+      dir: "mocks/workflows/provider/aws/s3"
+      outpkg: "s3v1"
+    interfaces:
+      S3Client:
+
+  # NOTE: Terraform client mocks will be added once implementations are created
 

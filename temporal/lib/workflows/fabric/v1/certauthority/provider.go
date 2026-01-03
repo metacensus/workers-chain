@@ -19,10 +19,10 @@ type BootstrapConfig struct {
 	fabricconfig.CertificateAuthorityConfig
 }
 
-// GetVaultPath returns where to find CA admin credentials (username/password) in Vault.
+// GetVaultPath returns where to find CA bootstrap admin credentials (username/password) in Vault.
 // This path is unique per CA and is used as the cache key if caching is enabled.
 func (c BootstrapConfig) GetVaultPath() string {
-	return c.VaultAdminCredentialsPath()
+	return c.VaultBootstrapAdminCredentialsPath()
 }
 
 // Hydrate injects Vault secret data (username/password) into a BootstrapClientConfig
@@ -62,17 +62,17 @@ func NewBootstrapConfig(certAuthConfig fabricconfig.CertificateAuthorityConfig) 
 // Config wraps CertificateAuthorityConfig and implements
 // common.ConfigHydrator[ClientConfig] for creating Clients.
 //
-// This config hydrates from VaultKeyPairPath which contains the admin's
-// certificate and private key (stored after initial enrollment).
+// This config hydrates from VaultAdminKeyPairPath which contains the permanent admin's
+// private key, public key, and certificate (all stored together after CreateIdentity).
 type Config struct {
 	fabricconfig.CertificateAuthorityConfig
 }
 
 // GetVaultPath returns where to find admin keypair/cert in Vault.
-// This is the path where the admin's certificate and key are stored after enrollment.
+// This is the path where the permanent admin's certificate and key are stored together.
 func (c Config) GetVaultPath() string {
-	// Use the keypair path - this is where we store the admin's cert+key after enrollment
-	return c.VaultKeyPairPath()
+	// Use the admin keypair path - this has both key and cert together
+	return c.VaultAdminKeyPairPath()
 }
 
 // Hydrate injects Vault secret data (cert/key) into a ClientConfig

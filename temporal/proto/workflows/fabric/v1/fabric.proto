@@ -307,53 +307,237 @@ message CreateIdentityInput {
     (go.field).tags = 'json:"CertType" validate:"required"'
   ];
 
+  // certificate_authority_id identifies which CA to use for identity creation
+  // Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs
+  string certificate_authority_id = 2 [
+    json_name = "CertificateAuthorityId",
+    (go.field).tags = 'json:"CertificateAuthorityId" validate:"required"'
+  ];
+
   // identity_name is the unique name for this identity (e.g., "admin", "peer0", "orderer0")
-  string identity_name = 2 [
+  string identity_name = 3 [
     json_name = "IdentityName",
     (go.field).tags = 'json:"IdentityName" validate:"required"'
+  ];
+
+  // common_name is the CN for the certificate subject
+  string common_name = 4 [
+    json_name = "CommonName",
+    (go.field).tags = 'json:"CommonName" validate:"required"'
+  ];
+
+  // organization is the O for the certificate subject
+  string organization = 5 [
+    json_name = "Organization",
+    (go.field).tags = 'json:"Organization" validate:"required"'
+  ];
+
+  // organizational_unit is the OU for the certificate subject
+  string organizational_unit = 6 [
+    json_name = "OrganizationalUnit",
+    (go.field).tags = 'json:"OrganizationalUnit" validate:"required"'
+  ];
+
+  // affiliation is the affiliation for the identity in the CA
+  string affiliation = 7 [
+    json_name = "Affiliation",
+    (go.field).tags = 'json:"Affiliation"'
+  ];
+
+  // attributes are additional attributes for the identity
+  map<string, string> attributes = 8 [
+    json_name = "Attributes"
+  ];
+
+  // admin_credentials_ref specifies which admin credentials to use for registration
+  // If not provided, uses the permanent admin credentials at VaultAdminKeyPairPath()
+  // During bootstrap, this should point to VaultBootstrapAdminKeyPairPath()
+  secrets.v1.SecretRef admin_credentials_ref = 9 [
+    json_name = "AdminCredentialsRef"
   ];
 }
 
 // CreateIdentityOutput indicates the result of identity creation
-// Empty for now - will be populated as implementation progresses
 message CreateIdentityOutput {
-  // Empty for now
+  // key_ref points to the private key in Vault
+  secrets.v1.SecretRef key_ref = 1 [
+    json_name = "KeyRef",
+    (go.field).tags = 'json:"KeyRef" validate:"required"'
+  ];
+
+  // cert_ref points to the certificate in Vault
+  secrets.v1.SecretRef cert_ref = 2 [
+    json_name = "CertRef",
+    (go.field).tags = 'json:"CertRef" validate:"required"'
+  ];
 }
 
 // ==================== RegisterIdentity Activity Messages ====================
 
 // RegisterIdentityInput specifies the parameters for registering an identity with a CA
 message RegisterIdentityInput {
-  // Empty for now - will be populated during implementation
+  // cert_type specifies whether this is a TLS or Org certificate authority
+  // Valid values: "tls" or "org"
+  string cert_type = 1 [
+    json_name = "CertType",
+    (go.field).tags = 'json:"CertType" validate:"required"'
+  ];
+
+  // certificate_authority_id identifies which CA to register with
+  string certificate_authority_id = 2 [
+    json_name = "CertificateAuthorityId",
+    (go.field).tags = 'json:"CertificateAuthorityId" validate:"required"'
+  ];
+
+  // identity_name is the unique name for this identity
+  string identity_name = 3 [
+    json_name = "IdentityName",
+    (go.field).tags = 'json:"IdentityName" validate:"required"'
+  ];
+
+  // affiliation is the affiliation for the identity in the CA
+  string affiliation = 4 [
+    json_name = "Affiliation"
+  ];
+
+  // attributes are additional attributes for the identity
+  map<string, string> attributes = 5 [
+    json_name = "Attributes"
+  ];
+
+  // identity_type specifies the type of identity (e.g., "admin", "peer", "orderer", "client")
+  string identity_type = 6 [
+    json_name = "IdentityType",
+    (go.field).tags = 'json:"IdentityType"'
+  ];
+
+  // admin_credentials_ref specifies which admin credentials to use for registration
+  // If not provided, uses the permanent admin credentials at VaultAdminKeyPairPath()
+  secrets.v1.SecretRef admin_credentials_ref = 7 [
+    json_name = "AdminCredentialsRef"
+  ];
 }
 
 // RegisterIdentityOutput contains the enrollment secret returned by the CA
 message RegisterIdentityOutput {
-  // Empty for now - will be populated during implementation
+  // enrollment_secret is the secret used to enroll the identity
+  // This secret should be kept secure and used only for enrollment
+  string enrollment_secret = 1 [
+    json_name = "EnrollmentSecret",
+    (go.field).tags = 'json:"EnrollmentSecret" validate:"required"'
+  ];
 }
 
 // ==================== EnrollIdentity Activity Messages ====================
 
 // EnrollIdentityInput specifies the parameters for enrolling an identity with a CA
 message EnrollIdentityInput {
-  // Empty for now - will be populated during implementation
+  // cert_type specifies whether this is a TLS or Org certificate authority
+  // Valid values: "tls" or "org"
+  string cert_type = 1 [
+    json_name = "CertType",
+    (go.field).tags = 'json:"CertType" validate:"required"'
+  ];
+
+  // certificate_authority_id identifies which CA to enroll with
+  string certificate_authority_id = 2 [
+    json_name = "CertificateAuthorityId",
+    (go.field).tags = 'json:"CertificateAuthorityId" validate:"required"'
+  ];
+
+  // identity_name is the name of the identity to enroll
+  string identity_name = 3 [
+    json_name = "IdentityName",
+    (go.field).tags = 'json:"IdentityName" validate:"required"'
+  ];
+
+  // enrollment_secret is the secret obtained from registration
+  string enrollment_secret = 4 [
+    json_name = "EnrollmentSecret",
+    (go.field).tags = 'json:"EnrollmentSecret" validate:"required"'
+  ];
+
+  // key_ref points to the private key to use for CSR generation
+  secrets.v1.SecretRef key_ref = 5 [
+    json_name = "KeyRef",
+    (go.field).tags = 'json:"KeyRef" validate:"required"'
+  ];
+
+  // common_name is the CN for the certificate subject
+  string common_name = 6 [
+    json_name = "CommonName",
+    (go.field).tags = 'json:"CommonName" validate:"required"'
+  ];
+
+  // organization is the O for the certificate subject
+  string organization = 7 [
+    json_name = "Organization",
+    (go.field).tags = 'json:"Organization" validate:"required"'
+  ];
+
+  // organizational_unit is the OU for the certificate subject
+  string organizational_unit = 8 [
+    json_name = "OrganizationalUnit",
+    (go.field).tags = 'json:"OrganizationalUnit" validate:"required"'
+  ];
+
+  // ca_tls_cert_ref points to the CA's TLS certificate in Vault
+  secrets.v1.SecretRef ca_tls_cert_ref = 9 [
+    json_name = "CaTlsCertRef",
+    (go.field).tags = 'json:"CaTlsCertRef" validate:"required"'
+  ];
 }
 
 // EnrollIdentityOutput contains the certificates returned by the CA
 message EnrollIdentityOutput {
-  // Empty for now - will be populated during implementation
+  // cert_ref points to where the certificate was stored
+  secrets.v1.SecretRef cert_ref = 1 [
+    json_name = "CertRef",
+    (go.field).tags = 'json:"CertRef" validate:"required"'
+  ];
 }
 
 // ==================== RevokeIdentity Activity Messages ====================
 
 // RevokeIdentityInput specifies the parameters for revoking an identity from a CA
 message RevokeIdentityInput {
-  // Empty for now - will be populated during implementation
+  // cert_type specifies whether this is a TLS or Org certificate authority
+  // Valid values: "tls" or "org"
+  string cert_type = 1 [
+    json_name = "CertType",
+    (go.field).tags = 'json:"CertType" validate:"required"'
+  ];
+
+  // certificate_authority_id identifies which CA to revoke from
+  string certificate_authority_id = 2 [
+    json_name = "CertificateAuthorityId",
+    (go.field).tags = 'json:"CertificateAuthorityId" validate:"required"'
+  ];
+
+  // identity_name is the name of the identity to revoke
+  string identity_name = 3 [
+    json_name = "IdentityName",
+    (go.field).tags = 'json:"IdentityName" validate:"required"'
+  ];
+
+  // reason is the reason for revocation (optional)
+  string reason = 4 [
+    json_name = "Reason"
+  ];
+
+  // admin_credentials_ref specifies which admin credentials to use for revocation
+  // If not provided, uses the permanent admin credentials at VaultAdminKeyPairPath()
+  secrets.v1.SecretRef admin_credentials_ref = 5 [
+    json_name = "AdminCredentialsRef"
+  ];
 }
 
 // RevokeIdentityOutput indicates the result of identity revocation
 message RevokeIdentityOutput {
-  // Empty for now - will be populated during implementation
+  // revoked indicates if the identity was successfully revoked
+  bool revoked = 1 [
+    json_name = "Revoked"
+  ];
 }
 
 // ==================== BootstrapEnrollIdentity Activity Messages ====================

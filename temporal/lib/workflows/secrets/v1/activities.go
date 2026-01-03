@@ -121,3 +121,26 @@ func (a *Activities) StoreCertificate(ctx context.Context, req *pb.StoreCertific
 
 	return &pb.StoreCertificateOutput{CertRef: certRef}, nil
 }
+
+// StoreIdentityCredentials stores keypair+certificate together at one location
+// This is used for storing admin identity credentials where the CA client needs both
+func (a *Activities) StoreIdentityCredentials(ctx context.Context, req *pb.StoreIdentityCredentialsInput) (*pb.StoreIdentityCredentialsOutput, error) {
+	credentialsRef := req.GetCredentialsRef()
+	if credentialsRef == nil {
+		return nil, fmt.Errorf("credentials_ref is required")
+	}
+
+	// Store as IdentityCredentials which includes both keypair and certificate
+	creds := &IdentityCredentials{
+		PrivateKey:  req.GetPrivateKeyPem(),
+		PublicKey:   req.GetPublicKeyPem(),
+		Certificate: req.GetCertificatePem(),
+		CAChain:     req.GetCaChainPem(),
+	}
+
+	if err := a.provider.StoreIdentityCredentials(ctx, credentialsRef, creds); err != nil {
+		return nil, fmt.Errorf("failed to store identity credentials: %w", err)
+	}
+
+	return &pb.StoreIdentityCredentialsOutput{CredentialsRef: credentialsRef}, nil
+}

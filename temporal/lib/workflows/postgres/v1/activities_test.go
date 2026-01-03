@@ -1,17 +1,16 @@
 package postgres_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/postgres/v1"
-	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	postgresv1 "github.com/metacensus/infra/temporal/lib/workflows/postgres/v1"
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 	postgresmocks "github.com/metacensus/infra/temporal/mocks/workflows/postgres/v1"
+	secretsmocks "github.com/metacensus/infra/temporal/mocks/workflows/secrets/v1"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/testsuite"
 )
@@ -20,65 +19,6 @@ var (
 	errClientConnectionRefused = errors.New("connection refused")
 	errClientQueryFailed       = errors.New("query failed")
 )
-
-// mockClientProvider wraps a PostgresClient for testing
-type mockClientProvider struct {
-	client postgresv1.PostgresClient
-}
-
-func newMockClientProvider(client postgresv1.PostgresClient) *mockClientProvider {
-	return &mockClientProvider{client: client}
-}
-
-func (m *mockClientProvider) GetClient(ctx context.Context) (postgresv1.PostgresClient, error) {
-	return m.client, nil
-}
-
-// mockSecretProvider implements secrets.SecretProvider for testing
-type mockSecretProvider struct {
-	credentials *secrets.Credentials
-	fetchErr    error
-}
-
-func newMockSecretProvider(username, password string) *mockSecretProvider {
-	return &mockSecretProvider{
-		credentials: &secrets.Credentials{
-			Username: username,
-			Password: password,
-		},
-	}
-}
-
-func newMockSecretProviderWithError(err error) *mockSecretProvider {
-	return &mockSecretProvider{fetchErr: err}
-}
-
-func (m *mockSecretProvider) FetchCredentials(ctx context.Context, ref *secretspb.SecretRef) (*secrets.Credentials, error) {
-	if m.fetchErr != nil {
-		return nil, m.fetchErr
-	}
-	return m.credentials, nil
-}
-
-func (m *mockSecretProvider) StoreCredentials(ctx context.Context, ref *secretspb.SecretRef, creds *secrets.Credentials) error {
-	return nil
-}
-
-func (m *mockSecretProvider) FetchKeyPair(ctx context.Context, ref *secretspb.SecretRef) (*secrets.KeyPair, error) {
-	return nil, nil
-}
-
-func (m *mockSecretProvider) StoreKeyPair(ctx context.Context, ref *secretspb.SecretRef, kp *secrets.KeyPair) error {
-	return nil
-}
-
-func (m *mockSecretProvider) FetchCertificate(ctx context.Context, ref *secretspb.SecretRef) (*secrets.Certificate, error) {
-	return nil, nil
-}
-
-func (m *mockSecretProvider) StoreCertificate(ctx context.Context, ref *secretspb.SecretRef, cert *secrets.Certificate) error {
-	return nil
-}
 
 func TestConvertPrivilegesToSQL(t *testing.T) {
 	tests := []struct {
@@ -172,14 +112,14 @@ func (m *mockRows) Next() bool {
 	return false
 }
 
-func (m *mockRows) Close()                                  {}
-func (m *mockRows) CommandTag() pgconn.CommandTag           { return pgconn.CommandTag{} }
-func (m *mockRows) Err() error                              { return nil }
+func (m *mockRows) Close()                                       {}
+func (m *mockRows) CommandTag() pgconn.CommandTag                { return pgconn.CommandTag{} }
+func (m *mockRows) Err() error                                   { return nil }
 func (m *mockRows) FieldDescriptions() []pgconn.FieldDescription { return nil }
-func (m *mockRows) Scan(dest ...interface{}) error          { return nil }
-func (m *mockRows) Values() ([]interface{}, error)          { return nil, nil }
-func (m *mockRows) RawValues() [][]byte                     { return nil }
-func (m *mockRows) Conn() *pgx.Conn                         { return nil }
+func (m *mockRows) Scan(dest ...interface{}) error               { return nil }
+func (m *mockRows) Values() ([]interface{}, error)               { return nil, nil }
+func (m *mockRows) RawValues() [][]byte                          { return nil }
+func (m *mockRows) Conn() *pgx.Conn                              { return nil }
 
 func TestCreateDatabaseActivity(t *testing.T) {
 	tests := []struct {
@@ -234,9 +174,11 @@ func TestCreateDatabaseActivity(t *testing.T) {
 				tt.setupMock(mockClient)
 			}
 
-			provider := newMockClientProvider(mockClient)
-			secretProvider := newMockSecretProvider("", "")
-			activities := postgresv1.NewActivities(provider, secretProvider)
+			mockProvider := postgresmocks.NewMockClientProvider(t)
+			mockProvider.EXPECT().GetClient(mock.Anything).Return(mockClient, nil).Maybe()
+
+			mockSecretProvider := secretsmocks.NewMockSecretProvider(t)
+			activities := postgresv1.NewActivities(mockProvider, mockSecretProvider)
 			env.RegisterActivity(activities.CreateDatabase)
 
 			val, err := env.ExecuteActivity(activities.CreateDatabase, tt.input)
@@ -263,19 +205,23 @@ func TestCreateDatabaseActivity(t *testing.T) {
 
 func TestCreateUserActivity(t *testing.T) {
 	tests := []struct {
-		name           string
-		input          *pb.CreateUserInput
-		secretProvider *mockSecretProvider
-		setupMock      func(*postgresmocks.MockPostgresClient)
-		expectErr      bool
+		name              string
+		input             *pb.CreateUserInput
+		setupSecretMock   func(*secretsmocks.MockSecretProvider)
+		setupPostgresMock func(*postgresmocks.MockPostgresClient)
+		expectErr         bool
 	}{
 		{
 			name: "success - creates new user",
 			input: &pb.CreateUserInput{
 				CredentialsRef: secrets.NewVaultRef("fabric/org1/db/user"),
 			},
-			secretProvider: newMockSecretProvider("testuser", "testpass"),
-			setupMock: func(m *postgresmocks.MockPostgresClient) {
+			setupSecretMock: func(m *secretsmocks.MockSecretProvider) {
+				m.EXPECT().
+					FetchCredentials(mock.Anything, mock.Anything).
+					Return(&secrets.Credentials{Username: "testuser", Password: "testpass"}, nil)
+			},
+			setupPostgresMock: func(m *postgresmocks.MockPostgresClient) {
 				rows := &mockRows{hasNext: false}
 				m.EXPECT().
 					Query(mock.Anything, "SELECT 1 FROM pg_roles WHERE rolname = $1", "testuser").
@@ -292,8 +238,12 @@ func TestCreateUserActivity(t *testing.T) {
 			input: &pb.CreateUserInput{
 				CredentialsRef: secrets.NewVaultRef("fabric/org1/db/user"),
 			},
-			secretProvider: newMockSecretProvider("existinguser", "testpass"),
-			setupMock: func(m *postgresmocks.MockPostgresClient) {
+			setupSecretMock: func(m *secretsmocks.MockSecretProvider) {
+				m.EXPECT().
+					FetchCredentials(mock.Anything, mock.Anything).
+					Return(&secrets.Credentials{Username: "existinguser", Password: "testpass"}, nil)
+			},
+			setupPostgresMock: func(m *postgresmocks.MockPostgresClient) {
 				rows := &mockRows{hasNext: true}
 				m.EXPECT().
 					Query(mock.Anything, "SELECT 1 FROM pg_roles WHERE rolname = $1", "existinguser").
@@ -305,16 +255,19 @@ func TestCreateUserActivity(t *testing.T) {
 			input: &pb.CreateUserInput{
 				CredentialsRef: nil,
 			},
-			secretProvider: newMockSecretProvider("", ""),
-			expectErr:      true,
+			expectErr: true,
 		},
 		{
 			name: "error - failed to fetch credentials",
 			input: &pb.CreateUserInput{
 				CredentialsRef: secrets.NewVaultRef("fabric/org1/db/user"),
 			},
-			secretProvider: newMockSecretProviderWithError(errors.New("vault error")),
-			expectErr:      true,
+			setupSecretMock: func(m *secretsmocks.MockSecretProvider) {
+				m.EXPECT().
+					FetchCredentials(mock.Anything, mock.Anything).
+					Return(nil, errors.New("vault error"))
+			},
+			expectErr: true,
 		},
 	}
 
@@ -324,12 +277,19 @@ func TestCreateUserActivity(t *testing.T) {
 			env := testSuite.NewTestActivityEnvironment()
 
 			mockClient := postgresmocks.NewMockPostgresClient(t)
-			if tt.setupMock != nil {
-				tt.setupMock(mockClient)
+			if tt.setupPostgresMock != nil {
+				tt.setupPostgresMock(mockClient)
 			}
 
-			provider := newMockClientProvider(mockClient)
-			activities := postgresv1.NewActivities(provider, tt.secretProvider)
+			mockProvider := postgresmocks.NewMockClientProvider(t)
+			mockProvider.EXPECT().GetClient(mock.Anything).Return(mockClient, nil).Maybe()
+
+			mockSecretProvider := secretsmocks.NewMockSecretProvider(t)
+			if tt.setupSecretMock != nil {
+				tt.setupSecretMock(mockSecretProvider)
+			}
+
+			activities := postgresv1.NewActivities(mockProvider, mockSecretProvider)
 			env.RegisterActivity(activities.CreateUser)
 
 			val, err := env.ExecuteActivity(activities.CreateUser, tt.input)
@@ -418,9 +378,11 @@ func TestGrantPrivilegesActivity(t *testing.T) {
 				tt.setupMock(mockClient)
 			}
 
-			provider := newMockClientProvider(mockClient)
-			secretProvider := newMockSecretProvider("", "")
-			activities := postgresv1.NewActivities(provider, secretProvider)
+			mockProvider := postgresmocks.NewMockClientProvider(t)
+			mockProvider.EXPECT().GetClient(mock.Anything).Return(mockClient, nil).Maybe()
+
+			mockSecretProvider := secretsmocks.NewMockSecretProvider(t)
+			activities := postgresv1.NewActivities(mockProvider, mockSecretProvider)
 			env.RegisterActivity(activities.GrantPrivileges)
 
 			val, err := env.ExecuteActivity(activities.GrantPrivileges, tt.input)

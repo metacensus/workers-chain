@@ -58,10 +58,34 @@ func NewActivities(
 
 // getClient returns a cached Client for the specified CA.
 // Clients use keypair/cert auth loaded from Vault and support Register/Revoke.
-func (a *Activities) getClient(ctx context.Context, certType, caID string) (certauthority.Client, error) {
+// If adminCredsRef is provided, it uses those credentials; otherwise uses default admin creds.
+func (a *Activities) getClient(ctx context.Context, certType, caID string, adminCredsRef *secretspb.SecretRef) (certauthority.Client, error) {
 	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
-	hydrator := certauthority.NewConfig(caConfig)
+	
+	// If specific admin credentials provided, fetch and create a one-time client
+	if adminCredsRef != nil {
+		creds, err := a.secretProvider.FetchIdentityCredentials(ctx, adminCredsRef)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch admin credentials: %w", err)
+		}
 
+		clientConfig := certauthority.ClientConfig{
+			URL:       caConfig.URL(),
+			CAName:    caConfig.ComponentName(),
+			AdminCert: creds.Certificate,
+			AdminKey:  creds.PrivateKey,
+		}
+
+		client, err := certauthority.NewClient(clientConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create client with provided credentials: %w", err)
+		}
+
+		return client, nil
+	}
+
+	// Use default admin credentials (permanent admin)
+	hydrator := certauthority.NewConfig(caConfig)
 	client, err := a.clientProvider.GetClient(ctx, hydrator)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client for %s-%s: %w", certType, caID, err)
@@ -108,34 +132,194 @@ func (a *Activities) getBootstrapClient(ctx context.Context, credentialsRef *sec
 // RegisterIdentity registers a new identity with a Fabric CA
 // This is the first step in identity creation - registration returns an enrollment secret
 func (a *Activities) RegisterIdentity(ctx context.Context, req *pb.RegisterIdentityInput) (*pb.RegisterIdentityOutput, error) {
-	// TODO: Implement identity registration with Fabric CA
-	// 1. Connect to Fabric CA server
-	// 2. Register identity with attributes
-	// 3. Return enrollment secret
+	certType := req.GetCertType()
+	caID := req.GetCertificateAuthorityId()
+	identityName := req.GetIdentityName()
 
-	return &pb.RegisterIdentityOutput{}, nil
+	if certType != "tls" && certType != "org" {
+		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidInput, certType)
+	}
+
+	// Get the CA client (uses admin credentials from Vault)
+	// If admin_credentials_ref is provided, use those; otherwise use permanent admin
+	client, err := a.getClient(ctx, certType, caID, req.GetAdminCredentialsRef())
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrRegisterIdentity, err)
+	}
+
+	// Build registration request
+	registerReq := &api.RegistrationRequest{
+		Name:        identityName,
+		Type:        req.GetIdentityType(),
+		Affiliation: req.GetAffiliation(),
+		Attributes:  convertAttributes(req.GetAttributes()),
+	}
+
+	// Register the identity with the CA
+	resp, err := client.Register(ctx, registerReq)
+	if err != nil {
+		return nil, fmt.Errorf("%w: registration failed: %w", ErrRegisterIdentity, err)
+	}
+
+	if resp == nil || resp.Secret == "" {
+		return nil, fmt.Errorf("%w: registration returned empty secret", ErrRegisterIdentity)
+	}
+
+	return &pb.RegisterIdentityOutput{
+		EnrollmentSecret: resp.Secret,
+	}, nil
+}
+
+// convertAttributes converts a map of strings to Fabric CA attributes
+func convertAttributes(attrs map[string]string) []api.Attribute {
+	if len(attrs) == 0 {
+		return nil
+	}
+
+	result := make([]api.Attribute, 0, len(attrs))
+	for name, value := range attrs {
+		result = append(result, api.Attribute{
+			Name:  name,
+			Value: value,
+		})
+	}
+	return result
 }
 
 // EnrollIdentity enrolls a registered identity and retrieves certificates
 // This is the second step in identity creation - enrollment uses the secret from registration
 func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityInput) (*pb.EnrollIdentityOutput, error) {
-	// TODO: Implement identity enrollment with Fabric CA
-	// 1. Connect to Fabric CA server
-	// 2. Enroll using enrollment secret
-	// 3. Retrieve and return certificates
+	certType := req.GetCertType()
+	caID := req.GetCertificateAuthorityId()
+	identityName := req.GetIdentityName()
 
-	return &pb.EnrollIdentityOutput{}, nil
+	if certType != "tls" && certType != "org" {
+		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidInput, certType)
+	}
+
+	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
+
+	// Fetch the private key from Vault
+	keyPair, err := a.secretProvider.FetchKeyPair(ctx, req.GetKeyRef())
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to fetch key pair: %w", ErrFetchSecret, err)
+	}
+
+	// Parse the private key for CSR generation
+	privateKey, err := parseECDSAPrivateKey(keyPair.PrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrParseKey, err)
+	}
+
+	// Generate CSR
+	csrTemplate := &x509.CertificateRequest{
+		Subject: pkix.Name{
+			CommonName:         req.GetCommonName(),
+			Organization:       []string{req.GetOrganization()},
+			OrganizationalUnit: []string{req.GetOrganizationalUnit()},
+		},
+	}
+
+	_, err = x509.CreateCertificateRequest(rand.Reader, csrTemplate, privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrGenerateCSR, err)
+	}
+
+	// Fetch TLS certificate if provided
+	var tlsCertPEM []byte
+	if req.GetCaTlsCertRef() != nil {
+		cert, err := a.secretProvider.FetchCertificate(ctx, req.GetCaTlsCertRef())
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch TLS certificate: %w", err)
+		}
+		tlsCertPEM = cert.Certificate
+	}
+
+	// Create a bootstrap client for enrollment using the enrollment secret
+	// The enrollment secret is passed in the EnrollmentRequest, not in the client config
+	bootstrapClient, err := certauthority.NewBootstrapClient(certauthority.BootstrapClientConfig{
+		URL:        caConfig.URL(),
+		Username:   identityName,            // Use identity name as username for enrollment
+		Password:   req.GetEnrollmentSecret(), // Use enrollment secret as password
+		CAName:     "",                       // Default CA
+		TLSCertPEM: tlsCertPEM,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to create bootstrap client: %w", ErrEnrollIdentity, err)
+	}
+	defer bootstrapClient.Close()
+
+	// Build enrollment request
+	enrollReq := &api.EnrollmentRequest{
+		Name:   identityName,
+		Secret: req.GetEnrollmentSecret(),
+		CSR: &api.CSRInfo{
+			CN: req.GetCommonName(),
+		},
+	}
+
+	// Enroll with the CA
+	enrollResp, err := bootstrapClient.Enroll(ctx, enrollReq)
+	if err != nil {
+		return nil, fmt.Errorf("%w: enrollment failed: %w", ErrEnrollIdentity, err)
+	}
+
+	// Extract the certificate
+	certPEM := enrollResp.Identity.GetECert().Cert()
+
+	// Store keypair+cert together at a single location
+	// For the permanent admin created by CreateIdentity, this will be VaultAdminKeyPairPath()
+	// The workflow determines the path based on identity name and CA config
+	credentialsRef := secrets.NewVaultRef(fmt.Sprintf("%s/%s/keypair", caConfig.VaultBasePath(), identityName))
+	
+	identityCreds := &secrets.IdentityCredentials{
+		PrivateKey:  keyPair.PrivateKey,
+		PublicKey:   keyPair.PublicKey,
+		Certificate: certPEM,
+	}
+
+	if err := a.secretProvider.StoreIdentityCredentials(ctx, credentialsRef, identityCreds); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrStoreSecret, err)
+	}
+
+	return &pb.EnrollIdentityOutput{
+		CertRef: credentialsRef,
+	}, nil
 }
 
 // RevokeIdentity revokes an identity from a Fabric CA
 // Used to revoke bootstrap admin credentials after permanent admin is created
 func (a *Activities) RevokeIdentity(ctx context.Context, req *pb.RevokeIdentityInput) (*pb.RevokeIdentityOutput, error) {
-	// TODO: Implement identity revocation with Fabric CA
-	// 1. Connect to Fabric CA server
-	// 2. Revoke identity by name or serial number
-	// 3. Return revocation status
+	certType := req.GetCertType()
+	caID := req.GetCertificateAuthorityId()
+	identityName := req.GetIdentityName()
 
-	return &pb.RevokeIdentityOutput{}, nil
+	if certType != "tls" && certType != "org" {
+		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidInput, certType)
+	}
+
+	// Get the CA client (uses admin credentials from Vault)
+	// If admin_credentials_ref is provided, use those; otherwise use permanent admin
+	client, err := a.getClient(ctx, certType, caID, req.GetAdminCredentialsRef())
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrRevokeIdentity, err)
+	}
+
+	// Build revocation request
+	revokeReq := &api.RevocationRequest{
+		Name:   identityName,
+		Reason: req.GetReason(),
+	}
+
+	// Revoke the identity
+	_, err = client.Revoke(ctx, revokeReq)
+	if err != nil {
+		return nil, fmt.Errorf("%w: revocation failed: %w", ErrRevokeIdentity, err)
+	}
+
+	return &pb.RevokeIdentityOutput{
+		Revoked: true,
+	}, nil
 }
 
 // BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password).
@@ -192,11 +376,14 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 
 	certPEM := enrollResp.Identity.GetECert().Cert()
 
-	cert := &secrets.Certificate{
+	// Store keypair+cert together so Config.Hydrate can find both
+	identityCreds := &secrets.IdentityCredentials{
+		PrivateKey:  keyPair.PrivateKey,
+		PublicKey:   keyPair.PublicKey,
 		Certificate: certPEM,
 	}
 
-	if err := a.secretProvider.StoreCertificate(ctx, req.GetCertRef(), cert); err != nil {
+	if err := a.secretProvider.StoreIdentityCredentials(ctx, req.GetCertRef(), identityCreds); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrStoreSecret, err)
 	}
 

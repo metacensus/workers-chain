@@ -229,17 +229,6 @@ func (ca CertificateAuthorityConfig) VaultDatabaseCredentialsPath() string {
 		ca.OrgID, ca.certType, ca.caID)
 }
 
-// VaultAdminCredentialsPath returns the path where CA admin/bootstrap credentials are stored.
-// Used with vault.StoreSecret and vault.FetchSecret activities.
-// Note: Returns path relative to secret mount (activities add "secret/data/" prefix).
-// Note: these credentials are used to bootstrap the CA's initial admin user
-// and then are immediately replaced with a new keyPair based admin.
-// Example: "fabric/org1/ca/tls/root/admin/credentials"
-func (ca CertificateAuthorityConfig) VaultAdminCredentialsPath() string {
-	return fmt.Sprintf("fabric/%s/ca/%s/%s/admin/credentials",
-		ca.OrgID, ca.certType, ca.caID)
-}
-
 // VaultKeyPairPath returns the path where the CA's key pair is stored.
 // Used with vault.StoreSecret and vault.FetchSecret activities.
 // Note: Returns path relative to secret mount (activities add "secret/data/" prefix).
@@ -258,20 +247,32 @@ func (ca CertificateAuthorityConfig) VaultCertificatePath() string {
 		ca.OrgID, ca.certType, ca.caID)
 }
 
-// VaultAdminKeyPath returns the path where the enrolled admin's private key is stored.
-// This is distinct from VaultKeyPairPath, which stores the CA's own signing key.
-// The admin key is used to authenticate admin operations against the CA.
-// Example: "fabric/org1/ca/tls/root/admin/key"
-func (ca CertificateAuthorityConfig) VaultAdminKeyPath() string {
-	return fmt.Sprintf("fabric/%s/ca/%s/%s/admin/key",
+// VaultBootstrapAdminCredentialsPath returns the path where CA bootstrap admin credentials are stored.
+// These are the initial username/password credentials created during CA deployment.
+// Used ONLY during bootstrap enrollment, then replaced with keypair-based authentication.
+// Example: "fabric/org1/ca/tls/root/bootstrap-admin/credentials"
+func (ca CertificateAuthorityConfig) VaultBootstrapAdminCredentialsPath() string {
+	return fmt.Sprintf("fabric/%s/ca/%s/%s/bootstrap-admin/credentials",
 		ca.OrgID, ca.certType, ca.caID)
 }
 
-// VaultAdminCertPath returns the path where the enrolled admin's certificate is stored.
-// This is the certificate issued by the CA for the admin identity.
-// Example: "fabric/org1/ca/tls/root/admin/cert"
-func (ca CertificateAuthorityConfig) VaultAdminCertPath() string {
-	return fmt.Sprintf("fabric/%s/ca/%s/%s/admin/cert",
+// VaultBootstrapAdminKeyPairPath returns the path where the bootstrap admin's keypair+cert are stored.
+// After bootstrap enrollment, the bootstrap admin gets a keypair and certificate.
+// This is used temporarily to create the permanent admin, then revoked.
+// Stores: {private_key: PEM, public_key: PEM, certificate: PEM}
+// Example: "fabric/org1/ca/tls/root/bootstrap-admin/keypair"
+func (ca CertificateAuthorityConfig) VaultBootstrapAdminKeyPairPath() string {
+	return fmt.Sprintf("fabric/%s/ca/%s/%s/bootstrap-admin/keypair",
+		ca.OrgID, ca.certType, ca.caID)
+}
+
+// VaultAdminKeyPairPath returns the path where the permanent admin's keypair+cert are stored together.
+// This is the long-lived admin identity used for all CA administrative operations.
+// Stores: {private_key: PEM, public_key: PEM, certificate: PEM}
+// This is distinct from VaultKeyPairPath, which stores the CA's own signing key.
+// Example: "fabric/org1/ca/tls/root/admin/keypair"
+func (ca CertificateAuthorityConfig) VaultAdminKeyPairPath() string {
+	return fmt.Sprintf("fabric/%s/ca/%s/%s/admin/keypair",
 		ca.OrgID, ca.certType, ca.caID)
 }
 

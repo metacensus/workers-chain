@@ -46,7 +46,7 @@ const (
 // fabric.v1.Fabric workflow id expressions
 var (
 	BootstrapCertificateAuthoritiesIdexpression    = expression.MustParseExpression("fabric/bootstrap-certificate-authorities")
-	BootstrapCertificateAuthorityAdminIdexpression = expression.MustParseExpression("fabric/bootstrap-ca-admin/${! CertType }/${! CertificateAuthorityId }")
+	BootstrapCertificateAuthorityAdminIdexpression = expression.MustParseExpression("fabric/bootstrap-certificate-authority-admin/${! CertType }/${! CertificateAuthorityId }")
 	BootstrapShardIdexpression                     = expression.MustParseExpression("fabric/bootstrap-shard")
 	CreateCertificateDatabaseIdexpression          = expression.MustParseExpression("fabric/create-certificate-database/${! CertType }/${! CertificateAuthorityId }")
 	CreateIdentityIdexpression                     = expression.MustParseExpression("fabric/create-identity/${! CertType }/${! IdentityName }")
@@ -2566,7 +2566,7 @@ type BootstrapCertificateAuthorityAdminWorkflowInput struct {
 // After a CA is deployed, this workflow creates admin identities for both tls and org,
 // then revokes the bootstrap admin credentials
 //
-// workflow details: (name: "fabric.v1.BootstrapCertificateAuthorityAdmin", id: "fabric/bootstrap-ca-admin/${! CertType }/${! CertificateAuthorityId }")
+// workflow details: (name: "fabric.v1.BootstrapCertificateAuthorityAdmin", id: "fabric/bootstrap-certificate-authority-admin/${! CertType }/${! CertificateAuthorityId }")
 type BootstrapCertificateAuthorityAdminWorkflow interface {
 	// Execute defines the entrypoint to a(n) fabric.v1.BootstrapCertificateAuthorityAdmin workflow
 	Execute(ctx workflow.Context) (*BootstrapCertificateAuthorityAdminOutput, error)

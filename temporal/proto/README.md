@@ -66,6 +66,7 @@
     - [fabric.v1.CreateCertificateDatabaseInput](#fabric-v1-createcertificatedatabaseinput)
     - [fabric.v1.CreateCertificateDatabaseOutput](#fabric-v1-createcertificatedatabaseoutput)
     - [fabric.v1.CreateIdentityInput](#fabric-v1-createidentityinput)
+    - [fabric.v1.CreateIdentityInput.AttributesEntry](#fabric-v1-createidentityinput-attributesentry)
     - [fabric.v1.CreateIdentityOutput](#fabric-v1-createidentityoutput)
     - [fabric.v1.DeployCertificateAuthorityInput](#fabric-v1-deploycertificateauthorityinput)
     - [fabric.v1.DeployCertificateAuthorityOutput](#fabric-v1-deploycertificateauthorityoutput)
@@ -76,6 +77,7 @@
     - [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
     - [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
     - [fabric.v1.RegisterIdentityInput](#fabric-v1-registeridentityinput)
+    - [fabric.v1.RegisterIdentityInput.AttributesEntry](#fabric-v1-registeridentityinput-attributesentry)
     - [fabric.v1.RegisterIdentityOutput](#fabric-v1-registeridentityoutput)
     - [fabric.v1.RevokeIdentityInput](#fabric-v1-revokeidentityinput)
     - [fabric.v1.RevokeIdentityOutput](#fabric-v1-revokeidentityoutput)
@@ -157,6 +159,7 @@
         - [secrets.v1.CreateKeyPair](#secrets-v1-createkeypair-activity)
         - [secrets.v1.CreateSelfSignedCertificate](#secrets-v1-createselfsignedcertificate-activity)
         - [secrets.v1.StoreCertificate](#secrets-v1-storecertificate-activity)
+        - [secrets.v1.StoreIdentityCredentials](#secrets-v1-storeidentitycredentials-activity)
   - Messages
     - [secrets.v1.CreateAccessInput](#secrets-v1-createaccessinput)
     - [secrets.v1.CreateAccessOutput](#secrets-v1-createaccessoutput)
@@ -169,6 +172,8 @@
     - [secrets.v1.SecretRef](#secrets-v1-secretref)
     - [secrets.v1.StoreCertificateInput](#secrets-v1-storecertificateinput)
     - [secrets.v1.StoreCertificateOutput](#secrets-v1-storecertificateoutput)
+    - [secrets.v1.StoreIdentityCredentialsInput](#secrets-v1-storeidentitycredentialsinput)
+    - [secrets.v1.StoreIdentityCredentialsOutput](#secrets-v1-storeidentitycredentialsoutput)
 - [temporal.v1](#temporal-v1)
   - Services
     - [temporal.v1.Admin](#temporal-v1-admin)
@@ -1499,7 +1504,7 @@ go_tags: json:"CertificateAuthorityId" validate:"required"</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/bootstrap-ca-admin/${! CertType }/${! CertificateAuthorityId }</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/bootstrap-certificate-authority-admin/${! CertType }/${! CertificateAuthorityId }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -1521,6 +1526,33 @@ Used for creating admin identities, peer identities, orderer identities, and cha
 <th>Description</th>
 </tr>
 <tr>
+<td>admin_credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+admin_credentials_ref specifies which admin credentials to use for registration
+If not provided, uses the permanent admin credentials at VaultAdminKeyPairPath()
+During bootstrap, this should point to VaultBootstrapAdminKeyPairPath()<br>
+
+json_name: AdminCredentialsRef
+go_name: AdminCredentialsRef</pre></td>
+</tr><tr>
+<td>affiliation</td>
+<td>string</td>
+<td><pre>
+affiliation is the affiliation for the identity in the CA<br>
+
+json_name: Affiliation
+go_name: Affiliation
+go_tags: json:"Affiliation"</pre></td>
+</tr><tr>
+<td>attributes</td>
+<td><a href="#fabric-v1-createidentityinput-attributesentry">fabric.v1.CreateIdentityInput.AttributesEntry</a></td>
+<td><pre>
+attributes are additional attributes for the identity<br>
+
+json_name: Attributes
+go_name: Attributes</pre></td>
+</tr><tr>
 <td>cert_type</td>
 <td>string</td>
 <td><pre>
@@ -1531,6 +1563,25 @@ json_name: CertType
 go_name: CertType
 go_tags: json:"CertType" validate:"required"</pre></td>
 </tr><tr>
+<td>certificate_authority_id</td>
+<td>string</td>
+<td><pre>
+certificate_authority_id identifies which CA to use for identity creation
+Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs<br>
+
+json_name: CertificateAuthorityId
+go_name: CertificateAuthorityId
+go_tags: json:"CertificateAuthorityId" validate:"required"</pre></td>
+</tr><tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN for the certificate subject<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
 <td>identity_name</td>
 <td>string</td>
 <td><pre>
@@ -1539,12 +1590,55 @@ identity_name is the unique name for this identity (e.g., "admin", "peer0", "ord
 json_name: IdentityName
 go_name: IdentityName
 go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+organization is the O for the certificate subject<br>
+
+json_name: Organization
+go_name: Organization
+go_tags: json:"Organization" validate:"required"</pre></td>
+</tr><tr>
+<td>organizational_unit</td>
+<td>string</td>
+<td><pre>
+organizational_unit is the OU for the certificate subject<br>
+
+json_name: OrganizationalUnit
+go_name: OrganizationalUnit
+go_tags: json:"OrganizationalUnit" validate:"required"</pre></td>
 </tr>
 </table>
 
 **Output:** [fabric.v1.CreateIdentityOutput](#fabric-v1-createidentityoutput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+cert_ref points to the certificate in Vault<br>
 
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>key_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+key_ref points to the private key in Vault<br>
+
+json_name: KeyRef
+go_name: KeyRef
+go_tags: json:"KeyRef" validate:"required"</pre></td>
+</tr>
+</table>
 
 **Defaults:**
 
@@ -1577,11 +1671,97 @@ This is the first step in identity creation - registration returns an enrollment
 
 **Input:** [fabric.v1.RegisterIdentityInput](#fabric-v1-registeridentityinput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>admin_credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+admin_credentials_ref specifies which admin credentials to use for registration
+If not provided, uses the permanent admin credentials at VaultAdminKeyPairPath()<br>
 
+json_name: AdminCredentialsRef
+go_name: AdminCredentialsRef</pre></td>
+</tr><tr>
+<td>affiliation</td>
+<td>string</td>
+<td><pre>
+affiliation is the affiliation for the identity in the CA<br>
+
+json_name: Affiliation
+go_name: Affiliation</pre></td>
+</tr><tr>
+<td>attributes</td>
+<td><a href="#fabric-v1-registeridentityinput-attributesentry">fabric.v1.RegisterIdentityInput.AttributesEntry</a></td>
+<td><pre>
+attributes are additional attributes for the identity<br>
+
+json_name: Attributes
+go_name: Attributes</pre></td>
+</tr><tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is a TLS or Org certificate authority
+Valid values: "tls" or "org"<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required"</pre></td>
+</tr><tr>
+<td>certificate_authority_id</td>
+<td>string</td>
+<td><pre>
+certificate_authority_id identifies which CA to register with<br>
+
+json_name: CertificateAuthorityId
+go_name: CertificateAuthorityId
+go_tags: json:"CertificateAuthorityId" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the unique name for this identity<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_type</td>
+<td>string</td>
+<td><pre>
+identity_type specifies the type of identity (e.g., "admin", "peer", "orderer", "client")<br>
+
+json_name: IdentityType
+go_name: IdentityType
+go_tags: json:"IdentityType"</pre></td>
+</tr>
+</table>
 
 **Output:** [fabric.v1.RegisterIdentityOutput](#fabric-v1-registeridentityoutput)
 
- 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>enrollment_secret</td>
+<td>string</td>
+<td><pre>
+enrollment_secret is the secret used to enroll the identity
+This secret should be kept secure and used only for enrollment<br>
+
+json_name: EnrollmentSecret
+go_name: EnrollmentSecret
+go_tags: json:"EnrollmentSecret" validate:"required"</pre></td>
+</tr>
+</table> 
 
 ---
 <a name="fabric-v1-enrollidentity-activity"></a>
@@ -1594,11 +1774,116 @@ This is the second step in identity creation - enrollment uses the secret from r
 
 **Input:** [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_tls_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+ca_tls_cert_ref points to the CA's TLS certificate in Vault<br>
 
+json_name: CaTlsCertRef
+go_name: CaTlsCertRef
+go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is a TLS or Org certificate authority
+Valid values: "tls" or "org"<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required"</pre></td>
+</tr><tr>
+<td>certificate_authority_id</td>
+<td>string</td>
+<td><pre>
+certificate_authority_id identifies which CA to enroll with<br>
+
+json_name: CertificateAuthorityId
+go_name: CertificateAuthorityId
+go_tags: json:"CertificateAuthorityId" validate:"required"</pre></td>
+</tr><tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN for the certificate subject<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>enrollment_secret</td>
+<td>string</td>
+<td><pre>
+enrollment_secret is the secret obtained from registration<br>
+
+json_name: EnrollmentSecret
+go_name: EnrollmentSecret
+go_tags: json:"EnrollmentSecret" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the name of the identity to enroll<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>key_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+key_ref points to the private key to use for CSR generation<br>
+
+json_name: KeyRef
+go_name: KeyRef
+go_tags: json:"KeyRef" validate:"required"</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+organization is the O for the certificate subject<br>
+
+json_name: Organization
+go_name: Organization
+go_tags: json:"Organization" validate:"required"</pre></td>
+</tr><tr>
+<td>organizational_unit</td>
+<td>string</td>
+<td><pre>
+organizational_unit is the OU for the certificate subject<br>
+
+json_name: OrganizationalUnit
+go_name: OrganizationalUnit
+go_tags: json:"OrganizationalUnit" validate:"required"</pre></td>
+</tr>
+</table>
 
 **Output:** [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
 
- 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+cert_ref points to where the certificate was stored<br>
+
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr>
+</table> 
 
 ---
 <a name="fabric-v1-revokeidentity-activity"></a>
@@ -1611,11 +1896,78 @@ Used to revoke bootstrap admin credentials after permanent admin is created
 
 **Input:** [fabric.v1.RevokeIdentityInput](#fabric-v1-revokeidentityinput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>admin_credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+admin_credentials_ref specifies which admin credentials to use for revocation
+If not provided, uses the permanent admin credentials at VaultAdminKeyPairPath()<br>
 
+json_name: AdminCredentialsRef
+go_name: AdminCredentialsRef</pre></td>
+</tr><tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is a TLS or Org certificate authority
+Valid values: "tls" or "org"<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required"</pre></td>
+</tr><tr>
+<td>certificate_authority_id</td>
+<td>string</td>
+<td><pre>
+certificate_authority_id identifies which CA to revoke from<br>
+
+json_name: CertificateAuthorityId
+go_name: CertificateAuthorityId
+go_tags: json:"CertificateAuthorityId" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the name of the identity to revoke<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>reason</td>
+<td>string</td>
+<td><pre>
+reason is the reason for revocation (optional)<br>
+
+json_name: Reason
+go_name: Reason</pre></td>
+</tr>
+</table>
 
 **Output:** [fabric.v1.RevokeIdentityOutput](#fabric-v1-revokeidentityoutput)
 
- 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>revoked</td>
+<td>bool</td>
+<td><pre>
+revoked indicates if the identity was successfully revoked<br>
+
+json_name: Revoked
+go_name: Revoked</pre></td>
+</tr>
+</table> 
 
 ---
 <a name="fabric-v1-bootstrapenrollidentity-activity"></a>
@@ -2029,6 +2381,33 @@ CreateIdentityInput specifies the parameters for creating a Fabric identity
 <th>Description</th>
 </tr>
 <tr>
+<td>admin_credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+admin_credentials_ref specifies which admin credentials to use for registration
+If not provided, uses the permanent admin credentials at VaultAdminKeyPairPath()
+During bootstrap, this should point to VaultBootstrapAdminKeyPairPath()<br>
+
+json_name: AdminCredentialsRef
+go_name: AdminCredentialsRef</pre></td>
+</tr><tr>
+<td>affiliation</td>
+<td>string</td>
+<td><pre>
+affiliation is the affiliation for the identity in the CA<br>
+
+json_name: Affiliation
+go_name: Affiliation
+go_tags: json:"Affiliation"</pre></td>
+</tr><tr>
+<td>attributes</td>
+<td><a href="#fabric-v1-createidentityinput-attributesentry">fabric.v1.CreateIdentityInput.AttributesEntry</a></td>
+<td><pre>
+attributes are additional attributes for the identity<br>
+
+json_name: Attributes
+go_name: Attributes</pre></td>
+</tr><tr>
 <td>cert_type</td>
 <td>string</td>
 <td><pre>
@@ -2039,6 +2418,25 @@ json_name: CertType
 go_name: CertType
 go_tags: json:"CertType" validate:"required"</pre></td>
 </tr><tr>
+<td>certificate_authority_id</td>
+<td>string</td>
+<td><pre>
+certificate_authority_id identifies which CA to use for identity creation
+Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs<br>
+
+json_name: CertificateAuthorityId
+go_name: CertificateAuthorityId
+go_tags: json:"CertificateAuthorityId" validate:"required"</pre></td>
+</tr><tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN for the certificate subject<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
 <td>identity_name</td>
 <td>string</td>
 <td><pre>
@@ -2047,6 +2445,50 @@ identity_name is the unique name for this identity (e.g., "admin", "peer0", "ord
 json_name: IdentityName
 go_name: IdentityName
 go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+organization is the O for the certificate subject<br>
+
+json_name: Organization
+go_name: Organization
+go_tags: json:"Organization" validate:"required"</pre></td>
+</tr><tr>
+<td>organizational_unit</td>
+<td>string</td>
+<td><pre>
+organizational_unit is the OU for the certificate subject<br>
+
+json_name: OrganizationalUnit
+go_name: OrganizationalUnit
+go_tags: json:"OrganizationalUnit" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-createidentityinput-attributesentry"></a>
+### fabric.v1.CreateIdentityInput.AttributesEntry
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>key</td>
+<td>string</td>
+<td><pre>
+json_name: key
+go_name: Key</pre></td>
+</tr><tr>
+<td>value</td>
+<td>string</td>
+<td><pre>
+json_name: value
+go_name: Value</pre></td>
 </tr>
 </table>
 
@@ -2057,8 +2499,34 @@ go_tags: json:"IdentityName" validate:"required"</pre></td>
 
 <pre>
 CreateIdentityOutput indicates the result of identity creation
-Empty for now - will be populated as implementation progresses
 </pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+cert_ref points to the certificate in Vault<br>
+
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>key_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+key_ref points to the private key in Vault<br>
+
+json_name: KeyRef
+go_name: KeyRef
+go_tags: json:"KeyRef" validate:"required"</pre></td>
+</tr>
+</table>
 
 
 
@@ -2176,6 +2644,97 @@ Empty for now - will be populated as implementation progresses
 EnrollIdentityInput specifies the parameters for enrolling an identity with a CA
 </pre>
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_tls_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+ca_tls_cert_ref points to the CA's TLS certificate in Vault<br>
+
+json_name: CaTlsCertRef
+go_name: CaTlsCertRef
+go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is a TLS or Org certificate authority
+Valid values: "tls" or "org"<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required"</pre></td>
+</tr><tr>
+<td>certificate_authority_id</td>
+<td>string</td>
+<td><pre>
+certificate_authority_id identifies which CA to enroll with<br>
+
+json_name: CertificateAuthorityId
+go_name: CertificateAuthorityId
+go_tags: json:"CertificateAuthorityId" validate:"required"</pre></td>
+</tr><tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN for the certificate subject<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>enrollment_secret</td>
+<td>string</td>
+<td><pre>
+enrollment_secret is the secret obtained from registration<br>
+
+json_name: EnrollmentSecret
+go_name: EnrollmentSecret
+go_tags: json:"EnrollmentSecret" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the name of the identity to enroll<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>key_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+key_ref points to the private key to use for CSR generation<br>
+
+json_name: KeyRef
+go_name: KeyRef
+go_tags: json:"KeyRef" validate:"required"</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+organization is the O for the certificate subject<br>
+
+json_name: Organization
+go_name: Organization
+go_tags: json:"Organization" validate:"required"</pre></td>
+</tr><tr>
+<td>organizational_unit</td>
+<td>string</td>
+<td><pre>
+organizational_unit is the OU for the certificate subject<br>
+
+json_name: OrganizationalUnit
+go_name: OrganizationalUnit
+go_tags: json:"OrganizationalUnit" validate:"required"</pre></td>
+</tr>
+</table>
+
 
 
 <a name="fabric-v1-enrollidentityoutput"></a>
@@ -2184,6 +2743,24 @@ EnrollIdentityInput specifies the parameters for enrolling an identity with a CA
 <pre>
 EnrollIdentityOutput contains the certificates returned by the CA
 </pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+cert_ref points to where the certificate was stored<br>
+
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr>
+</table>
 
 
 
@@ -2194,6 +2771,103 @@ EnrollIdentityOutput contains the certificates returned by the CA
 RegisterIdentityInput specifies the parameters for registering an identity with a CA
 </pre>
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>admin_credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+admin_credentials_ref specifies which admin credentials to use for registration
+If not provided, uses the permanent admin credentials at VaultAdminKeyPairPath()<br>
+
+json_name: AdminCredentialsRef
+go_name: AdminCredentialsRef</pre></td>
+</tr><tr>
+<td>affiliation</td>
+<td>string</td>
+<td><pre>
+affiliation is the affiliation for the identity in the CA<br>
+
+json_name: Affiliation
+go_name: Affiliation</pre></td>
+</tr><tr>
+<td>attributes</td>
+<td><a href="#fabric-v1-registeridentityinput-attributesentry">fabric.v1.RegisterIdentityInput.AttributesEntry</a></td>
+<td><pre>
+attributes are additional attributes for the identity<br>
+
+json_name: Attributes
+go_name: Attributes</pre></td>
+</tr><tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is a TLS or Org certificate authority
+Valid values: "tls" or "org"<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required"</pre></td>
+</tr><tr>
+<td>certificate_authority_id</td>
+<td>string</td>
+<td><pre>
+certificate_authority_id identifies which CA to register with<br>
+
+json_name: CertificateAuthorityId
+go_name: CertificateAuthorityId
+go_tags: json:"CertificateAuthorityId" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the unique name for this identity<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_type</td>
+<td>string</td>
+<td><pre>
+identity_type specifies the type of identity (e.g., "admin", "peer", "orderer", "client")<br>
+
+json_name: IdentityType
+go_name: IdentityType
+go_tags: json:"IdentityType"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-registeridentityinput-attributesentry"></a>
+### fabric.v1.RegisterIdentityInput.AttributesEntry
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>key</td>
+<td>string</td>
+<td><pre>
+json_name: key
+go_name: Key</pre></td>
+</tr><tr>
+<td>value</td>
+<td>string</td>
+<td><pre>
+json_name: value
+go_name: Value</pre></td>
+</tr>
+</table>
+
 
 
 <a name="fabric-v1-registeridentityoutput"></a>
@@ -2202,6 +2876,25 @@ RegisterIdentityInput specifies the parameters for registering an identity with 
 <pre>
 RegisterIdentityOutput contains the enrollment secret returned by the CA
 </pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>enrollment_secret</td>
+<td>string</td>
+<td><pre>
+enrollment_secret is the secret used to enroll the identity
+This secret should be kept secure and used only for enrollment<br>
+
+json_name: EnrollmentSecret
+go_name: EnrollmentSecret
+go_tags: json:"EnrollmentSecret" validate:"required"</pre></td>
+</tr>
+</table>
 
 
 
@@ -2212,6 +2905,60 @@ RegisterIdentityOutput contains the enrollment secret returned by the CA
 RevokeIdentityInput specifies the parameters for revoking an identity from a CA
 </pre>
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>admin_credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+admin_credentials_ref specifies which admin credentials to use for revocation
+If not provided, uses the permanent admin credentials at VaultAdminKeyPairPath()<br>
+
+json_name: AdminCredentialsRef
+go_name: AdminCredentialsRef</pre></td>
+</tr><tr>
+<td>cert_type</td>
+<td>string</td>
+<td><pre>
+cert_type specifies whether this is a TLS or Org certificate authority
+Valid values: "tls" or "org"<br>
+
+json_name: CertType
+go_name: CertType
+go_tags: json:"CertType" validate:"required"</pre></td>
+</tr><tr>
+<td>certificate_authority_id</td>
+<td>string</td>
+<td><pre>
+certificate_authority_id identifies which CA to revoke from<br>
+
+json_name: CertificateAuthorityId
+go_name: CertificateAuthorityId
+go_tags: json:"CertificateAuthorityId" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the name of the identity to revoke<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>reason</td>
+<td>string</td>
+<td><pre>
+reason is the reason for revocation (optional)<br>
+
+json_name: Reason
+go_name: Reason</pre></td>
+</tr>
+</table>
+
 
 
 <a name="fabric-v1-revokeidentityoutput"></a>
@@ -2220,6 +2967,23 @@ RevokeIdentityInput specifies the parameters for revoking an identity from a CA
 <pre>
 RevokeIdentityOutput indicates the result of identity revocation
 </pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>revoked</td>
+<td>bool</td>
+<td><pre>
+revoked indicates if the identity was successfully revoked<br>
+
+json_name: Revoked
+go_name: Revoked</pre></td>
+</tr>
+</table>
 
 
 
@@ -4639,6 +5403,90 @@ json_name: CertRef
 go_name: CertRef
 go_tags: json:"CertRef" validate:"required"</pre></td>
 </tr>
+</table> 
+
+---
+<a name="secrets-v1-storeidentitycredentials-activity"></a>
+### secrets.v1.StoreIdentityCredentials
+
+<pre>
+StoreIdentityCredentials stores keypair+certificate together at one location.
+This is used for storing admin identity credentials where the CA client needs both.
+Stores: {private_key: PEM, public_key: PEM, certificate: PEM}
+</pre>
+
+**Input:** [secrets.v1.StoreIdentityCredentialsInput](#secrets-v1-storeidentitycredentialsinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_chain_pem</td>
+<td>bytes</td>
+<td><pre>
+ca_chain_pem is the optional PEM-encoded CA certificate chain<br>
+
+json_name: CaChainPem
+go_name: CaChainPem
+go_tags: json:"CaChainPem"</pre></td>
+</tr><tr>
+<td>certificate_pem</td>
+<td>bytes</td>
+<td><pre>
+certificate_pem is the PEM-encoded certificate<br>
+
+json_name: CertificatePem
+go_name: CertificatePem
+go_tags: json:"CertificatePem" validate:"required"</pre></td>
+</tr><tr>
+<td>credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+credentials_ref is where to store the identity credentials (key + cert together)<br>
+
+json_name: CredentialsRef
+go_name: CredentialsRef
+go_tags: json:"CredentialsRef" validate:"required"</pre></td>
+</tr><tr>
+<td>private_key_pem</td>
+<td>bytes</td>
+<td><pre>
+private_key_pem is the PEM-encoded private key<br>
+
+json_name: PrivateKeyPem
+go_name: PrivateKeyPem
+go_tags: json:"PrivateKeyPem" validate:"required"</pre></td>
+</tr><tr>
+<td>public_key_pem</td>
+<td>bytes</td>
+<td><pre>
+public_key_pem is the PEM-encoded public key<br>
+
+json_name: PublicKeyPem
+go_name: PublicKeyPem
+go_tags: json:"PublicKeyPem" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [secrets.v1.StoreIdentityCredentialsOutput](#secrets-v1-storeidentitycredentialsoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+json_name: CredentialsRef
+go_name: CredentialsRef
+go_tags: json:"CredentialsRef" validate:"required"</pre></td>
+</tr>
 </table>   
 
 <a name="secrets-v1-messages"></a>
@@ -5073,6 +5921,94 @@ StoreCertificateOutput confirms certificate was stored
 json_name: CertRef
 go_name: CertRef
 go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-storeidentitycredentialsinput"></a>
+### secrets.v1.StoreIdentityCredentialsInput
+
+<pre>
+StoreIdentityCredentialsInput specifies keypair+certificate to store together
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_chain_pem</td>
+<td>bytes</td>
+<td><pre>
+ca_chain_pem is the optional PEM-encoded CA certificate chain<br>
+
+json_name: CaChainPem
+go_name: CaChainPem
+go_tags: json:"CaChainPem"</pre></td>
+</tr><tr>
+<td>certificate_pem</td>
+<td>bytes</td>
+<td><pre>
+certificate_pem is the PEM-encoded certificate<br>
+
+json_name: CertificatePem
+go_name: CertificatePem
+go_tags: json:"CertificatePem" validate:"required"</pre></td>
+</tr><tr>
+<td>credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+credentials_ref is where to store the identity credentials (key + cert together)<br>
+
+json_name: CredentialsRef
+go_name: CredentialsRef
+go_tags: json:"CredentialsRef" validate:"required"</pre></td>
+</tr><tr>
+<td>private_key_pem</td>
+<td>bytes</td>
+<td><pre>
+private_key_pem is the PEM-encoded private key<br>
+
+json_name: PrivateKeyPem
+go_name: PrivateKeyPem
+go_tags: json:"PrivateKeyPem" validate:"required"</pre></td>
+</tr><tr>
+<td>public_key_pem</td>
+<td>bytes</td>
+<td><pre>
+public_key_pem is the PEM-encoded public key<br>
+
+json_name: PublicKeyPem
+go_name: PublicKeyPem
+go_tags: json:"PublicKeyPem" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-storeidentitycredentialsoutput"></a>
+### secrets.v1.StoreIdentityCredentialsOutput
+
+<pre>
+StoreIdentityCredentialsOutput confirms credentials were stored
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+json_name: CredentialsRef
+go_name: CredentialsRef
+go_tags: json:"CredentialsRef" validate:"required"</pre></td>
 </tr>
 </table>
 

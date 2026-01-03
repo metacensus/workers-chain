@@ -47,6 +47,7 @@ const (
 	CreatePasswordActivityName              = "secrets.v1.CreatePassword"
 	CreateSelfSignedCertificateActivityName = "secrets.v1.CreateSelfSignedCertificate"
 	StoreCertificateActivityName            = "secrets.v1.StoreCertificate"
+	StoreIdentityCredentialsActivityName    = "secrets.v1.StoreIdentityCredentials"
 )
 
 // SecretsClient describes a client for a(n) secrets.v1.Secrets worker
@@ -705,6 +706,11 @@ type SecretsActivities interface {
 	// StoreCertificate stores certificate data at the specified location.
 	// Implemented as an activity to keep certificate data out of workflow history.
 	StoreCertificate(ctx context.Context, req *StoreCertificateInput) (*StoreCertificateOutput, error)
+
+	// StoreIdentityCredentials stores keypair+certificate together at one location.
+	// This is used for storing admin identity credentials where the CA client needs both.
+	// Stores: {private_key: PEM, public_key: PEM, certificate: PEM}
+	StoreIdentityCredentials(ctx context.Context, req *StoreIdentityCredentialsInput) (*StoreIdentityCredentialsOutput, error)
 }
 
 // RegisterSecretsActivities registers activities with a worker
@@ -713,6 +719,7 @@ func RegisterSecretsActivities(r worker.ActivityRegistry, activities SecretsActi
 	RegisterCreatePasswordActivity(r, activities.CreatePassword)
 	RegisterCreateSelfSignedCertificateActivity(r, activities.CreateSelfSignedCertificate)
 	RegisterStoreCertificateActivity(r, activities.StoreCertificate)
+	RegisterStoreIdentityCredentialsActivity(r, activities.StoreIdentityCredentials)
 }
 
 // RegisterCreateKeyPairActivity registers a secrets.v1.CreateKeyPair activity
@@ -1759,6 +1766,274 @@ func (o *StoreCertificateLocalActivityOptions) WithScheduleToCloseTimeout(d time
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
 func (o *StoreCertificateLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *StoreCertificateLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterStoreIdentityCredentialsActivity registers a secrets.v1.StoreIdentityCredentials activity
+func RegisterStoreIdentityCredentialsActivity(r worker.ActivityRegistry, fn func(context.Context, *StoreIdentityCredentialsInput) (*StoreIdentityCredentialsOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: StoreIdentityCredentialsActivityName,
+	})
+}
+
+// StoreIdentityCredentialsFuture describes a(n) secrets.v1.StoreIdentityCredentials activity execution
+type StoreIdentityCredentialsFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *StoreIdentityCredentialsFuture) Get(ctx workflow.Context) (*StoreIdentityCredentialsOutput, error) {
+	var resp StoreIdentityCredentialsOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *StoreIdentityCredentialsFuture) Select(sel workflow.Selector, fn func(*StoreIdentityCredentialsFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// StoreIdentityCredentials stores keypair+certificate together at one location.
+// This is used for storing admin identity credentials where the CA client needs both.
+// Stores: {private_key: PEM, public_key: PEM, certificate: PEM}
+func StoreIdentityCredentials(ctx workflow.Context, req *StoreIdentityCredentialsInput, options ...*StoreIdentityCredentialsActivityOptions) (*StoreIdentityCredentialsOutput, error) {
+	return StoreIdentityCredentialsAsync(ctx, req, options...).Get(ctx)
+}
+
+// StoreIdentityCredentials stores keypair+certificate together at one location.
+// This is used for storing admin identity credentials where the CA client needs both.
+// Stores: {private_key: PEM, public_key: PEM, certificate: PEM}
+func StoreIdentityCredentialsAsync(ctx workflow.Context, req *StoreIdentityCredentialsInput, options ...*StoreIdentityCredentialsActivityOptions) *StoreIdentityCredentialsFuture {
+	var o *StoreIdentityCredentialsActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewStoreIdentityCredentialsActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &StoreIdentityCredentialsFuture{Future: errF}
+	}
+	activity := StoreIdentityCredentialsActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &StoreIdentityCredentialsFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// StoreIdentityCredentials stores keypair+certificate together at one location.
+// This is used for storing admin identity credentials where the CA client needs both.
+// Stores: {private_key: PEM, public_key: PEM, certificate: PEM}
+func StoreIdentityCredentialsLocal(ctx workflow.Context, req *StoreIdentityCredentialsInput, options ...*StoreIdentityCredentialsLocalActivityOptions) (*StoreIdentityCredentialsOutput, error) {
+	return StoreIdentityCredentialsLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// StoreIdentityCredentials stores keypair+certificate together at one location.
+// This is used for storing admin identity credentials where the CA client needs both.
+// Stores: {private_key: PEM, public_key: PEM, certificate: PEM}
+func StoreIdentityCredentialsLocalAsync(ctx workflow.Context, req *StoreIdentityCredentialsInput, options ...*StoreIdentityCredentialsLocalActivityOptions) *StoreIdentityCredentialsFuture {
+	var o *StoreIdentityCredentialsLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewStoreIdentityCredentialsLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &StoreIdentityCredentialsFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = StoreIdentityCredentialsActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &StoreIdentityCredentialsFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// StoreIdentityCredentialsActivityOptions provides configuration for a(n) secrets.v1.StoreIdentityCredentials activity
+type StoreIdentityCredentialsActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewStoreIdentityCredentialsActivityOptions initializes a new StoreIdentityCredentialsActivityOptions value
+func NewStoreIdentityCredentialsActivityOptions() *StoreIdentityCredentialsActivityOptions {
+	return &StoreIdentityCredentialsActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *StoreIdentityCredentialsActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = SecretsTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *StoreIdentityCredentialsActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *StoreIdentityCredentialsActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *StoreIdentityCredentialsActivityOptions) WithDataConverter(dc converter.DataConverter) *StoreIdentityCredentialsActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *StoreIdentityCredentialsActivityOptions) WithHeartbeatTimeout(d time.Duration) *StoreIdentityCredentialsActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *StoreIdentityCredentialsActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *StoreIdentityCredentialsActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *StoreIdentityCredentialsActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *StoreIdentityCredentialsActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *StoreIdentityCredentialsActivityOptions) WithScheduleToStartTimeout(d time.Duration) *StoreIdentityCredentialsActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *StoreIdentityCredentialsActivityOptions) WithStartToCloseTimeout(d time.Duration) *StoreIdentityCredentialsActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *StoreIdentityCredentialsActivityOptions) WithTaskQueue(tq string) *StoreIdentityCredentialsActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *StoreIdentityCredentialsActivityOptions) WithWaitForCancellation(wait bool) *StoreIdentityCredentialsActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// StoreIdentityCredentialsLocalActivityOptions provides configuration for a(n) secrets.v1.StoreIdentityCredentials activity
+type StoreIdentityCredentialsLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *StoreIdentityCredentialsInput) (*StoreIdentityCredentialsOutput, error)
+}
+
+// NewStoreIdentityCredentialsLocalActivityOptions initializes a new StoreIdentityCredentialsLocalActivityOptions value
+func NewStoreIdentityCredentialsLocalActivityOptions() *StoreIdentityCredentialsLocalActivityOptions {
+	return &StoreIdentityCredentialsLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *StoreIdentityCredentialsLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom secrets.v1.StoreIdentityCredentials implementation
+func (o *StoreIdentityCredentialsLocalActivityOptions) Local(fn func(context.Context, *StoreIdentityCredentialsInput) (*StoreIdentityCredentialsOutput, error)) *StoreIdentityCredentialsLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *StoreIdentityCredentialsLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *StoreIdentityCredentialsLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *StoreIdentityCredentialsLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *StoreIdentityCredentialsLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *StoreIdentityCredentialsLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *StoreIdentityCredentialsLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *StoreIdentityCredentialsLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *StoreIdentityCredentialsLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *StoreIdentityCredentialsLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *StoreIdentityCredentialsLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }

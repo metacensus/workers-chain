@@ -76,7 +76,7 @@ func NewCertificateAuthorityValues(caConfig fabricconfig.CertificateAuthorityCon
 			RoleName:             caConfig.AuthRoleName(),
 			KeyPairPath:          "secret/data/" + caConfig.VaultKeyPairPath(),
 			CertificatePath:      "secret/data/" + caConfig.VaultCertificatePath(),
-			AdminCredentialsPath: "secret/data/" + caConfig.VaultAdminCredentialsPath(),
+			AdminCredentialsPath: "secret/data/" + caConfig.VaultBootstrapAdminCredentialsPath(),
 			DbCredentialsPath:    "secret/data/" + caConfig.VaultDatabaseCredentialsPath(),
 		},
 		Service: ServiceConfig{
@@ -110,4 +110,3 @@ func NewCertificateAuthorityValues(caConfig fabricconfig.CertificateAuthorityCon
 		CommonLabels: DefaultCommonLabels(),
 	}
 }
-

@@ -357,9 +357,10 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 		return nil, fmt.Errorf("failed to generate root CA certificate: %w", err)
 	}
 
-	adminCredentialsRef := secrets.NewVaultRef(rootCA.VaultAdminCredentialsPath())
+	// Generate bootstrap admin credentials (username/password) for initial CA enrollment
+	bootstrapCredentialsRef := secrets.NewVaultRef(rootCA.VaultBootstrapAdminCredentialsPath())
 	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
-		SecretRef: adminCredentialsRef,
+		SecretRef: bootstrapCredentialsRef,
 		Username:  "admin",
 	}).Get(ctx, nil)
 	if err != nil {
@@ -379,7 +380,7 @@ func (w *deployRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (
 	_, err = pb.BootstrapCertificateAuthorityAdminChild(ctx, &pb.BootstrapCertificateAuthorityAdminInput{
 		CertType:                certType,
 		CertificateAuthorityId:  rootCA.CAID(),
-		BootstrapCredentialsRef: adminCredentialsRef,
+		BootstrapCredentialsRef: bootstrapCredentialsRef,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w (certType=%s): %w", ErrBootstrapCertificateAuthorityAdmin, certType, err)
@@ -502,29 +503,55 @@ func (w *bootstrapCertificateAuthorityAdminWorkflow) Execute(ctx workflow.Contex
 	}
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
-	adminKeyRef := secrets.NewVaultRef(caConfig.VaultAdminKeyPath())
+	// Step 1: Create a keypair for the bootstrap admin identity to use for initial enrollment
+	// We'll temporarily store the keypair separately, then consolidate with cert later
+	bootstrapAdminKeyPairRef := secrets.NewVaultRef(caConfig.VaultBootstrapAdminKeyPairPath())
+	var createKeyPairOutput secretspb.CreateKeyPairOutput
 	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
-		SecretRef: adminKeyRef,
-	}).Get(ctx, nil)
+		SecretRef: bootstrapAdminKeyPairRef,
+	}).Get(ctx, &createKeyPairOutput)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate admin key pair: %w", err)
+		return nil, fmt.Errorf("failed to generate bootstrap admin key pair: %w", err)
 	}
 
-	adminCertRef := secrets.NewVaultRef(caConfig.VaultAdminCertPath())
+	// Step 2: Bootstrap enroll using the bootstrap credentials
+	// This obtains the bootstrap admin's certificate and stores keypair+cert together
 	caTlsCertRef := secrets.NewVaultRef(caConfig.VaultCertificatePath())
+	var bootstrapEnrollOutput pb.BootstrapEnrollIdentityOutput
 	err = workflow.ExecuteActivity(activityCtx, pb.BootstrapEnrollIdentityActivityName, &pb.BootstrapEnrollIdentityInput{
 		CaUrl:                   caConfig.URL(),
 		BootstrapCredentialsRef: w.input.Req.GetBootstrapCredentialsRef(),
-		KeyRef:                  adminKeyRef,
-		CertRef:                 adminCertRef,
+		KeyRef:                  bootstrapAdminKeyPairRef,
+		CertRef:                 bootstrapAdminKeyPairRef, // Store cert at same location as keypair
 		CommonName:              caConfig.AdminCommonName(),
 		Organization:            w.fabricConfig.OrgID,
 		OrganizationalUnit:      caConfig.OrganizationalUnit(),
 		CaTlsCertRef:            caTlsCertRef,
-	}).Get(ctx, nil)
+	}).Get(ctx, &bootstrapEnrollOutput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to bootstrap enroll admin identity: %w", err)
 	}
+
+	// Step 3: Create permanent admin identity using the bootstrap admin credentials
+	// This creates a new admin identity with the full registration/enrollment flow
+	// IMPORTANT: We pass the bootstrap admin credentials so RegisterIdentity can authenticate
+	_, err = pb.CreateIdentityChild(ctx, &pb.CreateIdentityInput{
+		CertType:               certType,
+		CertificateAuthorityId: caID,
+		IdentityName:           "admin",
+		CommonName:             caConfig.AdminCommonName(),
+		Organization:           w.fabricConfig.OrgID,
+		OrganizationalUnit:     caConfig.OrganizationalUnit(),
+		Affiliation:            "",
+		Attributes:             map[string]string{"hf.Registrar.Roles": "client,user,peer,orderer", "hf.Revoker": "true"},
+		AdminCredentialsRef:    bootstrapAdminKeyPairRef, // Use bootstrap admin to create permanent admin
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateIdentity, err)
+	}
+
+	// TODO Step 4: Revoke the bootstrap admin credentials using RevokeIdentity activity
+	// This ensures the bootstrap credentials can no longer be used after permanent admin is created
 
 	return &pb.BootstrapCertificateAuthorityAdminOutput{}, nil
 }
@@ -544,18 +571,71 @@ type createIdentityWorkflow struct {
 
 func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdentityOutput, error) {
 	certType := w.input.Req.GetCertType()
+	caID := w.input.Req.GetCertificateAuthorityId()
 	identityName := w.input.Req.GetIdentityName()
 
 	if certType != "tls" && certType != "org" {
-		return nil, ErrInvalidCertType
+		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidCertType, certType)
 	}
 
-	// TODO: Generate key pair for identity using secrets.v1.CreateKeyPair
-	// TODO: Register identity with CA
-	// TODO: Enroll identity with CA
-	// TODO: Store identity certificate
+	caConfig := w.fabricConfig.CertificateAuthority(certType, caID)
 
-	_ = identityName
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    3,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
-	return &pb.CreateIdentityOutput{}, nil
+	// Step 1: Generate key pair for identity
+	keyRef := secrets.NewVaultRef(fmt.Sprintf("%s/%s/key", caConfig.VaultBasePath(), identityName))
+	err := workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
+		SecretRef: keyRef,
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate key pair: %w", err)
+	}
+
+	// Step 2: Register identity with CA
+	// Pass through admin_credentials_ref if provided (e.g., bootstrap admin during CA setup)
+	var registerOutput pb.RegisterIdentityOutput
+	err = workflow.ExecuteActivity(activityCtx, pb.RegisterIdentityActivityName, &pb.RegisterIdentityInput{
+		CertType:               certType,
+		CertificateAuthorityId: caID,
+		IdentityName:           identityName,
+		Affiliation:            w.input.Req.GetAffiliation(),
+		Attributes:             w.input.Req.GetAttributes(),
+		IdentityType:           "client", // Default type
+		AdminCredentialsRef:    w.input.Req.GetAdminCredentialsRef(),
+	}).Get(ctx, &registerOutput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to register identity: %w", err)
+	}
+
+	// Step 3: Enroll identity with CA
+	caTlsCertRef := secrets.NewVaultRef(caConfig.VaultCertificatePath())
+	var enrollOutput pb.EnrollIdentityOutput
+	err = workflow.ExecuteActivity(activityCtx, pb.EnrollIdentityActivityName, &pb.EnrollIdentityInput{
+		CertType:               certType,
+		CertificateAuthorityId: caID,
+		IdentityName:           identityName,
+		EnrollmentSecret:       registerOutput.GetEnrollmentSecret(),
+		KeyRef:                 keyRef,
+		CommonName:             w.input.Req.GetCommonName(),
+		Organization:           w.input.Req.GetOrganization(),
+		OrganizationalUnit:     w.input.Req.GetOrganizationalUnit(),
+		CaTlsCertRef:           caTlsCertRef,
+	}).Get(ctx, &enrollOutput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to enroll identity: %w", err)
+	}
+
+	return &pb.CreateIdentityOutput{
+		KeyRef:  keyRef,
+		CertRef: enrollOutput.GetCertRef(),
+	}, nil
 }
