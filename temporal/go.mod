@@ -4,6 +4,8 @@ go 1.24.0
 
 toolchain go1.24.5
 
+replace github.com/hyperledger/fabric-ca => github.com/jmbarzee/fabric-ca v0.0.0-20260103183611-bf716f732fbc
+
 require (
 	github.com/alta/protopatch v0.5.3
 	github.com/aws/aws-sdk-go-v2 v1.39.3
@@ -286,5 +288,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apimachinery v0.34.0
 )
-
-replace github.com/hyperledger/fabric-ca => github.com/jmbarzee/fabric-ca v0.0.0-20250715182913-847b79d1efcf

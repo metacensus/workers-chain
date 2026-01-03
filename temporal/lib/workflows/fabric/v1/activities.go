@@ -3,14 +3,14 @@ package fabric
 import (
 	"context"
 	"crypto/ecdsa"
-	"crypto/rand"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
 	"fmt"
 
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-lib-go/bccsp"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/fabric/config"
@@ -113,15 +113,8 @@ func (a *Activities) RegisterIdentity(ctx context.Context, req *pb.RegisterIdent
 
 	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
 
-	// Create the appropriate hydrator based on which admin credentials to use
-	var hydrator common.ConfigHydrator[certauthority.ClientConfig]
-	if req.GetAdminCredentialsRef() != nil {
-		// Use specific admin credentials (e.g., bootstrap admin during CA setup)
-		hydrator = certauthority.NewConfigWithAdminRef(caConfig, req.GetAdminCredentialsRef())
-	} else {
-		// Use default permanent admin credentials
-		hydrator = certauthority.NewConfig(caConfig)
-	}
+	// Create config with explicit admin credentials (nil = use default permanent admin)
+	hydrator := certauthority.NewConfig(caConfig, req.GetAdminCredentialsRef())
 
 	// Get the CA client - the clientProvider handles fetching secrets, hydrating config, and caching
 	client, err := a.clientProvider.GetClient(ctx, hydrator)
@@ -170,6 +163,8 @@ func convertAttributes(attrs map[string]string) []api.Attribute {
 
 // EnrollIdentity enrolls a registered identity and retrieves certificates
 // This is the second step in identity creation - enrollment uses the secret from registration
+// The pre-generated keypair is imported into the Fabric CA client's BCCSP so it uses our key
+// instead of generating its own, ensuring the certificate matches our stored private key.
 func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityInput) (*pb.EnrollIdentityOutput, error) {
 	certType := req.GetCertType()
 	caID := req.GetCertificateAuthorityId()
@@ -181,7 +176,7 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 
 	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
 
-	// Fetch the private key from Vault
+	// Step 1: Fetch the pre-generated keypair from Vault
 	secret, err := a.secretProvider.FetchSecret(ctx, req.GetKeyRef())
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to fetch secret: %w", ErrFetchSecret, err)
@@ -192,27 +187,12 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 		return nil, fmt.Errorf("%w: failed to parse key pair: %w", ErrFetchSecret, err)
 	}
 
-	// Parse the private key for CSR generation
 	privateKey, err := parseECDSAPrivateKey(keyPair.PrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrParseKey, err)
 	}
 
-	// Generate CSR
-	csrTemplate := &x509.CertificateRequest{
-		Subject: pkix.Name{
-			CommonName:         req.GetCommonName(),
-			Organization:       []string{req.GetOrganization()},
-			OrganizationalUnit: []string{req.GetOrganizationalUnit()},
-		},
-	}
-
-	_, err = x509.CreateCertificateRequest(rand.Reader, csrTemplate, privateKey)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrGenerateCSR, err)
-	}
-
-	// Fetch TLS certificate if provided
+	// Step 2: Fetch TLS certificate if provided
 	var tlsCertPEM []byte
 	if req.GetCaTlsCertRef() != nil {
 		certSecret, err := a.secretProvider.FetchSecret(ctx, req.GetCaTlsCertRef())
@@ -226,8 +206,7 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 		tlsCertPEM = cert.Certificate
 	}
 
-	// Create a bootstrap client for enrollment using the enrollment secret
-	// The enrollment secret is passed in the EnrollmentRequest, not in the client config
+	// Step 3: Create a bootstrap client for enrollment using the enrollment secret
 	bootstrapClient, err := certauthority.NewBootstrapClient(certauthority.BootstrapClientConfig{
 		URL:        caConfig.URL(),
 		Username:   identityName,              // Use identity name as username for enrollment
@@ -240,7 +219,14 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 	}
 	defer bootstrapClient.Close()
 
-	// Build enrollment request
+	// Step 4: Import our pre-generated key into the client's BCCSP
+	// This ensures the Fabric CA client uses OUR key during enrollment instead of generating a new one
+	if err := importKeyIntoClientBCCSP(bootstrapClient, privateKey); err != nil {
+		return nil, fmt.Errorf("%w: failed to import key into BCCSP: %w", ErrEnrollIdentity, err)
+	}
+
+	// Step 5: Build enrollment request
+	// The client will use our imported key to generate the CSR
 	enrollReq := &api.EnrollmentRequest{
 		Name:   identityName,
 		Secret: req.GetEnrollmentSecret(),
@@ -249,18 +235,17 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 		},
 	}
 
-	// Enroll with the CA
+	// Step 6: Enroll with the CA using our imported key
 	enrollResp, err := bootstrapClient.Enroll(ctx, enrollReq)
 	if err != nil {
 		return nil, fmt.Errorf("%w: enrollment failed: %w", ErrEnrollIdentity, err)
 	}
 
-	// Extract the certificate
+	// Step 7: Extract the certificate
 	certPEM := enrollResp.Identity.GetECert().Cert()
 
-	// Store keypair+cert together at a single location
-	// For the permanent admin created by CreateIdentity, this will be VaultAdminKeyPairPath()
-	// The workflow determines the path based on identity name and CA config
+	// Step 8: Store our original keypair + the certificate at a single location
+	// They match because the CA used our key during enrollment
 	credentialsRef := secrets.NewVaultRef(fmt.Sprintf("%s/%s/keypair", caConfig.VaultBasePath(), identityName))
 
 	identityCreds := &secrets.IdentityCredentials{
@@ -292,15 +277,8 @@ func (a *Activities) RevokeIdentity(ctx context.Context, req *pb.RevokeIdentityI
 
 	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
 
-	// Create the appropriate hydrator based on which admin credentials to use
-	var hydrator common.ConfigHydrator[certauthority.ClientConfig]
-	if req.GetAdminCredentialsRef() != nil {
-		// Use specific admin credentials (e.g., permanent admin revoking bootstrap admin)
-		hydrator = certauthority.NewConfigWithAdminRef(caConfig, req.GetAdminCredentialsRef())
-	} else {
-		// Use default permanent admin credentials
-		hydrator = certauthority.NewConfig(caConfig)
-	}
+	// Create config with explicit admin credentials (nil = use default permanent admin)
+	hydrator := certauthority.NewConfig(caConfig, req.GetAdminCredentialsRef())
 
 	// Get the CA client - the clientProvider handles fetching secrets, hydrating config, and caching
 	client, err := a.clientProvider.GetClient(ctx, hydrator)
@@ -327,7 +305,10 @@ func (a *Activities) RevokeIdentity(ctx context.Context, req *pb.RevokeIdentityI
 
 // BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password).
 // This is used ONLY during CA initialization to obtain the bootstrap admin's certificate.
+// The pre-generated keypair is imported into the Fabric CA client's BCCSP so it uses our key
+// instead of generating its own, ensuring the certificate matches our stored private key.
 func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.BootstrapEnrollIdentityInput) (*pb.BootstrapEnrollIdentityOutput, error) {
+	// Step 1: Fetch the pre-generated keypair from Vault
 	secret, err := a.secretProvider.FetchSecret(ctx, req.GetKeyRef())
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to fetch secret: %w", ErrFetchSecret, err)
@@ -343,27 +324,20 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 		return nil, fmt.Errorf("%w: %w", ErrParseKey, err)
 	}
 
-	csrTemplate := &x509.CertificateRequest{
-		Subject: pkix.Name{
-			CommonName:         req.GetCommonName(),
-			Organization:       []string{req.GetOrganization()},
-			OrganizationalUnit: []string{req.GetOrganizationalUnit()},
-		},
-	}
-
-	_, err = x509.CreateCertificateRequest(rand.Reader, csrTemplate, privateKey)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrGenerateCSR, err)
-	}
-
+	// Step 2: Create bootstrap client
 	bootstrapClient, err := a.getBootstrapClient(ctx, req.GetBootstrapCredentialsRef(), req.GetCaUrl(), req.GetCaTlsCertRef())
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrBootstrapEnrollIdentity, err)
 	}
-
-	// Clean up temporary TLS cert file when done
 	defer bootstrapClient.Close()
 
+	// Step 3: Import our pre-generated key into the client's BCCSP
+	// This ensures the Fabric CA client uses OUR key during enrollment instead of generating a new one
+	if err := importKeyIntoClientBCCSP(bootstrapClient, privateKey); err != nil {
+		return nil, fmt.Errorf("%w: failed to import key into BCCSP: %w", ErrBootstrapEnrollIdentity, err)
+	}
+
+	// Step 4: Get bootstrap credentials
 	credsSecret, err := a.secretProvider.FetchSecret(ctx, req.GetBootstrapCredentialsRef())
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to fetch credentials secret: %w", ErrFetchSecret, err)
@@ -374,6 +348,8 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 		return nil, fmt.Errorf("%w: failed to parse credentials: %w", ErrFetchSecret, err)
 	}
 
+	// Step 5: Build enrollment request
+	// The client will use our imported key to generate the CSR
 	enrollReq := &api.EnrollmentRequest{
 		Name:   creds.Username,
 		Secret: creds.Password,
@@ -382,6 +358,7 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 		},
 	}
 
+	// Step 6: Enroll with the CA using our imported key
 	enrollResp, err := bootstrapClient.Enroll(ctx, enrollReq)
 	if err != nil {
 		return nil, fmt.Errorf("%w: enrollment failed: %w", ErrBootstrapEnrollIdentity, err)
@@ -389,7 +366,8 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 
 	certPEM := enrollResp.Identity.GetECert().Cert()
 
-	// Store keypair+cert together so Config.Hydrate can find both
+	// Step 7: Store our original keypair + the certificate
+	// They match because the CA used our key during enrollment
 	identityCreds := &secrets.IdentityCredentials{
 		PrivateKey:  keyPair.PrivateKey,
 		PublicKey:   keyPair.PublicKey,
@@ -404,6 +382,46 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 	return &pb.BootstrapEnrollIdentityOutput{
 		CertRef: req.GetCertRef(),
 	}, nil
+}
+
+// importKeyIntoClientBCCSP imports a private key into the Fabric CA client's BCCSP
+// so that enrollment operations use this key instead of generating a new one.
+func importKeyIntoClientBCCSP(bootstrapClient certauthority.BootstrapClient, privateKey *ecdsa.PrivateKey) error {
+	// Get the underlying lib.Client to access BCCSP
+	fabricClient, err := getUnderlyingFabricClient(bootstrapClient)
+	if err != nil {
+		return err
+	}
+
+	// Marshal the private key to PKCS8 DER format for BCCSP import
+	privateKeyDER, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	if err != nil {
+		return fmt.Errorf("failed to marshal private key: %w", err)
+	}
+
+	// Import the key into BCCSP (ephemeral, in-memory only)
+	csp := fabricClient.GetCSP()
+	_, err = csp.KeyImport(privateKeyDER, &bccsp.ECDSAPrivateKeyImportOpts{Temporary: true})
+	if err != nil {
+		return fmt.Errorf("failed to import key into BCCSP: %w", err)
+	}
+
+	return nil
+}
+
+// getUnderlyingFabricClient extracts the underlying lib.Client from a BootstrapClient
+func getUnderlyingFabricClient(bc certauthority.BootstrapClient) (*lib.Client, error) {
+	// Type assert to access the underlying fabricClient
+	// The BootstrapClient interface doesn't expose this, but we need it to access BCCSP
+	type fabricClientGetter interface {
+		GetFabricClient() *lib.Client
+	}
+
+	if getter, ok := bc.(fabricClientGetter); ok {
+		return getter.GetFabricClient(), nil
+	}
+
+	return nil, fmt.Errorf("bootstrap client does not expose underlying Fabric CA client")
 }
 
 // parseECDSAPrivateKey parses a PEM-encoded ECDSA private key in PKCS8 format.

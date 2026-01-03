@@ -2,13 +2,19 @@ package certauthority
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
-	"os"
+	"net/http"
 
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
-	"github.com/hyperledger/fabric-ca/lib/tls"
+	"github.com/hyperledger/fabric-ca/lib/client/credential"
+	x509cred "github.com/hyperledger/fabric-ca/lib/client/credential/x509"
+	fabrictls "github.com/hyperledger/fabric-ca/lib/tls"
+	"github.com/hyperledger/fabric-lib-go/bccsp"
 )
 
 // Sentinel errors for CA client operations
@@ -28,11 +34,11 @@ var (
 
 // BootstrapClientConfig represents the configuration for username/password authentication
 type BootstrapClientConfig struct {
-	URL         string // CA server URL (e.g., "https://ca.fabric-org1.svc.cluster.local:7054")
-	Username    string // Username for authentication
-	Password    string // Password/secret for authentication
-	CAName      string // Optional CA name (for multi-CA servers)
-	TLSCertPEM  []byte // PEM-encoded TLS certificate to verify CA server (optional, but recommended for self-signed certs)
+	URL        string // CA server URL (e.g., "https://ca.fabric-org1.svc.cluster.local:7054")
+	Username   string // Username for authentication
+	Password   string // Password/secret for authentication
+	CAName     string // Optional CA name (for multi-CA servers)
+	TLSCertPEM []byte // PEM-encoded TLS certificate to verify CA server (optional, but recommended for self-signed certs)
 }
 
 // Validate checks if the BootstrapClientConfig has all required fields
@@ -69,15 +75,17 @@ type BootstrapClient interface {
 type bootstrapClient struct {
 	fabricClient *lib.Client
 	config       BootstrapClientConfig
-	tlsCertFile  string // Path to temporary TLS cert file (empty if not using TLS)
 }
 
-// Close cleans up temporary resources (like TLS cert file)
+// Close cleans up temporary resources
 func (c *bootstrapClient) Close() error {
-	if c.tlsCertFile != "" {
-		return os.Remove(c.tlsCertFile)
-	}
+	// No resources to clean up - everything is in-memory
 	return nil
+}
+
+// GetFabricClient returns the underlying lib.Client for advanced operations like BCCSP key import
+func (c *bootstrapClient) GetFabricClient() *lib.Client {
+	return c.fabricClient
 }
 
 // NewBootstrapClient creates a new bootstrap-only client.
@@ -94,46 +102,28 @@ func NewBootstrapClient(config BootstrapClientConfig) (BootstrapClient, error) {
 		MSPDir: "", // In-memory operations only
 	}
 
-	// Configure TLS if certificate is provided
-	// We write the cert to a temporary file because fabric-ca library expects file paths
-	var tlsCertFile string
-	if len(config.TLSCertPEM) > 0 {
-		tmpFile, err := os.CreateTemp("", "ca-tls-cert-*.pem")
-		if err != nil {
-			return nil, fmt.Errorf("%w: failed to create temp file for TLS cert: %v", ErrClientInit, err)
-		}
-		tlsCertFile = tmpFile.Name()
-
-		if _, err := tmpFile.Write(config.TLSCertPEM); err != nil {
-			tmpFile.Close()
-			os.Remove(tlsCertFile)
-			return nil, fmt.Errorf("%w: failed to write TLS cert to temp file: %v", ErrClientInit, err)
-		}
-		tmpFile.Close()
-
-		fabricCAConfig.TLS = tls.ClientTLSConfig{
-			Enabled:   true,
-			CertFiles: []string{tlsCertFile},
-		}
-	}
-
 	fabricCAClient := &lib.Client{
 		HomeDir: "",
 		Config:  fabricCAConfig,
 	}
 
-	if err := fabricCAClient.Init(); err != nil {
-		// Clean up temp file on error
-		if tlsCertFile != "" {
-			os.Remove(tlsCertFile)
+	// Configure TLS if certificate is provided
+	// Use SetHTTPClient for in-memory TLS configuration (no temporary files)
+	if len(config.TLSCertPEM) > 0 {
+		httpClient, err := createTLSHTTPClient(config.TLSCertPEM)
+		if err != nil {
+			return nil, fmt.Errorf("%w: failed to create TLS HTTP client: %v", ErrClientInit, err)
 		}
+		fabricCAClient.SetHTTPClient(httpClient)
+	}
+
+	if err := fabricCAClient.Init(); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrClientInit, err)
 	}
 
 	return &bootstrapClient{
 		fabricClient: fabricCAClient,
 		config:       config,
-		tlsCertFile:  tlsCertFile,
 	}, nil
 }
 
@@ -186,6 +176,9 @@ type ClientConfig struct {
 	// Admin identity credentials loaded from Vault
 	AdminCert []byte // PEM-encoded admin certificate
 	AdminKey  []byte // PEM-encoded admin private key
+
+	// TLS certificate for verifying the CA server (optional, but recommended for self-signed certs)
+	TLSCertPEM []byte // PEM-encoded TLS certificate of the CA server
 }
 
 // Validate checks if the ClientConfig has all required fields
@@ -246,14 +239,21 @@ func NewClient(config ClientConfig) (Client, error) {
 		Config:  fabricCAConfig,
 	}
 
+	// Configure TLS if certificate is provided
+	// Use SetHTTPClient for in-memory TLS configuration (no temporary files)
+	if len(config.TLSCertPEM) > 0 {
+		httpClient, err := createTLSHTTPClient(config.TLSCertPEM)
+		if err != nil {
+			return nil, fmt.Errorf("%w: failed to create TLS HTTP client: %v", ErrClientInit, err)
+		}
+		fabricCAClient.SetHTTPClient(httpClient)
+	}
+
 	if err := fabricCAClient.Init(); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrClientInit, err)
 	}
 
 	// Build the admin identity from the provided cert and key
-	// TODO: Create identity from cert/key bytes using fabric-ca lib
-	// For now, this is a placeholder - need to investigate the fabric-ca API
-	// to create an Identity from PEM bytes without enrolling
 	identity, err := createIdentityFromCredentials(fabricCAClient, config.AdminCert, config.AdminKey)
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to create admin identity from credentials: %v", ErrClientInit, err)
@@ -313,15 +313,90 @@ func (c *client) GetCAInfo(ctx context.Context) (*lib.GetCAInfoResponse, error) 
 // Helper functions
 // =============================================================================
 
+// createTLSHTTPClient creates an HTTP client configured to verify the CA server's certificate.
+// This allows in-memory TLS configuration without temporary files.
+func createTLSHTTPClient(serverCACert []byte) (*http.Client, error) {
+	certPool := x509.NewCertPool()
+	if !certPool.AppendCertsFromPEM(serverCACert) {
+		return nil, fmt.Errorf("failed to append CA certificate to pool")
+	}
+
+	tlsConfig := &tls.Config{
+		RootCAs:      certPool,
+		CipherSuites: fabrictls.DefaultCipherSuites,
+	}
+
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+		},
+	}, nil
+}
+
 // createIdentityFromCredentials creates a lib.Identity from PEM-encoded cert and key.
 // This allows us to use an identity that was previously enrolled and stored in Vault.
+//
+// Implementation approach (from IN_MEMORY_CA_CLIENT.md):
+// 1. Parse the certificate to extract the Common Name (identity name)
+// 2. Import the private key into BCCSP (Blockchain Crypto Service Provider)
+// 3. Create a Signer from the BCCSP key and certificate
+// 4. Create an X509 Credential and set it from the Signer
+// 5. Create an Identity with the credential
 func createIdentityFromCredentials(client *lib.Client, certPEM, keyPEM []byte) (*lib.Identity, error) {
-	// TODO: Implement using fabric-ca library
-	// Need to investigate the correct API:
-	// - lib.Client.NewX509Identity?
-	// - x509cred.NewCredential + x509cred.NewSigner?
-	// - Loading cert/key and building Identity manually?
-	//
-	// For now, return nil with an error indicating this needs implementation
-	return nil, errors.New("createIdentityFromCredentials not yet implemented - need to investigate fabric-ca API")
+	// Step 1: Parse the certificate to extract identity name (Common Name)
+	certBlock, _ := pem.Decode(certPEM)
+	if certBlock == nil {
+		return nil, fmt.Errorf("failed to decode certificate PEM")
+	}
+
+	cert, err := x509.ParseCertificate(certBlock.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificate: %w", err)
+	}
+
+	identityName := cert.Subject.CommonName
+	if identityName == "" {
+		return nil, fmt.Errorf("certificate has no Common Name")
+	}
+
+	// Step 2: Decode the private key PEM to get DER bytes
+	keyBlock, _ := pem.Decode(keyPEM)
+	if keyBlock == nil {
+		return nil, fmt.Errorf("failed to decode private key PEM")
+	}
+
+	// Step 3: Import the private key into BCCSP
+	// BCCSP expects the raw DER-encoded bytes (keyBlock.Bytes), not the parsed key object
+	csp := client.GetCSP()
+	if csp == nil {
+		return nil, fmt.Errorf("failed to get BCCSP from client")
+	}
+
+	// Import the DER bytes as a BCCSP key
+	// BCCSP will handle parsing the PKCS8 format internally
+	bccspKey, err := csp.KeyImport(keyBlock.Bytes, &bccsp.ECDSAPrivateKeyImportOpts{Temporary: true})
+	if err != nil {
+		return nil, fmt.Errorf("failed to import private key into BCCSP: %w", err)
+	}
+
+	// Step 4: Create a Signer from the BCCSP key and certificate
+	signer, err := x509cred.NewSigner(bccspKey, certPEM)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create signer: %w", err)
+	}
+
+	// Step 5: Create an X509 Credential
+	// We use empty strings for certFile and keyFile because we're setting the credential from a Signer
+	// The x509cred.Client interface is satisfied by lib.Client
+	cred := x509cred.NewCredential("", "", client)
+
+	// Set the credential value from the Signer (this is in-memory, no file I/O)
+	if err := cred.SetCredentialFromSigner(signer); err != nil {
+		return nil, fmt.Errorf("failed to set credential from signer: %w", err)
+	}
+
+	// Step 6: Create the Identity with the credential
+	identity := lib.NewIdentity(client, identityName, []credential.Credential{cred})
+
+	return identity, nil
 }

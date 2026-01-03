@@ -432,8 +432,8 @@ github.com/jackc/puddle/v2 v2.2.2/go.mod h1:vriiEXHvEE654aYKXXjOvZM39qJ0q+azkZFr
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jinzhu/copier v0.4.0 h1:w3ciUoD19shMCRargcpm0cm91ytaBhDvuRpz1ODO/U8=
 github.com/jinzhu/copier v0.4.0/go.mod h1:DfbEm0FYsaqBcKcFuvmOZb218JkPGtvSHsKg8S8hyyg=
-github.com/jmbarzee/fabric-ca v0.0.0-20250715182913-847b79d1efcf h1:0AbLGz4DpsUdr02RMDTkgJGUUDlt/v1IWxbvZRW2Ew4=
-github.com/jmbarzee/fabric-ca v0.0.0-20250715182913-847b79d1efcf/go.mod h1:7O3XVlSB4pa5I/A9ov7iT73eBHKekL6CP9zK8wwSwoU=
+github.com/jmbarzee/fabric-ca v0.0.0-20260103183611-bf716f732fbc h1:9krWBq/jnAuK8nwkTgSf2bmgnRwA87C3dt+D6veC4mI=
+github.com/jmbarzee/fabric-ca v0.0.0-20260103183611-bf716f732fbc/go.mod h1:7O3XVlSB4pa5I/A9ov7iT73eBHKekL6CP9zK8wwSwoU=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
 github.com/jmhodges/clock v0.0.0-20160418191101-880ee4c33548 h1:dYTbLf4m0a5u0KLmPfB6mgxbcV7588bOCx79hxa5Sr4=
 github.com/jmhodges/clock v0.0.0-20160418191101-880ee4c33548/go.mod h1:hGT6jSUVzF6no3QaDSMLGLEHtHSBSefs+MgcDWnmhmo=

@@ -1,3 +1,6 @@
+//go:build tools
+// +build tools
+
 package temporal
 
 // This file declares dependencies on tools used for code generation.
@@ -16,9 +19,13 @@ import (
 	// Generates Temporal workflow/activity interfaces from protobuf
 	_ "github.com/cludden/protoc-gen-go-temporal/pkg/scheme"
 
+	// Generates Nexus service interfaces from protobuf (cmd packages for tools)
+	_ "github.com/bergundy/protoc-gen-go-nexus-temporal/cmd/protoc-gen-go-nexus-temporal"
+	_ "github.com/bergundy/protoc-gen-go-nexus/cmd/protoc-gen-go-nexus"
+
 	// Generates mocks for testing
 	_ "github.com/vektra/mockery/v2/pkg/config"
 )
 
-// Note: protoc-gen-go is installed via Makefile's install-tools target
-// We cannot import it here as it's a command, not a library package
+// Note: For tools that are pure binaries (no library packages), import the cmd package
+// directly with a blank import. This keeps the module in go.mod so 'go install' works.
