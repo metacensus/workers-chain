@@ -32,6 +32,7 @@ type CADatabaseConfig struct {
 type CAVaultConfig struct {
 	RoleName             string
 	SigningPath          string // Path to CA signing keypair + cert
+	SigningChainPath     string // Path to parent CA chain (intermediate CAs only)
 	TlsPath              string // Path to CA TLS keypair + cert
 	AdminCredentialsPath string // Path to bootstrap admin username/password
 	DbCredentialsPath    string // Path to database credentials
@@ -57,6 +58,13 @@ func NewCertificateAuthorityValues(caConfig fabricconfig.CertificateAuthorityCon
 	fabricCfg := fabricconfig.NewFabricConfig(caConfig.OrgConfig)
 	certStoreConfig := fabricCfg.CertificateStore()
 
+	// Determine if this is an intermediate CA that needs a chain file
+	var signingChainPath string
+	if !caConfig.IsRoot() {
+		// Intermediate CAs need the parent chain for x509 verification
+		signingChainPath = "secret/data/" + caConfig.VaultSigningChainRef().GetRef().Fields["path"].GetStringValue()
+	}
+
 	return &CertificateAuthorityValues{
 		Org:      caConfig.OrgID,
 		CertType: caConfig.CertType(),
@@ -75,6 +83,7 @@ func NewCertificateAuthorityValues(caConfig fabricconfig.CertificateAuthorityCon
 		Vault: CAVaultConfig{
 			RoleName:             caConfig.AuthRoleName(),
 			SigningPath:          "secret/data/" + caConfig.VaultSigningRef().GetRef().Fields["path"].GetStringValue(),
+			SigningChainPath:     signingChainPath, // Empty for root CAs, set for intermediates
 			TlsPath:              "secret/data/" + caConfig.VaultTLSRef().GetRef().Fields["path"].GetStringValue(),
 			AdminCredentialsPath: "secret/data/" + caConfig.VaultBootstrapAdminCredentialsRef().GetRef().Fields["path"].GetStringValue(),
 			DbCredentialsPath:    "secret/data/" + caConfig.VaultDatabaseUserRef().GetRef().Fields["path"].GetStringValue(),

@@ -238,15 +238,26 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 		return nil, fmt.Errorf("%w: enrollment failed: %w", ErrEnrollIdentity, err)
 	}
 
-	// Step 5: Extract the certificate
+	// Step 5: Extract the certificate and optionally build full chain
+	// For CA signing certs (profile="ca"), only store the leaf cert - Fabric CA expects this
+	// For client certs (profile="" or "tls"), store the full chain for verification
 	certPEM := enrollResp.Identity.GetECert().Cert()
+	caChain := enrollResp.CAInfo.CAChain
+	var certToStore []byte
+	if req.GetProfile() == "ca" {
+		// CA signing cert - just the leaf, no chain
+		certToStore = certPEM
+	} else {
+		// Client cert - include full chain for verification
+		certToStore = buildCertificateChain(certPEM, caChain)
+	}
 
 	// Step 6: Update the keypair secret with the certificate
 	// Store at the same location we fetched the key from
 	identityCreds := &secrets.IdentityCredentials{
 		PrivateKey:  keyPair.PrivateKey,
 		PublicKey:   keyPair.PublicKey,
-		Certificate: certPEM,
+		Certificate: certToStore,
 	}
 
 	identitySecret := secrets.FromIdentityCredentials(identityCreds)
@@ -254,8 +265,22 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 		return nil, fmt.Errorf("%w: %w", ErrStoreSecret, err)
 	}
 
+	// Step 7: Store CA chain separately if chain_ref is provided
+	// This is required for intermediate CAs so Fabric CA can verify client certs
+	// The chain MUST include the CA's own cert because Fabric CA's getCAChain()
+	// returns the chainfile content to build verification pools. The intermediate
+	// CA's cert must be in the pool to verify certs it issues.
+	if chainRef := req.GetChainRef(); chainRef != nil && len(caChain) > 0 {
+		// Build full chain: this CA's cert + parent chain
+		fullChain := buildCertificateChain(certPEM, caChain)
+		chainSecret := secrets.Secret{"chain": string(fullChain)}
+		if err := a.secretProvider.UpdateSecret(ctx, chainRef, chainSecret); err != nil {
+			return nil, fmt.Errorf("%w: failed to store CA chain: %w", ErrStoreSecret, err)
+		}
+	}
+
 	return &pb.EnrollIdentityOutput{
-		CertRef: req.GetKeyRef(), // Return the same ref - it now contains key + cert
+		CertRef: req.GetKeyRef(), // Return the same ref - it now contains key + cert chain
 	}, nil
 }
 
@@ -344,14 +369,26 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 		return nil, fmt.Errorf("%w: enrollment failed: %w", ErrBootstrapEnrollIdentity, err)
 	}
 
+	// Extract the certificate and optionally build full chain
+	// For CA signing certs (profile="ca"), only store the leaf cert - Fabric CA expects this
+	// For client certs (profile="" or "tls"), store the full chain for verification
 	certPEM := enrollResp.Identity.GetECert().Cert()
+	caChain := enrollResp.CAInfo.CAChain
+	var certToStore []byte
+	if req.GetProfile() == "ca" {
+		// CA signing cert - just the leaf, no chain
+		certToStore = certPEM
+	} else {
+		// Client cert - include full chain for verification
+		certToStore = buildCertificateChain(certPEM, caChain)
+	}
 
 	// Step 5: Store our original keypair + the certificate
 	// They match because the CA signed a CSR generated with our key
 	identityCreds := &secrets.IdentityCredentials{
 		PrivateKey:  keyPair.PrivateKey,
 		PublicKey:   keyPair.PublicKey,
-		Certificate: certPEM,
+		Certificate: certToStore,
 	}
 
 	identitySecret := secrets.FromIdentityCredentials(identityCreds)
@@ -359,7 +396,33 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 		return nil, fmt.Errorf("%w: %w", ErrStoreSecret, err)
 	}
 
+	// Step 6: Store CA chain separately if chain_ref is provided
+	// This is required for intermediate CAs so Fabric CA can verify client certs
+	// The chain MUST include the CA's own cert because Fabric CA's getCAChain()
+	// returns the chainfile content to build verification pools. The intermediate
+	// CA's cert must be in the pool to verify certs it issues.
+	if chainRef := req.GetChainRef(); chainRef != nil && len(caChain) > 0 {
+		// Build full chain: this CA's cert + parent chain
+		fullChain := buildCertificateChain(certPEM, caChain)
+		chainSecret := secrets.Secret{"chain": string(fullChain)}
+		if err := a.secretProvider.UpdateSecret(ctx, chainRef, chainSecret); err != nil {
+			return nil, fmt.Errorf("%w: failed to store CA chain: %w", ErrStoreSecret, err)
+		}
+	}
+
 	return &pb.BootstrapEnrollIdentityOutput{
 		CertRef: req.GetCertRef(),
 	}, nil
+}
+
+// buildCertificateChain combines a leaf certificate with the CA chain.
+// This creates a full certificate chain that can be used by intermediate CAs
+// to verify client certificates they issued (x509 chain validation requires
+// the full chain up to a trusted root).
+func buildCertificateChain(leafCert []byte, caChain []byte) []byte {
+	if len(caChain) == 0 {
+		return leafCert
+	}
+	// Concatenate leaf cert + CA chain (chain already includes intermediate and root)
+	return append(leafCert, caChain...)
 }

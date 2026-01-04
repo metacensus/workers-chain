@@ -21,6 +21,9 @@ vault:
   roleName: "fabric-org1-certificate-authority-tls-root"
   # Signing path: CA's signing keypair + certificate (for issuing certs)
   signingPath: "secret/data/fabric/org1/ca/tls/root/signing"
+  # Signing chain path: Parent CA chain (for intermediate CAs only, omit for root CAs)
+  # This enables intermediate CAs to verify client certificate chains
+  # Example for intermediate: signingChainPath: "secret/data/fabric/org1/ca/tls/v1/signing-chain"
   # TLS path: CA's TLS keypair + certificate (for HTTPS endpoint)
   tlsPath: "secret/data/fabric/org1/ca/tls/root/tls"
   # Bootstrap admin credentials (username/password)

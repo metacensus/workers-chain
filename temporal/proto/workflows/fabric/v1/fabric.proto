@@ -328,6 +328,14 @@ message CreateCertificateInput {
   map<string, string> attributes = 7 [
     json_name = "Attributes"
   ];
+
+  // chain_ref is an optional location to store the CA chain separately.
+  // Required for intermediate CA signing certs (profile="ca") so Fabric CA
+  // can verify client certificates issued by the intermediate CA.
+  secrets.v1.SecretRef chain_ref = 8 [
+    json_name = "ChainRef",
+    (go.field).tags = 'json:"ChainRef,omitempty"'
+  ];
 }
 
 // CreateCertificateOutput indicates the result of certificate creation
@@ -556,6 +564,15 @@ message EnrollIdentityInput {
     json_name = "Profile",
     (go.field).tags = 'json:"Profile,omitempty"'
   ];
+
+  // chain_ref is an optional location to store the CA chain separately.
+  // Required for intermediate CA signing certs (profile="ca") so Fabric CA
+  // can verify client certificates issued by the intermediate CA.
+  // The chain contains parent CA certs needed for x509 chain verification.
+  secrets.v1.SecretRef chain_ref = 8 [
+    json_name = "ChainRef",
+    (go.field).tags = 'json:"ChainRef,omitempty"'
+  ];
 }
 
 // EnrollIdentityOutput contains the certificates returned by the CA
@@ -648,6 +665,15 @@ message BootstrapEnrollIdentityInput {
   string profile = 7 [
     json_name = "Profile",
     (go.field).tags = 'json:"Profile,omitempty"'
+  ];
+
+  // chain_ref is an optional location to store the CA chain separately.
+  // Required for intermediate CA signing certs (profile="ca") so Fabric CA
+  // can verify client certificates issued by the intermediate CA.
+  // The chain contains parent CA certs needed for x509 chain verification.
+  secrets.v1.SecretRef chain_ref = 8 [
+    json_name = "ChainRef",
+    (go.field).tags = 'json:"ChainRef,omitempty"'
   ];
 }
 

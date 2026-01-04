@@ -1422,6 +1422,17 @@ attributes are additional CA attributes for the identity (e.g., hf.IntermediateC
 json_name: Attributes
 go_name: Attributes</pre></td>
 </tr><tr>
+<td>chain_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+chain_ref is an optional location to store the CA chain separately.
+Required for intermediate CA signing certs (profile="ca") so Fabric CA
+can verify client certificates issued by the intermediate CA.<br>
+
+json_name: ChainRef
+go_name: ChainRef
+go_tags: json:"ChainRef,omitempty"</pre></td>
+</tr><tr>
 <td>issuer_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
@@ -1903,6 +1914,18 @@ json_name: CaTlsCertRef
 go_name: CaTlsCertRef
 go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
 </tr><tr>
+<td>chain_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+chain_ref is an optional location to store the CA chain separately.
+Required for intermediate CA signing certs (profile="ca") so Fabric CA
+can verify client certificates issued by the intermediate CA.
+The chain contains parent CA certs needed for x509 chain verification.<br>
+
+json_name: ChainRef
+go_name: ChainRef
+go_tags: json:"ChainRef,omitempty"</pre></td>
+</tr><tr>
 <td>enrollment_secret</td>
 <td>string</td>
 <td><pre>
@@ -2103,6 +2126,18 @@ json_name: CertRef
 go_name: CertRef
 go_tags: json:"CertRef" validate:"required"</pre></td>
 </tr><tr>
+<td>chain_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+chain_ref is an optional location to store the CA chain separately.
+Required for intermediate CA signing certs (profile="ca") so Fabric CA
+can verify client certificates issued by the intermediate CA.
+The chain contains parent CA certs needed for x509 chain verification.<br>
+
+json_name: ChainRef
+go_name: ChainRef
+go_tags: json:"ChainRef,omitempty"</pre></td>
+</tr><tr>
 <td>key_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
@@ -2223,6 +2258,18 @@ cert_ref is where to store the enrolled certificate<br>
 json_name: CertRef
 go_name: CertRef
 go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>chain_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+chain_ref is an optional location to store the CA chain separately.
+Required for intermediate CA signing certs (profile="ca") so Fabric CA
+can verify client certificates issued by the intermediate CA.
+The chain contains parent CA certs needed for x509 chain verification.<br>
+
+json_name: ChainRef
+go_name: ChainRef
+go_tags: json:"ChainRef,omitempty"</pre></td>
 </tr><tr>
 <td>key_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
@@ -2603,6 +2650,17 @@ attributes are additional CA attributes for the identity (e.g., hf.IntermediateC
 json_name: Attributes
 go_name: Attributes</pre></td>
 </tr><tr>
+<td>chain_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+chain_ref is an optional location to store the CA chain separately.
+Required for intermediate CA signing certs (profile="ca") so Fabric CA
+can verify client certificates issued by the intermediate CA.<br>
+
+json_name: ChainRef
+go_name: ChainRef
+go_tags: json:"ChainRef,omitempty"</pre></td>
+</tr><tr>
 <td>issuer_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
@@ -2944,6 +3002,18 @@ ca_tls_cert_ref points to the CA's TLS certificate in Vault<br>
 json_name: CaTlsCertRef
 go_name: CaTlsCertRef
 go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>chain_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+chain_ref is an optional location to store the CA chain separately.
+Required for intermediate CA signing certs (profile="ca") so Fabric CA
+can verify client certificates issued by the intermediate CA.
+The chain contains parent CA certs needed for x509 chain verification.<br>
+
+json_name: ChainRef
+go_name: ChainRef
+go_tags: json:"ChainRef,omitempty"</pre></td>
 </tr><tr>
 <td>enrollment_secret</td>
 <td>string</td>

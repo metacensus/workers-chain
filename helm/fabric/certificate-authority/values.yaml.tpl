@@ -29,6 +29,11 @@ vault:
   # Paths for different secret types
   # Signing path: CA's signing keypair + certificate (for issuing certs)
   signingPath: "{{.Vault.SigningPath}}"
+  # Signing chain path: Parent CA chain (for intermediate CAs only)
+  # This enables intermediate CAs to verify client certificate chains
+  {{- if .Vault.SigningChainPath }}
+  signingChainPath: "{{.Vault.SigningChainPath}}"
+  {{- end }}
   # TLS path: CA's TLS keypair + certificate (for HTTPS endpoint)
   tlsPath: "{{.Vault.TlsPath}}"
   # Bootstrap admin credentials (username/password)

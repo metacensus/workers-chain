@@ -318,6 +318,9 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 			Attributes: map[string]string{
 				"hf.IntermediateCA": "true",
 			},
+			// Store parent chain separately for x509 verification
+			// This enables intermediate CA to verify client certs it issues
+			ChainRef: caConfig.VaultSigningChainRef(),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("%w (signing): %w", ErrCreateCertificate, err)
@@ -355,6 +358,8 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 		}
 	} else {
 		// Issued by TLS CA
+		// Use TLSCommonName() which differs from ComponentName() when both signing and TLS certs
+		// come from the same CA (e.g., TLS Int CA) to avoid registration collision
 		logger.Info("Creating CA-signed TLS certificate", "ca", caConfig.Description(), "issuer", tlsIssuer.Description())
 		_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
 			IssuerRef: &pb.CertificateAuthorityRef{
@@ -363,7 +368,7 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 			},
 			Profile: "tls",
 			Subject: &pb.CertificateSubject{
-				CommonName:         caConfig.ComponentName(),
+				CommonName:         caConfig.TLSCommonName(), // Different name if same CA issues both
 				Organization:       w.fabricConfig.OrgID,
 				OrganizationalUnit: caConfig.OrganizationalUnit(),
 				DnsNames:           caConfig.TLSDNSNames(),
@@ -613,6 +618,7 @@ func (w *createCertificateWorkflow) Execute(ctx workflow.Context) (*pb.CreateCer
 		Subject:          subject,
 		CaTlsCertRef:     caConfig.VaultTLSRef(),
 		Profile:          req.GetProfile(),
+		ChainRef:         req.GetChainRef(), // Pass through for intermediate CA certs
 	}).Get(ctx, &enrollOutput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to enroll identity: %w", err)
@@ -720,6 +726,7 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 	}
 
 	// Bootstrap enroll TLS identity from the appropriate CA
+	// Use BootstrapAdminTLSCommonName() for consistency with admin naming pattern
 	tlsIssuer := caConfig.AdminTLSIssuer()
 	err = workflow.ExecuteActivity(activityCtx, pb.BootstrapEnrollIdentityActivityName, &pb.BootstrapEnrollIdentityInput{
 		CaUrl:                   tlsIssuer.URL(),
@@ -727,7 +734,7 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 		KeyRef:                  caConfig.VaultBootstrapAdminTLSRef(),
 		CertRef:                 caConfig.VaultBootstrapAdminTLSRef(),
 		Subject: &pb.CertificateSubject{
-			CommonName:         caConfig.BootstrapAdminCommonName(),
+			CommonName:         caConfig.BootstrapAdminTLSCommonName(),
 			Organization:       w.fabricConfig.OrgID,
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
 		},
@@ -779,6 +786,16 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 	signingIssuer := caConfig.AdminSigningIssuer()
 	signingPurpose := fmt.Sprintf("%s-%s-admin-signing", certType, caID)
 
+	// Determine which credentials to use for registration with the signing issuer:
+	// - If signing issuer is this CA itself → use this CA's bootstrap admin
+	// - If signing issuer is a different CA → use that CA's permanent admin
+	var signingAdminCreds *secretspb.SecretRef
+	if signingIssuer.CertType() == caConfig.CertType() && signingIssuer.CAID() == caConfig.CAID() {
+		signingAdminCreds = caConfig.VaultBootstrapAdminSigningRef()
+	} else {
+		signingAdminCreds = signingIssuer.VaultAdminSigningRef()
+	}
+
 	_, err := pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
 		IssuerRef: &pb.CertificateAuthorityRef{
 			CertType: signingIssuer.CertType(),
@@ -791,7 +808,7 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
 		},
 		StorageRef:          caConfig.VaultAdminSigningRef(),
-		AdminCredentialsRef: caConfig.VaultBootstrapAdminSigningRef(), // Use bootstrap admin
+		AdminCredentialsRef: signingAdminCreds,
 		Purpose:             signingPurpose,
 		Attributes: map[string]string{
 			"hf.Registrar.Roles":         "*",
@@ -808,8 +825,20 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 	}
 
 	// Create TLS client cert from the appropriate CA
+	// Use AdminTLSCommonName() which differs from AdminCommonName() when both certs
+	// come from the same CA (e.g., TLS Root CA Admin) to avoid registration collision
 	tlsIssuer := caConfig.AdminTLSIssuer()
 	tlsPurpose := fmt.Sprintf("%s-%s-admin-tls", certType, caID)
+
+	// Determine which credentials to use for registration with the TLS issuer:
+	// - If TLS issuer is this CA itself → use this CA's bootstrap admin
+	// - If TLS issuer is a different CA → use that CA's permanent admin
+	var tlsAdminCreds *secretspb.SecretRef
+	if tlsIssuer.CertType() == caConfig.CertType() && tlsIssuer.CAID() == caConfig.CAID() {
+		tlsAdminCreds = caConfig.VaultBootstrapAdminSigningRef()
+	} else {
+		tlsAdminCreds = tlsIssuer.VaultAdminSigningRef()
+	}
 
 	_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
 		IssuerRef: &pb.CertificateAuthorityRef{
@@ -818,12 +847,12 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 		},
 		Profile: "tls",
 		Subject: &pb.CertificateSubject{
-			CommonName:         caConfig.AdminCommonName(),
+			CommonName:         caConfig.AdminTLSCommonName(), // Different name if same CA issues both
 			Organization:       w.fabricConfig.OrgID,
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
 		},
 		StorageRef:          caConfig.VaultAdminTLSRef(),
-		AdminCredentialsRef: caConfig.VaultBootstrapAdminSigningRef(), // Use bootstrap admin
+		AdminCredentialsRef: tlsAdminCreds,
 		Purpose:             tlsPurpose,
 	})
 	if err != nil {

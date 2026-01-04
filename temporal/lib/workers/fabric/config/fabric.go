@@ -223,6 +223,30 @@ func (ca CertificateAuthorityConfig) TLSDNSNames() []string {
 	}
 }
 
+// TLSCommonName returns the common name for the CA's TLS certificate.
+// If the TLS issuer is the same as the signing issuer (e.g., TLS Int CA where
+// both certs come from TLS Root), appends "-tls" to avoid registration collision.
+// Example: "certificate-authority-tls-v1-tls" (when colliding)
+//
+//	"certificate-authority-tls-v1" (when different issuers or self-signed)
+func (ca CertificateAuthorityConfig) TLSCommonName() string {
+	signingIssuer := ca.SigningIssuer()
+	tlsIssuer := ca.TLSIssuer()
+
+	// Self-signed cases: no collision (not registering with a CA)
+	if signingIssuer == nil || tlsIssuer == nil {
+		return ca.ComponentName()
+	}
+
+	// Check if same CA issues both - need different identity name
+	if signingIssuer.CertType() == tlsIssuer.CertType() && signingIssuer.CAID() == tlsIssuer.CAID() {
+		return fmt.Sprintf("%s-tls", ca.ComponentName())
+	}
+
+	// Different CAs - can use same name
+	return ca.ComponentName()
+}
+
 // ------------ Issuer Resolution ------------
 
 // IsRoot returns true if this is a root CA.
@@ -282,14 +306,15 @@ func (ca CertificateAuthorityConfig) TLSIssuer() *CertificateAuthorityConfig {
 }
 
 // AdminSigningIssuer returns who issues admin identity certs for this CA.
-// Most admins get identity certs from the CA they administer.
-// Exception: TLS Int CA admins get identity from TLS Root CA (per Fabric Certs.csv).
+// All admins get identity certs from the CA they administer.
+// This is required because Fabric CA checks its database to verify admin privileges -
+// the admin's cert must be in the CA's database for privileged operations to succeed.
+//
+// Note: The original design (Fabric Certs.csv) had TLS Int CA admins getting identity
+// from TLS Root CA, but this doesn't work with Fabric CA's database-centric model.
+// Fixed 2026-01-04: All admins now get identity from their own CA.
 func (ca CertificateAuthorityConfig) AdminSigningIssuer() CertificateAuthorityConfig {
-	if ca.IsTLS() && !ca.IsRoot() {
-		// TLS Int CA admin identity comes from TLS Root CA
-		return ca.withID("root")
-	}
-	// All others: admin identity comes from the CA itself
+	// Admin identity always comes from the CA itself
 	return ca
 }
 
@@ -331,6 +356,15 @@ func (ca CertificateAuthorityConfig) VaultBasePath() string {
 // Example path: "fabric/org1/ca/tls/root/signing"
 func (ca CertificateAuthorityConfig) VaultSigningRef() *pb.SecretRef {
 	return secrets.NewVaultRef(ca.VaultBasePath() + "/signing")
+}
+
+// VaultSigningChainRef returns a SecretRef for the CA's parent certificate chain.
+// This is used by intermediate CAs for x509 chain verification.
+// The chain file contains parent CA certs needed to verify client certs.
+// Root CAs don't have a parent chain (self-signed).
+// Example path: "fabric/org1/ca/tls/v1/signing-chain"
+func (ca CertificateAuthorityConfig) VaultSigningChainRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultBasePath() + "/signing-chain")
 }
 
 // VaultTLSRef returns a SecretRef for the CA's TLS keypair + certificate.
@@ -488,16 +522,48 @@ func (ca CertificateAuthorityConfig) OrganizationalUnit() string {
 	return ca.caID
 }
 
-// AdminCommonName returns the common name for the CA admin certificate.
+// AdminCommonName returns the common name for the CA admin's signing certificate.
 // Example: "admin@certificate-authority-tls-root"
 func (ca CertificateAuthorityConfig) AdminCommonName() string {
 	return fmt.Sprintf("admin@%s", ca.ComponentName())
 }
 
-// BootstrapAdminCommonName returns the common name for the bootstrap admin certificate.
+// AdminTLSCommonName returns the common name for the CA admin's TLS certificate.
+// If the TLS issuer is the same as the signing issuer, appends "-tls" to avoid
+// registration collision (can't register same identity name twice with same CA).
+// Example: "admin-tls@certificate-authority-tls-root" (when colliding)
+//
+//	"admin@certificate-authority-tls-root" (when different CAs)
+func (ca CertificateAuthorityConfig) AdminTLSCommonName() string {
+	signingIssuer := ca.AdminSigningIssuer()
+	tlsIssuer := ca.AdminTLSIssuer()
+
+	// Check if same CA issues both - need different identity name to avoid collision
+	if signingIssuer.CertType() == tlsIssuer.CertType() && signingIssuer.CAID() == tlsIssuer.CAID() {
+		return fmt.Sprintf("admin-tls@%s", ca.ComponentName())
+	}
+	// Different CAs - can use same name (registered with different CAs)
+	return ca.AdminCommonName()
+}
+
+// BootstrapAdminCommonName returns the common name for the bootstrap admin's signing certificate.
 // Example: "bootstrap-admin@certificate-authority-tls-root"
 func (ca CertificateAuthorityConfig) BootstrapAdminCommonName() string {
 	return fmt.Sprintf("bootstrap-admin@%s", ca.ComponentName())
+}
+
+// BootstrapAdminTLSCommonName returns the common name for the bootstrap admin's TLS certificate.
+// If the TLS issuer is the same as the signing issuer, appends "-tls" to avoid
+// registration collision. For bootstrap enrollment, this matters less since we're
+// enrolling with existing credentials, but we use consistent naming.
+func (ca CertificateAuthorityConfig) BootstrapAdminTLSCommonName() string {
+	signingIssuer := ca.AdminSigningIssuer()
+	tlsIssuer := ca.AdminTLSIssuer()
+
+	if signingIssuer.CertType() == tlsIssuer.CertType() && signingIssuer.CAID() == tlsIssuer.CAID() {
+		return fmt.Sprintf("bootstrap-admin-tls@%s", ca.ComponentName())
+	}
+	return ca.BootstrapAdminCommonName()
 }
 
 // ------------ Helper Functions ------------
