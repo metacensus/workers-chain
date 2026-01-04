@@ -31,10 +31,10 @@ type CADatabaseConfig struct {
 // CAVaultConfig represents Vault CSI driver configuration for certificate authority
 type CAVaultConfig struct {
 	RoleName             string
-	KeyPairPath          string
-	CertificatePath      string
-	AdminCredentialsPath string
-	DbCredentialsPath    string
+	SigningPath          string // Path to CA signing keypair + cert
+	TlsPath              string // Path to CA TLS keypair + cert
+	AdminCredentialsPath string // Path to bootstrap admin username/password
+	DbCredentialsPath    string // Path to database credentials
 }
 
 // CAConfig represents CA-specific configuration
@@ -74,9 +74,9 @@ func NewCertificateAuthorityValues(caConfig fabricconfig.CertificateAuthorityCon
 		},
 		Vault: CAVaultConfig{
 			RoleName:             caConfig.AuthRoleName(),
-			KeyPairPath:          "secret/data/" + caConfig.VaultServerRef().GetRef().Fields["path"].GetStringValue(),
-			CertificatePath:      "secret/data/" + caConfig.VaultServerRef().GetRef().Fields["path"].GetStringValue(),
-			AdminCredentialsPath: "secret/data/" + caConfig.VaultBootstrapAdminRef().GetRef().Fields["path"].GetStringValue(),
+			SigningPath:          "secret/data/" + caConfig.VaultSigningRef().GetRef().Fields["path"].GetStringValue(),
+			TlsPath:              "secret/data/" + caConfig.VaultTLSRef().GetRef().Fields["path"].GetStringValue(),
+			AdminCredentialsPath: "secret/data/" + caConfig.VaultBootstrapAdminCredentialsRef().GetRef().Fields["path"].GetStringValue(),
 			DbCredentialsPath:    "secret/data/" + caConfig.VaultDatabaseUserRef().GetRef().Fields["path"].GetStringValue(),
 		},
 		Service: ServiceConfig{

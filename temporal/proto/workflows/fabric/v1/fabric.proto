@@ -9,6 +9,53 @@ import "secrets/v1/secrets.proto";
 
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1";
 
+// ==================== Reusable Messages ====================
+
+// CertificateAuthorityRef identifies a specific Certificate Authority
+// Used to specify issuers and targets for certificate operations
+message CertificateAuthorityRef {
+  // cert_type specifies the CA chain ("tls" or "org")
+  string cert_type = 1 [
+    json_name = "CertType",
+    (go.field).tags = 'json:"CertType" validate:"required,oneof=tls org"'
+  ];
+
+  // id identifies the CA within its chain ("root" or version like "v1")
+  string id = 2 [
+    json_name = "Id",
+    (go.field).tags = 'json:"Id" validate:"required"'
+  ];
+}
+
+// CertificateSubject defines the subject fields for a certificate
+message CertificateSubject {
+  // common_name is the CN for the certificate subject
+  string common_name = 1 [
+    json_name = "CommonName",
+    (go.field).tags = 'json:"CommonName" validate:"required"'
+  ];
+
+  // organization is the O for the certificate subject
+  string organization = 2 [
+    json_name = "Organization",
+    (go.field).tags = 'json:"Organization"'
+  ];
+
+  // organizational_unit is the OU for the certificate subject
+  string organizational_unit = 3 [
+    json_name = "OrganizationalUnit",
+    (go.field).tags = 'json:"OrganizationalUnit"'
+  ];
+
+  // dns_names are Subject Alternative Names for TLS certificates
+  repeated string dns_names = 4 [
+    json_name = "DnsNames",
+    (go.field).tags = 'json:"DnsNames,omitempty"'
+  ];
+}
+
+// ==================== Service Definitions ====================
+
 // Fabric service defines workflows for manipulating a Fabric shard
 // These workflows run on the fabric worker in the org-specific Temporal namespace
 service Fabric {
@@ -31,6 +78,7 @@ service Fabric {
 
   // BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
   // for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
+  // Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
   rpc BootstrapCertificateAuthorities(BootstrapCertificateAuthoritiesInput) returns (BootstrapCertificateAuthoritiesOutput) {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.BootstrapCertificateAuthorities"
@@ -49,25 +97,14 @@ service Fabric {
     };
   }
 
-  // DeployRootCertificateAuthority deploys the root certificate authority (root CA)
-  // for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
-  // and is used to issue intermediate CAs for org and TLS identities.
-  rpc DeployRootCertificateAuthority(DeployRootCertificateAuthorityInput) returns (DeployRootCertificateAuthorityOutput) {
-    option (temporal.v1.workflow) = {
-      name: "fabric.v1.DeployRootCertificateAuthority"
-      // Workflow ID includes CertType and root suffix for clarity
-      id: 'fabric/deploy-certificate-authority/${! CertType }/root'
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-    };
-  }
-
-  // DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
-  // for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+  // DeployCertificateAuthority deploys a certificate authority (root or intermediate)
+  // This unified workflow handles both root and intermediate CAs:
+  // - Root CAs: self-signed signing cert, TLS from self (TLS Root) or TLS Int (Org Root)
+  // - Int CAs: parent-signed signing cert, TLS from parent (TLS) or TLS Int (Org)
   rpc DeployCertificateAuthority(DeployCertificateAuthorityInput) returns (DeployCertificateAuthorityOutput) {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.DeployCertificateAuthority"
-      // Workflow ID includes CertType and Id to allow parallel deployment and rotation
-      id: 'fabric/deploy-certificate-authority/${! CertType }/${! Id }'
+      id: 'fabric/deploy-certificate-authority/${! CaRef.CertType }/${! CaRef.Id }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -78,28 +115,51 @@ service Fabric {
   rpc CreateCertificateDatabase(CreateCertificateDatabaseInput) returns (CreateCertificateDatabaseOutput) {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.CreateCertificateDatabase"
-      id: 'fabric/create-certificate-database/${! CertType }/${! CertificateAuthorityId }'
+      id: 'fabric/create-certificate-database/${! CaRef.CertType }/${! CaRef.Id }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
 
-  // BootstrapCertificateAuthorityAdmin bootstraps the admin user for a certificate authority
-  // After a CA is deployed, this workflow creates admin identities for both tls and org,
-  // then revokes the bootstrap admin credentials
-  rpc BootstrapCertificateAuthorityAdmin(BootstrapCertificateAuthorityAdminInput) returns (BootstrapCertificateAuthorityAdminOutput) {
+  // CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
+  // This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
+  // Used for CA signing certs, TLS certs, and any other certificate needs.
+  rpc CreateCertificate(CreateCertificateInput) returns (CreateCertificateOutput) {
     option (temporal.v1.workflow) = {
-      name: "fabric.v1.BootstrapCertificateAuthorityAdmin"
-      id: 'fabric/bootstrap-certificate-authority-admin/${! CertType }/${! CertificateAuthorityId }'
+      name: "fabric.v1.CreateCertificate"
+      id: 'fabric/create-certificate/${! Purpose }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
 
-  // CreateIdentity creates a new Fabric identity by generating keys, registering with CA, and enrolling
-  // Used for creating admin identities, peer identities, orderer identities, and chaincode identities
+  // CreateBootstrapAdmin creates the bootstrap admin identity for a CA
+  // This is called after CA deployment to enroll using bootstrap credentials.
+  // Creates both signing and TLS client certs for the bootstrap admin.
+  rpc CreateBootstrapAdmin(CreateBootstrapAdminInput) returns (CreateBootstrapAdminOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.CreateBootstrapAdmin"
+      id: 'fabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // CreateAdmin creates the permanent admin identity for a CA
+  // Uses the bootstrap admin to register/enroll a new permanent admin.
+  // Creates both signing and TLS client certs for the permanent admin.
+  rpc CreateAdmin(CreateAdminInput) returns (CreateAdminOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.CreateAdmin"
+      id: 'fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // CreateIdentity creates a full Fabric identity with both org and TLS certificates
+  // Used for creating peer, orderer, admin, and client identities.
+  // This is the production workflow for identity creation (not bootstrap).
   rpc CreateIdentity(CreateIdentityInput) returns (CreateIdentityOutput) {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.CreateIdentity"
-      id: 'fabric/create-identity/${! CertType }/${! IdentityName }'
+      id: 'fabric/create-identity/${! IdentityName }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -153,13 +213,11 @@ service FabricActivities {
 // ==================== BootstrapShard Workflow Messages ====================
 
 // BootstrapShardInput specifies the parameters for bootstrapping a Fabric shard
-// Empty for now - will be populated as implementation progresses
 message BootstrapShardInput {
-  // Empty for now - org is implicit from the worker's namespace
+  // Empty - org is implicit from the worker's namespace
 }
 
 // BootstrapShardOutput indicates the result of shard bootstrapping
-// Empty for now - will be populated as implementation progresses
 message BootstrapShardOutput {
   // Empty for now
 }
@@ -167,13 +225,11 @@ message BootstrapShardOutput {
 // ==================== BootstrapCertificateAuthorities Workflow Messages ====================
 
 // BootstrapCertificateAuthoritiesInput specifies the parameters for bootstrapping certificate authorities
-// Empty for now - org is implicit from the worker's namespace
 message BootstrapCertificateAuthoritiesInput {
-  // Empty for now
+  // Empty - org is implicit from the worker's namespace
 }
 
 // BootstrapCertificateAuthoritiesOutput indicates the result of CA bootstrapping
-// Empty for now - will be populated as implementation progresses
 message BootstrapCertificateAuthoritiesOutput {
   // Empty for now
 }
@@ -181,57 +237,27 @@ message BootstrapCertificateAuthoritiesOutput {
 // ==================== DeployCertificateStore Workflow Messages ====================
 
 // DeployCertificateStoreInput specifies the parameters for deploying the certificate store
-// Empty for now - org is implicit from the worker's namespace
 message DeployCertificateStoreInput {
-  // Empty for now
+  // Empty - org is implicit from the worker's namespace
 }
 
 // DeployCertificateStoreOutput indicates the result of certificate store deployment
-// Empty for now - will be populated as implementation progresses
 message DeployCertificateStoreOutput {
-  // Empty for now
-}
-
-// ==================== DeployRootCertificateAuthority Workflow Messages ====================
-
-// DeployRootCertificateAuthorityInput specifies the parameters for deploying the root CA
-message DeployRootCertificateAuthorityInput {
-  // cert_type specifies whether this is a TLS or Org certificate authority
-  // Valid values: "tls" (for secure communication), "org" (for Fabric MSP identity)
-  string cert_type = 1 [
-    json_name = "CertType",
-    (go.field).tags = 'json:"CertType" validate:"required"'
-  ];
-}
-
-// DeployRootCertificateAuthorityOutput indicates the result of root CA deployment
-// Empty for now - will be populated as implementation progresses
-message DeployRootCertificateAuthorityOutput {
   // Empty for now
 }
 
 // ==================== DeployCertificateAuthority Workflow Messages ====================
 
-// DeployCertificateAuthorityInput specifies the parameters for deploying an intermediate CA
+// DeployCertificateAuthorityInput specifies the parameters for deploying a CA
 message DeployCertificateAuthorityInput {
-  // cert_type specifies whether this is a TLS or Org certificate authority
-  // Valid values: "tls" or "org"
-  string cert_type = 1 [
-    json_name = "CertType",
-    (go.field).tags = 'json:"CertType" validate:"required"'
-  ];
-
-  // id is a unique identifier for this intermediate CA instance.
-  // This enables rotation by deploying a new intermediate CA with a different ID
-  // while the old one is still active, then switching over and revoking the old one.
-  string id = 2 [
-    json_name = "Id",
-    (go.field).tags = 'json:"Id" validate:"required"'
+  // ca_ref identifies which CA to deploy
+  CertificateAuthorityRef ca_ref = 1 [
+    json_name = "CaRef",
+    (go.field).tags = 'json:"CaRef" validate:"required"'
   ];
 }
 
-// DeployCertificateAuthorityOutput indicates the result of intermediate CA deployment
-// Empty for now - will be populated as implementation progresses
+// DeployCertificateAuthorityOutput indicates the result of CA deployment
 message DeployCertificateAuthorityOutput {
   // Empty for now
 }
@@ -240,147 +266,197 @@ message DeployCertificateAuthorityOutput {
 
 // CreateCertificateDatabaseInput specifies the parameters for creating a certificate database
 message CreateCertificateDatabaseInput {
-  // cert_type specifies whether this is for a TLS or Org certificate authority
-  // Valid values: "tls" or "org"
-  string cert_type = 1 [
-    json_name = "CertType",
-    (go.field).tags = 'json:"CertType" validate:"required"'
-  ];
-
-  // certificate_authority_id identifies which CA this database is for
-  // Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs
-  string certificate_authority_id = 2 [
-    json_name = "CertificateAuthorityId",
-    (go.field).tags = 'json:"CertificateAuthorityId" validate:"required"'
+  // ca_ref identifies which CA this database is for
+  CertificateAuthorityRef ca_ref = 1 [
+    json_name = "CaRef",
+    (go.field).tags = 'json:"CaRef" validate:"required"'
   ];
 }
 
 // CreateCertificateDatabaseOutput indicates the result of certificate database creation
 message CreateCertificateDatabaseOutput {
   // credentials_ref is the Vault reference to retrieve the username and password
-  // The database name can be derived from cert_type and certificate_authority_id using fabric config
   secrets.v1.SecretRef credentials_ref = 1 [
     json_name = "CredentialsRef",
     (go.field).tags = 'json:"CredentialsRef" validate:"required"'
   ];
 }
 
-// ==================== BootstrapCertificateAuthorityAdmin Workflow Messages ====================
+// ==================== CreateCertificate Workflow Messages ====================
 
-// BootstrapCertificateAuthorityAdminInput specifies the parameters for bootstrapping CA admin
-message BootstrapCertificateAuthorityAdminInput {
-  // cert_type specifies whether this is a TLS or Org certificate authority
-  // Valid values: "tls" or "org"
-  string cert_type = 1 [
-    json_name = "CertType",
-    (go.field).tags = 'json:"CertType" validate:"required"'
+// CreateCertificateInput specifies the parameters for creating a certificate
+message CreateCertificateInput {
+  // issuer_ref identifies which CA signs this certificate.
+  // If nil/empty, creates a self-signed certificate.
+  CertificateAuthorityRef issuer_ref = 1 [
+    json_name = "IssuerRef",
+    (go.field).tags = 'json:"IssuerRef"'
   ];
 
-  // certificate_authority_id identifies which CA to bootstrap the admin for
-  // Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs
-  string certificate_authority_id = 2 [
-    json_name = "CertificateAuthorityId",
-    (go.field).tags = 'json:"CertificateAuthorityId" validate:"required"'
+  // profile determines key usages ("ca", "tls", or "" for default identity)
+  string profile = 2 [
+    json_name = "Profile",
+    (go.field).tags = 'json:"Profile"'
   ];
 
-  // bootstrap_credentials_ref points to the bootstrap admin username/password in Vault
-  secrets.v1.SecretRef bootstrap_credentials_ref = 3 [
-    json_name = "BootstrapCredentialsRef",
-    (go.field).tags = 'json:"BootstrapCredentialsRef" validate:"required"'
+  // subject specifies the certificate subject fields
+  CertificateSubject subject = 3 [
+    json_name = "Subject",
+    (go.field).tags = 'json:"Subject" validate:"required"'
+  ];
+
+  // storage_ref is where to store keypair + certificate
+  secrets.v1.SecretRef storage_ref = 4 [
+    json_name = "StorageRef",
+    (go.field).tags = 'json:"StorageRef" validate:"required"'
+  ];
+
+  // admin_credentials_ref is the issuer's admin credentials (for registration)
+  // Required unless self-signed
+  secrets.v1.SecretRef admin_credentials_ref = 5 [
+    json_name = "AdminCredentialsRef",
+    (go.field).tags = 'json:"AdminCredentialsRef"'
+  ];
+
+  // purpose is a human-readable label for the workflow ID (e.g., "tls-root-signing")
+  string purpose = 6 [
+    json_name = "Purpose",
+    (go.field).tags = 'json:"Purpose" validate:"required"'
+  ];
+
+  // attributes are additional CA attributes for the identity (e.g., hf.IntermediateCA)
+  map<string, string> attributes = 7 [
+    json_name = "Attributes"
   ];
 }
 
-// BootstrapCertificateAuthorityAdminOutput indicates the result of CA admin bootstrap
-// Empty for now - will be populated as implementation progresses
-message BootstrapCertificateAuthorityAdminOutput {
-  // Empty for now
+// CreateCertificateOutput indicates the result of certificate creation
+message CreateCertificateOutput {
+  // credentials_ref points to the stored keypair + certificate
+  secrets.v1.SecretRef credentials_ref = 1 [
+    json_name = "CredentialsRef",
+    (go.field).tags = 'json:"CredentialsRef" validate:"required"'
+  ];
+}
+
+// ==================== CreateBootstrapAdmin Workflow Messages ====================
+
+// CreateBootstrapAdminInput specifies the parameters for creating a bootstrap admin
+message CreateBootstrapAdminInput {
+  // ca_ref identifies which CA to create the bootstrap admin for
+  CertificateAuthorityRef ca_ref = 1 [
+    json_name = "CaRef",
+    (go.field).tags = 'json:"CaRef" validate:"required"'
+  ];
+}
+
+// CreateBootstrapAdminOutput indicates the result of bootstrap admin creation
+message CreateBootstrapAdminOutput {
+  // signing_credentials_ref points to the bootstrap admin's signing identity
+  secrets.v1.SecretRef signing_credentials_ref = 1 [
+    json_name = "SigningCredentialsRef",
+    (go.field).tags = 'json:"SigningCredentialsRef" validate:"required"'
+  ];
+
+  // tls_credentials_ref points to the bootstrap admin's TLS client certificate
+  secrets.v1.SecretRef tls_credentials_ref = 2 [
+    json_name = "TlsCredentialsRef",
+    (go.field).tags = 'json:"TlsCredentialsRef" validate:"required"'
+  ];
+}
+
+// ==================== CreateAdmin Workflow Messages ====================
+
+// CreateAdminInput specifies the parameters for creating a permanent admin
+message CreateAdminInput {
+  // ca_ref identifies which CA to create the admin for
+  CertificateAuthorityRef ca_ref = 1 [
+    json_name = "CaRef",
+    (go.field).tags = 'json:"CaRef" validate:"required"'
+  ];
+}
+
+// CreateAdminOutput indicates the result of admin creation
+message CreateAdminOutput {
+  // signing_credentials_ref points to the admin's signing identity
+  secrets.v1.SecretRef signing_credentials_ref = 1 [
+    json_name = "SigningCredentialsRef",
+    (go.field).tags = 'json:"SigningCredentialsRef" validate:"required"'
+  ];
+
+  // tls_credentials_ref points to the admin's TLS client certificate
+  secrets.v1.SecretRef tls_credentials_ref = 2 [
+    json_name = "TlsCredentialsRef",
+    (go.field).tags = 'json:"TlsCredentialsRef" validate:"required"'
+  ];
 }
 
 // ==================== CreateIdentity Workflow Messages ====================
 
 // CreateIdentityInput specifies the parameters for creating a Fabric identity
 message CreateIdentityInput {
-  // cert_type specifies whether this is a TLS or Org identity
-  // Valid values: "tls" or "org"
-  string cert_type = 1 [
-    json_name = "CertType",
-    (go.field).tags = 'json:"CertType" validate:"required"'
-  ];
-
-  // certificate_authority_id identifies which CA to use for identity creation
-  // Use "root" for root CAs, or a version ID (e.g., "v1", "v2") for intermediate CAs
-  string certificate_authority_id = 2 [
-    json_name = "CertificateAuthorityId",
-    (go.field).tags = 'json:"CertificateAuthorityId" validate:"required"'
-  ];
-
-  // identity_name is the unique name for this identity (e.g., "admin", "peer0", "orderer0")
-  string identity_name = 3 [
+  // identity_name is the unique name for this identity (e.g., "peer0", "orderer0", "admin")
+  string identity_name = 1 [
     json_name = "IdentityName",
     (go.field).tags = 'json:"IdentityName" validate:"required"'
   ];
 
-  // common_name is the CN for the certificate subject
-  string common_name = 4 [
-    json_name = "CommonName",
-    (go.field).tags = 'json:"CommonName" validate:"required"'
+  // subject specifies the certificate subject fields
+  CertificateSubject subject = 2 [
+    json_name = "Subject",
+    (go.field).tags = 'json:"Subject" validate:"required"'
   ];
 
-  // organization is the O for the certificate subject
-  string organization = 5 [
-    json_name = "Organization",
-    (go.field).tags = 'json:"Organization" validate:"required"'
+  // org_issuer_ref identifies which Org CA issues the identity certificate
+  // Typically the Org Intermediate CA (org/v1)
+  CertificateAuthorityRef org_issuer_ref = 3 [
+    json_name = "OrgIssuerRef",
+    (go.field).tags = 'json:"OrgIssuerRef" validate:"required"'
   ];
 
-  // organizational_unit is the OU for the certificate subject
-  string organizational_unit = 6 [
-    json_name = "OrganizationalUnit",
-    (go.field).tags = 'json:"OrganizationalUnit" validate:"required"'
+  // tls_issuer_ref identifies which TLS CA issues the TLS certificate
+  // Typically the TLS Intermediate CA (tls/v1)
+  CertificateAuthorityRef tls_issuer_ref = 4 [
+    json_name = "TlsIssuerRef",
+    (go.field).tags = 'json:"TlsIssuerRef" validate:"required"'
   ];
 
-  // affiliation is the affiliation for the identity in the CA
-  string affiliation = 7 [
-    json_name = "Affiliation",
-    (go.field).tags = 'json:"Affiliation"'
+  // storage_signing_ref is where to store the org identity (keypair + cert)
+  secrets.v1.SecretRef storage_signing_ref = 5 [
+    json_name = "StorageSigningRef",
+    (go.field).tags = 'json:"StorageSigningRef" validate:"required"'
   ];
 
-  // attributes are additional attributes for the identity
-  map<string, string> attributes = 8 [
+  // storage_tls_ref is where to store the TLS identity (keypair + cert)
+  secrets.v1.SecretRef storage_tls_ref = 6 [
+    json_name = "StorageTlsRef",
+    (go.field).tags = 'json:"StorageTlsRef" validate:"required"'
+  ];
+
+  // attributes are additional CA attributes for the identity
+  map<string, string> attributes = 7 [
     json_name = "Attributes"
   ];
 
-  // admin_credentials_ref specifies which admin credentials to use for registration
-  // If not provided, uses the permanent admin credentials at VaultAdminKeyPairPath()
-  // During bootstrap, this should point to VaultBootstrapAdminKeyPairPath()
-  secrets.v1.SecretRef admin_credentials_ref = 9 [
-    json_name = "AdminCredentialsRef"
-  ];
-
-  // storage_ref specifies where to store the identity credentials (keypair + certificate).
-  // If not provided, uses auto-generated path: {ca_vault_base_path}/{identity_name}
-  // Use this when the identity is being created by one CA but for another CA.
-  // Example: Intermediate CA certificate signed by root CA should be stored at
-  // intermediate CA's VaultServerRef, not at root CA's path.
-  secrets.v1.SecretRef storage_ref = 10 [
-    json_name = "StorageRef"
-  ];
-
-  // profile specifies which CA signing profile to use for the certificate.
-  // Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
-  // Leave empty to use the default profile (digital signature only).
-  string profile = 11 [
-    json_name = "Profile",
-    (go.field).tags = 'json:"Profile,omitempty"'
+  // tls_profile specifies the TLS signing profile ("tls" for server/client, "" for client-only)
+  string tls_profile = 8 [
+    json_name = "TlsProfile",
+    (go.field).tags = 'json:"TlsProfile"'
   ];
 }
 
 // CreateIdentityOutput indicates the result of identity creation
 message CreateIdentityOutput {
-  // credentials_ref points to the identity credentials in Vault
-  // Contains private_key, public_key, and certificate
-  secrets.v1.SecretRef credentials_ref = 1 [
-    json_name = "CredentialsRef",
-    (go.field).tags = 'json:"CredentialsRef" validate:"required"'
+  // signing_credentials_ref points to the org identity credentials in Vault
+  secrets.v1.SecretRef signing_credentials_ref = 1 [
+    json_name = "SigningCredentialsRef",
+    (go.field).tags = 'json:"SigningCredentialsRef" validate:"required"'
+  ];
+
+  // tls_credentials_ref points to the TLS identity credentials in Vault
+  secrets.v1.SecretRef tls_credentials_ref = 2 [
+    json_name = "TlsCredentialsRef",
+    (go.field).tags = 'json:"TlsCredentialsRef" validate:"required"'
   ];
 }
 
@@ -388,52 +464,44 @@ message CreateIdentityOutput {
 
 // RegisterIdentityInput specifies the parameters for registering an identity with a CA
 message RegisterIdentityInput {
-  // cert_type specifies whether this is a TLS or Org certificate authority
-  // Valid values: "tls" or "org"
-  string cert_type = 1 [
-    json_name = "CertType",
-    (go.field).tags = 'json:"CertType" validate:"required"'
-  ];
-
-  // certificate_authority_id identifies which CA to register with
-  string certificate_authority_id = 2 [
-    json_name = "CertificateAuthorityId",
-    (go.field).tags = 'json:"CertificateAuthorityId" validate:"required"'
+  // ca_ref identifies which CA to register with
+  CertificateAuthorityRef ca_ref = 1 [
+    json_name = "CaRef",
+    (go.field).tags = 'json:"CaRef" validate:"required"'
   ];
 
   // identity_name is the unique name for this identity
-  string identity_name = 3 [
+  string identity_name = 2 [
     json_name = "IdentityName",
     (go.field).tags = 'json:"IdentityName" validate:"required"'
   ];
 
   // affiliation is the affiliation for the identity in the CA
-  string affiliation = 4 [
+  string affiliation = 3 [
     json_name = "Affiliation"
   ];
 
   // attributes are additional attributes for the identity
-  map<string, string> attributes = 5 [
+  map<string, string> attributes = 4 [
     json_name = "Attributes"
   ];
 
   // identity_type specifies the type of identity (e.g., "admin", "peer", "orderer", "client")
-  string identity_type = 6 [
+  string identity_type = 5 [
     json_name = "IdentityType",
     (go.field).tags = 'json:"IdentityType"'
   ];
 
   // admin_credentials_ref specifies which admin credentials to use for registration
-  // If not provided, uses the permanent admin credentials at VaultAdminKeyPairPath()
-  secrets.v1.SecretRef admin_credentials_ref = 7 [
-    json_name = "AdminCredentialsRef"
+  secrets.v1.SecretRef admin_credentials_ref = 6 [
+    json_name = "AdminCredentialsRef",
+    (go.field).tags = 'json:"AdminCredentialsRef" validate:"required"'
   ];
 }
 
 // RegisterIdentityOutput contains the enrollment secret returned by the CA
 message RegisterIdentityOutput {
   // enrollment_secret is the secret used to enroll the identity
-  // This secret should be kept secure and used only for enrollment
   string enrollment_secret = 1 [
     json_name = "EnrollmentSecret",
     (go.field).tags = 'json:"EnrollmentSecret" validate:"required"'
@@ -444,65 +512,47 @@ message RegisterIdentityOutput {
 
 // EnrollIdentityInput specifies the parameters for enrolling an identity with a CA
 message EnrollIdentityInput {
-  // cert_type specifies whether this is a TLS or Org certificate authority
-  // Valid values: "tls" or "org"
-  string cert_type = 1 [
-    json_name = "CertType",
-    (go.field).tags = 'json:"CertType" validate:"required"'
-  ];
-
-  // certificate_authority_id identifies which CA to enroll with
-  string certificate_authority_id = 2 [
-    json_name = "CertificateAuthorityId",
-    (go.field).tags = 'json:"CertificateAuthorityId" validate:"required"'
+  // ca_ref identifies which CA to enroll with
+  CertificateAuthorityRef ca_ref = 1 [
+    json_name = "CaRef",
+    (go.field).tags = 'json:"CaRef" validate:"required"'
   ];
 
   // identity_name is the name of the identity to enroll
-  string identity_name = 3 [
+  string identity_name = 2 [
     json_name = "IdentityName",
     (go.field).tags = 'json:"IdentityName" validate:"required"'
   ];
 
   // enrollment_secret is the secret obtained from registration
-  string enrollment_secret = 4 [
+  string enrollment_secret = 3 [
     json_name = "EnrollmentSecret",
     (go.field).tags = 'json:"EnrollmentSecret" validate:"required"'
   ];
 
   // key_ref points to the private key to use for CSR generation
-  secrets.v1.SecretRef key_ref = 5 [
+  secrets.v1.SecretRef key_ref = 4 [
     json_name = "KeyRef",
     (go.field).tags = 'json:"KeyRef" validate:"required"'
   ];
 
-  // common_name is the CN for the certificate subject
-  string common_name = 6 [
-    json_name = "CommonName",
-    (go.field).tags = 'json:"CommonName" validate:"required"'
-  ];
-
-  // organization is the O for the certificate subject
-  string organization = 7 [
-    json_name = "Organization",
-    (go.field).tags = 'json:"Organization" validate:"required"'
-  ];
-
-  // organizational_unit is the OU for the certificate subject
-  string organizational_unit = 8 [
-    json_name = "OrganizationalUnit",
-    (go.field).tags = 'json:"OrganizationalUnit" validate:"required"'
+  // subject specifies the certificate subject fields
+  CertificateSubject subject = 5 [
+    json_name = "Subject",
+    (go.field).tags = 'json:"Subject" validate:"required"'
   ];
 
   // ca_tls_cert_ref points to the CA's TLS certificate in Vault
-  secrets.v1.SecretRef ca_tls_cert_ref = 9 [
+  secrets.v1.SecretRef ca_tls_cert_ref = 6 [
     json_name = "CaTlsCertRef",
     (go.field).tags = 'json:"CaTlsCertRef" validate:"required"'
   ];
 
   // profile specifies which CA signing profile to use for the certificate.
   // Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
+  // Use "tls" for TLS certificates (grants server auth, client auth key usages).
   // Leave empty to use the default profile (digital signature only).
-  string profile = 10 [
+  string profile = 7 [
     json_name = "Profile",
     (go.field).tags = 'json:"Profile,omitempty"'
   ];
@@ -521,34 +571,27 @@ message EnrollIdentityOutput {
 
 // RevokeIdentityInput specifies the parameters for revoking an identity from a CA
 message RevokeIdentityInput {
-  // cert_type specifies whether this is a TLS or Org certificate authority
-  // Valid values: "tls" or "org"
-  string cert_type = 1 [
-    json_name = "CertType",
-    (go.field).tags = 'json:"CertType" validate:"required"'
-  ];
-
-  // certificate_authority_id identifies which CA to revoke from
-  string certificate_authority_id = 2 [
-    json_name = "CertificateAuthorityId",
-    (go.field).tags = 'json:"CertificateAuthorityId" validate:"required"'
+  // ca_ref identifies which CA to revoke from
+  CertificateAuthorityRef ca_ref = 1 [
+    json_name = "CaRef",
+    (go.field).tags = 'json:"CaRef" validate:"required"'
   ];
 
   // identity_name is the name of the identity to revoke
-  string identity_name = 3 [
+  string identity_name = 2 [
     json_name = "IdentityName",
     (go.field).tags = 'json:"IdentityName" validate:"required"'
   ];
 
   // reason is the reason for revocation (optional)
-  string reason = 4 [
+  string reason = 3 [
     json_name = "Reason"
   ];
 
   // admin_credentials_ref specifies which admin credentials to use for revocation
-  // If not provided, uses the permanent admin credentials at VaultAdminKeyPairPath()
-  secrets.v1.SecretRef admin_credentials_ref = 5 [
-    json_name = "AdminCredentialsRef"
+  secrets.v1.SecretRef admin_credentials_ref = 4 [
+    json_name = "AdminCredentialsRef",
+    (go.field).tags = 'json:"AdminCredentialsRef" validate:"required"'
   ];
 }
 
@@ -588,29 +631,23 @@ message BootstrapEnrollIdentityInput {
     (go.field).tags = 'json:"CertRef" validate:"required"'
   ];
 
-  // common_name is the CN for the certificate subject
-  string common_name = 5 [
-    json_name = "CommonName",
-    (go.field).tags = 'json:"CommonName" validate:"required"'
-  ];
-
-  // organization is the O for the certificate subject
-  string organization = 6 [
-    json_name = "Organization",
-    (go.field).tags = 'json:"Organization" validate:"required"'
-  ];
-
-  // organizational_unit is the OU for the certificate subject
-  string organizational_unit = 7 [
-    json_name = "OrganizationalUnit",
-    (go.field).tags = 'json:"OrganizationalUnit" validate:"required"'
+  // subject specifies the certificate subject fields
+  CertificateSubject subject = 5 [
+    json_name = "Subject",
+    (go.field).tags = 'json:"Subject" validate:"required"'
   ];
 
   // ca_tls_cert_ref points to the CA's TLS certificate in Vault
   // This certificate is used to verify the CA server's TLS connection
-  secrets.v1.SecretRef ca_tls_cert_ref = 8 [
+  secrets.v1.SecretRef ca_tls_cert_ref = 6 [
     json_name = "CaTlsCertRef",
     (go.field).tags = 'json:"CaTlsCertRef" validate:"required"'
+  ];
+
+  // profile specifies which CA signing profile to use
+  string profile = 7 [
+    json_name = "Profile",
+    (go.field).tags = 'json:"Profile,omitempty"'
   ];
 }
 

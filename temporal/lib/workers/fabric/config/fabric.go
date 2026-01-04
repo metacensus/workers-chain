@@ -17,6 +17,9 @@ const (
 	vaultSecretMetadataPrefix = "secret/metadata"
 )
 
+// TLS Intermediate CA ID - used for cross-chain TLS cert issuance
+const tlsIntermediateCAID = "v1"
+
 // FabricConfig provides access to all Fabric-related configuration.
 // It acts as a factory for component-specific configs.
 // It embeds OrgConfig to provide direct access to org-level configuration.
@@ -209,7 +212,102 @@ func (ca CertificateAuthorityConfig) ResourceIdentifier() *kubev1.ResourceIdenti
 	}
 }
 
-// ------------ Vault Properties ------------
+// TLSDNSNames returns the DNS Subject Alternative Names for TLS certificates.
+// These are required for TLS hostname verification.
+func (ca CertificateAuthorityConfig) TLSDNSNames() []string {
+	return []string{
+		ca.ComponentName(),
+		fmt.Sprintf("%s.%s", ca.ComponentName(), ca.KubernetesNamespace()),
+		fmt.Sprintf("%s.%s.svc", ca.ComponentName(), ca.KubernetesNamespace()),
+		fmt.Sprintf("%s.%s.svc.cluster.local", ca.ComponentName(), ca.KubernetesNamespace()),
+	}
+}
+
+// ------------ Issuer Resolution ------------
+
+// IsRoot returns true if this is a root CA.
+func (ca CertificateAuthorityConfig) IsRoot() bool {
+	return ca.caID == "root"
+}
+
+// IsTLS returns true if this is a TLS CA (not an Org CA).
+func (ca CertificateAuthorityConfig) IsTLS() bool {
+	return ca.certType == "tls"
+}
+
+// withTypeAndID returns a new config with different certType and caID.
+func (ca CertificateAuthorityConfig) withTypeAndID(certType, caID string) CertificateAuthorityConfig {
+	return CertificateAuthorityConfig{
+		OrgConfig: ca.OrgConfig,
+		certType:  certType,
+		caID:      caID,
+	}
+}
+
+// withID returns a new config with different caID but same certType.
+func (ca CertificateAuthorityConfig) withID(caID string) CertificateAuthorityConfig {
+	return ca.withTypeAndID(ca.certType, caID)
+}
+
+// SigningIssuer returns who issues this CA's signing certificate.
+// Returns nil for self-signed (root CAs).
+// Intermediate CAs are signed by their chain's root.
+func (ca CertificateAuthorityConfig) SigningIssuer() *CertificateAuthorityConfig {
+	if ca.IsRoot() {
+		return nil // Self-signed
+	}
+	issuer := ca.withID("root")
+	return &issuer
+}
+
+// TLSIssuer returns who issues this CA's TLS certificate.
+// Returns nil for self-signed (TLS Root only).
+//
+// Issuer matrix:
+//   - TLS Root CA: self-signed
+//   - TLS Int CA: TLS Root CA
+//   - Org Root CA: TLS Int CA (cross-chain!)
+//   - Org Int CA: TLS Int CA (cross-chain!)
+func (ca CertificateAuthorityConfig) TLSIssuer() *CertificateAuthorityConfig {
+	switch {
+	case ca.IsTLS() && ca.IsRoot():
+		return nil // TLS Root CA self-signs its TLS cert
+	case ca.IsTLS():
+		issuer := ca.withID("root") // TLS Int gets TLS from TLS Root
+		return &issuer
+	default:
+		issuer := ca.withTypeAndID("tls", tlsIntermediateCAID) // Org CAs get TLS from TLS Int
+		return &issuer
+	}
+}
+
+// AdminSigningIssuer returns who issues admin identity certs for this CA.
+// Most admins get identity certs from the CA they administer.
+// Exception: TLS Int CA admins get identity from TLS Root CA (per Fabric Certs.csv).
+func (ca CertificateAuthorityConfig) AdminSigningIssuer() CertificateAuthorityConfig {
+	if ca.IsTLS() && !ca.IsRoot() {
+		// TLS Int CA admin identity comes from TLS Root CA
+		return ca.withID("root")
+	}
+	// All others: admin identity comes from the CA itself
+	return ca
+}
+
+// AdminTLSIssuer returns who issues admin client TLS certs for this CA.
+//
+// Issuer matrix:
+//   - TLS Root CA Admin: TLS Root CA
+//   - TLS Int CA Admin: TLS Int CA
+//   - Org Root CA Admin: TLS Int CA
+//   - Org Int CA Admin: TLS Int CA
+func (ca CertificateAuthorityConfig) AdminTLSIssuer() CertificateAuthorityConfig {
+	if ca.IsTLS() && ca.IsRoot() {
+		return ca // TLS Root CA admin TLS from TLS Root
+	}
+	return ca.withTypeAndID("tls", tlsIntermediateCAID) // Everyone else from TLS Int
+}
+
+// ------------ Vault Properties: CA Server Certs ------------
 
 // PolicyName returns the Vault policy name.
 // Example: "fabric-org1-certificate-authority-tls-root"
@@ -222,68 +320,84 @@ func (ca CertificateAuthorityConfig) AuthRoleName() string {
 	return ca.PolicyName()
 }
 
-// VaultDatabaseUserRef returns a SecretRef for the CA's database user identity.
-// Stores username, password for database access to the certificate store.
-// Each CA has its own database user for accessing the certificate store.
-// Example path: "fabric/org1/ca/tls/root/certstore/user"
-func (ca CertificateAuthorityConfig) VaultDatabaseUserRef() *pb.SecretRef {
-	path := fmt.Sprintf("fabric/%s/ca/%s/%s/certstore/user",
-		ca.OrgID, ca.certType, ca.caID)
-	return secrets.NewVaultRef(path)
-}
-
-// VaultServerRef returns a SecretRef for the CA server identity.
-// Stores private_key, public_key, certificate for the CA's signing identity.
-// Example path: "fabric/org1/ca/tls/root/server"
-func (ca CertificateAuthorityConfig) VaultServerRef() *pb.SecretRef {
-	path := fmt.Sprintf("fabric/%s/ca/%s/%s/server",
-		ca.OrgID, ca.certType, ca.caID)
-	return secrets.NewVaultRef(path)
-}
-
-// VaultBootstrapAdminRef returns a SecretRef for the CA bootstrap admin identity.
-// Stores username, password, private_key, public_key, certificate.
-// The bootstrap admin is created during CA deployment with username/password,
-// enrolled to get keypair+cert, used to create permanent admin, then revoked.
-// Example path: "fabric/org1/ca/tls/root/bootstrap-admin"
-func (ca CertificateAuthorityConfig) VaultBootstrapAdminRef() *pb.SecretRef {
-	path := fmt.Sprintf("fabric/%s/ca/%s/%s/bootstrap-admin",
-		ca.OrgID, ca.certType, ca.caID)
-	return secrets.NewVaultRef(path)
-}
-
-// VaultAdminRef returns a SecretRef for the permanent admin identity.
-// Stores private_key, public_key, certificate.
-// This is the long-lived admin identity used for all CA administrative operations.
-// This is distinct from VaultServerRef, which stores the CA's own signing key.
-// Example path: "fabric/org1/ca/tls/root/admin"
-func (ca CertificateAuthorityConfig) VaultAdminRef() *pb.SecretRef {
-	path := fmt.Sprintf("fabric/%s/ca/%s/%s/admin",
-		ca.OrgID, ca.certType, ca.caID)
-	return secrets.NewVaultRef(path)
-}
-
 // VaultBasePath returns the base Vault path for this CA's secrets.
-// Used as a prefix for identity storage paths.
-// CreateIdentity stores identities at: {VaultBasePath()}/{identity_name}
 // Example: "fabric/org1/ca/tls/root"
 func (ca CertificateAuthorityConfig) VaultBasePath() string {
 	return fmt.Sprintf("fabric/%s/ca/%s/%s", ca.OrgID, ca.certType, ca.caID)
 }
 
+// VaultSigningRef returns a SecretRef for the CA's signing keypair + certificate.
+// This is used for issuing other certificates (CA signing operations).
+// Example path: "fabric/org1/ca/tls/root/signing"
+func (ca CertificateAuthorityConfig) VaultSigningRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultBasePath() + "/signing")
+}
+
+// VaultTLSRef returns a SecretRef for the CA's TLS keypair + certificate.
+// This is used for the CA's HTTPS endpoint.
+// Example path: "fabric/org1/ca/tls/root/tls"
+func (ca CertificateAuthorityConfig) VaultTLSRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultBasePath() + "/tls")
+}
+
+// ------------ Vault Properties: Database User ------------
+
+// VaultDatabaseUserRef returns a SecretRef for the CA's database user identity.
+// Stores username, password for database access to the certificate store.
+// Each CA has its own database user for accessing the certificate store.
+// Example path: "fabric/org1/ca/tls/root/certstore/user"
+func (ca CertificateAuthorityConfig) VaultDatabaseUserRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultBasePath() + "/certstore/user")
+}
+
+// ------------ Vault Properties: Bootstrap Admin ------------
+
+// VaultBootstrapAdminCredentialsRef returns a SecretRef for bootstrap admin username/password.
+// These credentials are used to initially authenticate with the CA.
+// Example path: "fabric/org1/ca/tls/root/bootstrap-admin/credentials"
+func (ca CertificateAuthorityConfig) VaultBootstrapAdminCredentialsRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultBasePath() + "/bootstrap-admin/credentials")
+}
+
+// VaultBootstrapAdminSigningRef returns a SecretRef for bootstrap admin's signing identity.
+// Example path: "fabric/org1/ca/tls/root/bootstrap-admin/signing"
+func (ca CertificateAuthorityConfig) VaultBootstrapAdminSigningRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultBasePath() + "/bootstrap-admin/signing")
+}
+
+// VaultBootstrapAdminTLSRef returns a SecretRef for bootstrap admin's TLS client certificate.
+// Example path: "fabric/org1/ca/tls/root/bootstrap-admin/tls"
+func (ca CertificateAuthorityConfig) VaultBootstrapAdminTLSRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultBasePath() + "/bootstrap-admin/tls")
+}
+
+// ------------ Vault Properties: Permanent Admin ------------
+
+// VaultAdminSigningRef returns a SecretRef for the permanent admin's signing identity.
+// Example path: "fabric/org1/ca/tls/root/admin/signing"
+func (ca CertificateAuthorityConfig) VaultAdminSigningRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultBasePath() + "/admin/signing")
+}
+
+// VaultAdminTLSRef returns a SecretRef for the permanent admin's TLS client certificate.
+// Example path: "fabric/org1/ca/tls/root/admin/tls"
+func (ca CertificateAuthorityConfig) VaultAdminTLSRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultBasePath() + "/admin/tls")
+}
+
+// ------------ Vault Properties: Policy Paths ------------
+
 // VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
 // Used in Vault policy documents with wildcard for all CA secrets.
 // Example: "secret/data/fabric/org1/ca/tls/root/*"
 func (ca CertificateAuthorityConfig) VaultDataPath() string {
-	return fmt.Sprintf("%s/fabric/%s/ca/%s/%s/*",
-		vaultSecretDataPrefix, ca.OrgID, ca.certType, ca.caID)
+	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, ca.VaultBasePath())
 }
 
 // VaultMetadataPath returns the Vault KV v2 metadata path pattern for policy rules.
 // Example: "secret/metadata/fabric/org1/ca/tls/root/*"
 func (ca CertificateAuthorityConfig) VaultMetadataPath() string {
-	return fmt.Sprintf("%s/fabric/%s/ca/%s/%s/*",
-		vaultSecretMetadataPrefix, ca.OrgID, ca.certType, ca.caID)
+	return fmt.Sprintf("%s/%s/*", vaultSecretMetadataPrefix, ca.VaultBasePath())
 }
 
 // VaultPolicy creates a Vault policy document for the certificate authority.
@@ -336,12 +450,14 @@ func (ca CertificateAuthorityConfig) DatabaseUsername() string {
 	return ca.DatabaseName() + "_user"
 }
 
+// ------------ Certificate Subject Properties ------------
+
 // Description returns a human-readable description of this CA.
 // Useful for logging and debugging.
 // Example: "TLS Root CA for org1"
 func (ca CertificateAuthorityConfig) Description() string {
 	caType := "Root"
-	if ca.caID != "root" {
+	if !ca.IsRoot() {
 		caType = "Intermediate"
 	}
 
@@ -366,7 +482,7 @@ func (ca CertificateAuthorityConfig) CAID() string {
 // OrganizationalUnit returns the OU field for certificate subject.
 // Returns "root-ca" for root CAs, or the CA version ID for intermediate CAs.
 func (ca CertificateAuthorityConfig) OrganizationalUnit() string {
-	if ca.caID == "root" {
+	if ca.IsRoot() {
 		return "root-ca"
 	}
 	return ca.caID
@@ -376,6 +492,12 @@ func (ca CertificateAuthorityConfig) OrganizationalUnit() string {
 // Example: "admin@certificate-authority-tls-root"
 func (ca CertificateAuthorityConfig) AdminCommonName() string {
 	return fmt.Sprintf("admin@%s", ca.ComponentName())
+}
+
+// BootstrapAdminCommonName returns the common name for the bootstrap admin certificate.
+// Example: "bootstrap-admin@certificate-authority-tls-root"
+func (ca CertificateAuthorityConfig) BootstrapAdminCommonName() string {
+	return fmt.Sprintf("bootstrap-admin@%s", ca.ComponentName())
 }
 
 // ------------ Helper Functions ------------

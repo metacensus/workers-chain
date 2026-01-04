@@ -27,9 +27,13 @@ database:
 vault:
   roleName: "{{.Vault.RoleName}}"
   # Paths for different secret types
-  keyPairPath: "{{.Vault.KeyPairPath}}"
-  certificatePath: "{{.Vault.CertificatePath}}"
+  # Signing path: CA's signing keypair + certificate (for issuing certs)
+  signingPath: "{{.Vault.SigningPath}}"
+  # TLS path: CA's TLS keypair + certificate (for HTTPS endpoint)
+  tlsPath: "{{.Vault.TlsPath}}"
+  # Bootstrap admin credentials (username/password)
   adminCredentialsPath: "{{.Vault.AdminCredentialsPath}}"
+  # Database credentials (username/password)
   dbCredentialsPath: "{{.Vault.DbCredentialsPath}}"
 
 # Service configuration
@@ -69,7 +73,3 @@ readinessProbe:
 commonLabels:
   managedBy: {{.CommonLabels.ManagedBy}}
   partOf: {{.CommonLabels.PartOf}}
-
-
-
-

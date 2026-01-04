@@ -21,6 +21,7 @@ type FabricNexusHandler struct{}
 
 // BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
 // for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
+// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
 func (h *FabricNexusHandler) BootstrapCertificateAuthorities(name string) nexus.Operation[*v1.BootstrapCertificateAuthoritiesInput, *v1.BootstrapCertificateAuthoritiesOutput] {
 	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.BootstrapCertificateAuthoritiesInput, *v1.BootstrapCertificateAuthoritiesOutput]{
 		Handler: func(ctx context.Context, input *v1.BootstrapCertificateAuthoritiesInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.BootstrapCertificateAuthoritiesOutput], error) {
@@ -29,22 +30,6 @@ func (h *FabricNexusHandler) BootstrapCertificateAuthorities(name string) nexus.
 				return nil, err
 			}
 			return temporalnexus.ExecuteUntypedWorkflow[*v1.BootstrapCertificateAuthoritiesOutput](ctx, opts, o, v1.BootstrapCertificateAuthoritiesWorkflowName, input)
-		},
-		Name: name,
-	})
-}
-
-// BootstrapCertificateAuthorityAdmin bootstraps the admin user for a certificate authority
-// After a CA is deployed, this workflow creates admin identities for both tls and org,
-// then revokes the bootstrap admin credentials
-func (h *FabricNexusHandler) BootstrapCertificateAuthorityAdmin(name string) nexus.Operation[*v1.BootstrapCertificateAuthorityAdminInput, *v1.BootstrapCertificateAuthorityAdminOutput] {
-	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.BootstrapCertificateAuthorityAdminInput, *v1.BootstrapCertificateAuthorityAdminOutput]{
-		Handler: func(ctx context.Context, input *v1.BootstrapCertificateAuthorityAdminInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.BootstrapCertificateAuthorityAdminOutput], error) {
-			o, err := v1.NewBootstrapCertificateAuthorityAdminOptions().Build(input.ProtoReflect())
-			if err != nil {
-				return nil, err
-			}
-			return temporalnexus.ExecuteUntypedWorkflow[*v1.BootstrapCertificateAuthorityAdminOutput](ctx, opts, o, v1.BootstrapCertificateAuthorityAdminWorkflowName, input)
 		},
 		Name: name,
 	})
@@ -67,6 +52,54 @@ func (h *FabricNexusHandler) BootstrapShard(name string) nexus.Operation[*v1.Boo
 	})
 }
 
+// CreateAdmin creates the permanent admin identity for a CA
+// Uses the bootstrap admin to register/enroll a new permanent admin.
+// Creates both signing and TLS client certs for the permanent admin.
+func (h *FabricNexusHandler) CreateAdmin(name string) nexus.Operation[*v1.CreateAdminInput, *v1.CreateAdminOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.CreateAdminInput, *v1.CreateAdminOutput]{
+		Handler: func(ctx context.Context, input *v1.CreateAdminInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.CreateAdminOutput], error) {
+			o, err := v1.NewCreateAdminOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateAdminOutput](ctx, opts, o, v1.CreateAdminWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// CreateBootstrapAdmin creates the bootstrap admin identity for a CA
+// This is called after CA deployment to enroll using bootstrap credentials.
+// Creates both signing and TLS client certs for the bootstrap admin.
+func (h *FabricNexusHandler) CreateBootstrapAdmin(name string) nexus.Operation[*v1.CreateBootstrapAdminInput, *v1.CreateBootstrapAdminOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.CreateBootstrapAdminInput, *v1.CreateBootstrapAdminOutput]{
+		Handler: func(ctx context.Context, input *v1.CreateBootstrapAdminInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.CreateBootstrapAdminOutput], error) {
+			o, err := v1.NewCreateBootstrapAdminOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateBootstrapAdminOutput](ctx, opts, o, v1.CreateBootstrapAdminWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
+// This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
+// Used for CA signing certs, TLS certs, and any other certificate needs.
+func (h *FabricNexusHandler) CreateCertificate(name string) nexus.Operation[*v1.CreateCertificateInput, *v1.CreateCertificateOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.CreateCertificateInput, *v1.CreateCertificateOutput]{
+		Handler: func(ctx context.Context, input *v1.CreateCertificateInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.CreateCertificateOutput], error) {
+			o, err := v1.NewCreateCertificateOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateCertificateOutput](ctx, opts, o, v1.CreateCertificateWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
 // CreateCertificateDatabase creates a dedicated database and user for a certificate authority
 // in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
 // isolated database to store issued certificates and revocation information.
@@ -83,8 +116,9 @@ func (h *FabricNexusHandler) CreateCertificateDatabase(name string) nexus.Operat
 	})
 }
 
-// CreateIdentity creates a new Fabric identity by generating keys, registering with CA, and enrolling
-// Used for creating admin identities, peer identities, orderer identities, and chaincode identities
+// CreateIdentity creates a full Fabric identity with both org and TLS certificates
+// Used for creating peer, orderer, admin, and client identities.
+// This is the production workflow for identity creation (not bootstrap).
 func (h *FabricNexusHandler) CreateIdentity(name string) nexus.Operation[*v1.CreateIdentityInput, *v1.CreateIdentityOutput] {
 	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.CreateIdentityInput, *v1.CreateIdentityOutput]{
 		Handler: func(ctx context.Context, input *v1.CreateIdentityInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.CreateIdentityOutput], error) {
@@ -98,8 +132,10 @@ func (h *FabricNexusHandler) CreateIdentity(name string) nexus.Operation[*v1.Cre
 	})
 }
 
-// DeployCertificateAuthority deploys an intermediate certificate authority (intermediate CA)
-// for the Fabric organization. Intermediate CAs are deployed for both "org" and "tls" purposes.
+// DeployCertificateAuthority deploys a certificate authority (root or intermediate)
+// This unified workflow handles both root and intermediate CAs:
+// - Root CAs: self-signed signing cert, TLS from self (TLS Root) or TLS Int (Org Root)
+// - Int CAs: parent-signed signing cert, TLS from parent (TLS) or TLS Int (Org)
 func (h *FabricNexusHandler) DeployCertificateAuthority(name string) nexus.Operation[*v1.DeployCertificateAuthorityInput, *v1.DeployCertificateAuthorityOutput] {
 	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployCertificateAuthorityInput, *v1.DeployCertificateAuthorityOutput]{
 		Handler: func(ctx context.Context, input *v1.DeployCertificateAuthorityInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployCertificateAuthorityOutput], error) {
@@ -123,22 +159,6 @@ func (h *FabricNexusHandler) DeployCertificateStore(name string) nexus.Operation
 				return nil, err
 			}
 			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployCertificateStoreOutput](ctx, opts, o, v1.DeployCertificateStoreWorkflowName, input)
-		},
-		Name: name,
-	})
-}
-
-// DeployRootCertificateAuthority deploys the root certificate authority (root CA)
-// for the Fabric organization. The root CA is the top-level CA in the PKI hierarchy
-// and is used to issue intermediate CAs for org and TLS identities.
-func (h *FabricNexusHandler) DeployRootCertificateAuthority(name string) nexus.Operation[*v1.DeployRootCertificateAuthorityInput, *v1.DeployRootCertificateAuthorityOutput] {
-	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployRootCertificateAuthorityInput, *v1.DeployRootCertificateAuthorityOutput]{
-		Handler: func(ctx context.Context, input *v1.DeployRootCertificateAuthorityInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployRootCertificateAuthorityOutput], error) {
-			o, err := v1.NewDeployRootCertificateAuthorityOptions().Build(input.ProtoReflect())
-			if err != nil {
-				return nil, err
-			}
-			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployRootCertificateAuthorityOutput](ctx, opts, o, v1.DeployRootCertificateAuthorityWorkflowName, input)
 		},
 		Name: name,
 	})

@@ -3,8 +3,8 @@ Certificate Authority Configuration
 Provides fabric-ca-server-config.yaml with proper settings for:
 - Bootstrap identity with full permissions (including intermediate CA registration)
 - Signing profiles that allow issuing intermediate CA certificates
+- Separate TLS and CA signing certificates
 - Database configuration
-- TLS settings
 */ -}}
 apiVersion: v1
 kind: ConfigMap
@@ -32,23 +32,25 @@ data:
     
     #############################################################################
     # TLS Configuration
+    # Uses SEPARATE TLS certificate (with SANs for hostname validation)
     #############################################################################
     tls:
       enabled: true
-      # TLS certificates are provided via Vault CSI driver
-      certfile: /mnt/secrets-store/ca-cert
-      keyfile: /mnt/secrets-store/ca-private-key
+      # TLS certificates are provided via Vault CSI driver (separate from CA signing cert)
+      certfile: /mnt/secrets-store/tls-cert
+      keyfile: /mnt/secrets-store/tls-private-key
       clientauth:
         type: noclientcert
     
     #############################################################################
     # CA Configuration
+    # Uses SEPARATE signing certificate (no SANs, CA key usages)
     #############################################################################
     ca:
       name: {{ .Values.ca.commonName }}
-      # CA certificates are provided via Vault CSI driver
-      certfile: /mnt/secrets-store/ca-cert
-      keyfile: /mnt/secrets-store/ca-private-key
+      # CA signing certificates are provided via Vault CSI driver (separate from TLS)
+      certfile: /mnt/secrets-store/signing-cert
+      keyfile: /mnt/secrets-store/signing-private-key
     
     #############################################################################
     # Registry Configuration
@@ -167,4 +169,3 @@ data:
       listenAddress: 0.0.0.0:9443
       tls:
         enabled: false
-

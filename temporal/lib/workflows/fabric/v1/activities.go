@@ -20,7 +20,7 @@ var (
 	ErrEnrollIdentity          = errors.New("enroll identity")
 	ErrBootstrapEnrollIdentity = errors.New("bootstrap enroll identity")
 	ErrRevokeIdentity          = errors.New("revoke identity")
-	ErrInvalidInput            = errors.New("invalid input")
+	ErrInvalidActivityInput    = errors.New("invalid input")
 	ErrFetchSecret             = errors.New("failed to fetch secret")
 	ErrStoreSecret             = errors.New("failed to store secret")
 	ErrGenerateCSR             = errors.New("failed to generate CSR")
@@ -98,12 +98,17 @@ func (a *Activities) getBootstrapClient(ctx context.Context, credentialsRef *sec
 // RegisterIdentity registers a new identity with a Fabric CA
 // This is the first step in identity creation - registration returns an enrollment secret
 func (a *Activities) RegisterIdentity(ctx context.Context, req *pb.RegisterIdentityInput) (*pb.RegisterIdentityOutput, error) {
-	certType := req.GetCertType()
-	caID := req.GetCertificateAuthorityId()
+	caRef := req.GetCaRef()
+	if caRef == nil {
+		return nil, fmt.Errorf("%w: ca_ref is required", ErrInvalidActivityInput)
+	}
+
+	certType := caRef.GetCertType()
+	caID := caRef.GetId()
 	identityName := req.GetIdentityName()
 
 	if certType != "tls" && certType != "org" {
-		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidInput, certType)
+		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidActivityInput, certType)
 	}
 
 	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
@@ -161,12 +166,17 @@ func convertAttributes(attrs map[string]string) []api.Attribute {
 // The pre-generated keypair is imported into the Fabric CA client's BCCSP so it uses our key
 // instead of generating its own, ensuring the certificate matches our stored private key.
 func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityInput) (*pb.EnrollIdentityOutput, error) {
-	certType := req.GetCertType()
-	caID := req.GetCertificateAuthorityId()
+	caRef := req.GetCaRef()
+	if caRef == nil {
+		return nil, fmt.Errorf("%w: ca_ref is required", ErrInvalidActivityInput)
+	}
+
+	certType := caRef.GetCertType()
+	caID := caRef.GetId()
 	identityName := req.GetIdentityName()
 
 	if certType != "tls" && certType != "org" {
-		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidInput, certType)
+		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidActivityInput, certType)
 	}
 
 	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
@@ -211,8 +221,14 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 
 	// Step 4: Enroll with our pre-generated key
 	// This ensures the certificate matches our private key
+	subject := req.GetSubject()
 	csrInfo := &api.CSRInfo{
-		CN: req.GetCommonName(),
+		CN: subject.GetCommonName(),
+	}
+
+	// Add DNS SANs if provided
+	if len(subject.GetDnsNames()) > 0 {
+		csrInfo.Hosts = subject.GetDnsNames()
 	}
 
 	// Use the specified signing profile (e.g., "ca" for intermediate CA certificates)
@@ -246,12 +262,17 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 // RevokeIdentity revokes an identity from a Fabric CA
 // Used to revoke bootstrap admin credentials after permanent admin is created
 func (a *Activities) RevokeIdentity(ctx context.Context, req *pb.RevokeIdentityInput) (*pb.RevokeIdentityOutput, error) {
-	certType := req.GetCertType()
-	caID := req.GetCertificateAuthorityId()
+	caRef := req.GetCaRef()
+	if caRef == nil {
+		return nil, fmt.Errorf("%w: ca_ref is required", ErrInvalidActivityInput)
+	}
+
+	certType := caRef.GetCertType()
+	caID := caRef.GetId()
 	identityName := req.GetIdentityName()
 
 	if certType != "tls" && certType != "org" {
-		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidInput, certType)
+		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidActivityInput, certType)
 	}
 
 	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
@@ -305,21 +326,27 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 	}
 	defer bootstrapClient.Close()
 
-	// Step 3: Enroll with our pre-generated key
-	// This ensures the certificate matches our private key
+	// Step 3: Build CSR info from subject
+	subject := req.GetSubject()
 	csrInfo := &api.CSRInfo{
-		CN: req.GetCommonName(),
+		CN: subject.GetCommonName(),
 	}
 
-	// Bootstrap enrollment always uses default profile (not CA profile)
-	enrollResp, err := bootstrapClient.EnrollWithKey(ctx, keyPair.PrivateKey, csrInfo, "")
+	// Add DNS SANs if provided
+	if len(subject.GetDnsNames()) > 0 {
+		csrInfo.Hosts = subject.GetDnsNames()
+	}
+
+	// Step 4: Enroll with our pre-generated key
+	// This ensures the certificate matches our private key
+	enrollResp, err := bootstrapClient.EnrollWithKey(ctx, keyPair.PrivateKey, csrInfo, req.GetProfile())
 	if err != nil {
 		return nil, fmt.Errorf("%w: enrollment failed: %w", ErrBootstrapEnrollIdentity, err)
 	}
 
 	certPEM := enrollResp.Identity.GetECert().Cert()
 
-	// Step 4: Store our original keypair + the certificate
+	// Step 5: Store our original keypair + the certificate
 	// They match because the CA signed a CSR generated with our key
 	identityCreds := &secrets.IdentityCredentials{
 		PrivateKey:  keyPair.PrivateKey,

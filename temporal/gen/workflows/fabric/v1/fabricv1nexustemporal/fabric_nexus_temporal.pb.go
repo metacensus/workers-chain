@@ -91,28 +91,6 @@ func (c *FabricNexusClient) DeployCertificateStore(ctx workflow.Context, input *
 	return &output, err
 }
 
-type DeployRootCertificateAuthorityFuture struct {
-	workflow.NexusOperationFuture
-}
-
-func (f *DeployRootCertificateAuthorityFuture) GetTyped(ctx workflow.Context) (*v1.DeployRootCertificateAuthorityOutput, error) {
-	var output v1.DeployRootCertificateAuthorityOutput
-	err := f.Get(ctx, &output)
-	return &output, err
-}
-func (c *FabricNexusClient) DeployRootCertificateAuthorityAsync(ctx workflow.Context, input *v1.DeployRootCertificateAuthorityInput, options workflow.NexusOperationOptions) DeployRootCertificateAuthorityFuture {
-	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployRootCertificateAuthorityOperationName, input, options)
-	return DeployRootCertificateAuthorityFuture{
-		fut,
-	}
-}
-func (c *FabricNexusClient) DeployRootCertificateAuthority(ctx workflow.Context, input *v1.DeployRootCertificateAuthorityInput, options workflow.NexusOperationOptions) (*v1.DeployRootCertificateAuthorityOutput, error) {
-	var output v1.DeployRootCertificateAuthorityOutput
-	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployRootCertificateAuthorityOperationName, input, options)
-	err := fut.Get(ctx, &output)
-	return &output, err
-}
-
 type DeployCertificateAuthorityFuture struct {
 	workflow.NexusOperationFuture
 }
@@ -157,24 +135,68 @@ func (c *FabricNexusClient) CreateCertificateDatabase(ctx workflow.Context, inpu
 	return &output, err
 }
 
-type BootstrapCertificateAuthorityAdminFuture struct {
+type CreateCertificateFuture struct {
 	workflow.NexusOperationFuture
 }
 
-func (f *BootstrapCertificateAuthorityAdminFuture) GetTyped(ctx workflow.Context) (*v1.BootstrapCertificateAuthorityAdminOutput, error) {
-	var output v1.BootstrapCertificateAuthorityAdminOutput
+func (f *CreateCertificateFuture) GetTyped(ctx workflow.Context) (*v1.CreateCertificateOutput, error) {
+	var output v1.CreateCertificateOutput
 	err := f.Get(ctx, &output)
 	return &output, err
 }
-func (c *FabricNexusClient) BootstrapCertificateAuthorityAdminAsync(ctx workflow.Context, input *v1.BootstrapCertificateAuthorityAdminInput, options workflow.NexusOperationOptions) BootstrapCertificateAuthorityAdminFuture {
-	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricBootstrapCertificateAuthorityAdminOperationName, input, options)
-	return BootstrapCertificateAuthorityAdminFuture{
+func (c *FabricNexusClient) CreateCertificateAsync(ctx workflow.Context, input *v1.CreateCertificateInput, options workflow.NexusOperationOptions) CreateCertificateFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricCreateCertificateOperationName, input, options)
+	return CreateCertificateFuture{
 		fut,
 	}
 }
-func (c *FabricNexusClient) BootstrapCertificateAuthorityAdmin(ctx workflow.Context, input *v1.BootstrapCertificateAuthorityAdminInput, options workflow.NexusOperationOptions) (*v1.BootstrapCertificateAuthorityAdminOutput, error) {
-	var output v1.BootstrapCertificateAuthorityAdminOutput
-	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricBootstrapCertificateAuthorityAdminOperationName, input, options)
+func (c *FabricNexusClient) CreateCertificate(ctx workflow.Context, input *v1.CreateCertificateInput, options workflow.NexusOperationOptions) (*v1.CreateCertificateOutput, error) {
+	var output v1.CreateCertificateOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricCreateCertificateOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type CreateBootstrapAdminFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *CreateBootstrapAdminFuture) GetTyped(ctx workflow.Context) (*v1.CreateBootstrapAdminOutput, error) {
+	var output v1.CreateBootstrapAdminOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) CreateBootstrapAdminAsync(ctx workflow.Context, input *v1.CreateBootstrapAdminInput, options workflow.NexusOperationOptions) CreateBootstrapAdminFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricCreateBootstrapAdminOperationName, input, options)
+	return CreateBootstrapAdminFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) CreateBootstrapAdmin(ctx workflow.Context, input *v1.CreateBootstrapAdminInput, options workflow.NexusOperationOptions) (*v1.CreateBootstrapAdminOutput, error) {
+	var output v1.CreateBootstrapAdminOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricCreateBootstrapAdminOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type CreateAdminFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *CreateAdminFuture) GetTyped(ctx workflow.Context) (*v1.CreateAdminOutput, error) {
+	var output v1.CreateAdminOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) CreateAdminAsync(ctx workflow.Context, input *v1.CreateAdminInput, options workflow.NexusOperationOptions) CreateAdminFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricCreateAdminOperationName, input, options)
+	return CreateAdminFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) CreateAdmin(ctx workflow.Context, input *v1.CreateAdminInput, options workflow.NexusOperationOptions) (*v1.CreateAdminOutput, error) {
+	var output v1.CreateAdminOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricCreateAdminOperationName, input, options)
 	err := fut.Get(ctx, &output)
 	return &output, err
 }

@@ -19,10 +19,14 @@ database:
 
 vault:
   roleName: "fabric-org1-certificate-authority-tls-root"
-  keyPairPath: "secret/data/fabric/org1/ca/tls/root/keys"
-  certificatePath: "secret/data/fabric/org1/ca/tls/root/cert"
-  adminCredentialsPath: "secret/data/fabric/org1/ca/tls/root/admin/credentials"
-  dbCredentialsPath: "secret/data/fabric/org1/ca/tls/root/certstore/user/credentials"
+  # Signing path: CA's signing keypair + certificate (for issuing certs)
+  signingPath: "secret/data/fabric/org1/ca/tls/root/signing"
+  # TLS path: CA's TLS keypair + certificate (for HTTPS endpoint)
+  tlsPath: "secret/data/fabric/org1/ca/tls/root/tls"
+  # Bootstrap admin credentials (username/password)
+  adminCredentialsPath: "secret/data/fabric/org1/ca/tls/root/bootstrap-admin/credentials"
+  # Database credentials (username/password)
+  dbCredentialsPath: "secret/data/fabric/org1/ca/tls/root/certstore/user"
 
 service:
   type: ClusterIP
@@ -53,7 +57,3 @@ readinessProbe:
 commonLabels:
   managedBy: "temporal-workflows"
   partOf: "fabric-infrastructure"
-
-
-
-
