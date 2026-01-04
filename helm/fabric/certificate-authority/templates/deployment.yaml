@@ -32,6 +32,10 @@ spec:
         - -c
         - |
           # Create CA home directory and copy config with injected credentials
+          # NOTE: We use sed for credential injection because Fabric CA's Viper config
+          # does not support environment variable overrides for array elements like
+          # registry.identities[0].name. The FABRIC_CA_SERVER_REGISTRY_IDENTITIES_0_NAME
+          # syntax simply doesn't work. This is the recommended workaround.
           mkdir -p /etc/hyperledger/fabric-ca-server
           cp /etc/fabric-ca-config/fabric-ca-server-config.yaml /etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml
           sed -i "s/BOOTSTRAP_ADMIN_NAME_PLACEHOLDER/${BOOTSTRAP_ADMIN_USERNAME}/g" /etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml

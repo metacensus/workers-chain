@@ -69,7 +69,9 @@ type BootstrapClient interface {
 	// EnrollWithKey enrolls an identity using username/password with a pre-generated private key.
 	// This ensures the returned certificate matches the provided key.
 	// privateKeyPEM must be a PEM-encoded ECDSA private key.
-	EnrollWithKey(ctx context.Context, privateKeyPEM []byte, csrInfo *api.CSRInfo) (*lib.EnrollmentResponse, error)
+	// profile specifies the signing profile to use (e.g., "ca" for intermediate CA certificates,
+	// "" for default profile). The profile determines key usages and certificate extensions.
+	EnrollWithKey(ctx context.Context, privateKeyPEM []byte, csrInfo *api.CSRInfo, profile string) (*lib.EnrollmentResponse, error)
 
 	// GetCAInfo retrieves information about the CA (certificate chain, etc.)
 	GetCAInfo(ctx context.Context) (*lib.GetCAInfoResponse, error)
@@ -157,7 +159,8 @@ func (c *bootstrapClient) Enroll(ctx context.Context, req *api.EnrollmentRequest
 // EnrollWithKey enrolls an identity using username/password with a pre-generated private key.
 // This ensures the certificate returned by the CA matches the provided private key.
 // privateKeyPEM must be a PEM-encoded ECDSA private key.
-func (c *bootstrapClient) EnrollWithKey(ctx context.Context, privateKeyPEM []byte, csrInfo *api.CSRInfo) (*lib.EnrollmentResponse, error) {
+// profile specifies the signing profile to use (e.g., "ca" for intermediate CA certificates).
+func (c *bootstrapClient) EnrollWithKey(ctx context.Context, privateKeyPEM []byte, csrInfo *api.CSRInfo, profile string) (*lib.EnrollmentResponse, error) {
 	if len(privateKeyPEM) == 0 {
 		return nil, fmt.Errorf("%w: private key is empty", ErrInvalidConfig)
 	}
@@ -215,6 +218,7 @@ func (c *bootstrapClient) EnrollWithKey(ctx context.Context, privateKeyPEM []byt
 		CAName: c.config.CAName,
 	}
 	reqNet.SignRequest.Request = string(csrPEM)
+	reqNet.SignRequest.Profile = profile // Use specified signing profile (e.g., "ca" for intermediate CAs)
 	if csrInfo != nil && len(csrInfo.Hosts) > 0 {
 		reqNet.SignRequest.Hosts = csrInfo.Hosts
 	}

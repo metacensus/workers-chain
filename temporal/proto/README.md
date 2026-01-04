@@ -1606,6 +1606,17 @@ json_name: OrganizationalUnit
 go_name: OrganizationalUnit
 go_tags: json:"OrganizationalUnit" validate:"required"</pre></td>
 </tr><tr>
+<td>profile</td>
+<td>string</td>
+<td><pre>
+profile specifies which CA signing profile to use for the certificate.
+Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
+Leave empty to use the default profile (digital signature only).<br>
+
+json_name: Profile
+go_name: Profile
+go_tags: json:"Profile,omitempty"</pre></td>
+</tr><tr>
 <td>storage_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
@@ -1863,6 +1874,17 @@ organizational_unit is the OU for the certificate subject<br>
 json_name: OrganizationalUnit
 go_name: OrganizationalUnit
 go_tags: json:"OrganizationalUnit" validate:"required"</pre></td>
+</tr><tr>
+<td>profile</td>
+<td>string</td>
+<td><pre>
+profile specifies which CA signing profile to use for the certificate.
+Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
+Leave empty to use the default profile (digital signature only).<br>
+
+json_name: Profile
+go_name: Profile
+go_tags: json:"Profile,omitempty"</pre></td>
 </tr>
 </table>
 
@@ -2465,6 +2487,17 @@ json_name: OrganizationalUnit
 go_name: OrganizationalUnit
 go_tags: json:"OrganizationalUnit" validate:"required"</pre></td>
 </tr><tr>
+<td>profile</td>
+<td>string</td>
+<td><pre>
+profile specifies which CA signing profile to use for the certificate.
+Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
+Leave empty to use the default profile (digital signature only).<br>
+
+json_name: Profile
+go_name: Profile
+go_tags: json:"Profile,omitempty"</pre></td>
+</tr><tr>
 <td>storage_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
@@ -2737,6 +2770,17 @@ organizational_unit is the OU for the certificate subject<br>
 json_name: OrganizationalUnit
 go_name: OrganizationalUnit
 go_tags: json:"OrganizationalUnit" validate:"required"</pre></td>
+</tr><tr>
+<td>profile</td>
+<td>string</td>
+<td><pre>
+profile specifies which CA signing profile to use for the certificate.
+Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
+Leave empty to use the default profile (digital signature only).<br>
+
+json_name: Profile
+go_name: Profile
+go_tags: json:"Profile,omitempty"</pre></td>
 </tr>
 </table>
 

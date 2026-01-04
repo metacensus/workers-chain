@@ -215,7 +215,9 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 		CN: req.GetCommonName(),
 	}
 
-	enrollResp, err := bootstrapClient.EnrollWithKey(ctx, keyPair.PrivateKey, csrInfo)
+	// Use the specified signing profile (e.g., "ca" for intermediate CA certificates)
+	// Empty string uses the default profile
+	enrollResp, err := bootstrapClient.EnrollWithKey(ctx, keyPair.PrivateKey, csrInfo, req.GetProfile())
 	if err != nil {
 		return nil, fmt.Errorf("%w: enrollment failed: %w", ErrEnrollIdentity, err)
 	}
@@ -309,7 +311,8 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 		CN: req.GetCommonName(),
 	}
 
-	enrollResp, err := bootstrapClient.EnrollWithKey(ctx, keyPair.PrivateKey, csrInfo)
+	// Bootstrap enrollment always uses default profile (not CA profile)
+	enrollResp, err := bootstrapClient.EnrollWithKey(ctx, keyPair.PrivateKey, csrInfo, "")
 	if err != nil {
 		return nil, fmt.Errorf("%w: enrollment failed: %w", ErrBootstrapEnrollIdentity, err)
 	}

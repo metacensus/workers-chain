@@ -364,6 +364,14 @@ message CreateIdentityInput {
   secrets.v1.SecretRef storage_ref = 10 [
     json_name = "StorageRef"
   ];
+
+  // profile specifies which CA signing profile to use for the certificate.
+  // Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
+  // Leave empty to use the default profile (digital signature only).
+  string profile = 11 [
+    json_name = "Profile",
+    (go.field).tags = 'json:"Profile,omitempty"'
+  ];
 }
 
 // CreateIdentityOutput indicates the result of identity creation
@@ -489,6 +497,14 @@ message EnrollIdentityInput {
   secrets.v1.SecretRef ca_tls_cert_ref = 9 [
     json_name = "CaTlsCertRef",
     (go.field).tags = 'json:"CaTlsCertRef" validate:"required"'
+  ];
+
+  // profile specifies which CA signing profile to use for the certificate.
+  // Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
+  // Leave empty to use the default profile (digital signature only).
+  string profile = 10 [
+    json_name = "Profile",
+    (go.field).tags = 'json:"Profile,omitempty"'
   ];
 }
 

@@ -672,7 +672,11 @@ type CreateIdentityInput struct {
 	// Use this when the identity is being created by one CA but for another CA.
 	// Example: Intermediate CA certificate signed by root CA should be stored at
 	// intermediate CA's VaultServerRef, not at root CA's path.
-	StorageRef    *v1.SecretRef `protobuf:"bytes,10,opt,name=storage_ref,json=StorageRef,proto3" json:"storage_ref,omitempty"`
+	StorageRef *v1.SecretRef `protobuf:"bytes,10,opt,name=storage_ref,json=StorageRef,proto3" json:"storage_ref,omitempty"`
+	// profile specifies which CA signing profile to use for the certificate.
+	// Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
+	// Leave empty to use the default profile (digital signature only).
+	Profile       string `protobuf:"bytes,11,opt,name=profile,json=Profile,proto3" json:"Profile,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -775,6 +779,13 @@ func (x *CreateIdentityInput) GetStorageRef() *v1.SecretRef {
 		return x.StorageRef
 	}
 	return nil
+}
+
+func (x *CreateIdentityInput) GetProfile() string {
+	if x != nil {
+		return x.Profile
+	}
+	return ""
 }
 
 // CreateIdentityOutput indicates the result of identity creation
@@ -994,7 +1005,11 @@ type EnrollIdentityInput struct {
 	// organizational_unit is the OU for the certificate subject
 	OrganizationalUnit string `protobuf:"bytes,8,opt,name=organizational_unit,json=OrganizationalUnit,proto3" json:"OrganizationalUnit" validate:"required"`
 	// ca_tls_cert_ref points to the CA's TLS certificate in Vault
-	CaTlsCertRef  *v1.SecretRef `protobuf:"bytes,9,opt,name=ca_tls_cert_ref,json=CaTlsCertRef,proto3" json:"CaTlsCertRef" validate:"required"`
+	CaTlsCertRef *v1.SecretRef `protobuf:"bytes,9,opt,name=ca_tls_cert_ref,json=CaTlsCertRef,proto3" json:"CaTlsCertRef" validate:"required"`
+	// profile specifies which CA signing profile to use for the certificate.
+	// Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
+	// Leave empty to use the default profile (digital signature only).
+	Profile       string `protobuf:"bytes,10,opt,name=profile,json=Profile,proto3" json:"Profile,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1090,6 +1105,13 @@ func (x *EnrollIdentityInput) GetCaTlsCertRef() *v1.SecretRef {
 		return x.CaTlsCertRef
 	}
 	return nil
+}
+
+func (x *EnrollIdentityInput) GetProfile() string {
+	if x != nil {
+		return x.Profile
+	}
+	return ""
 }
 
 // EnrollIdentityOutput contains the certificates returned by the CA
@@ -1451,7 +1473,7 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\tcert_type\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"CertType\" validate:\"required\"R\bCertType\x12r\n" +
 	"\x18certificate_authority_id\x18\x02 \x01(\tB8ʵ\x034\xa2\x011json:\"CertificateAuthorityId\" validate:\"required\"R\x16CertificateAuthorityId\x12\x8c\x01\n" +
 	"\x19bootstrap_credentials_ref\x18\x03 \x01(\v2\x15.secrets.v1.SecretRefB9ʵ\x035\xa2\x012json:\"BootstrapCredentialsRef\" validate:\"required\"R\x17BootstrapCredentialsRef\"*\n" +
-	"(BootstrapCertificateAuthorityAdminOutput\"\x80\a\n" +
+	"(BootstrapCertificateAuthorityAdminOutput\"\xbb\a\n" +
 	"\x13CreateIdentityInput\x12G\n" +
 	"\tcert_type\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"CertType\" validate:\"required\"R\bCertType\x12r\n" +
 	"\x18certificate_authority_id\x18\x02 \x01(\tB8ʵ\x034\xa2\x011json:\"CertificateAuthorityId\" validate:\"required\"R\x16CertificateAuthorityId\x12S\n" +
@@ -1467,7 +1489,8 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x15admin_credentials_ref\x18\t \x01(\v2\x15.secrets.v1.SecretRefR\x13AdminCredentialsRef\x126\n" +
 	"\vstorage_ref\x18\n" +
 	" \x01(\v2\x15.secrets.v1.SecretRefR\n" +
-	"StorageRef\x1a=\n" +
+	"StorageRef\x129\n" +
+	"\aprofile\x18\v \x01(\tB\x1fʵ\x03\x1b\xa2\x01\x18json:\"Profile,omitempty\"R\aProfile\x1a=\n" +
 	"\x0fAttributesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x88\x01\n" +
@@ -1487,7 +1510,7 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"y\n" +
 	"\x16RegisterIdentityOutput\x12_\n" +
-	"\x11enrollment_secret\x18\x01 \x01(\tB2ʵ\x03.\xa2\x01+json:\"EnrollmentSecret\" validate:\"required\"R\x10EnrollmentSecret\"\xda\x06\n" +
+	"\x11enrollment_secret\x18\x01 \x01(\tB2ʵ\x03.\xa2\x01+json:\"EnrollmentSecret\" validate:\"required\"R\x10EnrollmentSecret\"\x95\a\n" +
 	"\x13EnrollIdentityInput\x12G\n" +
 	"\tcert_type\x18\x01 \x01(\tB*ʵ\x03&\xa2\x01#json:\"CertType\" validate:\"required\"R\bCertType\x12r\n" +
 	"\x18certificate_authority_id\x18\x02 \x01(\tB8ʵ\x034\xa2\x011json:\"CertificateAuthorityId\" validate:\"required\"R\x16CertificateAuthorityId\x12S\n" +
@@ -1498,7 +1521,9 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"CommonName\x12R\n" +
 	"\forganization\x18\a \x01(\tB.ʵ\x03*\xa2\x01'json:\"Organization\" validate:\"required\"R\fOrganization\x12e\n" +
 	"\x13organizational_unit\x18\b \x01(\tB4ʵ\x030\xa2\x01-json:\"OrganizationalUnit\" validate:\"required\"R\x12OrganizationalUnit\x12l\n" +
-	"\x0fca_tls_cert_ref\x18\t \x01(\v2\x15.secrets.v1.SecretRefB.ʵ\x03*\xa2\x01'json:\"CaTlsCertRef\" validate:\"required\"R\fCaTlsCertRef\"s\n" +
+	"\x0fca_tls_cert_ref\x18\t \x01(\v2\x15.secrets.v1.SecretRefB.ʵ\x03*\xa2\x01'json:\"CaTlsCertRef\" validate:\"required\"R\fCaTlsCertRef\x129\n" +
+	"\aprofile\x18\n" +
+	" \x01(\tB\x1fʵ\x03\x1b\xa2\x01\x18json:\"Profile,omitempty\"R\aProfile\"s\n" +
 	"\x14EnrollIdentityOutput\x12[\n" +
 	"\bcert_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB)ʵ\x03%\xa2\x01\"json:\"CertRef\" validate:\"required\"R\aCertRef\"\x8a\x03\n" +
 	"\x13RevokeIdentityInput\x12G\n" +

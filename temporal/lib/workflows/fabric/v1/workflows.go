@@ -464,6 +464,7 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 		},
 		AdminCredentialsRef: rootCA.VaultAdminRef(), // Use root's permanent admin
 		StorageRef:          serverRef,              // Store at intermediate CA's server path
+		Profile:             "ca",                   // Use "ca" signing profile for cert sign/crl sign key usages
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create intermediate CA certificate: %w", err)
@@ -727,6 +728,7 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 		Organization:           w.input.Req.GetOrganization(),
 		OrganizationalUnit:     w.input.Req.GetOrganizationalUnit(),
 		CaTlsCertRef:           caServerRef,
+		Profile:                w.input.Req.GetProfile(), // Pass signing profile (e.g., "ca" for intermediate CAs)
 	}).Get(ctx, &enrollOutput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to enroll identity: %w", err)
