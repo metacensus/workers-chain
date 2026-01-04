@@ -1,0 +1,170 @@
+{{- /*
+Certificate Authority Configuration
+Provides fabric-ca-server-config.yaml with proper settings for:
+- Bootstrap identity with full permissions (including intermediate CA registration)
+- Signing profiles that allow issuing intermediate CA certificates
+- Database configuration
+- TLS settings
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "certificate-authority.name" . }}-config
+  namespace: {{ include "certificate-authority.namespace" . }}
+  labels:
+    {{- include "certificate-authority.commonLabels" . | nindent 4 }}
+data:
+  fabric-ca-server-config.yaml: |
+    # Fabric CA Server Configuration
+    # This configuration is mounted into the CA pod and used to configure the server
+    
+    # Version of config file
+    version: 1.5.0
+    
+    # Server's listening port
+    port: {{ .Values.service.port }}
+    
+    # Enables debug logging
+    debug: false
+    
+    # Size limit of an acceptable CRL in bytes
+    crlsizelimit: 512000
+    
+    #############################################################################
+    # TLS Configuration
+    #############################################################################
+    tls:
+      enabled: true
+      # TLS certificates are provided via Vault CSI driver
+      certfile: /mnt/secrets-store/ca-cert
+      keyfile: /mnt/secrets-store/ca-private-key
+      clientauth:
+        type: noclientcert
+    
+    #############################################################################
+    # CA Configuration
+    #############################################################################
+    ca:
+      name: {{ .Values.ca.commonName }}
+      # CA certificates are provided via Vault CSI driver
+      certfile: /mnt/secrets-store/ca-cert
+      keyfile: /mnt/secrets-store/ca-private-key
+    
+    #############################################################################
+    # Registry Configuration
+    # Defines the bootstrap administrator with full permissions
+    #############################################################################
+    registry:
+      maxenrollments: -1  # Unlimited enrollments
+      
+      # Bootstrap identity with full permissions
+      # This identity can:
+      # - Register identities with any role
+      # - Assign any attribute (including hf.IntermediateCA)
+      # - Revoke certificates
+      # - Register intermediate CA identities
+      #
+      # NOTE: The name and pass fields use placeholders that are replaced via sed
+      # at container startup. Viper env var syntax doesn't work for array elements.
+      identities:
+        - name: BOOTSTRAP_ADMIN_NAME_PLACEHOLDER
+          pass: BOOTSTRAP_ADMIN_PASS_PLACEHOLDER
+          type: client
+          affiliation: ""
+          attrs:
+            # Full registrar permissions - can register any identity type
+            hf.Registrar.Roles: "*"
+            # Can delegate any role to identities it registers
+            hf.Registrar.DelegateRoles: "*"
+            # Can assign any attribute (required to set hf.IntermediateCA on intermediate CAs)
+            hf.Registrar.Attributes: "*"
+            # Can revoke certificates
+            hf.Revoker: true
+            # Can be used to create intermediate CA certificates
+            hf.IntermediateCA: true
+            # Can generate Certificate Revocation Lists
+            hf.GenCRL: true
+            # Can manage affiliations (add/remove/modify)
+            hf.AffiliationMgr: true
+    
+    #############################################################################
+    # Database Configuration
+    #############################################################################
+    db:
+      type: postgres
+      # Datasource will be set via environment variable with actual credentials
+      datasource: placeholder
+      tls:
+        enabled: false
+    
+    #############################################################################
+    # Signing Configuration
+    # Defines policies for certificate issuance
+    #############################################################################
+    signing:
+      default:
+        usage:
+          - digital signature
+        expiry: 8760h  # 1 year
+      
+      profiles:
+        # CA profile - used for issuing intermediate CA certificates
+        ca:
+          usage:
+            - cert sign
+            - crl sign
+          expiry: 43800h  # 5 years
+          caconstraint:
+            isca: true
+            maxpathlen: 1  # Allow issuing intermediate CAs that can sign end-entity certs
+        
+        # TLS profile - used for issuing TLS certificates
+        tls:
+          usage:
+            - signing
+            - key encipherment
+            - server auth
+            - client auth
+            - key agreement
+          expiry: 8760h  # 1 year
+    
+    #############################################################################
+    # Certificate Signing Request (CSR) Configuration
+    #############################################################################
+    csr:
+      cn: {{ .Values.ca.commonName }}
+      keyrequest:
+        algo: ecdsa
+        size: 256
+      names:
+        - C: US
+          ST: "North Carolina"
+          L:
+          O: Hyperledger
+          OU: Fabric
+      hosts:
+        - localhost
+        - {{ include "certificate-authority.name" . }}
+        - {{ include "certificate-authority.name" . }}.{{ include "certificate-authority.namespace" . }}
+        - {{ include "certificate-authority.name" . }}.{{ include "certificate-authority.namespace" . }}.svc.cluster.local
+      ca:
+        expiry: 131400h  # 15 years
+        pathlength: 1
+    
+    #############################################################################
+    # BCCSP (Blockchain Crypto Service Provider) Configuration
+    #############################################################################
+    bccsp:
+      default: SW
+      sw:
+        hash: SHA2
+        security: 256
+    
+    #############################################################################
+    # Operations Configuration (health checks and metrics)
+    #############################################################################
+    operations:
+      listenAddress: 0.0.0.0:9443
+      tls:
+        enabled: false
+

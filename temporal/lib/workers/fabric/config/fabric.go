@@ -263,6 +263,14 @@ func (ca CertificateAuthorityConfig) VaultAdminRef() *pb.SecretRef {
 	return secrets.NewVaultRef(path)
 }
 
+// VaultBasePath returns the base Vault path for this CA's secrets.
+// Used as a prefix for identity storage paths.
+// CreateIdentity stores identities at: {VaultBasePath()}/{identity_name}
+// Example: "fabric/org1/ca/tls/root"
+func (ca CertificateAuthorityConfig) VaultBasePath() string {
+	return fmt.Sprintf("fabric/%s/ca/%s/%s", ca.OrgID, ca.certType, ca.caID)
+}
+
 // VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
 // Used in Vault policy documents with wildcard for all CA secrets.
 // Example: "secret/data/fabric/org1/ca/tls/root/*"

@@ -515,10 +515,33 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 			// Create OrgConfig for testing
 			orgConfig := config.OrgConfig{OrgID: tt.org}
 
-			// TODO: Mock CreateKeyPair activity
-			// TODO: Mock RegisterIdentity activity
-			// TODO: Mock EnrollIdentity activity
-			// TODO: Mock StoreCertificate activity
+			// Register activities before mocking
+			env.RegisterActivityWithOptions(
+				func(ctx context.Context, input *secretspb.CreateKeyPairInput) (*secretspb.CreateKeyPairOutput, error) {
+					return &secretspb.CreateKeyPairOutput{SecretRef: input.SecretRef}, nil
+				},
+				activity.RegisterOptions{Name: secretspb.CreateKeyPairActivityName},
+			)
+			env.RegisterActivityWithOptions(
+				func(ctx context.Context, input *pb.RegisterIdentityInput) (*pb.RegisterIdentityOutput, error) {
+					return &pb.RegisterIdentityOutput{EnrollmentSecret: "test-secret"}, nil
+				},
+				activity.RegisterOptions{Name: pb.RegisterIdentityActivityName},
+			)
+			env.RegisterActivityWithOptions(
+				func(ctx context.Context, input *pb.EnrollIdentityInput) (*pb.EnrollIdentityOutput, error) {
+					return &pb.EnrollIdentityOutput{}, nil
+				},
+				activity.RegisterOptions{Name: pb.EnrollIdentityActivityName},
+			)
+
+			// Mock activities
+			env.OnActivity(secretspb.CreateKeyPairActivityName, mock.Anything, mock.Anything).
+				Return(&secretspb.CreateKeyPairOutput{}, nil)
+			env.OnActivity(pb.RegisterIdentityActivityName, mock.Anything, mock.Anything).
+				Return(&pb.RegisterIdentityOutput{EnrollmentSecret: "test-secret"}, nil)
+			env.OnActivity(pb.EnrollIdentityActivityName, mock.Anything, mock.Anything).
+				Return(&pb.EnrollIdentityOutput{}, nil)
 
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.CreateIdentityInput) (*pb.CreateIdentityOutput, error) {
@@ -547,6 +570,199 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 			} else {
 				if err == nil {
 					t.Fatalf("expected error %v, got nil", tt.expectedErr)
+				}
+				// Temporal serializes workflow errors, breaking Go's error chain, so we check the message.
+				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
+					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
+				}
+			}
+		})
+	}
+}
+
+func TestDeployCertificateAuthorityWorkflow(t *testing.T) {
+	tests := []struct {
+		name                                  string
+		org                                   string
+		certType                              string
+		caID                                  string
+		createAccessErr                       error
+		createCertificateDatabaseErr          error
+		createIdentityErr                     error
+		createPasswordErr                     error
+		createDeploymentErr                   error
+		bootstrapCertificateAuthorityAdminErr error
+		expectedErr                           error // nil = success
+	}{
+		{
+			name:        "success - intermediate CA deployed with certificate from root",
+			org:         testOrg,
+			certType:    "tls",
+			caID:        "v1",
+			expectedErr: nil,
+		},
+		{
+			name:        "success - intermediate org CA deployed",
+			org:         testOrg,
+			certType:    "org",
+			caID:        "v1",
+			expectedErr: nil,
+		},
+		{
+			name:        "failure - invalid cert type",
+			org:         testOrg,
+			certType:    "invalid",
+			caID:        "v1",
+			expectedErr: fabric.ErrInvalidCertType,
+		},
+		{
+			name:            "failure - create access fails",
+			org:             testOrg,
+			certType:        "tls",
+			caID:            "v1",
+			createAccessErr: errors.New("vault policy creation failed"),
+			expectedErr:     fabric.ErrCreateAccess,
+		},
+		{
+			name:                         "failure - create certificate database fails",
+			org:                          testOrg,
+			certType:                     "tls",
+			caID:                         "v1",
+			createCertificateDatabaseErr: errors.New("postgres connection failed"),
+			expectedErr:                  fabric.ErrCreateCertificateDatabase,
+		},
+		{
+			name:              "failure - create identity fails",
+			org:               testOrg,
+			certType:          "tls",
+			caID:              "v1",
+			createIdentityErr: errors.New("CA connection failed"),
+			expectedErr:       errors.New("failed to create intermediate CA certificate"),
+		},
+		{
+			name:              "failure - create password fails",
+			org:               testOrg,
+			certType:          "tls",
+			caID:              "v1",
+			createPasswordErr: errors.New("random generation failed"),
+			expectedErr:       errors.New("failed to generate bootstrap admin credentials"),
+		},
+		{
+			name:                "failure - create deployment fails",
+			org:                 testOrg,
+			certType:            "tls",
+			caID:                "v1",
+			createDeploymentErr: errors.New("kubernetes error"),
+			expectedErr:         errors.New("failed to deploy intermediate CA"),
+		},
+		{
+			name:                                  "failure - bootstrap certificate authority admin fails",
+			org:                                   testOrg,
+			certType:                              "tls",
+			caID:                                  "v1",
+			bootstrapCertificateAuthorityAdminErr: errors.New("admin enrollment failed"),
+			expectedErr:                           fabric.ErrBootstrapCertificateAuthorityAdmin,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestWorkflowEnvironment()
+
+			orgConfig := config.OrgConfig{OrgID: tt.org}
+			fabricCfg := fabricconfig.NewFabricConfig(orgConfig)
+			workflows := fabric.NewWorkflows(fabricCfg)
+
+			registerChildWorkflowStubs(env)
+
+			// Register activities before mocking
+			env.RegisterActivityWithOptions(
+				func(ctx context.Context, input *secretspb.CreatePasswordInput) (*secretspb.CreatePasswordOutput, error) {
+					return &secretspb.CreatePasswordOutput{SecretRef: input.SecretRef}, nil
+				},
+				activity.RegisterOptions{Name: secretspb.CreatePasswordActivityName},
+			)
+
+			// Mock Nexus call to secrets.v1.CreateAccess
+			secretsNexusSvc, nexusErr := secretsv1nexus.NewSecretsNexusService(&secretsv1nexus.UnimplementedSecretsNexusHandler{})
+			if nexusErr != nil {
+				t.Fatalf("failed to create secrets nexus service: %v", nexusErr)
+			}
+			env.RegisterNexusService(secretsNexusSvc)
+			if tt.createAccessErr != nil {
+				env.OnNexusOperation(secretsNexusSvc, secretsv1nexus.SecretsCreateAccessOperationName, mock.Anything, mock.Anything).
+					Return(nil, tt.createAccessErr)
+			} else {
+				env.OnNexusOperation(secretsNexusSvc, secretsv1nexus.SecretsCreateAccessOperationName, mock.Anything, mock.Anything).
+					Return(&nexus.HandlerStartOperationResultSync[*secretspb.CreateAccessOutput]{Value: &secretspb.CreateAccessOutput{}}, nil)
+			}
+
+			// Mock CreateCertificateDatabase child workflow
+			mockChildWorkflow[pb.CreateCertificateDatabaseOutput](
+				env,
+				pb.CreateCertificateDatabaseWorkflowName,
+				tt.createCertificateDatabaseErr,
+			)
+
+			// Mock CreateIdentity child workflow (for intermediate CA certificate)
+			mockChildWorkflow[pb.CreateIdentityOutput](
+				env,
+				pb.CreateIdentityWorkflowName,
+				tt.createIdentityErr,
+			)
+
+			// Mock CreatePassword activity
+			env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
+				Return(&secretspb.CreatePasswordOutput{}, tt.createPasswordErr)
+
+			// Mock CreateDeployment child workflow
+			mockChildWorkflow[clusterpb.CreateDeploymentOutput](
+				env,
+				clusterpb.CreateDeploymentWorkflowName,
+				tt.createDeploymentErr,
+			)
+
+			// Mock BootstrapCertificateAuthorityAdmin child workflow
+			mockChildWorkflow[pb.BootstrapCertificateAuthorityAdminOutput](
+				env,
+				pb.BootstrapCertificateAuthorityAdminWorkflowName,
+				tt.bootstrapCertificateAuthorityAdminErr,
+			)
+
+			// Execute workflow
+			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployCertificateAuthorityInput) (*pb.DeployCertificateAuthorityOutput, error) {
+				wf, err := workflows.DeployCertificateAuthority(ctx, &pb.DeployCertificateAuthorityWorkflowInput{Req: input})
+				if err != nil {
+					return nil, err
+				}
+				return wf.Execute(ctx)
+			}, &pb.DeployCertificateAuthorityInput{
+				CertType: tt.certType,
+				Id:       tt.caID,
+			})
+
+			// Verify results
+			if tt.expectedErr == nil {
+				if !env.IsWorkflowCompleted() {
+					t.Fatal("expected workflow to complete")
+				}
+				if err := env.GetWorkflowError(); err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+
+				var output pb.DeployCertificateAuthorityOutput
+				if err := env.GetWorkflowResult(&output); err != nil {
+					t.Fatalf("failed to get workflow result: %v", err)
+				}
+			} else {
+				if !env.IsWorkflowCompleted() {
+					t.Fatal("expected workflow to complete with error")
+				}
+
+				err := env.GetWorkflowError()
+				if err == nil {
+					t.Fatal("expected error, got nil")
 				}
 				// Temporal serializes workflow errors, breaking Go's error chain, so we check the message.
 				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {

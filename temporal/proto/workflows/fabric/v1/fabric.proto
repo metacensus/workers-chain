@@ -355,6 +355,15 @@ message CreateIdentityInput {
   secrets.v1.SecretRef admin_credentials_ref = 9 [
     json_name = "AdminCredentialsRef"
   ];
+
+  // storage_ref specifies where to store the identity credentials (keypair + certificate).
+  // If not provided, uses auto-generated path: {ca_vault_base_path}/{identity_name}
+  // Use this when the identity is being created by one CA but for another CA.
+  // Example: Intermediate CA certificate signed by root CA should be stored at
+  // intermediate CA's VaultServerRef, not at root CA's path.
+  secrets.v1.SecretRef storage_ref = 10 [
+    json_name = "StorageRef"
+  ];
 }
 
 // CreateIdentityOutput indicates the result of identity creation

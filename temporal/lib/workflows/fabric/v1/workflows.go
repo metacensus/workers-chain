@@ -402,6 +402,7 @@ type deployCertificateAuthorityWorkflow struct {
 }
 
 func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.DeployCertificateAuthorityOutput, error) {
+	logger := workflow.GetLogger(ctx)
 	certType := w.input.Req.GetCertType()
 	caID := w.input.Req.GetId()
 
@@ -410,8 +411,10 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 	}
 
 	intermediateCA := w.fabricConfig.CertificateAuthority(certType, caID)
+	rootCA := w.fabricConfig.CertificateAuthority(certType, "root")
 
 	// Step 1: Create Vault access via Nexus call to infra worker
+	logger.Info("Creating Vault access for intermediate CA", "certType", certType, "caID", caID)
 	nexusClient := secretsv1nexustemporal.NewSecretsNexusClient(secretsCreateAccessNexusEndpoint)
 	_, err := nexusClient.CreateAccess(ctx, &secretspb.CreateAccessInput{
 		PolicyName:          intermediateCA.PolicyName(),
@@ -427,6 +430,7 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 	}
 
 	// Step 2: Create certificate database
+	logger.Info("Creating certificate database for intermediate CA", "certType", certType, "caID", caID)
 	if _, err := pb.CreateCertificateDatabaseChild(ctx, &pb.CreateCertificateDatabaseInput{
 		CertType:               certType,
 		CertificateAuthorityId: caID,
@@ -434,11 +438,88 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 		return nil, fmt.Errorf("%w (certType=%s, caID=%s): %w", ErrCreateCertificateDatabase, certType, caID, err)
 	}
 
-	// TODO: Scale down root CA
-	// TODO: Create intermediate CA identity via root CA
-	// TODO: Scale root CA back up
-	// TODO: Deploy intermediate CA pod
-	// TODO: Bootstrap intermediate CA admin
+	// Step 3: TODO - Scale down root CA (cluster.fabric.v1.ScaleDeployment not yet implemented)
+	// This is optional for production but recommended to avoid concurrent database access during intermediate CA cert creation
+	// For now, we proceed without scaling down the root CA
+
+	// Step 4: Create intermediate CA identity (certificate signed by root CA)
+	// Use CreateIdentity workflow with storage_ref to:
+	// - Register/enroll with the root CA (parent via certificate_authority_id="root")
+	// - Store the certificate at the intermediate CA's VaultServerRef path (via storage_ref)
+	logger.Info("Creating intermediate CA certificate from root CA", "certType", certType, "caID", caID)
+
+	identityName := fmt.Sprintf("ca-%s", caID) // e.g., "ca-v1"
+	serverRef := intermediateCA.VaultServerRef()
+
+	_, err = pb.CreateIdentityChild(ctx, &pb.CreateIdentityInput{
+		CertType:               certType,
+		CertificateAuthorityId: "root", // Register/enroll with root CA
+		IdentityName:           identityName,
+		CommonName:             intermediateCA.ComponentName(),
+		Organization:           w.fabricConfig.OrgID,
+		OrganizationalUnit:     intermediateCA.OrganizationalUnit(),
+		Affiliation:            "",
+		Attributes: map[string]string{
+			"hf.IntermediateCA": "true", // Mark as intermediate CA
+		},
+		AdminCredentialsRef: rootCA.VaultAdminRef(), // Use root's permanent admin
+		StorageRef:          serverRef,              // Store at intermediate CA's server path
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create intermediate CA certificate: %w", err)
+	}
+
+	logger.Info("Intermediate CA certificate created and signed by root CA", "certType", certType, "caID", caID)
+
+	// Step 5: TODO - Scale root CA back up (cluster.fabric.v1.ScaleDeployment not yet implemented)
+
+	// Step 6: Generate bootstrap admin credentials (username/password) for initial CA enrollment
+	logger.Info("Generating bootstrap admin credentials for intermediate CA", "certType", certType, "caID", caID)
+
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    3,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
+
+	bootstrapAdminRef := intermediateCA.VaultBootstrapAdminRef()
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
+		SecretRef: bootstrapAdminRef,
+		Username:  "bootstrap-admin",
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate bootstrap admin credentials: %w", err)
+	}
+
+	// Step 7: Deploy intermediate CA pod
+	logger.Info("Deploying intermediate CA", "certType", certType, "caID", caID)
+	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
+		Org:       w.fabricConfig.OrgID,
+		Component: intermediateCA.ComponentName(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to deploy intermediate CA: %w", err)
+	}
+
+	logger.Info("Intermediate CA deployment initiated", "org", w.fabricConfig.OrgID, "certType", certType, "caID", caID)
+
+	// Step 8: Bootstrap intermediate CA admin
+	logger.Info("Bootstrapping intermediate CA admin", "certType", certType, "caID", caID)
+	_, err = pb.BootstrapCertificateAuthorityAdminChild(ctx, &pb.BootstrapCertificateAuthorityAdminInput{
+		CertType:                certType,
+		CertificateAuthorityId:  caID,
+		BootstrapCredentialsRef: bootstrapAdminRef,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w (certType=%s, caID=%s): %w", ErrBootstrapCertificateAuthorityAdmin, certType, caID, err)
+	}
+
+	logger.Info("Intermediate CA deployment complete", "org", w.fabricConfig.OrgID, "certType", certType, "caID", caID)
 
 	return &pb.DeployCertificateAuthorityOutput{}, nil
 }
@@ -534,6 +615,7 @@ func (w *bootstrapCertificateAuthorityAdminWorkflow) Execute(ctx workflow.Contex
 	// This creates a new admin identity with the full registration/enrollment flow
 	// IMPORTANT: We pass the bootstrap admin credentials so RegisterIdentity can authenticate
 	// Note: Bootstrap admin is "bootstrap-admin", permanent admin is "admin"
+	// The admin gets full registrar permissions including the ability to register intermediate CAs
 	_, err = pb.CreateIdentityChild(ctx, &pb.CreateIdentityInput{
 		CertType:               certType,
 		CertificateAuthorityId: caID,
@@ -542,8 +624,17 @@ func (w *bootstrapCertificateAuthorityAdminWorkflow) Execute(ctx workflow.Contex
 		Organization:           w.fabricConfig.OrgID,
 		OrganizationalUnit:     caConfig.OrganizationalUnit(),
 		Affiliation:            "",
-		Attributes:             map[string]string{"hf.Registrar.Roles": "client,user,peer,orderer", "hf.Revoker": "true"},
-		AdminCredentialsRef:    bootstrapAdminRef, // Use bootstrap admin to create permanent admin
+		Attributes: map[string]string{
+			// Full registrar permissions - matches bootstrap admin
+			"hf.Registrar.Roles":         "*",    // Can register any identity type
+			"hf.Registrar.DelegateRoles": "*",    // Can delegate any role
+			"hf.Registrar.Attributes":    "*",    // Can assign any attribute (required for hf.IntermediateCA)
+			"hf.Revoker":                 "true", // Can revoke certificates
+			"hf.IntermediateCA":          "true", // Can create intermediate CA certificates
+			"hf.GenCRL":                  "true", // Can generate CRLs
+			"hf.AffiliationMgr":          "true", // Can manage affiliations
+		},
+		AdminCredentialsRef: bootstrapAdminRef, // Use bootstrap admin to create permanent admin
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateIdentity, err)
@@ -591,7 +682,14 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
 	// Step 1: Generate key pair for identity
-	keyRef := secrets.NewVaultRef(fmt.Sprintf("%s/%s/key", caConfig.VaultBasePath(), identityName))
+	// Use explicit storage_ref if provided, otherwise auto-generate path
+	var keyRef *secretspb.SecretRef
+	if w.input.Req.GetStorageRef() != nil {
+		keyRef = w.input.Req.GetStorageRef()
+	} else {
+		keyRef = secrets.NewVaultRef(fmt.Sprintf("%s/%s", caConfig.VaultBasePath(), identityName))
+	}
+
 	err := workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
 		SecretRef: keyRef,
 	}).Get(ctx, nil)

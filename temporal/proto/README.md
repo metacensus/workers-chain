@@ -1605,6 +1605,18 @@ organizational_unit is the OU for the certificate subject<br>
 json_name: OrganizationalUnit
 go_name: OrganizationalUnit
 go_tags: json:"OrganizationalUnit" validate:"required"</pre></td>
+</tr><tr>
+<td>storage_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+storage_ref specifies where to store the identity credentials (keypair + certificate).
+If not provided, uses auto-generated path: {ca_vault_base_path}/{identity_name}
+Use this when the identity is being created by one CA but for another CA.
+Example: Intermediate CA certificate signed by root CA should be stored at
+intermediate CA's VaultServerRef, not at root CA's path.<br>
+
+json_name: StorageRef
+go_name: StorageRef</pre></td>
 </tr>
 </table>
 
@@ -2452,6 +2464,18 @@ organizational_unit is the OU for the certificate subject<br>
 json_name: OrganizationalUnit
 go_name: OrganizationalUnit
 go_tags: json:"OrganizationalUnit" validate:"required"</pre></td>
+</tr><tr>
+<td>storage_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+storage_ref specifies where to store the identity credentials (keypair + certificate).
+If not provided, uses auto-generated path: {ca_vault_base_path}/{identity_name}
+Use this when the identity is being created by one CA but for another CA.
+Example: Intermediate CA certificate signed by root CA should be stored at
+intermediate CA's VaultServerRef, not at root CA's path.<br>
+
+json_name: StorageRef
+go_name: StorageRef</pre></td>
 </tr>
 </table>
 
