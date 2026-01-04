@@ -222,3 +222,91 @@ func (c *FabricNexusClient) CreateIdentity(ctx workflow.Context, input *v1.Creat
 	err := fut.Get(ctx, &output)
 	return &output, err
 }
+
+type DeployCouchDbFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *DeployCouchDbFuture) GetTyped(ctx workflow.Context) (*v1.DeployCouchDbOutput, error) {
+	var output v1.DeployCouchDbOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) DeployCouchDbAsync(ctx workflow.Context, input *v1.DeployCouchDbInput, options workflow.NexusOperationOptions) DeployCouchDbFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployCouchDbOperationName, input, options)
+	return DeployCouchDbFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) DeployCouchDb(ctx workflow.Context, input *v1.DeployCouchDbInput, options workflow.NexusOperationOptions) (*v1.DeployCouchDbOutput, error) {
+	var output v1.DeployCouchDbOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployCouchDbOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type DeployPeerFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *DeployPeerFuture) GetTyped(ctx workflow.Context) (*v1.DeployPeerOutput, error) {
+	var output v1.DeployPeerOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) DeployPeerAsync(ctx workflow.Context, input *v1.DeployPeerInput, options workflow.NexusOperationOptions) DeployPeerFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployPeerOperationName, input, options)
+	return DeployPeerFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) DeployPeer(ctx workflow.Context, input *v1.DeployPeerInput, options workflow.NexusOperationOptions) (*v1.DeployPeerOutput, error) {
+	var output v1.DeployPeerOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployPeerOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type DeployOrdererFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *DeployOrdererFuture) GetTyped(ctx workflow.Context) (*v1.DeployOrdererOutput, error) {
+	var output v1.DeployOrdererOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) DeployOrdererAsync(ctx workflow.Context, input *v1.DeployOrdererInput, options workflow.NexusOperationOptions) DeployOrdererFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployOrdererOperationName, input, options)
+	return DeployOrdererFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) DeployOrderer(ctx workflow.Context, input *v1.DeployOrdererInput, options workflow.NexusOperationOptions) (*v1.DeployOrdererOutput, error) {
+	var output v1.DeployOrdererOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployOrdererOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type DeployChainCodeFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *DeployChainCodeFuture) GetTyped(ctx workflow.Context) (*v1.DeployChainCodeOutput, error) {
+	var output v1.DeployChainCodeOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) DeployChainCodeAsync(ctx workflow.Context, input *v1.DeployChainCodeInput, options workflow.NexusOperationOptions) DeployChainCodeFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployChainCodeOperationName, input, options)
+	return DeployChainCodeFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) DeployChainCode(ctx workflow.Context, input *v1.DeployChainCodeInput, options workflow.NexusOperationOptions) (*v1.DeployChainCodeOutput, error) {
+	var output v1.DeployChainCodeOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployChainCodeOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}

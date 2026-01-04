@@ -164,6 +164,66 @@ func (h *FabricNexusHandler) DeployCertificateStore(name string) nexus.Operation
 	})
 }
 
+// DeployChainCode deploys a chaincode (smart contract) to the Fabric network
+// Chaincode runs in isolated containers and processes transactions
+func (h *FabricNexusHandler) DeployChainCode(name string) nexus.Operation[*v1.DeployChainCodeInput, *v1.DeployChainCodeOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployChainCodeInput, *v1.DeployChainCodeOutput]{
+		Handler: func(ctx context.Context, input *v1.DeployChainCodeInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployChainCodeOutput], error) {
+			o, err := v1.NewDeployChainCodeOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployChainCodeOutput](ctx, opts, o, v1.DeployChainCodeWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// DeployCouchDb deploys a CouchDB instance for a peer
+// CouchDB provides rich query support for Fabric state database
+func (h *FabricNexusHandler) DeployCouchDb(name string) nexus.Operation[*v1.DeployCouchDbInput, *v1.DeployCouchDbOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployCouchDbInput, *v1.DeployCouchDbOutput]{
+		Handler: func(ctx context.Context, input *v1.DeployCouchDbInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployCouchDbOutput], error) {
+			o, err := v1.NewDeployCouchDbOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployCouchDbOutput](ctx, opts, o, v1.DeployCouchDbWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// DeployOrderer deploys a Fabric orderer node
+// Orderers provide consensus and block ordering services
+func (h *FabricNexusHandler) DeployOrderer(name string) nexus.Operation[*v1.DeployOrdererInput, *v1.DeployOrdererOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployOrdererInput, *v1.DeployOrdererOutput]{
+		Handler: func(ctx context.Context, input *v1.DeployOrdererInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployOrdererOutput], error) {
+			o, err := v1.NewDeployOrdererOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployOrdererOutput](ctx, opts, o, v1.DeployOrdererWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// DeployPeer deploys a Fabric peer node
+// Peers endorse transactions and maintain ledger state
+func (h *FabricNexusHandler) DeployPeer(name string) nexus.Operation[*v1.DeployPeerInput, *v1.DeployPeerOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployPeerInput, *v1.DeployPeerOutput]{
+		Handler: func(ctx context.Context, input *v1.DeployPeerInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployPeerOutput], error) {
+			o, err := v1.NewDeployPeerOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployPeerOutput](ctx, opts, o, v1.DeployPeerWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
 // RegisterFabricNexusService initializes a new Fabric nexus service and registers it with the provided registry
 func RegisterFabricNexusService(r worker.NexusServiceRegistry) error {
 	svc, err := fabricv1nexus.NewFabricNexusService(&FabricNexusHandler{})

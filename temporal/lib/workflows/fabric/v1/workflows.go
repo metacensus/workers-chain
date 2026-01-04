@@ -33,6 +33,10 @@ var (
 	ErrCreateAccess                    = errors.New("create access")
 	ErrInvalidCertType                 = errors.New("invalid cert type")
 	ErrInvalidInput                    = errors.New("invalid input")
+	ErrDeployCouchDB                   = errors.New("deploy couchdb")
+	ErrDeployPeer                      = errors.New("deploy peer")
+	ErrDeployOrderer                   = errors.New("deploy orderer")
+	ErrDeployChainCode                 = errors.New("deploy chaincode")
 )
 
 // Workflows implements the FabricWorkflows interface
@@ -62,12 +66,50 @@ type bootstrapShardWorkflow struct {
 }
 
 func (w *bootstrapShardWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapShardOutput, error) {
+	logger := workflow.GetLogger(ctx)
+
+	// Step 1: Bootstrap all certificate authorities
+	logger.Info("Bootstrapping certificate authorities")
 	if _, err := pb.BootstrapCertificateAuthoritiesChild(ctx, &pb.BootstrapCertificateAuthoritiesInput{}); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrBootstrapCertificateAuthorities, err)
 	}
 
-	// TODO: Deploy peers, orderers, chaincode
+	// Step 2: Deploy peers (at least 3)
+	// Each peer gets its own CouchDB instance for state storage
+	peerIDs := []string{"peer0", "peer1", "peer2"}
+	for _, peerID := range peerIDs {
+		logger.Info("Deploying CouchDB for peer", "peerId", peerID)
+		if _, err := pb.DeployCouchDbChild(ctx, &pb.DeployCouchDbInput{PeerId: peerID}); err != nil {
+			return nil, fmt.Errorf("deploy couchdb for %s: %w", peerID, err)
+		}
 
+		logger.Info("Deploying peer", "peerId", peerID)
+		if _, err := pb.DeployPeerChild(ctx, &pb.DeployPeerInput{PeerId: peerID}); err != nil {
+			return nil, fmt.Errorf("deploy peer %s: %w", peerID, err)
+		}
+	}
+
+	// Step 3: Deploy orderers (at least 1)
+	ordererIDs := []string{"orderer0"}
+	for _, ordererID := range ordererIDs {
+		logger.Info("Deploying orderer", "ordererId", ordererID)
+		if _, err := pb.DeployOrdererChild(ctx, &pb.DeployOrdererInput{OrdererId: ordererID}); err != nil {
+			return nil, fmt.Errorf("deploy orderer %s: %w", ordererID, err)
+		}
+	}
+
+	// Step 4: Deploy chaincode (at least 2)
+	chainCodeIDs := []string{"asset-transfer", "fabcar"}
+	for _, chainCodeID := range chainCodeIDs {
+		logger.Info("Deploying chaincode", "chainCodeId", chainCodeID)
+		if _, err := pb.DeployChainCodeChild(ctx, &pb.DeployChainCodeInput{ChainCodeId: chainCodeID}); err != nil {
+			return nil, fmt.Errorf("deploy chaincode %s: %w", chainCodeID, err)
+		}
+	}
+
+	// TODO: Hook into existing chains/channels
+
+	logger.Info("Fabric shard bootstrap complete")
 	return &pb.BootstrapShardOutput{}, nil
 }
 
@@ -948,4 +990,127 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 		SigningCredentialsRef: req.GetStorageSigningRef(),
 		TlsCredentialsRef:     req.GetStorageTlsRef(),
 	}, nil
+}
+
+// =============================================================================
+// DeployCouchDb - Deploys CouchDB instance for a peer
+// =============================================================================
+
+func (w *Workflows) DeployCouchDb(ctx workflow.Context, input *pb.DeployCouchDbWorkflowInput) (pb.DeployCouchDbWorkflow, error) {
+	return &deployCouchDbWorkflow{
+		input:        input,
+		fabricConfig: w.fabricConfig,
+	}, nil
+}
+
+type deployCouchDbWorkflow struct {
+	input        *pb.DeployCouchDbWorkflowInput
+	fabricConfig fabricconfig.FabricConfig
+}
+
+func (w *deployCouchDbWorkflow) Execute(ctx workflow.Context) (*pb.DeployCouchDbOutput, error) {
+	logger := workflow.GetLogger(ctx)
+	peerID := w.input.Req.GetPeerId()
+	logger.Info("DeployCouchDb workflow started", "peerId", peerID)
+
+	// TODO: Implement CouchDB deployment
+	// Steps according to Fabric Bootstrap Workflows.md:
+	// 1. Nexus Call: secrets.v1.CreateAccess
+	// 2. Activity: secrets.v1.CreatePassword
+	// 3. Workflow: cluster.fabric.v1.CreateDeployment
+
+	return &pb.DeployCouchDbOutput{}, nil
+}
+
+// =============================================================================
+// DeployPeer - Deploys Fabric peer node
+// =============================================================================
+
+func (w *Workflows) DeployPeer(ctx workflow.Context, input *pb.DeployPeerWorkflowInput) (pb.DeployPeerWorkflow, error) {
+	return &deployPeerWorkflow{
+		input:        input,
+		fabricConfig: w.fabricConfig,
+	}, nil
+}
+
+type deployPeerWorkflow struct {
+	input        *pb.DeployPeerWorkflowInput
+	fabricConfig fabricconfig.FabricConfig
+}
+
+func (w *deployPeerWorkflow) Execute(ctx workflow.Context) (*pb.DeployPeerOutput, error) {
+	logger := workflow.GetLogger(ctx)
+	peerID := w.input.Req.GetPeerId()
+	logger.Info("DeployPeer workflow started", "peerId", peerID)
+
+	// TODO: Implement peer deployment
+	// Steps according to Fabric Bootstrap Workflows.md:
+	// 1. Nexus Call: secrets.v1.CreateAccess
+	// 2. for each ("tls", "org"):
+	//    - Workflow: fabric.v1.CreateIdentity
+	// 3. Workflow: cluster.fabric.v1.CreateDeployment
+
+	return &pb.DeployPeerOutput{}, nil
+}
+
+// =============================================================================
+// DeployOrderer - Deploys Fabric orderer node
+// =============================================================================
+
+func (w *Workflows) DeployOrderer(ctx workflow.Context, input *pb.DeployOrdererWorkflowInput) (pb.DeployOrdererWorkflow, error) {
+	return &deployOrdererWorkflow{
+		input:        input,
+		fabricConfig: w.fabricConfig,
+	}, nil
+}
+
+type deployOrdererWorkflow struct {
+	input        *pb.DeployOrdererWorkflowInput
+	fabricConfig fabricconfig.FabricConfig
+}
+
+func (w *deployOrdererWorkflow) Execute(ctx workflow.Context) (*pb.DeployOrdererOutput, error) {
+	logger := workflow.GetLogger(ctx)
+	ordererID := w.input.Req.GetOrdererId()
+	logger.Info("DeployOrderer workflow started", "ordererId", ordererID)
+
+	// TODO: Implement orderer deployment
+	// Steps according to Fabric Bootstrap Workflows.md:
+	// 1. Nexus Call: secrets.v1.CreateAccess
+	// 2. for each ("tls", "org"):
+	//    - Workflow: fabric.v1.CreateIdentity
+	// 3. Workflow: cluster.fabric.v1.CreateDeployment
+
+	return &pb.DeployOrdererOutput{}, nil
+}
+
+// =============================================================================
+// DeployChainCode - Deploys chaincode (smart contract)
+// =============================================================================
+
+func (w *Workflows) DeployChainCode(ctx workflow.Context, input *pb.DeployChainCodeWorkflowInput) (pb.DeployChainCodeWorkflow, error) {
+	return &deployChainCodeWorkflow{
+		input:        input,
+		fabricConfig: w.fabricConfig,
+	}, nil
+}
+
+type deployChainCodeWorkflow struct {
+	input        *pb.DeployChainCodeWorkflowInput
+	fabricConfig fabricconfig.FabricConfig
+}
+
+func (w *deployChainCodeWorkflow) Execute(ctx workflow.Context) (*pb.DeployChainCodeOutput, error) {
+	logger := workflow.GetLogger(ctx)
+	chainCodeID := w.input.Req.GetChainCodeId()
+	logger.Info("DeployChainCode workflow started", "chainCodeId", chainCodeID)
+
+	// TODO: Implement chaincode deployment
+	// Steps according to Fabric Bootstrap Workflows.md:
+	// 1. Nexus Call: secrets.v1.CreateAccess
+	// 2. for only ("org"):
+	//    - Workflow: fabric.v1.CreateIdentity
+	// 3. Workflow: cluster.fabric.v1.CreateDeployment
+
+	return &pb.DeployChainCodeOutput{}, nil
 }

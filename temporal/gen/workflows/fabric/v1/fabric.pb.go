@@ -1654,6 +1654,338 @@ func (x *BootstrapEnrollIdentityOutput) GetCertRef() *v1.SecretRef {
 	return nil
 }
 
+// DeployCouchDbInput specifies the parameters for deploying a CouchDB instance
+type DeployCouchDbInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// peer_id identifies which peer this CouchDB is for (e.g., "peer0", "peer1")
+	PeerId        string `protobuf:"bytes,1,opt,name=peer_id,json=PeerId,proto3" json:"PeerId" validate:"required"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployCouchDbInput) Reset() {
+	*x = DeployCouchDbInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployCouchDbInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployCouchDbInput) ProtoMessage() {}
+
+func (x *DeployCouchDbInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployCouchDbInput.ProtoReflect.Descriptor instead.
+func (*DeployCouchDbInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *DeployCouchDbInput) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
+// DeployCouchDbOutput indicates the result of CouchDB deployment
+type DeployCouchDbOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployCouchDbOutput) Reset() {
+	*x = DeployCouchDbOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployCouchDbOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployCouchDbOutput) ProtoMessage() {}
+
+func (x *DeployCouchDbOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployCouchDbOutput.ProtoReflect.Descriptor instead.
+func (*DeployCouchDbOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{29}
+}
+
+// DeployPeerInput specifies the parameters for deploying a Fabric peer
+type DeployPeerInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// peer_id identifies this peer (e.g., "peer0", "peer1")
+	PeerId        string `protobuf:"bytes,1,opt,name=peer_id,json=PeerId,proto3" json:"PeerId" validate:"required"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployPeerInput) Reset() {
+	*x = DeployPeerInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployPeerInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployPeerInput) ProtoMessage() {}
+
+func (x *DeployPeerInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployPeerInput.ProtoReflect.Descriptor instead.
+func (*DeployPeerInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *DeployPeerInput) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
+// DeployPeerOutput indicates the result of peer deployment
+type DeployPeerOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployPeerOutput) Reset() {
+	*x = DeployPeerOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployPeerOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployPeerOutput) ProtoMessage() {}
+
+func (x *DeployPeerOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployPeerOutput.ProtoReflect.Descriptor instead.
+func (*DeployPeerOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{31}
+}
+
+// DeployOrdererInput specifies the parameters for deploying a Fabric orderer
+type DeployOrdererInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// orderer_id identifies this orderer (e.g., "orderer0", "orderer1")
+	OrdererId     string `protobuf:"bytes,1,opt,name=orderer_id,json=OrdererId,proto3" json:"OrdererId" validate:"required"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployOrdererInput) Reset() {
+	*x = DeployOrdererInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployOrdererInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployOrdererInput) ProtoMessage() {}
+
+func (x *DeployOrdererInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployOrdererInput.ProtoReflect.Descriptor instead.
+func (*DeployOrdererInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *DeployOrdererInput) GetOrdererId() string {
+	if x != nil {
+		return x.OrdererId
+	}
+	return ""
+}
+
+// DeployOrdererOutput indicates the result of orderer deployment
+type DeployOrdererOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployOrdererOutput) Reset() {
+	*x = DeployOrdererOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployOrdererOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployOrdererOutput) ProtoMessage() {}
+
+func (x *DeployOrdererOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployOrdererOutput.ProtoReflect.Descriptor instead.
+func (*DeployOrdererOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{33}
+}
+
+// DeployChainCodeInput specifies the parameters for deploying a chaincode
+type DeployChainCodeInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// chain_code_id identifies this chaincode (e.g., "asset-transfer", "fabcar")
+	ChainCodeId   string `protobuf:"bytes,1,opt,name=chain_code_id,json=ChainCodeId,proto3" json:"ChainCodeId" validate:"required"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployChainCodeInput) Reset() {
+	*x = DeployChainCodeInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployChainCodeInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployChainCodeInput) ProtoMessage() {}
+
+func (x *DeployChainCodeInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployChainCodeInput.ProtoReflect.Descriptor instead.
+func (*DeployChainCodeInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *DeployChainCodeInput) GetChainCodeId() string {
+	if x != nil {
+		return x.ChainCodeId
+	}
+	return ""
+}
+
+// DeployChainCodeOutput indicates the result of chaincode deployment
+type DeployChainCodeOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployChainCodeOutput) Reset() {
+	*x = DeployChainCodeOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployChainCodeOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployChainCodeOutput) ProtoMessage() {}
+
+func (x *DeployChainCodeOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployChainCodeOutput.ProtoReflect.Descriptor instead.
+func (*DeployChainCodeOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{35}
+}
+
 var File_fabric_v1_fabric_proto protoreflect.FileDescriptor
 
 const file_fabric_v1_fabric_proto_rawDesc = "" +
@@ -1769,7 +2101,20 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\aprofile\x18\a \x01(\tB\x1fʵ\x03\x1b\xa2\x01\x18json:\"Profile,omitempty\"R\aProfile\x12T\n" +
 	"\tchain_ref\x18\b \x01(\v2\x15.secrets.v1.SecretRefB ʵ\x03\x1c\xa2\x01\x19json:\"ChainRef,omitempty\"R\bChainRef\"|\n" +
 	"\x1dBootstrapEnrollIdentityOutput\x12[\n" +
-	"\bcert_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB)ʵ\x03%\xa2\x01\"json:\"CertRef\" validate:\"required\"R\aCertRef2\xea\r\n" +
+	"\bcert_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB)ʵ\x03%\xa2\x01\"json:\"CertRef\" validate:\"required\"R\aCertRef\"W\n" +
+	"\x12DeployCouchDbInput\x12A\n" +
+	"\apeer_id\x18\x01 \x01(\tB(ʵ\x03$\xa2\x01!json:\"PeerId\" validate:\"required\"R\x06PeerId\"\x15\n" +
+	"\x13DeployCouchDbOutput\"T\n" +
+	"\x0fDeployPeerInput\x12A\n" +
+	"\apeer_id\x18\x01 \x01(\tB(ʵ\x03$\xa2\x01!json:\"PeerId\" validate:\"required\"R\x06PeerId\"\x12\n" +
+	"\x10DeployPeerOutput\"`\n" +
+	"\x12DeployOrdererInput\x12J\n" +
+	"\n" +
+	"orderer_id\x18\x01 \x01(\tB+ʵ\x03'\xa2\x01$json:\"OrdererId\" validate:\"required\"R\tOrdererId\"\x15\n" +
+	"\x13DeployOrdererOutput\"i\n" +
+	"\x14DeployChainCodeInput\x12Q\n" +
+	"\rchain_code_id\x18\x01 \x01(\tB-ʵ\x03)\xa2\x01&json:\"ChainCodeId\" validate:\"required\"R\vChainCodeId\"\x17\n" +
+	"\x15DeployChainCodeOutput2\xc5\x12\n" +
 	"\x06Fabric\x12\x8b\x01\n" +
 	"\x0eBootstrapShard\x12\x1e.fabric.v1.BootstrapShardInput\x1a\x1f.fabric.v1.BootstrapShardOutput\"8\x8a\xc4\x034*\x16fabric/bootstrap-shard0\x01r\x18fabric.v1.BootstrapShard\x12\xe1\x01\n" +
 	"\x1fBootstrapCertificateAuthorities\x12/.fabric.v1.BootstrapCertificateAuthoritiesInput\x1a0.fabric.v1.BootstrapCertificateAuthoritiesOutput\"[\x8a\xc4\x03W*(fabric/bootstrap-certificate-authorities0\x01r)fabric.v1.BootstrapCertificateAuthorities\x12\xb4\x01\n" +
@@ -1779,7 +2124,12 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x11CreateCertificate\x12!.fabric.v1.CreateCertificateInput\x1a\".fabric.v1.CreateCertificateOutput\"L\x8a\xc4\x03H*'fabric/create-certificate/${! Purpose }0\x01r\x1bfabric.v1.CreateCertificate\x12\xce\x01\n" +
 	"\x14CreateBootstrapAdmin\x12$.fabric.v1.CreateBootstrapAdminInput\x1a%.fabric.v1.CreateBootstrapAdminOutput\"i\x8a\xc4\x03e*Afabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }0\x01r\x1efabric.v1.CreateBootstrapAdmin\x12\xa0\x01\n" +
 	"\vCreateAdmin\x12\x1b.fabric.v1.CreateAdminInput\x1a\x1c.fabric.v1.CreateAdminOutput\"V\x8a\xc4\x03R*7fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }0\x01r\x15fabric.v1.CreateAdmin\x12\x9e\x01\n" +
-	"\x0eCreateIdentity\x12\x1e.fabric.v1.CreateIdentityInput\x1a\x1f.fabric.v1.CreateIdentityOutput\"K\x8a\xc4\x03G*)fabric/create-identity/${! IdentityName }0\x01r\x18fabric.v1.CreateIdentity\x1a\x1e\x8a\xc4\x03\a\n" +
+	"\x0eCreateIdentity\x12\x1e.fabric.v1.CreateIdentityInput\x1a\x1f.fabric.v1.CreateIdentityOutput\"K\x8a\xc4\x03G*)fabric/create-identity/${! IdentityName }0\x01r\x18fabric.v1.CreateIdentity\x12\x93\x01\n" +
+	"\rDeployCouchDb\x12\x1d.fabric.v1.DeployCouchDbInput\x1a\x1e.fabric.v1.DeployCouchDbOutput\"C\x8a\xc4\x03?*\"fabric/deploy-couchdb/${! PeerId }0\x01r\x17fabric.v1.DeployCouchDb\x12\x84\x01\n" +
+	"\n" +
+	"DeployPeer\x12\x1a.fabric.v1.DeployPeerInput\x1a\x1b.fabric.v1.DeployPeerOutput\"=\x8a\xc4\x039*\x1ffabric/deploy-peer/${! PeerId }0\x01r\x14fabric.v1.DeployPeer\x12\x96\x01\n" +
+	"\rDeployOrderer\x12\x1d.fabric.v1.DeployOrdererInput\x1a\x1e.fabric.v1.DeployOrdererOutput\"F\x8a\xc4\x03B*%fabric/deploy-orderer/${! OrdererId }0\x01r\x17fabric.v1.DeployOrderer\x12\xa2\x01\n" +
+	"\x0fDeployChainCode\x12\x1f.fabric.v1.DeployChainCodeInput\x1a .fabric.v1.DeployChainCodeOutput\"L\x8a\xc4\x03H*)fabric/deploy-chaincode/${! ChainCodeId }0\x01r\x19fabric.v1.DeployChainCode\x1a\x1e\x8a\xc4\x03\a\n" +
 	"\x05infraʂ\x04\x0f\x12\rnexus-enabled2\xa8\x04\n" +
 	"\x10FabricActivities\x12}\n" +
 	"\x10RegisterIdentity\x12 .fabric.v1.RegisterIdentityInput\x1a!.fabric.v1.RegisterIdentityOutput\"$\x92\xc4\x03 \x12\x02\b<:\x1afabric.v1.RegisterIdentity\x12u\n" +
@@ -1802,7 +2152,7 @@ func file_fabric_v1_fabric_proto_rawDescGZIP() []byte {
 	return file_fabric_v1_fabric_proto_rawDescData
 }
 
-var file_fabric_v1_fabric_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+var file_fabric_v1_fabric_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
 var file_fabric_v1_fabric_proto_goTypes = []any{
 	(*CertificateAuthorityRef)(nil),               // 0: fabric.v1.CertificateAuthorityRef
 	(*CertificateSubject)(nil),                    // 1: fabric.v1.CertificateSubject
@@ -1832,54 +2182,62 @@ var file_fabric_v1_fabric_proto_goTypes = []any{
 	(*RevokeIdentityOutput)(nil),                  // 25: fabric.v1.RevokeIdentityOutput
 	(*BootstrapEnrollIdentityInput)(nil),          // 26: fabric.v1.BootstrapEnrollIdentityInput
 	(*BootstrapEnrollIdentityOutput)(nil),         // 27: fabric.v1.BootstrapEnrollIdentityOutput
-	nil,                                           // 28: fabric.v1.CreateCertificateInput.AttributesEntry
-	nil,                                           // 29: fabric.v1.CreateIdentityInput.AttributesEntry
-	nil,                                           // 30: fabric.v1.RegisterIdentityInput.AttributesEntry
-	(*v1.SecretRef)(nil),                          // 31: secrets.v1.SecretRef
+	(*DeployCouchDbInput)(nil),                    // 28: fabric.v1.DeployCouchDbInput
+	(*DeployCouchDbOutput)(nil),                   // 29: fabric.v1.DeployCouchDbOutput
+	(*DeployPeerInput)(nil),                       // 30: fabric.v1.DeployPeerInput
+	(*DeployPeerOutput)(nil),                      // 31: fabric.v1.DeployPeerOutput
+	(*DeployOrdererInput)(nil),                    // 32: fabric.v1.DeployOrdererInput
+	(*DeployOrdererOutput)(nil),                   // 33: fabric.v1.DeployOrdererOutput
+	(*DeployChainCodeInput)(nil),                  // 34: fabric.v1.DeployChainCodeInput
+	(*DeployChainCodeOutput)(nil),                 // 35: fabric.v1.DeployChainCodeOutput
+	nil,                                           // 36: fabric.v1.CreateCertificateInput.AttributesEntry
+	nil,                                           // 37: fabric.v1.CreateIdentityInput.AttributesEntry
+	nil,                                           // 38: fabric.v1.RegisterIdentityInput.AttributesEntry
+	(*v1.SecretRef)(nil),                          // 39: secrets.v1.SecretRef
 }
 var file_fabric_v1_fabric_proto_depIdxs = []int32{
 	0,  // 0: fabric.v1.DeployCertificateAuthorityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
 	0,  // 1: fabric.v1.CreateCertificateDatabaseInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	31, // 2: fabric.v1.CreateCertificateDatabaseOutput.credentials_ref:type_name -> secrets.v1.SecretRef
+	39, // 2: fabric.v1.CreateCertificateDatabaseOutput.credentials_ref:type_name -> secrets.v1.SecretRef
 	0,  // 3: fabric.v1.CreateCertificateInput.issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
 	1,  // 4: fabric.v1.CreateCertificateInput.subject:type_name -> fabric.v1.CertificateSubject
-	31, // 5: fabric.v1.CreateCertificateInput.storage_ref:type_name -> secrets.v1.SecretRef
-	31, // 6: fabric.v1.CreateCertificateInput.admin_credentials_ref:type_name -> secrets.v1.SecretRef
-	28, // 7: fabric.v1.CreateCertificateInput.attributes:type_name -> fabric.v1.CreateCertificateInput.AttributesEntry
-	31, // 8: fabric.v1.CreateCertificateInput.chain_ref:type_name -> secrets.v1.SecretRef
-	31, // 9: fabric.v1.CreateCertificateOutput.credentials_ref:type_name -> secrets.v1.SecretRef
+	39, // 5: fabric.v1.CreateCertificateInput.storage_ref:type_name -> secrets.v1.SecretRef
+	39, // 6: fabric.v1.CreateCertificateInput.admin_credentials_ref:type_name -> secrets.v1.SecretRef
+	36, // 7: fabric.v1.CreateCertificateInput.attributes:type_name -> fabric.v1.CreateCertificateInput.AttributesEntry
+	39, // 8: fabric.v1.CreateCertificateInput.chain_ref:type_name -> secrets.v1.SecretRef
+	39, // 9: fabric.v1.CreateCertificateOutput.credentials_ref:type_name -> secrets.v1.SecretRef
 	0,  // 10: fabric.v1.CreateBootstrapAdminInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	31, // 11: fabric.v1.CreateBootstrapAdminOutput.signing_credentials_ref:type_name -> secrets.v1.SecretRef
-	31, // 12: fabric.v1.CreateBootstrapAdminOutput.tls_credentials_ref:type_name -> secrets.v1.SecretRef
+	39, // 11: fabric.v1.CreateBootstrapAdminOutput.signing_credentials_ref:type_name -> secrets.v1.SecretRef
+	39, // 12: fabric.v1.CreateBootstrapAdminOutput.tls_credentials_ref:type_name -> secrets.v1.SecretRef
 	0,  // 13: fabric.v1.CreateAdminInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	31, // 14: fabric.v1.CreateAdminOutput.signing_credentials_ref:type_name -> secrets.v1.SecretRef
-	31, // 15: fabric.v1.CreateAdminOutput.tls_credentials_ref:type_name -> secrets.v1.SecretRef
+	39, // 14: fabric.v1.CreateAdminOutput.signing_credentials_ref:type_name -> secrets.v1.SecretRef
+	39, // 15: fabric.v1.CreateAdminOutput.tls_credentials_ref:type_name -> secrets.v1.SecretRef
 	1,  // 16: fabric.v1.CreateIdentityInput.subject:type_name -> fabric.v1.CertificateSubject
 	0,  // 17: fabric.v1.CreateIdentityInput.org_issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
 	0,  // 18: fabric.v1.CreateIdentityInput.tls_issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	31, // 19: fabric.v1.CreateIdentityInput.storage_signing_ref:type_name -> secrets.v1.SecretRef
-	31, // 20: fabric.v1.CreateIdentityInput.storage_tls_ref:type_name -> secrets.v1.SecretRef
-	29, // 21: fabric.v1.CreateIdentityInput.attributes:type_name -> fabric.v1.CreateIdentityInput.AttributesEntry
-	31, // 22: fabric.v1.CreateIdentityOutput.signing_credentials_ref:type_name -> secrets.v1.SecretRef
-	31, // 23: fabric.v1.CreateIdentityOutput.tls_credentials_ref:type_name -> secrets.v1.SecretRef
+	39, // 19: fabric.v1.CreateIdentityInput.storage_signing_ref:type_name -> secrets.v1.SecretRef
+	39, // 20: fabric.v1.CreateIdentityInput.storage_tls_ref:type_name -> secrets.v1.SecretRef
+	37, // 21: fabric.v1.CreateIdentityInput.attributes:type_name -> fabric.v1.CreateIdentityInput.AttributesEntry
+	39, // 22: fabric.v1.CreateIdentityOutput.signing_credentials_ref:type_name -> secrets.v1.SecretRef
+	39, // 23: fabric.v1.CreateIdentityOutput.tls_credentials_ref:type_name -> secrets.v1.SecretRef
 	0,  // 24: fabric.v1.RegisterIdentityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	30, // 25: fabric.v1.RegisterIdentityInput.attributes:type_name -> fabric.v1.RegisterIdentityInput.AttributesEntry
-	31, // 26: fabric.v1.RegisterIdentityInput.admin_credentials_ref:type_name -> secrets.v1.SecretRef
+	38, // 25: fabric.v1.RegisterIdentityInput.attributes:type_name -> fabric.v1.RegisterIdentityInput.AttributesEntry
+	39, // 26: fabric.v1.RegisterIdentityInput.admin_credentials_ref:type_name -> secrets.v1.SecretRef
 	0,  // 27: fabric.v1.EnrollIdentityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	31, // 28: fabric.v1.EnrollIdentityInput.key_ref:type_name -> secrets.v1.SecretRef
+	39, // 28: fabric.v1.EnrollIdentityInput.key_ref:type_name -> secrets.v1.SecretRef
 	1,  // 29: fabric.v1.EnrollIdentityInput.subject:type_name -> fabric.v1.CertificateSubject
-	31, // 30: fabric.v1.EnrollIdentityInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
-	31, // 31: fabric.v1.EnrollIdentityInput.chain_ref:type_name -> secrets.v1.SecretRef
-	31, // 32: fabric.v1.EnrollIdentityOutput.cert_ref:type_name -> secrets.v1.SecretRef
+	39, // 30: fabric.v1.EnrollIdentityInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
+	39, // 31: fabric.v1.EnrollIdentityInput.chain_ref:type_name -> secrets.v1.SecretRef
+	39, // 32: fabric.v1.EnrollIdentityOutput.cert_ref:type_name -> secrets.v1.SecretRef
 	0,  // 33: fabric.v1.RevokeIdentityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	31, // 34: fabric.v1.RevokeIdentityInput.admin_credentials_ref:type_name -> secrets.v1.SecretRef
-	31, // 35: fabric.v1.BootstrapEnrollIdentityInput.bootstrap_credentials_ref:type_name -> secrets.v1.SecretRef
-	31, // 36: fabric.v1.BootstrapEnrollIdentityInput.key_ref:type_name -> secrets.v1.SecretRef
-	31, // 37: fabric.v1.BootstrapEnrollIdentityInput.cert_ref:type_name -> secrets.v1.SecretRef
+	39, // 34: fabric.v1.RevokeIdentityInput.admin_credentials_ref:type_name -> secrets.v1.SecretRef
+	39, // 35: fabric.v1.BootstrapEnrollIdentityInput.bootstrap_credentials_ref:type_name -> secrets.v1.SecretRef
+	39, // 36: fabric.v1.BootstrapEnrollIdentityInput.key_ref:type_name -> secrets.v1.SecretRef
+	39, // 37: fabric.v1.BootstrapEnrollIdentityInput.cert_ref:type_name -> secrets.v1.SecretRef
 	1,  // 38: fabric.v1.BootstrapEnrollIdentityInput.subject:type_name -> fabric.v1.CertificateSubject
-	31, // 39: fabric.v1.BootstrapEnrollIdentityInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
-	31, // 40: fabric.v1.BootstrapEnrollIdentityInput.chain_ref:type_name -> secrets.v1.SecretRef
-	31, // 41: fabric.v1.BootstrapEnrollIdentityOutput.cert_ref:type_name -> secrets.v1.SecretRef
+	39, // 39: fabric.v1.BootstrapEnrollIdentityInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
+	39, // 40: fabric.v1.BootstrapEnrollIdentityInput.chain_ref:type_name -> secrets.v1.SecretRef
+	39, // 41: fabric.v1.BootstrapEnrollIdentityOutput.cert_ref:type_name -> secrets.v1.SecretRef
 	2,  // 42: fabric.v1.Fabric.BootstrapShard:input_type -> fabric.v1.BootstrapShardInput
 	4,  // 43: fabric.v1.Fabric.BootstrapCertificateAuthorities:input_type -> fabric.v1.BootstrapCertificateAuthoritiesInput
 	6,  // 44: fabric.v1.Fabric.DeployCertificateStore:input_type -> fabric.v1.DeployCertificateStoreInput
@@ -1889,25 +2247,33 @@ var file_fabric_v1_fabric_proto_depIdxs = []int32{
 	14, // 48: fabric.v1.Fabric.CreateBootstrapAdmin:input_type -> fabric.v1.CreateBootstrapAdminInput
 	16, // 49: fabric.v1.Fabric.CreateAdmin:input_type -> fabric.v1.CreateAdminInput
 	18, // 50: fabric.v1.Fabric.CreateIdentity:input_type -> fabric.v1.CreateIdentityInput
-	20, // 51: fabric.v1.FabricActivities.RegisterIdentity:input_type -> fabric.v1.RegisterIdentityInput
-	22, // 52: fabric.v1.FabricActivities.EnrollIdentity:input_type -> fabric.v1.EnrollIdentityInput
-	24, // 53: fabric.v1.FabricActivities.RevokeIdentity:input_type -> fabric.v1.RevokeIdentityInput
-	26, // 54: fabric.v1.FabricActivities.BootstrapEnrollIdentity:input_type -> fabric.v1.BootstrapEnrollIdentityInput
-	3,  // 55: fabric.v1.Fabric.BootstrapShard:output_type -> fabric.v1.BootstrapShardOutput
-	5,  // 56: fabric.v1.Fabric.BootstrapCertificateAuthorities:output_type -> fabric.v1.BootstrapCertificateAuthoritiesOutput
-	7,  // 57: fabric.v1.Fabric.DeployCertificateStore:output_type -> fabric.v1.DeployCertificateStoreOutput
-	9,  // 58: fabric.v1.Fabric.DeployCertificateAuthority:output_type -> fabric.v1.DeployCertificateAuthorityOutput
-	11, // 59: fabric.v1.Fabric.CreateCertificateDatabase:output_type -> fabric.v1.CreateCertificateDatabaseOutput
-	13, // 60: fabric.v1.Fabric.CreateCertificate:output_type -> fabric.v1.CreateCertificateOutput
-	15, // 61: fabric.v1.Fabric.CreateBootstrapAdmin:output_type -> fabric.v1.CreateBootstrapAdminOutput
-	17, // 62: fabric.v1.Fabric.CreateAdmin:output_type -> fabric.v1.CreateAdminOutput
-	19, // 63: fabric.v1.Fabric.CreateIdentity:output_type -> fabric.v1.CreateIdentityOutput
-	21, // 64: fabric.v1.FabricActivities.RegisterIdentity:output_type -> fabric.v1.RegisterIdentityOutput
-	23, // 65: fabric.v1.FabricActivities.EnrollIdentity:output_type -> fabric.v1.EnrollIdentityOutput
-	25, // 66: fabric.v1.FabricActivities.RevokeIdentity:output_type -> fabric.v1.RevokeIdentityOutput
-	27, // 67: fabric.v1.FabricActivities.BootstrapEnrollIdentity:output_type -> fabric.v1.BootstrapEnrollIdentityOutput
-	55, // [55:68] is the sub-list for method output_type
-	42, // [42:55] is the sub-list for method input_type
+	28, // 51: fabric.v1.Fabric.DeployCouchDb:input_type -> fabric.v1.DeployCouchDbInput
+	30, // 52: fabric.v1.Fabric.DeployPeer:input_type -> fabric.v1.DeployPeerInput
+	32, // 53: fabric.v1.Fabric.DeployOrderer:input_type -> fabric.v1.DeployOrdererInput
+	34, // 54: fabric.v1.Fabric.DeployChainCode:input_type -> fabric.v1.DeployChainCodeInput
+	20, // 55: fabric.v1.FabricActivities.RegisterIdentity:input_type -> fabric.v1.RegisterIdentityInput
+	22, // 56: fabric.v1.FabricActivities.EnrollIdentity:input_type -> fabric.v1.EnrollIdentityInput
+	24, // 57: fabric.v1.FabricActivities.RevokeIdentity:input_type -> fabric.v1.RevokeIdentityInput
+	26, // 58: fabric.v1.FabricActivities.BootstrapEnrollIdentity:input_type -> fabric.v1.BootstrapEnrollIdentityInput
+	3,  // 59: fabric.v1.Fabric.BootstrapShard:output_type -> fabric.v1.BootstrapShardOutput
+	5,  // 60: fabric.v1.Fabric.BootstrapCertificateAuthorities:output_type -> fabric.v1.BootstrapCertificateAuthoritiesOutput
+	7,  // 61: fabric.v1.Fabric.DeployCertificateStore:output_type -> fabric.v1.DeployCertificateStoreOutput
+	9,  // 62: fabric.v1.Fabric.DeployCertificateAuthority:output_type -> fabric.v1.DeployCertificateAuthorityOutput
+	11, // 63: fabric.v1.Fabric.CreateCertificateDatabase:output_type -> fabric.v1.CreateCertificateDatabaseOutput
+	13, // 64: fabric.v1.Fabric.CreateCertificate:output_type -> fabric.v1.CreateCertificateOutput
+	15, // 65: fabric.v1.Fabric.CreateBootstrapAdmin:output_type -> fabric.v1.CreateBootstrapAdminOutput
+	17, // 66: fabric.v1.Fabric.CreateAdmin:output_type -> fabric.v1.CreateAdminOutput
+	19, // 67: fabric.v1.Fabric.CreateIdentity:output_type -> fabric.v1.CreateIdentityOutput
+	29, // 68: fabric.v1.Fabric.DeployCouchDb:output_type -> fabric.v1.DeployCouchDbOutput
+	31, // 69: fabric.v1.Fabric.DeployPeer:output_type -> fabric.v1.DeployPeerOutput
+	33, // 70: fabric.v1.Fabric.DeployOrderer:output_type -> fabric.v1.DeployOrdererOutput
+	35, // 71: fabric.v1.Fabric.DeployChainCode:output_type -> fabric.v1.DeployChainCodeOutput
+	21, // 72: fabric.v1.FabricActivities.RegisterIdentity:output_type -> fabric.v1.RegisterIdentityOutput
+	23, // 73: fabric.v1.FabricActivities.EnrollIdentity:output_type -> fabric.v1.EnrollIdentityOutput
+	25, // 74: fabric.v1.FabricActivities.RevokeIdentity:output_type -> fabric.v1.RevokeIdentityOutput
+	27, // 75: fabric.v1.FabricActivities.BootstrapEnrollIdentity:output_type -> fabric.v1.BootstrapEnrollIdentityOutput
+	59, // [59:76] is the sub-list for method output_type
+	42, // [42:59] is the sub-list for method input_type
 	42, // [42:42] is the sub-list for extension type_name
 	42, // [42:42] is the sub-list for extension extendee
 	0,  // [0:42] is the sub-list for field type_name
@@ -1924,7 +2290,7 @@ func file_fabric_v1_fabric_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_fabric_v1_fabric_proto_rawDesc), len(file_fabric_v1_fabric_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   31,
+			NumMessages:   39,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

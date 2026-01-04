@@ -65,6 +65,26 @@ const FabricCreateIdentityOperationName = "CreateIdentity"
 
 var FabricCreateIdentityOperation = nexus.NewOperationReference[*v1.CreateIdentityInput, *v1.CreateIdentityOutput](FabricCreateIdentityOperationName)
 
+// FabricDeployCouchDbOperationName defines the fully-qualified name for the DeployCouchDb operation.
+const FabricDeployCouchDbOperationName = "DeployCouchDb"
+
+var FabricDeployCouchDbOperation = nexus.NewOperationReference[*v1.DeployCouchDbInput, *v1.DeployCouchDbOutput](FabricDeployCouchDbOperationName)
+
+// FabricDeployPeerOperationName defines the fully-qualified name for the DeployPeer operation.
+const FabricDeployPeerOperationName = "DeployPeer"
+
+var FabricDeployPeerOperation = nexus.NewOperationReference[*v1.DeployPeerInput, *v1.DeployPeerOutput](FabricDeployPeerOperationName)
+
+// FabricDeployOrdererOperationName defines the fully-qualified name for the DeployOrderer operation.
+const FabricDeployOrdererOperationName = "DeployOrderer"
+
+var FabricDeployOrdererOperation = nexus.NewOperationReference[*v1.DeployOrdererInput, *v1.DeployOrdererOutput](FabricDeployOrdererOperationName)
+
+// FabricDeployChainCodeOperationName defines the fully-qualified name for the DeployChainCode operation.
+const FabricDeployChainCodeOperationName = "DeployChainCode"
+
+var FabricDeployChainCodeOperation = nexus.NewOperationReference[*v1.DeployChainCodeInput, *v1.DeployChainCodeOutput](FabricDeployChainCodeOperationName)
+
 type FabricNexusHandler interface {
 	BootstrapShard(name string) nexus.Operation[*v1.BootstrapShardInput, *v1.BootstrapShardOutput]
 	BootstrapCertificateAuthorities(name string) nexus.Operation[*v1.BootstrapCertificateAuthoritiesInput, *v1.BootstrapCertificateAuthoritiesOutput]
@@ -75,11 +95,15 @@ type FabricNexusHandler interface {
 	CreateBootstrapAdmin(name string) nexus.Operation[*v1.CreateBootstrapAdminInput, *v1.CreateBootstrapAdminOutput]
 	CreateAdmin(name string) nexus.Operation[*v1.CreateAdminInput, *v1.CreateAdminOutput]
 	CreateIdentity(name string) nexus.Operation[*v1.CreateIdentityInput, *v1.CreateIdentityOutput]
+	DeployCouchDb(name string) nexus.Operation[*v1.DeployCouchDbInput, *v1.DeployCouchDbOutput]
+	DeployPeer(name string) nexus.Operation[*v1.DeployPeerInput, *v1.DeployPeerOutput]
+	DeployOrderer(name string) nexus.Operation[*v1.DeployOrdererInput, *v1.DeployOrdererOutput]
+	DeployChainCode(name string) nexus.Operation[*v1.DeployChainCodeInput, *v1.DeployChainCodeOutput]
 }
 
 func NewFabricNexusService(h FabricNexusHandler) (*nexus.Service, error) {
 	svc := nexus.NewService(FabricServiceName)
-	err := svc.Register(h.BootstrapShard(FabricBootstrapShardOperationName), h.BootstrapCertificateAuthorities(FabricBootstrapCertificateAuthoritiesOperationName), h.DeployCertificateStore(FabricDeployCertificateStoreOperationName), h.DeployCertificateAuthority(FabricDeployCertificateAuthorityOperationName), h.CreateCertificateDatabase(FabricCreateCertificateDatabaseOperationName), h.CreateCertificate(FabricCreateCertificateOperationName), h.CreateBootstrapAdmin(FabricCreateBootstrapAdminOperationName), h.CreateAdmin(FabricCreateAdminOperationName), h.CreateIdentity(FabricCreateIdentityOperationName))
+	err := svc.Register(h.BootstrapShard(FabricBootstrapShardOperationName), h.BootstrapCertificateAuthorities(FabricBootstrapCertificateAuthoritiesOperationName), h.DeployCertificateStore(FabricDeployCertificateStoreOperationName), h.DeployCertificateAuthority(FabricDeployCertificateAuthorityOperationName), h.CreateCertificateDatabase(FabricCreateCertificateDatabaseOperationName), h.CreateCertificate(FabricCreateCertificateOperationName), h.CreateBootstrapAdmin(FabricCreateBootstrapAdminOperationName), h.CreateAdmin(FabricCreateAdminOperationName), h.CreateIdentity(FabricCreateIdentityOperationName), h.DeployCouchDb(FabricDeployCouchDbOperationName), h.DeployPeer(FabricDeployPeerOperationName), h.DeployOrderer(FabricDeployOrdererOperationName), h.DeployChainCode(FabricDeployChainCodeOperationName))
 	if err != nil {
 		return nil, err
 	}
@@ -209,6 +233,62 @@ func (h *unimplementedFabricCreateIdentity) Name() string {
 }
 func (h *UnimplementedFabricNexusHandler) CreateIdentity(name string) nexus.Operation[*v1.CreateIdentityInput, *v1.CreateIdentityOutput] {
 	return &unimplementedFabricCreateIdentity{
+		name: name,
+	}
+}
+
+type unimplementedFabricDeployCouchDb struct {
+	nexus.UnimplementedOperation[*v1.DeployCouchDbInput, *v1.DeployCouchDbOutput]
+	name string
+}
+
+func (h *unimplementedFabricDeployCouchDb) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) DeployCouchDb(name string) nexus.Operation[*v1.DeployCouchDbInput, *v1.DeployCouchDbOutput] {
+	return &unimplementedFabricDeployCouchDb{
+		name: name,
+	}
+}
+
+type unimplementedFabricDeployPeer struct {
+	nexus.UnimplementedOperation[*v1.DeployPeerInput, *v1.DeployPeerOutput]
+	name string
+}
+
+func (h *unimplementedFabricDeployPeer) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) DeployPeer(name string) nexus.Operation[*v1.DeployPeerInput, *v1.DeployPeerOutput] {
+	return &unimplementedFabricDeployPeer{
+		name: name,
+	}
+}
+
+type unimplementedFabricDeployOrderer struct {
+	nexus.UnimplementedOperation[*v1.DeployOrdererInput, *v1.DeployOrdererOutput]
+	name string
+}
+
+func (h *unimplementedFabricDeployOrderer) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) DeployOrderer(name string) nexus.Operation[*v1.DeployOrdererInput, *v1.DeployOrdererOutput] {
+	return &unimplementedFabricDeployOrderer{
+		name: name,
+	}
+}
+
+type unimplementedFabricDeployChainCode struct {
+	nexus.UnimplementedOperation[*v1.DeployChainCodeInput, *v1.DeployChainCodeOutput]
+	name string
+}
+
+func (h *unimplementedFabricDeployChainCode) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) DeployChainCode(name string) nexus.Operation[*v1.DeployChainCodeInput, *v1.DeployChainCodeOutput] {
+	return &unimplementedFabricDeployChainCode{
 		name: name,
 	}
 }

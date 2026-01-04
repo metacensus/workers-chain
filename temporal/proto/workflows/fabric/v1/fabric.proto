@@ -163,6 +163,46 @@ service Fabric {
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
+
+  // DeployCouchDb deploys a CouchDB instance for a peer
+  // CouchDB provides rich query support for Fabric state database
+  rpc DeployCouchDb(DeployCouchDbInput) returns (DeployCouchDbOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployCouchDb"
+      id: 'fabric/deploy-couchdb/${! PeerId }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployPeer deploys a Fabric peer node
+  // Peers endorse transactions and maintain ledger state
+  rpc DeployPeer(DeployPeerInput) returns (DeployPeerOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployPeer"
+      id: 'fabric/deploy-peer/${! PeerId }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployOrderer deploys a Fabric orderer node
+  // Orderers provide consensus and block ordering services
+  rpc DeployOrderer(DeployOrdererInput) returns (DeployOrdererOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployOrderer"
+      id: 'fabric/deploy-orderer/${! OrdererId }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployChainCode deploys a chaincode (smart contract) to the Fabric network
+  // Chaincode runs in isolated containers and processes transactions
+  rpc DeployChainCode(DeployChainCodeInput) returns (DeployChainCodeOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployChainCode"
+      id: 'fabric/deploy-chaincode/${! ChainCodeId }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
 }
 
 // FabricActivities service defines activities for Fabric CA operations
@@ -684,4 +724,68 @@ message BootstrapEnrollIdentityOutput {
     json_name = "CertRef",
     (go.field).tags = 'json:"CertRef" validate:"required"'
   ];
+}
+
+// ==================== DeployCouchDb Workflow Messages ====================
+
+// DeployCouchDbInput specifies the parameters for deploying a CouchDB instance
+message DeployCouchDbInput {
+  // peer_id identifies which peer this CouchDB is for (e.g., "peer0", "peer1")
+  string peer_id = 1 [
+    json_name = "PeerId",
+    (go.field).tags = 'json:"PeerId" validate:"required"'
+  ];
+}
+
+// DeployCouchDbOutput indicates the result of CouchDB deployment
+message DeployCouchDbOutput {
+  // Empty for now
+}
+
+// ==================== DeployPeer Workflow Messages ====================
+
+// DeployPeerInput specifies the parameters for deploying a Fabric peer
+message DeployPeerInput {
+  // peer_id identifies this peer (e.g., "peer0", "peer1")
+  string peer_id = 1 [
+    json_name = "PeerId",
+    (go.field).tags = 'json:"PeerId" validate:"required"'
+  ];
+}
+
+// DeployPeerOutput indicates the result of peer deployment
+message DeployPeerOutput {
+  // Empty for now
+}
+
+// ==================== DeployOrderer Workflow Messages ====================
+
+// DeployOrdererInput specifies the parameters for deploying a Fabric orderer
+message DeployOrdererInput {
+  // orderer_id identifies this orderer (e.g., "orderer0", "orderer1")
+  string orderer_id = 1 [
+    json_name = "OrdererId",
+    (go.field).tags = 'json:"OrdererId" validate:"required"'
+  ];
+}
+
+// DeployOrdererOutput indicates the result of orderer deployment
+message DeployOrdererOutput {
+  // Empty for now
+}
+
+// ==================== DeployChainCode Workflow Messages ====================
+
+// DeployChainCodeInput specifies the parameters for deploying a chaincode
+message DeployChainCodeInput {
+  // chain_code_id identifies this chaincode (e.g., "asset-transfer", "fabcar")
+  string chain_code_id = 1 [
+    json_name = "ChainCodeId",
+    (go.field).tags = 'json:"ChainCodeId" validate:"required"'
+  ];
+}
+
+// DeployChainCodeOutput indicates the result of chaincode deployment
+message DeployChainCodeOutput {
+  // Empty for now
 }

@@ -49,6 +49,10 @@
         - [fabric.v1.CreateBootstrapAdmin](#fabric-v1-createbootstrapadmin-workflow)
         - [fabric.v1.CreateAdmin](#fabric-v1-createadmin-workflow)
         - [fabric.v1.CreateIdentity](#fabric-v1-createidentity-workflow)
+        - [fabric.v1.DeployCouchDb](#fabric-v1-deploycouchdb-workflow)
+        - [fabric.v1.DeployPeer](#fabric-v1-deploypeer-workflow)
+        - [fabric.v1.DeployOrderer](#fabric-v1-deployorderer-workflow)
+        - [fabric.v1.DeployChainCode](#fabric-v1-deploychaincode-workflow)
     - [fabric.v1.FabricActivities](#fabric-v1-fabricactivities)
       - [Activities](#fabric-v1-fabricactivities-activities)
         - [fabric.v1.RegisterIdentity](#fabric-v1-registeridentity-activity)
@@ -80,6 +84,14 @@
     - [fabric.v1.DeployCertificateAuthorityOutput](#fabric-v1-deploycertificateauthorityoutput)
     - [fabric.v1.DeployCertificateStoreInput](#fabric-v1-deploycertificatestoreinput)
     - [fabric.v1.DeployCertificateStoreOutput](#fabric-v1-deploycertificatestoreoutput)
+    - [fabric.v1.DeployChainCodeInput](#fabric-v1-deploychaincodeinput)
+    - [fabric.v1.DeployChainCodeOutput](#fabric-v1-deploychaincodeoutput)
+    - [fabric.v1.DeployCouchDbInput](#fabric-v1-deploycouchdbinput)
+    - [fabric.v1.DeployCouchDbOutput](#fabric-v1-deploycouchdboutput)
+    - [fabric.v1.DeployOrdererInput](#fabric-v1-deployordererinput)
+    - [fabric.v1.DeployOrdererOutput](#fabric-v1-deployordereroutput)
+    - [fabric.v1.DeployPeerInput](#fabric-v1-deploypeerinput)
+    - [fabric.v1.DeployPeerOutput](#fabric-v1-deploypeeroutput)
     - [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
     - [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
     - [fabric.v1.RegisterIdentityInput](#fabric-v1-registeridentityinput)
@@ -1772,6 +1784,170 @@ go_tags: json:"TlsCredentialsRef" validate:"required"</pre></td>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/create-identity/${! IdentityName }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-deploycouchdb-workflow"></a>
+### fabric.v1.DeployCouchDb
+
+<pre>
+DeployCouchDb deploys a CouchDB instance for a peer
+CouchDB provides rich query support for Fabric state database
+</pre>
+
+**Input:** [fabric.v1.DeployCouchDbInput](#fabric-v1-deploycouchdbinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>peer_id</td>
+<td>string</td>
+<td><pre>
+peer_id identifies which peer this CouchDB is for (e.g., "peer0", "peer1")<br>
+
+json_name: PeerId
+go_name: PeerId
+go_tags: json:"PeerId" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.v1.DeployCouchDbOutput](#fabric-v1-deploycouchdboutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-couchdb/${! PeerId }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-deploypeer-workflow"></a>
+### fabric.v1.DeployPeer
+
+<pre>
+DeployPeer deploys a Fabric peer node
+Peers endorse transactions and maintain ledger state
+</pre>
+
+**Input:** [fabric.v1.DeployPeerInput](#fabric-v1-deploypeerinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>peer_id</td>
+<td>string</td>
+<td><pre>
+peer_id identifies this peer (e.g., "peer0", "peer1")<br>
+
+json_name: PeerId
+go_name: PeerId
+go_tags: json:"PeerId" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.v1.DeployPeerOutput](#fabric-v1-deploypeeroutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-peer/${! PeerId }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-deployorderer-workflow"></a>
+### fabric.v1.DeployOrderer
+
+<pre>
+DeployOrderer deploys a Fabric orderer node
+Orderers provide consensus and block ordering services
+</pre>
+
+**Input:** [fabric.v1.DeployOrdererInput](#fabric-v1-deployordererinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>orderer_id</td>
+<td>string</td>
+<td><pre>
+orderer_id identifies this orderer (e.g., "orderer0", "orderer1")<br>
+
+json_name: OrdererId
+go_name: OrdererId
+go_tags: json:"OrdererId" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.v1.DeployOrdererOutput](#fabric-v1-deployordereroutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-orderer/${! OrdererId }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-deploychaincode-workflow"></a>
+### fabric.v1.DeployChainCode
+
+<pre>
+DeployChainCode deploys a chaincode (smart contract) to the Fabric network
+Chaincode runs in isolated containers and processes transactions
+</pre>
+
+**Input:** [fabric.v1.DeployChainCodeInput](#fabric-v1-deploychaincodeinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>chain_code_id</td>
+<td>string</td>
+<td><pre>
+chain_code_id identifies this chaincode (e.g., "asset-transfer", "fabcar")<br>
+
+json_name: ChainCodeId
+go_name: ChainCodeId
+go_tags: json:"ChainCodeId" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.v1.DeployChainCodeOutput](#fabric-v1-deploychaincodeoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-chaincode/${! ChainCodeId }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>     
 
 <a name="fabric-v1-fabricactivities"></a>
@@ -2967,6 +3143,150 @@ DeployCertificateStoreInput specifies the parameters for deploying the certifica
 
 <pre>
 DeployCertificateStoreOutput indicates the result of certificate store deployment
+</pre>
+
+
+
+<a name="fabric-v1-deploychaincodeinput"></a>
+### fabric.v1.DeployChainCodeInput
+
+<pre>
+DeployChainCodeInput specifies the parameters for deploying a chaincode
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>chain_code_id</td>
+<td>string</td>
+<td><pre>
+chain_code_id identifies this chaincode (e.g., "asset-transfer", "fabcar")<br>
+
+json_name: ChainCodeId
+go_name: ChainCodeId
+go_tags: json:"ChainCodeId" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-deploychaincodeoutput"></a>
+### fabric.v1.DeployChainCodeOutput
+
+<pre>
+DeployChainCodeOutput indicates the result of chaincode deployment
+</pre>
+
+
+
+<a name="fabric-v1-deploycouchdbinput"></a>
+### fabric.v1.DeployCouchDbInput
+
+<pre>
+DeployCouchDbInput specifies the parameters for deploying a CouchDB instance
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>peer_id</td>
+<td>string</td>
+<td><pre>
+peer_id identifies which peer this CouchDB is for (e.g., "peer0", "peer1")<br>
+
+json_name: PeerId
+go_name: PeerId
+go_tags: json:"PeerId" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-deploycouchdboutput"></a>
+### fabric.v1.DeployCouchDbOutput
+
+<pre>
+DeployCouchDbOutput indicates the result of CouchDB deployment
+</pre>
+
+
+
+<a name="fabric-v1-deployordererinput"></a>
+### fabric.v1.DeployOrdererInput
+
+<pre>
+DeployOrdererInput specifies the parameters for deploying a Fabric orderer
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>orderer_id</td>
+<td>string</td>
+<td><pre>
+orderer_id identifies this orderer (e.g., "orderer0", "orderer1")<br>
+
+json_name: OrdererId
+go_name: OrdererId
+go_tags: json:"OrdererId" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-deployordereroutput"></a>
+### fabric.v1.DeployOrdererOutput
+
+<pre>
+DeployOrdererOutput indicates the result of orderer deployment
+</pre>
+
+
+
+<a name="fabric-v1-deploypeerinput"></a>
+### fabric.v1.DeployPeerInput
+
+<pre>
+DeployPeerInput specifies the parameters for deploying a Fabric peer
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>peer_id</td>
+<td>string</td>
+<td><pre>
+peer_id identifies this peer (e.g., "peer0", "peer1")<br>
+
+json_name: PeerId
+go_name: PeerId
+go_tags: json:"PeerId" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-deploypeeroutput"></a>
+### fabric.v1.DeployPeerOutput
+
+<pre>
+DeployPeerOutput indicates the result of peer deployment
 </pre>
 
 

@@ -42,6 +42,10 @@ const (
 	CreateIdentityWorkflowName                  = "fabric.v1.CreateIdentity"
 	DeployCertificateAuthorityWorkflowName      = "fabric.v1.DeployCertificateAuthority"
 	DeployCertificateStoreWorkflowName          = "fabric.v1.DeployCertificateStore"
+	DeployChainCodeWorkflowName                 = "fabric.v1.DeployChainCode"
+	DeployCouchDbWorkflowName                   = "fabric.v1.DeployCouchDb"
+	DeployOrdererWorkflowName                   = "fabric.v1.DeployOrderer"
+	DeployPeerWorkflowName                      = "fabric.v1.DeployPeer"
 )
 
 // fabric.v1.Fabric workflow id expressions
@@ -55,6 +59,10 @@ var (
 	CreateIdentityIdexpression                  = expression.MustParseExpression("fabric/create-identity/${! IdentityName }")
 	DeployCertificateAuthorityIdexpression      = expression.MustParseExpression("fabric/deploy-certificate-authority/${! CaRef.CertType }/${! CaRef.Id }")
 	DeployCertificateStoreIdexpression          = expression.MustParseExpression("fabric/deploy-certificate-store")
+	DeployChainCodeIdexpression                 = expression.MustParseExpression("fabric/deploy-chaincode/${! ChainCodeId }")
+	DeployCouchDbIdexpression                   = expression.MustParseExpression("fabric/deploy-couchdb/${! PeerId }")
+	DeployOrdererIdexpression                   = expression.MustParseExpression("fabric/deploy-orderer/${! OrdererId }")
+	DeployPeerIdexpression                      = expression.MustParseExpression("fabric/deploy-peer/${! PeerId }")
 )
 
 // FabricClient describes a client for a(n) fabric.v1.Fabric worker
@@ -158,6 +166,46 @@ type FabricClient interface {
 
 	// GetDeployCertificateStore retrieves a handle to an existing fabric.v1.DeployCertificateStore workflow execution
 	GetDeployCertificateStore(ctx context.Context, workflowID string, runID string) DeployCertificateStoreRun
+
+	// DeployChainCode deploys a chaincode (smart contract) to the Fabric network
+	// Chaincode runs in isolated containers and processes transactions
+	DeployChainCode(ctx context.Context, req *DeployChainCodeInput, opts ...*DeployChainCodeOptions) (*DeployChainCodeOutput, error)
+
+	// DeployChainCodeAsync starts a(n) fabric.v1.DeployChainCode workflow and returns a handle to the workflow run
+	DeployChainCodeAsync(ctx context.Context, req *DeployChainCodeInput, opts ...*DeployChainCodeOptions) (DeployChainCodeRun, error)
+
+	// GetDeployChainCode retrieves a handle to an existing fabric.v1.DeployChainCode workflow execution
+	GetDeployChainCode(ctx context.Context, workflowID string, runID string) DeployChainCodeRun
+
+	// DeployCouchDb deploys a CouchDB instance for a peer
+	// CouchDB provides rich query support for Fabric state database
+	DeployCouchDb(ctx context.Context, req *DeployCouchDbInput, opts ...*DeployCouchDbOptions) (*DeployCouchDbOutput, error)
+
+	// DeployCouchDbAsync starts a(n) fabric.v1.DeployCouchDb workflow and returns a handle to the workflow run
+	DeployCouchDbAsync(ctx context.Context, req *DeployCouchDbInput, opts ...*DeployCouchDbOptions) (DeployCouchDbRun, error)
+
+	// GetDeployCouchDb retrieves a handle to an existing fabric.v1.DeployCouchDb workflow execution
+	GetDeployCouchDb(ctx context.Context, workflowID string, runID string) DeployCouchDbRun
+
+	// DeployOrderer deploys a Fabric orderer node
+	// Orderers provide consensus and block ordering services
+	DeployOrderer(ctx context.Context, req *DeployOrdererInput, opts ...*DeployOrdererOptions) (*DeployOrdererOutput, error)
+
+	// DeployOrdererAsync starts a(n) fabric.v1.DeployOrderer workflow and returns a handle to the workflow run
+	DeployOrdererAsync(ctx context.Context, req *DeployOrdererInput, opts ...*DeployOrdererOptions) (DeployOrdererRun, error)
+
+	// GetDeployOrderer retrieves a handle to an existing fabric.v1.DeployOrderer workflow execution
+	GetDeployOrderer(ctx context.Context, workflowID string, runID string) DeployOrdererRun
+
+	// DeployPeer deploys a Fabric peer node
+	// Peers endorse transactions and maintain ledger state
+	DeployPeer(ctx context.Context, req *DeployPeerInput, opts ...*DeployPeerOptions) (*DeployPeerOutput, error)
+
+	// DeployPeerAsync starts a(n) fabric.v1.DeployPeer workflow and returns a handle to the workflow run
+	DeployPeerAsync(ctx context.Context, req *DeployPeerInput, opts ...*DeployPeerOptions) (DeployPeerRun, error)
+
+	// GetDeployPeer retrieves a handle to an existing fabric.v1.DeployPeer workflow execution
+	GetDeployPeer(ctx context.Context, workflowID string, runID string) DeployPeerRun
 
 	// CancelWorkflow requests cancellation of an existing workflow execution
 	CancelWorkflow(ctx context.Context, workflowID string, runID string) error
@@ -642,6 +690,182 @@ func (c *fabricClient) DeployCertificateStoreAsync(ctx context.Context, req *Dep
 // GetDeployCertificateStore fetches an existing fabric.v1.DeployCertificateStore execution
 func (c *fabricClient) GetDeployCertificateStore(ctx context.Context, workflowID string, runID string) DeployCertificateStoreRun {
 	return &deployCertificateStoreRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// DeployChainCode deploys a chaincode (smart contract) to the Fabric network
+// Chaincode runs in isolated containers and processes transactions
+func (c *fabricClient) DeployChainCode(ctx context.Context, req *DeployChainCodeInput, options ...*DeployChainCodeOptions) (*DeployChainCodeOutput, error) {
+	run, err := c.DeployChainCodeAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// DeployChainCode deploys a chaincode (smart contract) to the Fabric network
+// Chaincode runs in isolated containers and processes transactions
+func (c *fabricClient) DeployChainCodeAsync(ctx context.Context, req *DeployChainCodeInput, options ...*DeployChainCodeOptions) (DeployChainCodeRun, error) {
+	var o *DeployChainCodeOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployChainCodeOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, DeployChainCodeWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &deployChainCodeRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetDeployChainCode fetches an existing fabric.v1.DeployChainCode execution
+func (c *fabricClient) GetDeployChainCode(ctx context.Context, workflowID string, runID string) DeployChainCodeRun {
+	return &deployChainCodeRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// DeployCouchDb deploys a CouchDB instance for a peer
+// CouchDB provides rich query support for Fabric state database
+func (c *fabricClient) DeployCouchDb(ctx context.Context, req *DeployCouchDbInput, options ...*DeployCouchDbOptions) (*DeployCouchDbOutput, error) {
+	run, err := c.DeployCouchDbAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// DeployCouchDb deploys a CouchDB instance for a peer
+// CouchDB provides rich query support for Fabric state database
+func (c *fabricClient) DeployCouchDbAsync(ctx context.Context, req *DeployCouchDbInput, options ...*DeployCouchDbOptions) (DeployCouchDbRun, error) {
+	var o *DeployCouchDbOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployCouchDbOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, DeployCouchDbWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &deployCouchDbRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetDeployCouchDb fetches an existing fabric.v1.DeployCouchDb execution
+func (c *fabricClient) GetDeployCouchDb(ctx context.Context, workflowID string, runID string) DeployCouchDbRun {
+	return &deployCouchDbRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// DeployOrderer deploys a Fabric orderer node
+// Orderers provide consensus and block ordering services
+func (c *fabricClient) DeployOrderer(ctx context.Context, req *DeployOrdererInput, options ...*DeployOrdererOptions) (*DeployOrdererOutput, error) {
+	run, err := c.DeployOrdererAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// DeployOrderer deploys a Fabric orderer node
+// Orderers provide consensus and block ordering services
+func (c *fabricClient) DeployOrdererAsync(ctx context.Context, req *DeployOrdererInput, options ...*DeployOrdererOptions) (DeployOrdererRun, error) {
+	var o *DeployOrdererOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployOrdererOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, DeployOrdererWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &deployOrdererRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetDeployOrderer fetches an existing fabric.v1.DeployOrderer execution
+func (c *fabricClient) GetDeployOrderer(ctx context.Context, workflowID string, runID string) DeployOrdererRun {
+	return &deployOrdererRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// DeployPeer deploys a Fabric peer node
+// Peers endorse transactions and maintain ledger state
+func (c *fabricClient) DeployPeer(ctx context.Context, req *DeployPeerInput, options ...*DeployPeerOptions) (*DeployPeerOutput, error) {
+	run, err := c.DeployPeerAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// DeployPeer deploys a Fabric peer node
+// Peers endorse transactions and maintain ledger state
+func (c *fabricClient) DeployPeerAsync(ctx context.Context, req *DeployPeerInput, options ...*DeployPeerOptions) (DeployPeerRun, error) {
+	var o *DeployPeerOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployPeerOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, DeployPeerWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &deployPeerRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetDeployPeer fetches an existing fabric.v1.DeployPeer execution
+func (c *fabricClient) GetDeployPeer(ctx context.Context, workflowID string, runID string) DeployPeerRun {
+	return &deployPeerRun{
 		client: c,
 		run:    c.client.GetWorkflow(ctx, workflowID, runID),
 	}
@@ -2304,6 +2528,738 @@ func (r *deployCertificateStoreRun) Terminate(ctx context.Context, reason string
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
+// DeployChainCodeOptions provides configuration for a fabric.v1.DeployChainCode workflow operation
+type DeployChainCodeOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewDeployChainCodeOptions initializes a new DeployChainCodeOptions value
+func NewDeployChainCodeOptions() *DeployChainCodeOptions {
+	return &DeployChainCodeOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *DeployChainCodeOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(DeployChainCodeIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployChainCodeWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *DeployChainCodeOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *DeployChainCodeOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *DeployChainCodeOptions) WithExecutionTimeout(d time.Duration) *DeployChainCodeOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *DeployChainCodeOptions) WithID(id string) *DeployChainCodeOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployChainCodeOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployChainCodeOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeployChainCodeOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployChainCodeOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *DeployChainCodeOptions) WithRunTimeout(d time.Duration) *DeployChainCodeOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *DeployChainCodeOptions) WithSearchAttributes(sa map[string]any) *DeployChainCodeOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *DeployChainCodeOptions) WithTaskTimeout(d time.Duration) *DeployChainCodeOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeployChainCodeOptions) WithTaskQueue(tq string) *DeployChainCodeOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *DeployChainCodeOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployChainCodeOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// DeployChainCodeRun describes a(n) fabric.v1.DeployChainCode workflow run
+type DeployChainCodeRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*DeployChainCodeOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// deployChainCodeRun provides an internal implementation of a(n) DeployChainCodeRunRun
+type deployChainCodeRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *deployChainCodeRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *deployChainCodeRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *deployChainCodeRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *deployChainCodeRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *deployChainCodeRun) Get(ctx context.Context) (*DeployChainCodeOutput, error) {
+	var resp DeployChainCodeOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *deployChainCodeRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+// DeployCouchDbOptions provides configuration for a fabric.v1.DeployCouchDb workflow operation
+type DeployCouchDbOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewDeployCouchDbOptions initializes a new DeployCouchDbOptions value
+func NewDeployCouchDbOptions() *DeployCouchDbOptions {
+	return &DeployCouchDbOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *DeployCouchDbOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(DeployCouchDbIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployCouchDbWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *DeployCouchDbOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *DeployCouchDbOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *DeployCouchDbOptions) WithExecutionTimeout(d time.Duration) *DeployCouchDbOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *DeployCouchDbOptions) WithID(id string) *DeployCouchDbOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployCouchDbOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployCouchDbOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeployCouchDbOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployCouchDbOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *DeployCouchDbOptions) WithRunTimeout(d time.Duration) *DeployCouchDbOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *DeployCouchDbOptions) WithSearchAttributes(sa map[string]any) *DeployCouchDbOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *DeployCouchDbOptions) WithTaskTimeout(d time.Duration) *DeployCouchDbOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeployCouchDbOptions) WithTaskQueue(tq string) *DeployCouchDbOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *DeployCouchDbOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployCouchDbOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// DeployCouchDbRun describes a(n) fabric.v1.DeployCouchDb workflow run
+type DeployCouchDbRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*DeployCouchDbOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// deployCouchDbRun provides an internal implementation of a(n) DeployCouchDbRunRun
+type deployCouchDbRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *deployCouchDbRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *deployCouchDbRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *deployCouchDbRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *deployCouchDbRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *deployCouchDbRun) Get(ctx context.Context) (*DeployCouchDbOutput, error) {
+	var resp DeployCouchDbOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *deployCouchDbRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+// DeployOrdererOptions provides configuration for a fabric.v1.DeployOrderer workflow operation
+type DeployOrdererOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewDeployOrdererOptions initializes a new DeployOrdererOptions value
+func NewDeployOrdererOptions() *DeployOrdererOptions {
+	return &DeployOrdererOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *DeployOrdererOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(DeployOrdererIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployOrdererWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *DeployOrdererOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *DeployOrdererOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *DeployOrdererOptions) WithExecutionTimeout(d time.Duration) *DeployOrdererOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *DeployOrdererOptions) WithID(id string) *DeployOrdererOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployOrdererOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployOrdererOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeployOrdererOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployOrdererOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *DeployOrdererOptions) WithRunTimeout(d time.Duration) *DeployOrdererOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *DeployOrdererOptions) WithSearchAttributes(sa map[string]any) *DeployOrdererOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *DeployOrdererOptions) WithTaskTimeout(d time.Duration) *DeployOrdererOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeployOrdererOptions) WithTaskQueue(tq string) *DeployOrdererOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *DeployOrdererOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployOrdererOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// DeployOrdererRun describes a(n) fabric.v1.DeployOrderer workflow run
+type DeployOrdererRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*DeployOrdererOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// deployOrdererRun provides an internal implementation of a(n) DeployOrdererRunRun
+type deployOrdererRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *deployOrdererRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *deployOrdererRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *deployOrdererRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *deployOrdererRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *deployOrdererRun) Get(ctx context.Context) (*DeployOrdererOutput, error) {
+	var resp DeployOrdererOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *deployOrdererRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+// DeployPeerOptions provides configuration for a fabric.v1.DeployPeer workflow operation
+type DeployPeerOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewDeployPeerOptions initializes a new DeployPeerOptions value
+func NewDeployPeerOptions() *DeployPeerOptions {
+	return &DeployPeerOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *DeployPeerOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(DeployPeerIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployPeerWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *DeployPeerOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *DeployPeerOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *DeployPeerOptions) WithExecutionTimeout(d time.Duration) *DeployPeerOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *DeployPeerOptions) WithID(id string) *DeployPeerOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployPeerOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployPeerOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeployPeerOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployPeerOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *DeployPeerOptions) WithRunTimeout(d time.Duration) *DeployPeerOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *DeployPeerOptions) WithSearchAttributes(sa map[string]any) *DeployPeerOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *DeployPeerOptions) WithTaskTimeout(d time.Duration) *DeployPeerOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeployPeerOptions) WithTaskQueue(tq string) *DeployPeerOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *DeployPeerOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployPeerOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// DeployPeerRun describes a(n) fabric.v1.DeployPeer workflow run
+type DeployPeerRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*DeployPeerOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// deployPeerRun provides an internal implementation of a(n) DeployPeerRunRun
+type deployPeerRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *deployPeerRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *deployPeerRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *deployPeerRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *deployPeerRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *deployPeerRun) Get(ctx context.Context) (*DeployPeerOutput, error) {
+	var resp DeployPeerOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *deployPeerRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
 // Reference to generated workflow functions
 var (
 	// fabricRegistrationMutex is a mutex for registering fabric.v1.Fabric workflows
@@ -2345,6 +3301,18 @@ var (
 	// DeployCertificateStore deploys the shared certificate store (PostgreSQL)
 	// used by all certificate authorities in the organization.
 	DeployCertificateStoreFunction func(workflow.Context, *DeployCertificateStoreInput) (*DeployCertificateStoreOutput, error)
+	// DeployChainCode deploys a chaincode (smart contract) to the Fabric network
+	// Chaincode runs in isolated containers and processes transactions
+	DeployChainCodeFunction func(workflow.Context, *DeployChainCodeInput) (*DeployChainCodeOutput, error)
+	// DeployCouchDb deploys a CouchDB instance for a peer
+	// CouchDB provides rich query support for Fabric state database
+	DeployCouchDbFunction func(workflow.Context, *DeployCouchDbInput) (*DeployCouchDbOutput, error)
+	// DeployOrderer deploys a Fabric orderer node
+	// Orderers provide consensus and block ordering services
+	DeployOrdererFunction func(workflow.Context, *DeployOrdererInput) (*DeployOrdererOutput, error)
+	// DeployPeer deploys a Fabric peer node
+	// Peers endorse transactions and maintain ledger state
+	DeployPeerFunction func(workflow.Context, *DeployPeerInput) (*DeployPeerOutput, error)
 )
 
 // FabricWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
@@ -2388,6 +3356,18 @@ type (
 		// DeployCertificateStore deploys the shared certificate store (PostgreSQL)
 		// used by all certificate authorities in the organization.
 		DeployCertificateStore(workflow.Context, *DeployCertificateStoreInput) (*DeployCertificateStoreOutput, error)
+		// DeployChainCode deploys a chaincode (smart contract) to the Fabric network
+		// Chaincode runs in isolated containers and processes transactions
+		DeployChainCode(workflow.Context, *DeployChainCodeInput) (*DeployChainCodeOutput, error)
+		// DeployCouchDb deploys a CouchDB instance for a peer
+		// CouchDB provides rich query support for Fabric state database
+		DeployCouchDb(workflow.Context, *DeployCouchDbInput) (*DeployCouchDbOutput, error)
+		// DeployOrderer deploys a Fabric orderer node
+		// Orderers provide consensus and block ordering services
+		DeployOrderer(workflow.Context, *DeployOrdererInput) (*DeployOrdererOutput, error)
+		// DeployPeer deploys a Fabric peer node
+		// Peers endorse transactions and maintain ledger state
+		DeployPeer(workflow.Context, *DeployPeerInput) (*DeployPeerOutput, error)
 	}
 	// fabricWorkflowFunctions provides an internal FabricWorkflowFunctions implementation
 	fabricWorkflowFunctions struct{}
@@ -2488,6 +3468,42 @@ func (f *fabricWorkflowFunctions) DeployCertificateStore(ctx workflow.Context, r
 	return DeployCertificateStoreFunction(ctx, req)
 }
 
+// DeployChainCode deploys a chaincode (smart contract) to the Fabric network
+// Chaincode runs in isolated containers and processes transactions
+func (f *fabricWorkflowFunctions) DeployChainCode(ctx workflow.Context, req *DeployChainCodeInput) (*DeployChainCodeOutput, error) {
+	if DeployChainCodeFunction == nil {
+		return nil, errors.New("DeployChainCode requires workflow registration via RegisterFabricWorkflows or RegisterDeployChainCodeWorkflow")
+	}
+	return DeployChainCodeFunction(ctx, req)
+}
+
+// DeployCouchDb deploys a CouchDB instance for a peer
+// CouchDB provides rich query support for Fabric state database
+func (f *fabricWorkflowFunctions) DeployCouchDb(ctx workflow.Context, req *DeployCouchDbInput) (*DeployCouchDbOutput, error) {
+	if DeployCouchDbFunction == nil {
+		return nil, errors.New("DeployCouchDb requires workflow registration via RegisterFabricWorkflows or RegisterDeployCouchDbWorkflow")
+	}
+	return DeployCouchDbFunction(ctx, req)
+}
+
+// DeployOrderer deploys a Fabric orderer node
+// Orderers provide consensus and block ordering services
+func (f *fabricWorkflowFunctions) DeployOrderer(ctx workflow.Context, req *DeployOrdererInput) (*DeployOrdererOutput, error) {
+	if DeployOrdererFunction == nil {
+		return nil, errors.New("DeployOrderer requires workflow registration via RegisterFabricWorkflows or RegisterDeployOrdererWorkflow")
+	}
+	return DeployOrdererFunction(ctx, req)
+}
+
+// DeployPeer deploys a Fabric peer node
+// Peers endorse transactions and maintain ledger state
+func (f *fabricWorkflowFunctions) DeployPeer(ctx workflow.Context, req *DeployPeerInput) (*DeployPeerOutput, error) {
+	if DeployPeerFunction == nil {
+		return nil, errors.New("DeployPeer requires workflow registration via RegisterFabricWorkflows or RegisterDeployPeerWorkflow")
+	}
+	return DeployPeerFunction(ctx, req)
+}
+
 // FabricWorkflows provides methods for initializing new fabric.v1.Fabric workflow values
 type FabricWorkflows interface {
 	// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
@@ -2535,6 +3551,22 @@ type FabricWorkflows interface {
 	// DeployCertificateStore deploys the shared certificate store (PostgreSQL)
 	// used by all certificate authorities in the organization.
 	DeployCertificateStore(ctx workflow.Context, input *DeployCertificateStoreWorkflowInput) (DeployCertificateStoreWorkflow, error)
+
+	// DeployChainCode deploys a chaincode (smart contract) to the Fabric network
+	// Chaincode runs in isolated containers and processes transactions
+	DeployChainCode(ctx workflow.Context, input *DeployChainCodeWorkflowInput) (DeployChainCodeWorkflow, error)
+
+	// DeployCouchDb deploys a CouchDB instance for a peer
+	// CouchDB provides rich query support for Fabric state database
+	DeployCouchDb(ctx workflow.Context, input *DeployCouchDbWorkflowInput) (DeployCouchDbWorkflow, error)
+
+	// DeployOrderer deploys a Fabric orderer node
+	// Orderers provide consensus and block ordering services
+	DeployOrderer(ctx workflow.Context, input *DeployOrdererWorkflowInput) (DeployOrdererWorkflow, error)
+
+	// DeployPeer deploys a Fabric peer node
+	// Peers endorse transactions and maintain ledger state
+	DeployPeer(ctx workflow.Context, input *DeployPeerWorkflowInput) (DeployPeerWorkflow, error)
 }
 
 // RegisterFabricWorkflows registers fabric.v1.Fabric workflows with the given worker
@@ -2548,6 +3580,10 @@ func RegisterFabricWorkflows(r worker.WorkflowRegistry, workflows FabricWorkflow
 	RegisterCreateIdentityWorkflow(r, workflows.CreateIdentity)
 	RegisterDeployCertificateAuthorityWorkflow(r, workflows.DeployCertificateAuthority)
 	RegisterDeployCertificateStoreWorkflow(r, workflows.DeployCertificateStore)
+	RegisterDeployChainCodeWorkflow(r, workflows.DeployChainCode)
+	RegisterDeployCouchDbWorkflow(r, workflows.DeployCouchDb)
+	RegisterDeployOrdererWorkflow(r, workflows.DeployOrderer)
+	RegisterDeployPeerWorkflow(r, workflows.DeployPeer)
 }
 
 // RegisterBootstrapCertificateAuthoritiesWorkflow registers a fabric.v1.Fabric.BootstrapCertificateAuthorities workflow with the given worker
@@ -5046,6 +6082,1102 @@ func (r *DeployCertificateStoreChildRun) WaitStart(ctx workflow.Context) (*workf
 	return &exec, nil
 }
 
+// RegisterDeployChainCodeWorkflow registers a fabric.v1.Fabric.DeployChainCode workflow with the given worker
+func RegisterDeployChainCodeWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployChainCodeWorkflowInput) (DeployChainCodeWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	DeployChainCodeFunction = buildDeployChainCode(wf)
+	r.RegisterWorkflowWithOptions(DeployChainCodeFunction, workflow.RegisterOptions{Name: DeployChainCodeWorkflowName})
+}
+
+// buildDeployChainCode converts a DeployChainCode workflow struct into a valid workflow function
+func buildDeployChainCode(ctor func(workflow.Context, *DeployChainCodeWorkflowInput) (DeployChainCodeWorkflow, error)) func(workflow.Context, *DeployChainCodeInput) (*DeployChainCodeOutput, error) {
+	return func(ctx workflow.Context, req *DeployChainCodeInput) (*DeployChainCodeOutput, error) {
+		input := &DeployChainCodeWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// DeployChainCodeWorkflowInput describes the input to a(n) fabric.v1.DeployChainCode workflow constructor
+type DeployChainCodeWorkflowInput struct {
+	Req *DeployChainCodeInput
+}
+
+// DeployChainCode deploys a chaincode (smart contract) to the Fabric network
+// Chaincode runs in isolated containers and processes transactions
+//
+// workflow details: (name: "fabric.v1.DeployChainCode", id: "fabric/deploy-chaincode/${! ChainCodeId }")
+type DeployChainCodeWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.DeployChainCode workflow
+	Execute(ctx workflow.Context) (*DeployChainCodeOutput, error)
+}
+
+// DeployChainCode deploys a chaincode (smart contract) to the Fabric network
+// Chaincode runs in isolated containers and processes transactions
+func DeployChainCodeChild(ctx workflow.Context, req *DeployChainCodeInput, options ...*DeployChainCodeChildOptions) (*DeployChainCodeOutput, error) {
+	childRun, err := DeployChainCodeChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// DeployChainCode deploys a chaincode (smart contract) to the Fabric network
+// Chaincode runs in isolated containers and processes transactions
+func DeployChainCodeChildAsync(ctx workflow.Context, req *DeployChainCodeInput, options ...*DeployChainCodeChildOptions) (*DeployChainCodeChildRun, error) {
+	var o *DeployChainCodeChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployChainCodeChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &DeployChainCodeChildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployChainCodeWorkflowName, req)}, nil
+}
+
+// DeployChainCodeChildOptions provides configuration for a child fabric.v1.DeployChainCode workflow operation
+type DeployChainCodeChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewDeployChainCodeChildOptions initializes a new DeployChainCodeChildOptions value
+func NewDeployChainCodeChildOptions() *DeployChainCodeChildOptions {
+	return &DeployChainCodeChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *DeployChainCodeChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(DeployChainCodeIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployChainCodeWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployChainCodeWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(DeployChainCodeIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployChainCodeWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *DeployChainCodeChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *DeployChainCodeChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *DeployChainCodeChildOptions) WithDataConverter(dc converter.DataConverter) *DeployChainCodeChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *DeployChainCodeChildOptions) WithExecutionTimeout(d time.Duration) *DeployChainCodeChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *DeployChainCodeChildOptions) WithID(id string) *DeployChainCodeChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployChainCodeChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployChainCodeChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployChainCodeChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *DeployChainCodeChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeployChainCodeChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployChainCodeChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *DeployChainCodeChildOptions) WithRunTimeout(d time.Duration) *DeployChainCodeChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *DeployChainCodeChildOptions) WithSearchAttributes(sa map[string]any) *DeployChainCodeChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *DeployChainCodeChildOptions) WithTaskTimeout(d time.Duration) *DeployChainCodeChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeployChainCodeChildOptions) WithTaskQueue(tq string) *DeployChainCodeChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *DeployChainCodeChildOptions) WithWaitForCancellation(wait bool) *DeployChainCodeChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *DeployChainCodeChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployChainCodeChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// DeployChainCodeChildRun describes a child DeployChainCode workflow run
+type DeployChainCodeChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *DeployChainCodeChildRun) Get(ctx workflow.Context) (*DeployChainCodeOutput, error) {
+	var resp DeployChainCodeOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *DeployChainCodeChildRun) Select(sel workflow.Selector, fn func(*DeployChainCodeChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *DeployChainCodeChildRun) SelectStart(sel workflow.Selector, fn func(*DeployChainCodeChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *DeployChainCodeChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
+// RegisterDeployCouchDbWorkflow registers a fabric.v1.Fabric.DeployCouchDb workflow with the given worker
+func RegisterDeployCouchDbWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployCouchDbWorkflowInput) (DeployCouchDbWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	DeployCouchDbFunction = buildDeployCouchDb(wf)
+	r.RegisterWorkflowWithOptions(DeployCouchDbFunction, workflow.RegisterOptions{Name: DeployCouchDbWorkflowName})
+}
+
+// buildDeployCouchDb converts a DeployCouchDb workflow struct into a valid workflow function
+func buildDeployCouchDb(ctor func(workflow.Context, *DeployCouchDbWorkflowInput) (DeployCouchDbWorkflow, error)) func(workflow.Context, *DeployCouchDbInput) (*DeployCouchDbOutput, error) {
+	return func(ctx workflow.Context, req *DeployCouchDbInput) (*DeployCouchDbOutput, error) {
+		input := &DeployCouchDbWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// DeployCouchDbWorkflowInput describes the input to a(n) fabric.v1.DeployCouchDb workflow constructor
+type DeployCouchDbWorkflowInput struct {
+	Req *DeployCouchDbInput
+}
+
+// DeployCouchDb deploys a CouchDB instance for a peer
+// CouchDB provides rich query support for Fabric state database
+//
+// workflow details: (name: "fabric.v1.DeployCouchDb", id: "fabric/deploy-couchdb/${! PeerId }")
+type DeployCouchDbWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.DeployCouchDb workflow
+	Execute(ctx workflow.Context) (*DeployCouchDbOutput, error)
+}
+
+// DeployCouchDb deploys a CouchDB instance for a peer
+// CouchDB provides rich query support for Fabric state database
+func DeployCouchDbChild(ctx workflow.Context, req *DeployCouchDbInput, options ...*DeployCouchDbChildOptions) (*DeployCouchDbOutput, error) {
+	childRun, err := DeployCouchDbChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// DeployCouchDb deploys a CouchDB instance for a peer
+// CouchDB provides rich query support for Fabric state database
+func DeployCouchDbChildAsync(ctx workflow.Context, req *DeployCouchDbInput, options ...*DeployCouchDbChildOptions) (*DeployCouchDbChildRun, error) {
+	var o *DeployCouchDbChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployCouchDbChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &DeployCouchDbChildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployCouchDbWorkflowName, req)}, nil
+}
+
+// DeployCouchDbChildOptions provides configuration for a child fabric.v1.DeployCouchDb workflow operation
+type DeployCouchDbChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewDeployCouchDbChildOptions initializes a new DeployCouchDbChildOptions value
+func NewDeployCouchDbChildOptions() *DeployCouchDbChildOptions {
+	return &DeployCouchDbChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *DeployCouchDbChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(DeployCouchDbIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployCouchDbWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployCouchDbWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(DeployCouchDbIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployCouchDbWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *DeployCouchDbChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *DeployCouchDbChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *DeployCouchDbChildOptions) WithDataConverter(dc converter.DataConverter) *DeployCouchDbChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *DeployCouchDbChildOptions) WithExecutionTimeout(d time.Duration) *DeployCouchDbChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *DeployCouchDbChildOptions) WithID(id string) *DeployCouchDbChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployCouchDbChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployCouchDbChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployCouchDbChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *DeployCouchDbChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeployCouchDbChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployCouchDbChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *DeployCouchDbChildOptions) WithRunTimeout(d time.Duration) *DeployCouchDbChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *DeployCouchDbChildOptions) WithSearchAttributes(sa map[string]any) *DeployCouchDbChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *DeployCouchDbChildOptions) WithTaskTimeout(d time.Duration) *DeployCouchDbChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeployCouchDbChildOptions) WithTaskQueue(tq string) *DeployCouchDbChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *DeployCouchDbChildOptions) WithWaitForCancellation(wait bool) *DeployCouchDbChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *DeployCouchDbChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployCouchDbChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// DeployCouchDbChildRun describes a child DeployCouchDb workflow run
+type DeployCouchDbChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *DeployCouchDbChildRun) Get(ctx workflow.Context) (*DeployCouchDbOutput, error) {
+	var resp DeployCouchDbOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *DeployCouchDbChildRun) Select(sel workflow.Selector, fn func(*DeployCouchDbChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *DeployCouchDbChildRun) SelectStart(sel workflow.Selector, fn func(*DeployCouchDbChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *DeployCouchDbChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
+// RegisterDeployOrdererWorkflow registers a fabric.v1.Fabric.DeployOrderer workflow with the given worker
+func RegisterDeployOrdererWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployOrdererWorkflowInput) (DeployOrdererWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	DeployOrdererFunction = buildDeployOrderer(wf)
+	r.RegisterWorkflowWithOptions(DeployOrdererFunction, workflow.RegisterOptions{Name: DeployOrdererWorkflowName})
+}
+
+// buildDeployOrderer converts a DeployOrderer workflow struct into a valid workflow function
+func buildDeployOrderer(ctor func(workflow.Context, *DeployOrdererWorkflowInput) (DeployOrdererWorkflow, error)) func(workflow.Context, *DeployOrdererInput) (*DeployOrdererOutput, error) {
+	return func(ctx workflow.Context, req *DeployOrdererInput) (*DeployOrdererOutput, error) {
+		input := &DeployOrdererWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// DeployOrdererWorkflowInput describes the input to a(n) fabric.v1.DeployOrderer workflow constructor
+type DeployOrdererWorkflowInput struct {
+	Req *DeployOrdererInput
+}
+
+// DeployOrderer deploys a Fabric orderer node
+// Orderers provide consensus and block ordering services
+//
+// workflow details: (name: "fabric.v1.DeployOrderer", id: "fabric/deploy-orderer/${! OrdererId }")
+type DeployOrdererWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.DeployOrderer workflow
+	Execute(ctx workflow.Context) (*DeployOrdererOutput, error)
+}
+
+// DeployOrderer deploys a Fabric orderer node
+// Orderers provide consensus and block ordering services
+func DeployOrdererChild(ctx workflow.Context, req *DeployOrdererInput, options ...*DeployOrdererChildOptions) (*DeployOrdererOutput, error) {
+	childRun, err := DeployOrdererChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// DeployOrderer deploys a Fabric orderer node
+// Orderers provide consensus and block ordering services
+func DeployOrdererChildAsync(ctx workflow.Context, req *DeployOrdererInput, options ...*DeployOrdererChildOptions) (*DeployOrdererChildRun, error) {
+	var o *DeployOrdererChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployOrdererChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &DeployOrdererChildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployOrdererWorkflowName, req)}, nil
+}
+
+// DeployOrdererChildOptions provides configuration for a child fabric.v1.DeployOrderer workflow operation
+type DeployOrdererChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewDeployOrdererChildOptions initializes a new DeployOrdererChildOptions value
+func NewDeployOrdererChildOptions() *DeployOrdererChildOptions {
+	return &DeployOrdererChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *DeployOrdererChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(DeployOrdererIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployOrdererWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployOrdererWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(DeployOrdererIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployOrdererWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *DeployOrdererChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *DeployOrdererChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *DeployOrdererChildOptions) WithDataConverter(dc converter.DataConverter) *DeployOrdererChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *DeployOrdererChildOptions) WithExecutionTimeout(d time.Duration) *DeployOrdererChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *DeployOrdererChildOptions) WithID(id string) *DeployOrdererChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployOrdererChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployOrdererChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployOrdererChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *DeployOrdererChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeployOrdererChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployOrdererChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *DeployOrdererChildOptions) WithRunTimeout(d time.Duration) *DeployOrdererChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *DeployOrdererChildOptions) WithSearchAttributes(sa map[string]any) *DeployOrdererChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *DeployOrdererChildOptions) WithTaskTimeout(d time.Duration) *DeployOrdererChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeployOrdererChildOptions) WithTaskQueue(tq string) *DeployOrdererChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *DeployOrdererChildOptions) WithWaitForCancellation(wait bool) *DeployOrdererChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *DeployOrdererChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployOrdererChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// DeployOrdererChildRun describes a child DeployOrderer workflow run
+type DeployOrdererChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *DeployOrdererChildRun) Get(ctx workflow.Context) (*DeployOrdererOutput, error) {
+	var resp DeployOrdererOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *DeployOrdererChildRun) Select(sel workflow.Selector, fn func(*DeployOrdererChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *DeployOrdererChildRun) SelectStart(sel workflow.Selector, fn func(*DeployOrdererChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *DeployOrdererChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
+// RegisterDeployPeerWorkflow registers a fabric.v1.Fabric.DeployPeer workflow with the given worker
+func RegisterDeployPeerWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *DeployPeerWorkflowInput) (DeployPeerWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	DeployPeerFunction = buildDeployPeer(wf)
+	r.RegisterWorkflowWithOptions(DeployPeerFunction, workflow.RegisterOptions{Name: DeployPeerWorkflowName})
+}
+
+// buildDeployPeer converts a DeployPeer workflow struct into a valid workflow function
+func buildDeployPeer(ctor func(workflow.Context, *DeployPeerWorkflowInput) (DeployPeerWorkflow, error)) func(workflow.Context, *DeployPeerInput) (*DeployPeerOutput, error) {
+	return func(ctx workflow.Context, req *DeployPeerInput) (*DeployPeerOutput, error) {
+		input := &DeployPeerWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// DeployPeerWorkflowInput describes the input to a(n) fabric.v1.DeployPeer workflow constructor
+type DeployPeerWorkflowInput struct {
+	Req *DeployPeerInput
+}
+
+// DeployPeer deploys a Fabric peer node
+// Peers endorse transactions and maintain ledger state
+//
+// workflow details: (name: "fabric.v1.DeployPeer", id: "fabric/deploy-peer/${! PeerId }")
+type DeployPeerWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.DeployPeer workflow
+	Execute(ctx workflow.Context) (*DeployPeerOutput, error)
+}
+
+// DeployPeer deploys a Fabric peer node
+// Peers endorse transactions and maintain ledger state
+func DeployPeerChild(ctx workflow.Context, req *DeployPeerInput, options ...*DeployPeerChildOptions) (*DeployPeerOutput, error) {
+	childRun, err := DeployPeerChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// DeployPeer deploys a Fabric peer node
+// Peers endorse transactions and maintain ledger state
+func DeployPeerChildAsync(ctx workflow.Context, req *DeployPeerInput, options ...*DeployPeerChildOptions) (*DeployPeerChildRun, error) {
+	var o *DeployPeerChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployPeerChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &DeployPeerChildRun{Future: workflow.ExecuteChildWorkflow(ctx, DeployPeerWorkflowName, req)}, nil
+}
+
+// DeployPeerChildOptions provides configuration for a child fabric.v1.DeployPeer workflow operation
+type DeployPeerChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewDeployPeerChildOptions initializes a new DeployPeerChildOptions value
+func NewDeployPeerChildOptions() *DeployPeerChildOptions {
+	return &DeployPeerChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *DeployPeerChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(DeployPeerIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployPeerWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployPeerWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(DeployPeerIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", DeployPeerWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *DeployPeerChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *DeployPeerChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *DeployPeerChildOptions) WithDataConverter(dc converter.DataConverter) *DeployPeerChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *DeployPeerChildOptions) WithExecutionTimeout(d time.Duration) *DeployPeerChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *DeployPeerChildOptions) WithID(id string) *DeployPeerChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployPeerChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *DeployPeerChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *DeployPeerChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *DeployPeerChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *DeployPeerChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *DeployPeerChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *DeployPeerChildOptions) WithRunTimeout(d time.Duration) *DeployPeerChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *DeployPeerChildOptions) WithSearchAttributes(sa map[string]any) *DeployPeerChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *DeployPeerChildOptions) WithTaskTimeout(d time.Duration) *DeployPeerChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *DeployPeerChildOptions) WithTaskQueue(tq string) *DeployPeerChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *DeployPeerChildOptions) WithWaitForCancellation(wait bool) *DeployPeerChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *DeployPeerChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *DeployPeerChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// DeployPeerChildRun describes a child DeployPeer workflow run
+type DeployPeerChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *DeployPeerChildRun) Get(ctx workflow.Context) (*DeployPeerOutput, error) {
+	var resp DeployPeerOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *DeployPeerChildRun) Select(sel workflow.Selector, fn func(*DeployPeerChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *DeployPeerChildRun) SelectStart(sel workflow.Selector, fn func(*DeployPeerChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *DeployPeerChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
 // FabricActivities describes available worker activities
 type FabricActivities interface{}
 
@@ -5330,6 +7462,122 @@ func (c *TestFabricClient) DeployCertificateStoreAsync(ctx context.Context, req 
 // GetDeployCertificateStore is a noop
 func (c *TestFabricClient) GetDeployCertificateStore(ctx context.Context, workflowID string, runID string) DeployCertificateStoreRun {
 	return &testDeployCertificateStoreRun{env: c.env, workflows: c.workflows}
+}
+
+// DeployChainCode executes a(n) fabric.v1.DeployChainCode workflow in the test environment
+func (c *TestFabricClient) DeployChainCode(ctx context.Context, req *DeployChainCodeInput, opts ...*DeployChainCodeOptions) (*DeployChainCodeOutput, error) {
+	run, err := c.DeployChainCodeAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// DeployChainCodeAsync executes a(n) fabric.v1.DeployChainCode workflow in the test environment
+func (c *TestFabricClient) DeployChainCodeAsync(ctx context.Context, req *DeployChainCodeInput, options ...*DeployChainCodeOptions) (DeployChainCodeRun, error) {
+	var o *DeployChainCodeOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployChainCodeOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testDeployChainCodeRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetDeployChainCode is a noop
+func (c *TestFabricClient) GetDeployChainCode(ctx context.Context, workflowID string, runID string) DeployChainCodeRun {
+	return &testDeployChainCodeRun{env: c.env, workflows: c.workflows}
+}
+
+// DeployCouchDb executes a(n) fabric.v1.DeployCouchDb workflow in the test environment
+func (c *TestFabricClient) DeployCouchDb(ctx context.Context, req *DeployCouchDbInput, opts ...*DeployCouchDbOptions) (*DeployCouchDbOutput, error) {
+	run, err := c.DeployCouchDbAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// DeployCouchDbAsync executes a(n) fabric.v1.DeployCouchDb workflow in the test environment
+func (c *TestFabricClient) DeployCouchDbAsync(ctx context.Context, req *DeployCouchDbInput, options ...*DeployCouchDbOptions) (DeployCouchDbRun, error) {
+	var o *DeployCouchDbOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployCouchDbOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testDeployCouchDbRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetDeployCouchDb is a noop
+func (c *TestFabricClient) GetDeployCouchDb(ctx context.Context, workflowID string, runID string) DeployCouchDbRun {
+	return &testDeployCouchDbRun{env: c.env, workflows: c.workflows}
+}
+
+// DeployOrderer executes a(n) fabric.v1.DeployOrderer workflow in the test environment
+func (c *TestFabricClient) DeployOrderer(ctx context.Context, req *DeployOrdererInput, opts ...*DeployOrdererOptions) (*DeployOrdererOutput, error) {
+	run, err := c.DeployOrdererAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// DeployOrdererAsync executes a(n) fabric.v1.DeployOrderer workflow in the test environment
+func (c *TestFabricClient) DeployOrdererAsync(ctx context.Context, req *DeployOrdererInput, options ...*DeployOrdererOptions) (DeployOrdererRun, error) {
+	var o *DeployOrdererOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployOrdererOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testDeployOrdererRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetDeployOrderer is a noop
+func (c *TestFabricClient) GetDeployOrderer(ctx context.Context, workflowID string, runID string) DeployOrdererRun {
+	return &testDeployOrdererRun{env: c.env, workflows: c.workflows}
+}
+
+// DeployPeer executes a(n) fabric.v1.DeployPeer workflow in the test environment
+func (c *TestFabricClient) DeployPeer(ctx context.Context, req *DeployPeerInput, opts ...*DeployPeerOptions) (*DeployPeerOutput, error) {
+	run, err := c.DeployPeerAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// DeployPeerAsync executes a(n) fabric.v1.DeployPeer workflow in the test environment
+func (c *TestFabricClient) DeployPeerAsync(ctx context.Context, req *DeployPeerInput, options ...*DeployPeerOptions) (DeployPeerRun, error) {
+	var o *DeployPeerOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewDeployPeerOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testDeployPeerRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetDeployPeer is a noop
+func (c *TestFabricClient) GetDeployPeer(ctx context.Context, workflowID string, runID string) DeployPeerRun {
+	return &testDeployPeerRun{env: c.env, workflows: c.workflows}
 }
 
 // CancelWorkflow requests cancellation of an existing workflow execution
@@ -5862,6 +8110,238 @@ func (r *testDeployCertificateStoreRun) RunID() string {
 
 // Terminate terminates a workflow in execution, returning an error if applicable
 func (r *testDeployCertificateStoreRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ DeployChainCodeRun = &testDeployChainCodeRun{}
+
+// testDeployChainCodeRun provides convenience methods for interacting with a(n) fabric.v1.DeployChainCode workflow in the test environment
+type testDeployChainCodeRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *DeployChainCodeInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testDeployChainCodeRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.DeployChainCode workflow result
+func (r *testDeployChainCodeRun) Get(context.Context) (*DeployChainCodeOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(DeployChainCodeWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result DeployChainCodeOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.DeployChainCode workflow run's workflow ID
+func (r *testDeployChainCodeRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testDeployChainCodeRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testDeployChainCodeRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testDeployChainCodeRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ DeployCouchDbRun = &testDeployCouchDbRun{}
+
+// testDeployCouchDbRun provides convenience methods for interacting with a(n) fabric.v1.DeployCouchDb workflow in the test environment
+type testDeployCouchDbRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *DeployCouchDbInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testDeployCouchDbRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.DeployCouchDb workflow result
+func (r *testDeployCouchDbRun) Get(context.Context) (*DeployCouchDbOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(DeployCouchDbWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result DeployCouchDbOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.DeployCouchDb workflow run's workflow ID
+func (r *testDeployCouchDbRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testDeployCouchDbRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testDeployCouchDbRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testDeployCouchDbRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ DeployOrdererRun = &testDeployOrdererRun{}
+
+// testDeployOrdererRun provides convenience methods for interacting with a(n) fabric.v1.DeployOrderer workflow in the test environment
+type testDeployOrdererRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *DeployOrdererInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testDeployOrdererRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.DeployOrderer workflow result
+func (r *testDeployOrdererRun) Get(context.Context) (*DeployOrdererOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(DeployOrdererWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result DeployOrdererOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.DeployOrderer workflow run's workflow ID
+func (r *testDeployOrdererRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testDeployOrdererRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testDeployOrdererRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testDeployOrdererRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ DeployPeerRun = &testDeployPeerRun{}
+
+// testDeployPeerRun provides convenience methods for interacting with a(n) fabric.v1.DeployPeer workflow in the test environment
+type testDeployPeerRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *DeployPeerInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testDeployPeerRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.DeployPeer workflow result
+func (r *testDeployPeerRun) Get(context.Context) (*DeployPeerOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(DeployPeerWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result DeployPeerOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.DeployPeer workflow run's workflow ID
+func (r *testDeployPeerRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testDeployPeerRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testDeployPeerRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testDeployPeerRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
