@@ -1,0 +1,22 @@
+{{- /*
+CouchDB Service
+Provides a stable network endpoint for CouchDB database access.
+*/ -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "couchdb.serviceName" . }}
+  namespace: {{ include "couchdb.namespace" . }}
+  labels:
+    {{- include "couchdb.commonLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  clusterIP: None  # Headless service for StatefulSet
+  ports:
+  - name: http
+    port: {{ .Values.service.port }}
+    targetPort: http
+    protocol: TCP
+  selector:
+    {{- include "couchdb.selectorLabels" . | nindent 4 }}
+

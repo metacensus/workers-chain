@@ -48,6 +48,14 @@ func (fc FabricConfig) CertificateAuthority(certType, caID string) CertificateAu
 	}
 }
 
+// CouchDb returns the configuration for a CouchDB instance associated with a peer.
+func (fc FabricConfig) CouchDb(peerID string) CouchDbConfig {
+	return CouchDbConfig{
+		OrgConfig: fc.OrgConfig,
+		peerID:    peerID,
+	}
+}
+
 // ============= Certificate Store Configuration =============
 
 // CertificateStoreConfig encapsulates all configuration for the certificate store (PostgreSQL).
@@ -580,4 +588,116 @@ func sanitizeForPostgres(s string) string {
 		}
 	}
 	return result
+}
+
+// ============= CouchDB Configuration =============
+
+// CouchDbConfig encapsulates all configuration for a CouchDB instance.
+// Each peer gets its own CouchDB for state database storage.
+// It embeds OrgConfig so it can be used anywhere an OrgConfig is needed.
+type CouchDbConfig struct {
+	config.OrgConfig
+	peerID string
+}
+
+// ------------ Kubernetes Properties ------------
+
+// ComponentName returns the base component name used in Helm charts and derived identifiers.
+// Example: "couchdb-peer0"
+func (c CouchDbConfig) ComponentName() string {
+	return fmt.Sprintf("couchdb-%s", c.peerID)
+}
+
+// ServiceAccountName returns the Kubernetes service account name.
+func (c CouchDbConfig) ServiceAccountName() string {
+	return c.ComponentName()
+}
+
+// KubernetesNamespace returns the Kubernetes namespace for deployment.
+func (c CouchDbConfig) KubernetesNamespace() string {
+	return c.OrgConfig.KubernetesNamespace()
+}
+
+// Port returns the CouchDB HTTP port.
+func (c CouchDbConfig) Port() int {
+	return 5984
+}
+
+// ResourceIdentifier returns the Kubernetes resource identifier for waiting on deployment readiness.
+// CouchDB is deployed as a StatefulSet for persistent storage.
+func (c CouchDbConfig) ResourceIdentifier() *kubev1.ResourceIdentifier {
+	return &kubev1.ResourceIdentifier{
+		ApiVersion: "apps/v1",
+		Kind:       "StatefulSet",
+		Name:       c.ComponentName(),
+		Namespace:  c.KubernetesNamespace(),
+	}
+}
+
+// PeerID returns the peer ID this CouchDB is associated with.
+func (c CouchDbConfig) PeerID() string {
+	return c.peerID
+}
+
+// ------------ Vault Properties ------------
+
+// PolicyName returns the Vault policy name.
+// Example: "fabric-org1-couchdb-peer0"
+func (c CouchDbConfig) PolicyName() string {
+	return fmt.Sprintf("fabric-%s-%s", c.OrgID, c.ComponentName())
+}
+
+// AuthRoleName returns the Vault Kubernetes auth role name.
+func (c CouchDbConfig) AuthRoleName() string {
+	return c.PolicyName()
+}
+
+// VaultBasePath returns the base Vault path for this CouchDB's secrets.
+// Example: "fabric/org1/couchdb/peer0"
+func (c CouchDbConfig) VaultBasePath() string {
+	return fmt.Sprintf("fabric/%s/couchdb/%s", c.OrgID, c.peerID)
+}
+
+// VaultAdminRef returns a SecretRef for the CouchDB admin credentials.
+// Stores username, password for CouchDB admin.
+// Example path: "fabric/org1/couchdb/peer0/admin"
+func (c CouchDbConfig) VaultAdminRef() *pb.SecretRef {
+	return secrets.NewVaultRef(c.VaultBasePath() + "/admin")
+}
+
+// VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
+// Example: "secret/data/fabric/org1/couchdb/peer0/*"
+func (c CouchDbConfig) VaultDataPath() string {
+	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, c.VaultBasePath())
+}
+
+// VaultMetadataPath returns the Vault KV v2 metadata path pattern for policy rules.
+// Example: "secret/metadata/fabric/org1/couchdb/peer0/*"
+func (c CouchDbConfig) VaultMetadataPath() string {
+	return fmt.Sprintf("%s/%s/*", vaultSecretMetadataPrefix, c.VaultBasePath())
+}
+
+// VaultPolicy creates a Vault policy document for the CouchDB instance.
+// The policy grants read access to the CouchDB's secrets (admin credentials).
+func (c CouchDbConfig) VaultPolicy() *vaultpb.PolicyDocument {
+	return &vaultpb.PolicyDocument{
+		Rules: []*vaultpb.PolicyRule{
+			// KV v2 data path - read access to CouchDB secrets
+			{
+				Path: c.VaultDataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+					vaultpb.Capability_CAPABILITY_LIST,
+				},
+			},
+			// KV v2 metadata path - list and read metadata
+			{
+				Path: c.VaultMetadataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_LIST,
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+		},
+	}
 }

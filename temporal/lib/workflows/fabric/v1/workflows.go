@@ -1011,14 +1011,56 @@ type deployCouchDbWorkflow struct {
 func (w *deployCouchDbWorkflow) Execute(ctx workflow.Context) (*pb.DeployCouchDbOutput, error) {
 	logger := workflow.GetLogger(ctx)
 	peerID := w.input.Req.GetPeerId()
+	couchDbConfig := w.fabricConfig.CouchDb(peerID)
+
 	logger.Info("DeployCouchDb workflow started", "peerId", peerID)
 
-	// TODO: Implement CouchDB deployment
-	// Steps according to Fabric Bootstrap Workflows.md:
-	// 1. Nexus Call: secrets.v1.CreateAccess
-	// 2. Activity: secrets.v1.CreatePassword
-	// 3. Workflow: cluster.fabric.v1.CreateDeployment
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    3,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
+	// Step 1: Create Vault access via Nexus call to infra worker
+	nexusClient := secretsv1nexustemporal.NewSecretsNexusClient(secretsCreateAccessNexusEndpoint)
+	_, err := nexusClient.CreateAccess(ctx, &secretspb.CreateAccessInput{
+		PolicyName:          couchDbConfig.PolicyName(),
+		PolicyDocument:      couchDbConfig.VaultPolicy(),
+		AuthRoleName:        couchDbConfig.AuthRoleName(),
+		ServiceAccountName:  couchDbConfig.ServiceAccountName(),
+		KubernetesNamespace: couchDbConfig.KubernetesNamespace(),
+	}, workflow.NexusOperationOptions{
+		ScheduleToCloseTimeout: 5 * time.Minute,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrDeployCouchDB, err)
+	}
+
+	// Step 2: Generate CouchDB admin credentials
+	credentialsRef := couchDbConfig.VaultAdminRef()
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
+		SecretRef: credentialsRef,
+		Username:  "admin",
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to generate couchdb credentials: %w", ErrDeployCouchDB, err)
+	}
+
+	// Step 3: Deploy CouchDB StatefulSet
+	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
+		Org:       w.fabricConfig.OrgID,
+		Component: couchDbConfig.ComponentName(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to create couchdb deployment: %w", ErrDeployCouchDB, err)
+	}
+
+	logger.Info("CouchDB deployment initiated", "peerId", peerID, "org", w.fabricConfig.OrgID)
 	return &pb.DeployCouchDbOutput{}, nil
 }
 

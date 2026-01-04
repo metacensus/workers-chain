@@ -21,12 +21,14 @@ const (
 	chartWorker               = "fabric/worker"
 	chartCertificateStore     = "fabric/certificate-store"
 	chartCertificateAuthority = "fabric/certificate-authority"
+	chartCouchDb              = "fabric/couchdb"
 
 	componentNamespace            = "namespace"
 	componentServiceAccount       = "service-account"
 	componentWorker               = "worker"
 	componentCertificateStore     = "certificate-store"
 	componentCertificateAuthority = "certificate-authority"
+	componentCouchDb              = "couchdb"
 )
 
 // Workflows implements the ClusterWorkflows interface from generated code
@@ -255,6 +257,24 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		values = caValues
 		namespaceName = caConfig.KubernetesNamespace()
 		deploymentName = caConfig.ComponentName() // Matches helm chart: {{ include "certificate-authority.name" . }}
+	case strings.HasPrefix(w.input.Component, componentCouchDb):
+		// CouchDB component names follow pattern: "couchdb-{peerId}"
+		// Examples: "couchdb-peer0", "couchdb-peer1"
+		parts := strings.Split(w.input.Component, "-")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid couchdb component format: %s (expected: couchdb-{peerId})", w.input.Component)
+		}
+		peerID := parts[1] // "peer0", "peer1", etc.
+
+		chartName = chartCouchDb
+		componentName = componentCouchDb
+		// Create config objects to get consistent configuration values
+		fabricCfg := fabricconfig.NewFabricConfig(orgCfg)
+		couchDbConfig := fabricCfg.CouchDb(peerID)
+		couchDbValues := helm.NewCouchDbValues(couchDbConfig)
+		values = couchDbValues
+		namespaceName = couchDbConfig.KubernetesNamespace()
+		deploymentName = couchDbConfig.ComponentName() // Matches helm chart: {{ include "couchdb.name" . }}
 	default:
 		return nil, fmt.Errorf("unsupported component type: %s", w.input.Component)
 	}

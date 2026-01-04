@@ -1,0 +1,63 @@
+# CouchDB Configuration
+# This chart deploys CouchDB for Hyperledger Fabric peer state storage
+
+# Organization identifier (e.g., "org1", "acme-corp")
+org: "org1"
+
+# Peer identifier (e.g., "peer0", "peer1")
+peerId: "peer0"
+
+# Container image configuration
+image:
+  repository: couchdb
+  tag: "3.3.2"
+  pullPolicy: IfNotPresent
+
+# Number of replicas (1 for single instance)
+replicas: 1
+
+# Vault configuration for CSI driver
+vault:
+  roleName: "fabric-org1-couchdb-peer0"
+  secretPath: "secret/data/fabric/org1/couchdb/peer0/admin"
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 5984
+
+# Persistence configuration
+persistence:
+  enabled: true
+  storageClass: ""
+  accessModes:
+  - ReadWriteOnce
+  size: 10Gi
+  mountPath: /opt/couchdb/data
+
+# Resource requests and limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+# Liveness probe configuration
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+
+# Readiness probe configuration
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+
+# Common labels applied to all resources
+commonLabels:
+  managedBy: temporal
+  partOf: fabric
+
