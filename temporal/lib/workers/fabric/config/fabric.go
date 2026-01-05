@@ -64,6 +64,14 @@ func (fc FabricConfig) Peer(peerID string) PeerConfig {
 	}
 }
 
+// Orderer returns the configuration for a specific orderer.
+func (fc FabricConfig) Orderer(ordererID string) OrdererConfig {
+	return OrdererConfig{
+		OrgConfig: fc.OrgConfig,
+		ordererID: ordererID,
+	}
+}
+
 // ============= Certificate Store Configuration =============
 
 // CertificateStoreConfig encapsulates all configuration for the certificate store (PostgreSQL).
@@ -962,5 +970,236 @@ func (p PeerConfig) TLSIssuerCertType() string {
 
 // TLSIssuerID returns the CA ID for the TLS issuer.
 func (p PeerConfig) TLSIssuerID() string {
+	return "v1" // TLS Intermediate CA
+}
+
+// ============= Orderer Configuration =============
+
+// OrdererConfig encapsulates all configuration for a Hyperledger Fabric orderer.
+// Each orderer needs identity certs (from Org Int CA) and TLS certs (from TLS Int CA).
+// It embeds OrgConfig so it can be used anywhere an OrgConfig is needed.
+type OrdererConfig struct {
+	config.OrgConfig
+	ordererID string
+}
+
+// ------------ Kubernetes Properties ------------
+
+// ComponentName returns the base component name used in Helm charts and derived identifiers.
+// Example: "orderer0"
+func (o OrdererConfig) ComponentName() string {
+	return o.ordererID
+}
+
+// ServiceAccountName returns the Kubernetes service account name.
+// Example: "orderer0"
+func (o OrdererConfig) ServiceAccountName() string {
+	return o.ComponentName()
+}
+
+// KubernetesNamespace returns the Kubernetes namespace for deployment.
+func (o OrdererConfig) KubernetesNamespace() string {
+	return o.OrgConfig.KubernetesNamespace()
+}
+
+// Port returns the orderer gRPC port for transaction ordering.
+func (o OrdererConfig) Port() int {
+	return 7050
+}
+
+// AdminPort returns the orderer admin API port for osnadmin CLI.
+func (o OrdererConfig) AdminPort() int {
+	return 7053
+}
+
+// OperationsPort returns the operations/metrics port.
+func (o OrdererConfig) OperationsPort() int {
+	return 9443
+}
+
+// ResourceIdentifier returns the Kubernetes resource identifier for waiting on deployment readiness.
+// Orderers are deployed as StatefulSets for stable network identity and persistent storage.
+func (o OrdererConfig) ResourceIdentifier() *kubev1.ResourceIdentifier {
+	return &kubev1.ResourceIdentifier{
+		ApiVersion: "apps/v1",
+		Kind:       "StatefulSet",
+		Name:       o.ComponentName(),
+		Namespace:  o.KubernetesNamespace(),
+	}
+}
+
+// OrdererID returns the orderer identifier.
+func (o OrdererConfig) OrdererID() string {
+	return o.ordererID
+}
+
+// MSPID returns the organization's MSP ID.
+// Example: "org1MSP"
+func (o OrdererConfig) MSPID() string {
+	return o.OrgID + "MSP"
+}
+
+// TLSDNSNames returns the DNS Subject Alternative Names for TLS certificates.
+// These are required for TLS hostname verification.
+func (o OrdererConfig) TLSDNSNames() []string {
+	return []string{
+		o.ComponentName(),
+		fmt.Sprintf("%s.%s", o.ComponentName(), o.KubernetesNamespace()),
+		fmt.Sprintf("%s.%s.svc", o.ComponentName(), o.KubernetesNamespace()),
+		fmt.Sprintf("%s.%s.svc.cluster.local", o.ComponentName(), o.KubernetesNamespace()),
+	}
+}
+
+// ClusterAddress returns the address for Raft cluster communication.
+// Example: "orderer0.fabric-org1.svc.cluster.local:7050"
+func (o OrdererConfig) ClusterAddress() string {
+	return fmt.Sprintf("%s.%s.svc.cluster.local:%d", o.ComponentName(), o.KubernetesNamespace(), o.Port())
+}
+
+// ------------ Vault Properties ------------
+
+// PolicyName returns the Vault policy name.
+// Example: "fabric-org1-orderer0"
+func (o OrdererConfig) PolicyName() string {
+	return fmt.Sprintf("fabric-%s-%s", o.OrgID, o.ComponentName())
+}
+
+// AuthRoleName returns the Vault Kubernetes auth role name.
+func (o OrdererConfig) AuthRoleName() string {
+	return o.PolicyName()
+}
+
+// VaultBasePath returns the base Vault path for this orderer's secrets.
+// Example: "fabric/org1/orderer/orderer0"
+func (o OrdererConfig) VaultBasePath() string {
+	return fmt.Sprintf("fabric/%s/orderer/%s", o.OrgID, o.ordererID)
+}
+
+// VaultSigningRef returns a SecretRef for the orderer's signing identity (org cert).
+// Example path: "fabric/org1/orderer/orderer0/signing"
+func (o OrdererConfig) VaultSigningRef() *pb.SecretRef {
+	return secrets.NewVaultRef(o.VaultBasePath() + "/signing")
+}
+
+// VaultTLSRef returns a SecretRef for the orderer's TLS identity.
+// Example path: "fabric/org1/orderer/orderer0/tls"
+func (o OrdererConfig) VaultTLSRef() *pb.SecretRef {
+	return secrets.NewVaultRef(o.VaultBasePath() + "/tls")
+}
+
+// VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
+// Example: "secret/data/fabric/org1/orderer/orderer0/*"
+func (o OrdererConfig) VaultDataPath() string {
+	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, o.VaultBasePath())
+}
+
+// VaultMetadataPath returns the Vault KV v2 metadata path pattern for policy rules.
+// Example: "secret/metadata/fabric/org1/orderer/orderer0/*"
+func (o OrdererConfig) VaultMetadataPath() string {
+	return fmt.Sprintf("%s/%s/*", vaultSecretMetadataPrefix, o.VaultBasePath())
+}
+
+// VaultPolicy creates a Vault policy document for the orderer.
+// The policy grants read access to:
+// - The orderer's own secrets (identity and TLS certs)
+// - The Org Root CA signing cert (for MSP cacerts)
+// - The Org Int CA signing cert (for MSP intermediatecerts)
+// - The TLS Root CA signing cert (for TLS CA chain)
+// - The TLS Int CA signing cert (for TLS CA chain)
+func (o OrdererConfig) VaultPolicy() *vaultpb.PolicyDocument {
+	// Build paths for CA certificates the orderer needs to read
+	orgRootCASigningPath := fmt.Sprintf("%s/fabric/%s/ca/org/root/signing", vaultSecretDataPrefix, o.OrgID)
+	orgIntCASigningPath := fmt.Sprintf("%s/fabric/%s/ca/org/v1/signing", vaultSecretDataPrefix, o.OrgID)
+	tlsRootCASigningPath := fmt.Sprintf("%s/fabric/%s/ca/tls/root/signing", vaultSecretDataPrefix, o.OrgID)
+	tlsIntCASigningPath := fmt.Sprintf("%s/fabric/%s/ca/tls/v1/signing", vaultSecretDataPrefix, o.OrgID)
+
+	return &vaultpb.PolicyDocument{
+		Rules: []*vaultpb.PolicyRule{
+			// KV v2 data path - read access to orderer's own secrets
+			{
+				Path: o.VaultDataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+					vaultpb.Capability_CAPABILITY_LIST,
+				},
+			},
+			// KV v2 metadata path - list and read metadata for orderer secrets
+			{
+				Path: o.VaultMetadataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_LIST,
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+			// Org Root CA signing cert - for MSP cacerts directory
+			{
+				Path: orgRootCASigningPath,
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+			// Org Int CA signing cert - for MSP intermediatecerts directory
+			{
+				Path: orgIntCASigningPath,
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+			// TLS Root CA signing cert - for TLS CA chain
+			{
+				Path: tlsRootCASigningPath,
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+			// TLS Int CA signing cert - for TLS CA chain
+			{
+				Path: tlsIntCASigningPath,
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+		},
+	}
+}
+
+// ------------ Identity Configuration ------------
+
+// IdentityName returns the identity name used for certificate registration.
+// Example: "orderer0"
+func (o OrdererConfig) IdentityName() string {
+	return o.ordererID
+}
+
+// CommonName returns the common name for the orderer's certificates.
+// Example: "orderer0@org1"
+func (o OrdererConfig) CommonName() string {
+	return fmt.Sprintf("%s@%s", o.ordererID, o.OrgID)
+}
+
+// OrganizationalUnit returns the OU field for certificate subject.
+// Orderers use "orderer" as their OU.
+func (o OrdererConfig) OrganizationalUnit() string {
+	return "orderer"
+}
+
+// OrgIssuerCertType returns the cert type for the org identity issuer.
+// Orderers get their identity from the Org Intermediate CA.
+func (o OrdererConfig) OrgIssuerCertType() string {
+	return "org"
+}
+
+// OrgIssuerID returns the CA ID for the org identity issuer.
+func (o OrdererConfig) OrgIssuerID() string {
+	return "v1" // Org Intermediate CA
+}
+
+// TLSIssuerCertType returns the cert type for the TLS issuer.
+func (o OrdererConfig) TLSIssuerCertType() string {
+	return "tls"
+}
+
+// TLSIssuerID returns the CA ID for the TLS issuer.
+func (o OrdererConfig) TLSIssuerID() string {
 	return "v1" // TLS Intermediate CA
 }

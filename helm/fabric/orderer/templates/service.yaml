@@ -1,0 +1,30 @@
+{{- /*
+Orderer Service
+Provides a stable network endpoint for orderer gRPC, admin API, and operations access.
+*/ -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "orderer.serviceName" . }}
+  namespace: {{ include "orderer.namespace" . }}
+  labels:
+    {{- include "orderer.commonLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  clusterIP: None  # Headless service for StatefulSet
+  ports:
+  - name: grpc
+    port: {{ .Values.service.port }}
+    targetPort: grpc
+    protocol: TCP
+  - name: admin
+    port: {{ .Values.service.adminPort }}
+    targetPort: admin
+    protocol: TCP
+  - name: operations
+    port: {{ .Values.service.operationsPort }}
+    targetPort: operations
+    protocol: TCP
+  selector:
+    {{- include "orderer.selectorLabels" . | nindent 4 }}
+

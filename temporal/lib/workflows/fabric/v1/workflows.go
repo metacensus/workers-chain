@@ -1174,16 +1174,65 @@ type deployOrdererWorkflow struct {
 func (w *deployOrdererWorkflow) Execute(ctx workflow.Context) (*pb.DeployOrdererOutput, error) {
 	logger := workflow.GetLogger(ctx)
 	ordererID := w.input.Req.GetOrdererId()
+	ordererConfig := w.fabricConfig.Orderer(ordererID)
+
 	logger.Info("DeployOrderer workflow started", "ordererId", ordererID)
 
-	// TODO: Implement orderer deployment
-	// Steps according to Fabric Bootstrap Workflows.md:
-	// 1. Nexus Call: secrets.v1.CreateAccess
-	// 2. for each ("tls", "org"):
-	//    - Workflow: fabric.v1.CreateIdentity (with IdentityType: "orderer")
-	// 3. Workflow: cluster.fabric.v1.CreateDeployment
-	// NOTE: IdentityType MUST be "orderer" for proper OU classification in MSP config.yaml
+	// Step 1: Create Vault access via Nexus call to infra worker
+	nexusClient := secretsv1nexustemporal.NewSecretsNexusClient(secretsCreateAccessNexusEndpoint)
+	_, err := nexusClient.CreateAccess(ctx, &secretspb.CreateAccessInput{
+		PolicyName:          ordererConfig.PolicyName(),
+		PolicyDocument:      ordererConfig.VaultPolicy(),
+		AuthRoleName:        ordererConfig.AuthRoleName(),
+		ServiceAccountName:  ordererConfig.ServiceAccountName(),
+		KubernetesNamespace: ordererConfig.KubernetesNamespace(),
+	}, workflow.NexusOperationOptions{
+		ScheduleToCloseTimeout: 5 * time.Minute,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to create vault access: %w", ErrDeployOrderer, err)
+	}
 
+	// Step 2: Create orderer identity (org signing + TLS certs)
+	// The CreateIdentity workflow handles both org and TLS certificates
+	// IdentityType "orderer" ensures the certificate gets OU=orderer for NodeOUs classification
+	logger.Info("Creating orderer identity", "ordererId", ordererID)
+	_, err = pb.CreateIdentityChild(ctx, &pb.CreateIdentityInput{
+		IdentityName: ordererConfig.IdentityName(),
+		Subject: &pb.CertificateSubject{
+			CommonName:         ordererConfig.CommonName(),
+			Organization:       w.fabricConfig.OrgID,
+			OrganizationalUnit: ordererConfig.OrganizationalUnit(),
+			DnsNames:           ordererConfig.TLSDNSNames(),
+		},
+		OrgIssuerRef: &pb.CertificateAuthorityRef{
+			CertType: ordererConfig.OrgIssuerCertType(),
+			Id:       ordererConfig.OrgIssuerID(),
+		},
+		TlsIssuerRef: &pb.CertificateAuthorityRef{
+			CertType: ordererConfig.TLSIssuerCertType(),
+			Id:       ordererConfig.TLSIssuerID(),
+		},
+		StorageSigningRef: ordererConfig.VaultSigningRef(),
+		StorageTlsRef:     ordererConfig.VaultTLSRef(),
+		TlsProfile:        "tls",
+		IdentityType:      "orderer", // Critical: sets OU=orderer in certificate for NodeOUs
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to create orderer identity: %w", ErrDeployOrderer, err)
+	}
+
+	// Step 3: Deploy orderer StatefulSet
+	logger.Info("Deploying orderer", "ordererId", ordererID)
+	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
+		Org:       w.fabricConfig.OrgID,
+		Component: ordererConfig.ComponentName(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to create orderer deployment: %w", ErrDeployOrderer, err)
+	}
+
+	logger.Info("Orderer deployment initiated", "ordererId", ordererID, "org", w.fabricConfig.OrgID)
 	return &pb.DeployOrdererOutput{}, nil
 }
 

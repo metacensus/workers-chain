@@ -1,0 +1,76 @@
+# Fabric Orderer Configuration
+# This chart deploys a Hyperledger Fabric orderer node
+
+# Organization identifier (e.g., "org1", "acme-corp")
+org: "org1"
+
+# Orderer identifier (e.g., "orderer0", "orderer1")
+ordererId: "orderer0"
+
+# Container image configuration
+image:
+  repository: hyperledger/fabric-orderer
+  tag: "2.5.0"
+  pullPolicy: IfNotPresent
+
+# Number of replicas (1 per StatefulSet - scale by adding orderers)
+replicas: 1
+
+# MSP configuration
+msp:
+  id: "org1MSP"
+
+# Vault configuration for CSI driver
+vault:
+  roleName: "fabric-org1-orderer0"
+  mspSigningPath: "secret/data/fabric/org1/orderer/orderer0/signing"
+  mspRootCaCertPath: "secret/data/fabric/org1/ca/org/root/signing"
+  mspIntCaCertPath: "secret/data/fabric/org1/ca/org/v1/signing"
+  tlsPath: "secret/data/fabric/org1/orderer/orderer0/tls"
+  tlsRootCaCertPath: "secret/data/fabric/org1/ca/tls/root/signing"
+  tlsIntCaCertPath: "secret/data/fabric/org1/ca/tls/v1/signing"
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 7050
+  adminPort: 7053
+  operationsPort: 9443
+
+# Persistence configuration
+persistence:
+  storageClass: ""
+  accessModes:
+  - ReadWriteOnce
+  size: 20Gi
+
+# Logging configuration
+logging:
+  level: INFO
+
+# Resource requests and limits
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+
+# Liveness probe configuration
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+
+# Readiness probe configuration
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+
+# Common labels applied to all resources
+commonLabels:
+  managedBy: temporal
+  partOf: fabric
+

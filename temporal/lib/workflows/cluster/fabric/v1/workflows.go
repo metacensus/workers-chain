@@ -23,6 +23,7 @@ const (
 	chartCertificateAuthority = "fabric/certificate-authority"
 	chartCouchDb              = "fabric/couchdb"
 	chartPeer                 = "fabric/peer"
+	chartOrderer              = "fabric/orderer"
 
 	componentNamespace            = "namespace"
 	componentServiceAccount       = "service-account"
@@ -31,6 +32,7 @@ const (
 	componentCertificateAuthority = "certificate-authority"
 	componentCouchDb              = "couchdb"
 	componentPeer                 = "peer"
+	componentOrderer              = "orderer"
 )
 
 // Workflows implements the ClusterWorkflows interface from generated code
@@ -291,6 +293,20 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		values = peerValues
 		namespaceName = peerConfig.KubernetesNamespace()
 		deploymentName = peerConfig.ComponentName() // Matches helm chart: {{ include "peer.name" . }}
+	case strings.HasPrefix(w.input.Component, componentOrderer):
+		// Orderer component names follow pattern: "orderer{id}"
+		// Examples: "orderer0", "orderer1"
+		ordererID := w.input.Component // The whole component name is the orderer ID
+
+		chartName = chartOrderer
+		componentName = componentOrderer
+		// Create config objects to get consistent configuration values
+		fabricCfg := fabricconfig.NewFabricConfig(orgCfg)
+		ordererConfig := fabricCfg.Orderer(ordererID)
+		ordererValues := helm.NewOrdererValues(ordererConfig)
+		values = ordererValues
+		namespaceName = ordererConfig.KubernetesNamespace()
+		deploymentName = ordererConfig.ComponentName() // Matches helm chart: {{ include "orderer.name" . }}
 	default:
 		return nil, fmt.Errorf("unsupported component type: %s", w.input.Component)
 	}
