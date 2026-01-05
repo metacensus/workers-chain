@@ -1,0 +1,249 @@
+{{- /*
+Peer StatefulSet
+Deploys a Hyperledger Fabric peer as a StatefulSet for stable network identity
+and persistent ledger storage.
+*/ -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "peer.name" . }}
+  namespace: {{ include "peer.namespace" . }}
+  labels:
+    {{- include "peer.commonLabels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "peer.serviceName" . }}
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{- include "peer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "peer.commonLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "peer.name" . }}
+      containers:
+      - name: peer
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: grpc
+          containerPort: {{ .Values.service.port }}
+          protocol: TCP
+        - name: chaincode
+          containerPort: {{ .Values.service.chaincodePort }}
+          protocol: TCP
+        - name: operations
+          containerPort: {{ .Values.service.operationsPort }}
+          protocol: TCP
+        env:
+        # Core peer configuration
+        - name: CORE_PEER_ID
+          value: {{ .Values.peerId | quote }}
+        - name: CORE_PEER_ADDRESS
+          value: "{{ .Values.peerId }}.{{ include "peer.namespace" . }}.svc.cluster.local:{{ .Values.service.port }}"
+        - name: CORE_PEER_LISTENADDRESS
+          value: "0.0.0.0:{{ .Values.service.port }}"
+        - name: CORE_PEER_CHAINCODEADDRESS
+          value: "{{ .Values.peerId }}.{{ include "peer.namespace" . }}.svc.cluster.local:{{ .Values.service.chaincodePort }}"
+        - name: CORE_PEER_CHAINCODELISTENADDRESS
+          value: "0.0.0.0:{{ .Values.service.chaincodePort }}"
+        # MSP configuration
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ .Values.msp.id | quote }}
+        - name: CORE_PEER_MSPCONFIGPATH
+          value: "/etc/hyperledger/fabric/msp"
+        # TLS configuration
+        - name: CORE_PEER_TLS_ENABLED
+          value: "true"
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: "/etc/hyperledger/fabric/tls/server.crt"
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: "/etc/hyperledger/fabric/tls/server.key"
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: "/etc/hyperledger/fabric/tls/ca.crt"
+        # Gossip configuration
+        - name: CORE_PEER_GOSSIP_USELEADERELECTION
+          value: "true"
+        - name: CORE_PEER_GOSSIP_ORGLEADER
+          value: "false"
+        - name: CORE_PEER_GOSSIP_EXTERNALENDPOINT
+          value: {{ .Values.gossip.externalEndpoint | quote }}
+        {{- if .Values.gossip.bootstrap }}
+        - name: CORE_PEER_GOSSIP_BOOTSTRAP
+          value: {{ .Values.gossip.bootstrap | quote }}
+        {{- end }}
+        # CouchDB state database
+        - name: CORE_LEDGER_STATE_STATEDATABASE
+          value: "CouchDB"
+        - name: CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS
+          value: {{ .Values.couchdb.address | quote }}
+        - name: CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "peer.name" . }}-couchdb
+              key: username
+        - name: CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "peer.name" . }}-couchdb
+              key: password
+        # Operations endpoint (metrics/health)
+        - name: CORE_OPERATIONS_LISTENADDRESS
+          value: "0.0.0.0:{{ .Values.service.operationsPort }}"
+        - name: CORE_METRICS_PROVIDER
+          value: "prometheus"
+        # Chaincode configuration
+        # Note: Docker-based chaincode is disabled. Use external chaincode builders
+        # (chaincode-as-a-service) for production Kubernetes deployments.
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ .Values.logging.level | quote }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: operations
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: operations
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+        volumeMounts:
+        # Persistent ledger storage
+        - name: data
+          mountPath: /var/hyperledger/production
+        # MSP configuration (assembled from secrets)
+        - name: msp-config
+          mountPath: /etc/hyperledger/fabric/msp/config.yaml
+          subPath: config.yaml
+          readOnly: true
+        - name: msp-signcerts
+          mountPath: /etc/hyperledger/fabric/msp/signcerts
+          readOnly: true
+        - name: msp-keystore
+          mountPath: /etc/hyperledger/fabric/msp/keystore
+          readOnly: true
+        - name: msp-cacerts
+          mountPath: /etc/hyperledger/fabric/msp/cacerts
+          readOnly: true
+        - name: msp-intermediatecerts
+          mountPath: /etc/hyperledger/fabric/msp/intermediatecerts
+          readOnly: true
+        # TLS certificates
+        - name: tls
+          mountPath: /etc/hyperledger/fabric/tls
+          readOnly: true
+        # Vault secrets raw mount
+        - name: vault-secrets
+          mountPath: /mnt/secrets-store
+          readOnly: true
+      initContainers:
+      # Init container to set up MSP directory structure from Vault secrets
+      - name: setup-msp
+        image: busybox:1.36
+        command:
+        - /bin/sh
+        - -c
+        - |
+          # Create MSP directory structure
+          # Fabric MSP requires: cacerts (root CA), intermediatecerts (int CA), signcerts, keystore, config.yaml
+          mkdir -p /msp/signcerts /msp/keystore /msp/cacerts /msp/intermediatecerts
+          mkdir -p /tls
+          
+          # Copy peer signing certificate and key
+          cp /secrets/msp-signing-cert /msp/signcerts/cert.pem
+          cp /secrets/msp-signing-key /msp/keystore/key.pem
+          
+          # Copy MSP CA certificates - Root CA in cacerts, Int CA in intermediatecerts
+          cp /secrets/msp-root-ca-cert /msp/cacerts/ca.pem
+          cp /secrets/msp-int-ca-cert /msp/intermediatecerts/intermediate.pem
+          
+          # Create MSP config.yaml for NodeOUs classification
+          # This enables identity classification based on OU field in certificates
+          # (peer, orderer, admin, client) without needing explicit admincerts directory
+          # NOTE: Certificate must point to the CA that SIGNS identity certs (intermediate CA)
+          # not the root CA, since peers are enrolled with the intermediate CA (org/v1)
+          printf '%s\n' \
+            'NodeOUs:' \
+            '  Enable: true' \
+            '  ClientOUIdentifier:' \
+            '    Certificate: "intermediatecerts/intermediate.pem"' \
+            '    OrganizationalUnitIdentifier: "client"' \
+            '  PeerOUIdentifier:' \
+            '    Certificate: "intermediatecerts/intermediate.pem"' \
+            '    OrganizationalUnitIdentifier: "peer"' \
+            '  AdminOUIdentifier:' \
+            '    Certificate: "intermediatecerts/intermediate.pem"' \
+            '    OrganizationalUnitIdentifier: "admin"' \
+            '  OrdererOUIdentifier:' \
+            '    Certificate: "intermediatecerts/intermediate.pem"' \
+            '    OrganizationalUnitIdentifier: "orderer"' \
+            > /msp/config.yaml
+          
+          # Copy TLS certificates
+          cp /secrets/tls-cert /tls/server.crt
+          cp /secrets/tls-key /tls/server.key
+          # Build TLS CA chain (int + root) for proper mTLS verification
+          cat /secrets/tls-int-ca-cert /secrets/tls-root-ca-cert > /tls/ca.crt
+          
+          # Set permissions
+          chmod 644 /msp/signcerts/* /msp/cacerts/* /msp/intermediatecerts/* /msp/config.yaml /tls/*.crt
+          chmod 600 /msp/keystore/* /tls/*.key
+        volumeMounts:
+        - name: vault-secrets
+          mountPath: /secrets
+          readOnly: true
+        - name: msp-config
+          mountPath: /msp
+        - name: msp-signcerts
+          mountPath: /msp/signcerts
+        - name: msp-keystore
+          mountPath: /msp/keystore
+        - name: msp-cacerts
+          mountPath: /msp/cacerts
+        - name: msp-intermediatecerts
+          mountPath: /msp/intermediatecerts
+        - name: tls
+          mountPath: /tls
+      volumes:
+      - name: vault-secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: {{ include "peer.name" . }}-vault
+      - name: msp-config
+        emptyDir: {}
+      - name: msp-signcerts
+        emptyDir: {}
+      - name: msp-keystore
+        emptyDir: {}
+      - name: msp-cacerts
+        emptyDir: {}
+      - name: msp-intermediatecerts
+        emptyDir: {}
+      - name: tls
+        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      labels:
+        {{- include "peer.commonLabels" . | nindent 8 }}
+    spec:
+      accessModes:
+      {{- range .Values.persistence.accessModes }}
+      - {{ . }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.persistence.size }}
+      {{- if .Values.persistence.storageClass }}
+      storageClassName: {{ .Values.persistence.storageClass }}
+      {{- end }}
+

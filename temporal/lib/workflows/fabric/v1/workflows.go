@@ -637,13 +637,21 @@ func (w *createCertificateWorkflow) Execute(ctx workflow.Context) (*pb.CreateCer
 	subject := req.GetSubject()
 	identityName := subject.GetCommonName()
 
+	// Default to "client" if identity_type not specified
+	// Valid values: "peer", "orderer", "admin", "client"
+	// This determines the OU field in the certificate, critical for NodeOUs classification
+	identityType := req.GetIdentityType()
+	if identityType == "" {
+		identityType = "client"
+	}
+
 	var registerOutput pb.RegisterIdentityOutput
 	err = workflow.ExecuteActivity(activityCtx, pb.RegisterIdentityActivityName, &pb.RegisterIdentityInput{
 		CaRef:               issuerRef,
 		IdentityName:        identityName,
 		Affiliation:         "",
 		Attributes:          req.GetAttributes(),
-		IdentityType:        "client",
+		IdentityType:        identityType,
 		AdminCredentialsRef: req.GetAdminCredentialsRef(),
 	}).Get(ctx, &registerOutput)
 	if err != nil {
@@ -952,7 +960,7 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 	orgIssuerConfig := w.fabricConfig.CertificateAuthority(orgIssuer.GetCertType(), orgIssuer.GetId())
 	tlsIssuerConfig := w.fabricConfig.CertificateAuthority(tlsIssuer.GetCertType(), tlsIssuer.GetId())
 
-	// Create org identity cert
+	// Create org identity cert (uses identity_type for proper OU classification)
 	signingPurpose := fmt.Sprintf("identity-%s-signing", identityName)
 	_, err := pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
 		IssuerRef:           orgIssuer,
@@ -962,12 +970,14 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 		AdminCredentialsRef: orgIssuerConfig.VaultAdminSigningRef(),
 		Purpose:             signingPurpose,
 		Attributes:          req.GetAttributes(),
+		IdentityType:        req.GetIdentityType(), // Pass through for NodeOUs classification
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create signing identity: %w", err)
 	}
 
 	// Create TLS client cert
+	// TLS certs don't need identity_type since NodeOUs only applies to org/signing certs
 	tlsPurpose := fmt.Sprintf("identity-%s-tls", identityName)
 	_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
 		IssuerRef: tlsIssuer,
@@ -1083,15 +1093,65 @@ type deployPeerWorkflow struct {
 func (w *deployPeerWorkflow) Execute(ctx workflow.Context) (*pb.DeployPeerOutput, error) {
 	logger := workflow.GetLogger(ctx)
 	peerID := w.input.Req.GetPeerId()
+	peerConfig := w.fabricConfig.Peer(peerID)
+
 	logger.Info("DeployPeer workflow started", "peerId", peerID)
 
-	// TODO: Implement peer deployment
-	// Steps according to Fabric Bootstrap Workflows.md:
-	// 1. Nexus Call: secrets.v1.CreateAccess
-	// 2. for each ("tls", "org"):
-	//    - Workflow: fabric.v1.CreateIdentity
-	// 3. Workflow: cluster.fabric.v1.CreateDeployment
+	// Step 1: Create Vault access via Nexus call to infra worker
+	nexusClient := secretsv1nexustemporal.NewSecretsNexusClient(secretsCreateAccessNexusEndpoint)
+	_, err := nexusClient.CreateAccess(ctx, &secretspb.CreateAccessInput{
+		PolicyName:          peerConfig.PolicyName(),
+		PolicyDocument:      peerConfig.VaultPolicy(),
+		AuthRoleName:        peerConfig.AuthRoleName(),
+		ServiceAccountName:  peerConfig.ServiceAccountName(),
+		KubernetesNamespace: peerConfig.KubernetesNamespace(),
+	}, workflow.NexusOperationOptions{
+		ScheduleToCloseTimeout: 5 * time.Minute,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to create vault access: %w", ErrDeployPeer, err)
+	}
 
+	// Step 2: Create peer identity (org signing + TLS certs)
+	// The CreateIdentity workflow handles both org and TLS certificates
+	// IdentityType "peer" ensures the certificate gets OU=peer for NodeOUs classification
+	logger.Info("Creating peer identity", "peerId", peerID)
+	_, err = pb.CreateIdentityChild(ctx, &pb.CreateIdentityInput{
+		IdentityName: peerConfig.IdentityName(),
+		Subject: &pb.CertificateSubject{
+			CommonName:         peerConfig.CommonName(),
+			Organization:       w.fabricConfig.OrgID,
+			OrganizationalUnit: peerConfig.OrganizationalUnit(),
+			DnsNames:           peerConfig.TLSDNSNames(),
+		},
+		OrgIssuerRef: &pb.CertificateAuthorityRef{
+			CertType: peerConfig.OrgIssuerCertType(),
+			Id:       peerConfig.OrgIssuerID(),
+		},
+		TlsIssuerRef: &pb.CertificateAuthorityRef{
+			CertType: peerConfig.TLSIssuerCertType(),
+			Id:       peerConfig.TLSIssuerID(),
+		},
+		StorageSigningRef: peerConfig.VaultSigningRef(),
+		StorageTlsRef:     peerConfig.VaultTLSRef(),
+		TlsProfile:        "tls",
+		IdentityType:      "peer", // Critical: sets OU=peer in certificate for NodeOUs
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to create peer identity: %w", ErrDeployPeer, err)
+	}
+
+	// Step 3: Deploy peer StatefulSet
+	logger.Info("Deploying peer", "peerId", peerID)
+	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
+		Org:       w.fabricConfig.OrgID,
+		Component: peerConfig.ComponentName(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to create peer deployment: %w", ErrDeployPeer, err)
+	}
+
+	logger.Info("Peer deployment initiated", "peerId", peerID, "org", w.fabricConfig.OrgID)
 	return &pb.DeployPeerOutput{}, nil
 }
 
@@ -1120,8 +1180,9 @@ func (w *deployOrdererWorkflow) Execute(ctx workflow.Context) (*pb.DeployOrderer
 	// Steps according to Fabric Bootstrap Workflows.md:
 	// 1. Nexus Call: secrets.v1.CreateAccess
 	// 2. for each ("tls", "org"):
-	//    - Workflow: fabric.v1.CreateIdentity
+	//    - Workflow: fabric.v1.CreateIdentity (with IdentityType: "orderer")
 	// 3. Workflow: cluster.fabric.v1.CreateDeployment
+	// NOTE: IdentityType MUST be "orderer" for proper OU classification in MSP config.yaml
 
 	return &pb.DeployOrdererOutput{}, nil
 }
@@ -1151,8 +1212,9 @@ func (w *deployChainCodeWorkflow) Execute(ctx workflow.Context) (*pb.DeployChain
 	// Steps according to Fabric Bootstrap Workflows.md:
 	// 1. Nexus Call: secrets.v1.CreateAccess
 	// 2. for only ("org"):
-	//    - Workflow: fabric.v1.CreateIdentity
+	//    - Workflow: fabric.v1.CreateIdentity (with IdentityType: "client")
 	// 3. Workflow: cluster.fabric.v1.CreateDeployment
+	// NOTE: IdentityType should be "client" for chaincode identities
 
 	return &pb.DeployChainCodeOutput{}, nil
 }

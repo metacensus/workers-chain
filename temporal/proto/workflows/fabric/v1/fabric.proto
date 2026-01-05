@@ -376,6 +376,15 @@ message CreateCertificateInput {
     json_name = "ChainRef",
     (go.field).tags = 'json:"ChainRef,omitempty"'
   ];
+
+  // identity_type specifies the Fabric CA identity type for registration.
+  // This determines the OU field in the issued certificate.
+  // Valid values: "peer", "orderer", "admin", "client" (default: "client")
+  // The OU is critical for NodeOUs classification in the MSP.
+  string identity_type = 9 [
+    json_name = "IdentityType",
+    (go.field).tags = 'json:"IdentityType,omitempty"'
+  ];
 }
 
 // CreateCertificateOutput indicates the result of certificate creation
@@ -490,6 +499,15 @@ message CreateIdentityInput {
   string tls_profile = 8 [
     json_name = "TlsProfile",
     (go.field).tags = 'json:"TlsProfile"'
+  ];
+
+  // identity_type specifies the Fabric CA identity type for registration.
+  // This determines the OU field in the issued certificate.
+  // Valid values: "peer", "orderer", "admin", "client" (default: "client")
+  // The OU is critical for NodeOUs classification in the MSP.
+  string identity_type = 9 [
+    json_name = "IdentityType",
+    (go.field).tags = 'json:"IdentityType,omitempty"'
   ];
 }
 

@@ -56,6 +56,14 @@ func (fc FabricConfig) CouchDb(peerID string) CouchDbConfig {
 	}
 }
 
+// Peer returns the configuration for a specific peer.
+func (fc FabricConfig) Peer(peerID string) PeerConfig {
+	return PeerConfig{
+		OrgConfig: fc.OrgConfig,
+		peerID:    peerID,
+	}
+}
+
 // ============= Certificate Store Configuration =============
 
 // CertificateStoreConfig encapsulates all configuration for the certificate store (PostgreSQL).
@@ -700,4 +708,259 @@ func (c CouchDbConfig) VaultPolicy() *vaultpb.PolicyDocument {
 			},
 		},
 	}
+}
+
+// ============= Peer Configuration =============
+
+// PeerConfig encapsulates all configuration for a Hyperledger Fabric peer.
+// Each peer needs identity certs (from Org Int CA) and TLS certs (from TLS Int CA).
+// It embeds OrgConfig so it can be used anywhere an OrgConfig is needed.
+type PeerConfig struct {
+	config.OrgConfig
+	peerID string
+}
+
+// ------------ Kubernetes Properties ------------
+
+// ComponentName returns the base component name used in Helm charts and derived identifiers.
+// Example: "peer0"
+func (p PeerConfig) ComponentName() string {
+	return p.peerID
+}
+
+// ServiceAccountName returns the Kubernetes service account name.
+// Example: "peer0"
+func (p PeerConfig) ServiceAccountName() string {
+	return p.ComponentName()
+}
+
+// KubernetesNamespace returns the Kubernetes namespace for deployment.
+func (p PeerConfig) KubernetesNamespace() string {
+	return p.OrgConfig.KubernetesNamespace()
+}
+
+// Port returns the peer gRPC port.
+func (p PeerConfig) Port() int {
+	return 7051
+}
+
+// ChaincodePort returns the chaincode listen port.
+func (p PeerConfig) ChaincodePort() int {
+	return 7052
+}
+
+// OperationsPort returns the operations/metrics port.
+func (p PeerConfig) OperationsPort() int {
+	return 9443
+}
+
+// ResourceIdentifier returns the Kubernetes resource identifier for waiting on deployment readiness.
+// Peers are deployed as StatefulSets for stable network identity and persistent storage.
+func (p PeerConfig) ResourceIdentifier() *kubev1.ResourceIdentifier {
+	return &kubev1.ResourceIdentifier{
+		ApiVersion: "apps/v1",
+		Kind:       "StatefulSet",
+		Name:       p.ComponentName(),
+		Namespace:  p.KubernetesNamespace(),
+	}
+}
+
+// PeerID returns the peer identifier.
+func (p PeerConfig) PeerID() string {
+	return p.peerID
+}
+
+// MSPID returns the organization's MSP ID.
+// Example: "org1MSP"
+func (p PeerConfig) MSPID() string {
+	return p.OrgID + "MSP"
+}
+
+// TLSDNSNames returns the DNS Subject Alternative Names for TLS certificates.
+// These are required for TLS hostname verification.
+func (p PeerConfig) TLSDNSNames() []string {
+	return []string{
+		p.ComponentName(),
+		fmt.Sprintf("%s.%s", p.ComponentName(), p.KubernetesNamespace()),
+		fmt.Sprintf("%s.%s.svc", p.ComponentName(), p.KubernetesNamespace()),
+		fmt.Sprintf("%s.%s.svc.cluster.local", p.ComponentName(), p.KubernetesNamespace()),
+	}
+}
+
+// CouchDbAddress returns the CouchDB address for this peer's state database.
+// Example: "couchdb-peer0.fabric-org1.svc.cluster.local:5984"
+func (p PeerConfig) CouchDbAddress() string {
+	return fmt.Sprintf("couchdb-%s.%s.svc.cluster.local:5984", p.peerID, p.KubernetesNamespace())
+}
+
+// GossipBootstrapAddress returns the gossip bootstrap address.
+// For the first peer, this is empty. For subsequent peers, it points to peer0.
+func (p PeerConfig) GossipBootstrapAddress() string {
+	if p.peerID == "peer0" {
+		return "" // First peer has no bootstrap peer
+	}
+	return fmt.Sprintf("peer0.%s.svc.cluster.local:7051", p.KubernetesNamespace())
+}
+
+// GossipExternalEndpoint returns the external endpoint for gossip service discovery.
+func (p PeerConfig) GossipExternalEndpoint() string {
+	return fmt.Sprintf("%s.%s.svc.cluster.local:7051", p.ComponentName(), p.KubernetesNamespace())
+}
+
+// ------------ Vault Properties ------------
+
+// PolicyName returns the Vault policy name.
+// Example: "fabric-org1-peer0"
+func (p PeerConfig) PolicyName() string {
+	return fmt.Sprintf("fabric-%s-%s", p.OrgID, p.ComponentName())
+}
+
+// AuthRoleName returns the Vault Kubernetes auth role name.
+func (p PeerConfig) AuthRoleName() string {
+	return p.PolicyName()
+}
+
+// VaultBasePath returns the base Vault path for this peer's secrets.
+// Example: "fabric/org1/peer/peer0"
+func (p PeerConfig) VaultBasePath() string {
+	return fmt.Sprintf("fabric/%s/peer/%s", p.OrgID, p.peerID)
+}
+
+// VaultSigningRef returns a SecretRef for the peer's signing identity (org cert).
+// Example path: "fabric/org1/peer/peer0/signing"
+func (p PeerConfig) VaultSigningRef() *pb.SecretRef {
+	return secrets.NewVaultRef(p.VaultBasePath() + "/signing")
+}
+
+// VaultTLSRef returns a SecretRef for the peer's TLS identity.
+// Example path: "fabric/org1/peer/peer0/tls"
+func (p PeerConfig) VaultTLSRef() *pb.SecretRef {
+	return secrets.NewVaultRef(p.VaultBasePath() + "/tls")
+}
+
+// VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
+// Example: "secret/data/fabric/org1/peer/peer0/*"
+func (p PeerConfig) VaultDataPath() string {
+	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, p.VaultBasePath())
+}
+
+// VaultMetadataPath returns the Vault KV v2 metadata path pattern for policy rules.
+// Example: "secret/metadata/fabric/org1/peer/peer0/*"
+func (p PeerConfig) VaultMetadataPath() string {
+	return fmt.Sprintf("%s/%s/*", vaultSecretMetadataPrefix, p.VaultBasePath())
+}
+
+// VaultPolicy creates a Vault policy document for the peer.
+// The policy grants read access to:
+// - The peer's own secrets (identity and TLS certs)
+// - The Org Root CA signing cert (for MSP cacerts)
+// - The Org Int CA signing cert (for MSP intermediatecerts)
+// - The TLS Root CA signing cert (for TLS CA chain)
+// - The TLS Int CA signing cert (for TLS CA chain)
+// - CouchDB credentials (for state database access)
+func (p PeerConfig) VaultPolicy() *vaultpb.PolicyDocument {
+	// Build paths for CA certificates the peer needs to read
+	orgRootCASigningPath := fmt.Sprintf("%s/fabric/%s/ca/org/root/signing", vaultSecretDataPrefix, p.OrgID)
+	orgIntCASigningPath := fmt.Sprintf("%s/fabric/%s/ca/org/v1/signing", vaultSecretDataPrefix, p.OrgID)
+	tlsRootCASigningPath := fmt.Sprintf("%s/fabric/%s/ca/tls/root/signing", vaultSecretDataPrefix, p.OrgID)
+	tlsIntCASigningPath := fmt.Sprintf("%s/fabric/%s/ca/tls/v1/signing", vaultSecretDataPrefix, p.OrgID)
+	couchDbPath := fmt.Sprintf("%s/fabric/%s/couchdb/%s/*", vaultSecretDataPrefix, p.OrgID, p.peerID)
+
+	return &vaultpb.PolicyDocument{
+		Rules: []*vaultpb.PolicyRule{
+			// KV v2 data path - read access to peer's own secrets
+			{
+				Path: p.VaultDataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+					vaultpb.Capability_CAPABILITY_LIST,
+				},
+			},
+			// KV v2 metadata path - list and read metadata for peer secrets
+			{
+				Path: p.VaultMetadataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_LIST,
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+			// Org Root CA signing cert - for MSP cacerts directory
+			{
+				Path: orgRootCASigningPath,
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+			// Org Int CA signing cert - for MSP intermediatecerts directory
+			{
+				Path: orgIntCASigningPath,
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+			// TLS Root CA signing cert - for TLS CA chain
+			{
+				Path: tlsRootCASigningPath,
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+			// TLS Int CA signing cert - for TLS CA chain
+			{
+				Path: tlsIntCASigningPath,
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+			// CouchDB credentials - for state database access
+			{
+				Path: couchDbPath,
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+					vaultpb.Capability_CAPABILITY_LIST,
+				},
+			},
+		},
+	}
+}
+
+// ------------ Identity Configuration ------------
+
+// IdentityName returns the identity name used for certificate registration.
+// Example: "peer0"
+func (p PeerConfig) IdentityName() string {
+	return p.peerID
+}
+
+// CommonName returns the common name for the peer's certificates.
+// Example: "peer0@org1"
+func (p PeerConfig) CommonName() string {
+	return fmt.Sprintf("%s@%s", p.peerID, p.OrgID)
+}
+
+// OrganizationalUnit returns the OU field for certificate subject.
+// Peers use "peer" as their OU.
+func (p PeerConfig) OrganizationalUnit() string {
+	return "peer"
+}
+
+// OrgIssuerRef returns the CA reference for issuing the org identity certificate.
+// Peers get their identity from the Org Intermediate CA.
+func (p PeerConfig) OrgIssuerCertType() string {
+	return "org"
+}
+
+// OrgIssuerID returns the CA ID for the org identity issuer.
+func (p PeerConfig) OrgIssuerID() string {
+	return "v1" // Org Intermediate CA
+}
+
+// TLSIssuerCertType returns the cert type for the TLS issuer.
+func (p PeerConfig) TLSIssuerCertType() string {
+	return "tls"
+}
+
+// TLSIssuerID returns the CA ID for the TLS issuer.
+func (p PeerConfig) TLSIssuerID() string {
+	return "v1" // TLS Intermediate CA
 }

@@ -573,7 +573,12 @@ type CreateCertificateInput struct {
 	// chain_ref is an optional location to store the CA chain separately.
 	// Required for intermediate CA signing certs (profile="ca") so Fabric CA
 	// can verify client certificates issued by the intermediate CA.
-	ChainRef      *v1.SecretRef `protobuf:"bytes,8,opt,name=chain_ref,json=ChainRef,proto3" json:"ChainRef,omitempty"`
+	ChainRef *v1.SecretRef `protobuf:"bytes,8,opt,name=chain_ref,json=ChainRef,proto3" json:"ChainRef,omitempty"`
+	// identity_type specifies the Fabric CA identity type for registration.
+	// This determines the OU field in the issued certificate.
+	// Valid values: "peer", "orderer", "admin", "client" (default: "client")
+	// The OU is critical for NodeOUs classification in the MSP.
+	IdentityType  string `protobuf:"bytes,9,opt,name=identity_type,json=IdentityType,proto3" json:"IdentityType,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -662,6 +667,13 @@ func (x *CreateCertificateInput) GetChainRef() *v1.SecretRef {
 		return x.ChainRef
 	}
 	return nil
+}
+
+func (x *CreateCertificateInput) GetIdentityType() string {
+	if x != nil {
+		return x.IdentityType
+	}
+	return ""
 }
 
 // CreateCertificateOutput indicates the result of certificate creation
@@ -932,7 +944,12 @@ type CreateIdentityInput struct {
 	// attributes are additional CA attributes for the identity
 	Attributes map[string]string `protobuf:"bytes,7,rep,name=attributes,json=Attributes,proto3" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// tls_profile specifies the TLS signing profile ("tls" for server/client, "" for client-only)
-	TlsProfile    string `protobuf:"bytes,8,opt,name=tls_profile,json=TlsProfile,proto3" json:"TlsProfile"`
+	TlsProfile string `protobuf:"bytes,8,opt,name=tls_profile,json=TlsProfile,proto3" json:"TlsProfile"`
+	// identity_type specifies the Fabric CA identity type for registration.
+	// This determines the OU field in the issued certificate.
+	// Valid values: "peer", "orderer", "admin", "client" (default: "client")
+	// The OU is critical for NodeOUs classification in the MSP.
+	IdentityType  string `protobuf:"bytes,9,opt,name=identity_type,json=IdentityType,proto3" json:"IdentityType,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1019,6 +1036,13 @@ func (x *CreateIdentityInput) GetAttributes() map[string]string {
 func (x *CreateIdentityInput) GetTlsProfile() string {
 	if x != nil {
 		return x.TlsProfile
+	}
+	return ""
+}
+
+func (x *CreateIdentityInput) GetIdentityType() string {
+	if x != nil {
+		return x.IdentityType
 	}
 	return ""
 }
@@ -2012,7 +2036,7 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x1eCreateCertificateDatabaseInput\x12b\n" +
 	"\x06ca_ref\x18\x01 \x01(\v2\".fabric.v1.CertificateAuthorityRefB'ʵ\x03#\xa2\x01 json:\"CaRef\" validate:\"required\"R\x05CaRef\"\x93\x01\n" +
 	"\x1fCreateCertificateDatabaseOutput\x12p\n" +
-	"\x0fcredentials_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB0ʵ\x03,\xa2\x01)json:\"CredentialsRef\" validate:\"required\"R\x0eCredentialsRef\"\x8a\x06\n" +
+	"\x0fcredentials_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB0ʵ\x03,\xa2\x01)json:\"CredentialsRef\" validate:\"required\"R\x0eCredentialsRef\"\xd5\x06\n" +
 	"\x16CreateCertificateInput\x12Z\n" +
 	"\n" +
 	"issuer_ref\x18\x01 \x01(\v2\".fabric.v1.CertificateAuthorityRefB\x17ʵ\x03\x13\xa2\x01\x10json:\"IssuerRef\"R\tIssuerRef\x12/\n" +
@@ -2025,7 +2049,8 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\n" +
 	"attributes\x18\a \x03(\v21.fabric.v1.CreateCertificateInput.AttributesEntryR\n" +
 	"Attributes\x12T\n" +
-	"\tchain_ref\x18\b \x01(\v2\x15.secrets.v1.SecretRefB ʵ\x03\x1c\xa2\x01\x19json:\"ChainRef,omitempty\"R\bChainRef\x1a=\n" +
+	"\tchain_ref\x18\b \x01(\v2\x15.secrets.v1.SecretRefB ʵ\x03\x1c\xa2\x01\x19json:\"ChainRef,omitempty\"R\bChainRef\x12I\n" +
+	"\ridentity_type\x18\t \x01(\tB$ʵ\x03 \xa2\x01\x1djson:\"IdentityType,omitempty\"R\fIdentityType\x1a=\n" +
 	"\x0fAttributesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8b\x01\n" +
@@ -2040,7 +2065,7 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x06ca_ref\x18\x01 \x01(\v2\".fabric.v1.CertificateAuthorityRefB'ʵ\x03#\xa2\x01 json:\"CaRef\" validate:\"required\"R\x05CaRef\"\x98\x02\n" +
 	"\x11CreateAdminOutput\x12\x86\x01\n" +
 	"\x17signing_credentials_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB7ʵ\x033\xa2\x010json:\"SigningCredentialsRef\" validate:\"required\"R\x15SigningCredentialsRef\x12z\n" +
-	"\x13tls_credentials_ref\x18\x02 \x01(\v2\x15.secrets.v1.SecretRefB3ʵ\x03/\xa2\x01,json:\"TlsCredentialsRef\" validate:\"required\"R\x11TlsCredentialsRef\"\xf8\x06\n" +
+	"\x13tls_credentials_ref\x18\x02 \x01(\v2\x15.secrets.v1.SecretRefB3ʵ\x03/\xa2\x01,json:\"TlsCredentialsRef\" validate:\"required\"R\x11TlsCredentialsRef\"\xc3\a\n" +
 	"\x13CreateIdentityInput\x12S\n" +
 	"\ridentity_name\x18\x01 \x01(\tB.ʵ\x03*\xa2\x01'json:\"IdentityName\" validate:\"required\"R\fIdentityName\x12b\n" +
 	"\asubject\x18\x02 \x01(\v2\x1d.fabric.v1.CertificateSubjectB)ʵ\x03%\xa2\x01\"json:\"Subject\" validate:\"required\"R\aSubject\x12x\n" +
@@ -2052,7 +2077,8 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"attributes\x18\a \x03(\v2..fabric.v1.CreateIdentityInput.AttributesEntryR\n" +
 	"Attributes\x129\n" +
 	"\vtls_profile\x18\b \x01(\tB\x18ʵ\x03\x14\xa2\x01\x11json:\"TlsProfile\"R\n" +
-	"TlsProfile\x1a=\n" +
+	"TlsProfile\x12I\n" +
+	"\ridentity_type\x18\t \x01(\tB$ʵ\x03 \xa2\x01\x1djson:\"IdentityType,omitempty\"R\fIdentityType\x1a=\n" +
 	"\x0fAttributesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x9b\x02\n" +

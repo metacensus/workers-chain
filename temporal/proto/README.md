@@ -1445,6 +1445,18 @@ json_name: ChainRef
 go_name: ChainRef
 go_tags: json:"ChainRef,omitempty"</pre></td>
 </tr><tr>
+<td>identity_type</td>
+<td>string</td>
+<td><pre>
+identity_type specifies the Fabric CA identity type for registration.
+This determines the OU field in the issued certificate.
+Valid values: "peer", "orderer", "admin", "client" (default: "client")
+The OU is critical for NodeOUs classification in the MSP.<br>
+
+json_name: IdentityType
+go_name: IdentityType
+go_tags: json:"IdentityType,omitempty"</pre></td>
+</tr><tr>
 <td>issuer_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
@@ -1690,6 +1702,18 @@ identity_name is the unique name for this identity (e.g., "peer0", "orderer0", "
 json_name: IdentityName
 go_name: IdentityName
 go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_type</td>
+<td>string</td>
+<td><pre>
+identity_type specifies the Fabric CA identity type for registration.
+This determines the OU field in the issued certificate.
+Valid values: "peer", "orderer", "admin", "client" (default: "client")
+The OU is critical for NodeOUs classification in the MSP.<br>
+
+json_name: IdentityType
+go_name: IdentityType
+go_tags: json:"IdentityType,omitempty"</pre></td>
 </tr><tr>
 <td>org_issuer_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
@@ -2837,6 +2861,18 @@ json_name: ChainRef
 go_name: ChainRef
 go_tags: json:"ChainRef,omitempty"</pre></td>
 </tr><tr>
+<td>identity_type</td>
+<td>string</td>
+<td><pre>
+identity_type specifies the Fabric CA identity type for registration.
+This determines the OU field in the issued certificate.
+Valid values: "peer", "orderer", "admin", "client" (default: "client")
+The OU is critical for NodeOUs classification in the MSP.<br>
+
+json_name: IdentityType
+go_name: IdentityType
+go_tags: json:"IdentityType,omitempty"</pre></td>
+</tr><tr>
 <td>issuer_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
@@ -2970,6 +3006,18 @@ identity_name is the unique name for this identity (e.g., "peer0", "orderer0", "
 json_name: IdentityName
 go_name: IdentityName
 go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_type</td>
+<td>string</td>
+<td><pre>
+identity_type specifies the Fabric CA identity type for registration.
+This determines the OU field in the issued certificate.
+Valid values: "peer", "orderer", "admin", "client" (default: "client")
+The OU is critical for NodeOUs classification in the MSP.<br>
+
+json_name: IdentityType
+go_name: IdentityType
+go_tags: json:"IdentityType,omitempty"</pre></td>
 </tr><tr>
 <td>org_issuer_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
