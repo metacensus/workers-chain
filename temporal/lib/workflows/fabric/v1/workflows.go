@@ -1070,7 +1070,30 @@ func (w *deployCouchDbWorkflow) Execute(ctx workflow.Context) (*pb.DeployCouchDb
 		return nil, fmt.Errorf("%w: failed to create couchdb deployment: %w", ErrDeployCouchDB, err)
 	}
 
-	logger.Info("CouchDB deployment initiated", "peerId", peerID, "org", w.fabricConfig.OrgID)
+	// Step 4: Wait for CouchDB to be ready before returning
+	// This ensures the peer can connect to CouchDB when it starts
+	logger.Info("Waiting for CouchDB to be ready", "peerId", peerID)
+	waitOptions := workflow.ActivityOptions{
+		StartToCloseTimeout: 10 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    5 * time.Second,
+			BackoffCoefficient: 1.0,
+			MaximumInterval:    5 * time.Second,
+			MaximumAttempts:    0, // Infinite retry until timeout
+		},
+	}
+	waitCtx := workflow.WithActivityOptions(ctx, waitOptions)
+
+	err = workflow.ExecuteActivity(waitCtx, kubepb.GetStatusActivityName, &kubepb.GetStatusInput{
+		Resources: map[string]*kubepb.ResourceIdentifier{
+			couchDbConfig.ComponentName(): couchDbConfig.ResourceIdentifier(),
+		},
+	}).Get(waitCtx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("%w: CouchDB did not become ready: %w", ErrDeployCouchDB, err)
+	}
+
+	logger.Info("CouchDB deployment ready", "peerId", peerID, "org", w.fabricConfig.OrgID)
 	return &pb.DeployCouchDbOutput{}, nil
 }
 

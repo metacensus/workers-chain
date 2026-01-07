@@ -100,6 +100,16 @@ spec:
           value: {{ .Values.logging.level | quote }}
         resources:
           {{- toYaml .Values.resources | nindent 10 }}
+        # Startup probe: gives container time to initialize before liveness kicks in
+        # Prevents premature restarts during slow startup
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: operations
+          initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.startupProbe.failureThreshold }}
         livenessProbe:
           httpGet:
             path: /healthz
@@ -107,6 +117,7 @@ spec:
           initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
           timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
         readinessProbe:
           httpGet:
             path: /healthz
@@ -114,6 +125,7 @@ spec:
           initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
           timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
         volumeMounts:
         # Persistent ledger storage
         - name: data

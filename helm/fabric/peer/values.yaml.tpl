@@ -69,17 +69,27 @@ resources:
     cpu: {{.Resources.Limits.CPU}}
     memory: {{.Resources.Limits.Memory}}
 
-# Liveness probe configuration
+# Startup probe configuration - runs first, gives container time to initialize
+# Once startup probe succeeds, liveness probe takes over
+startupProbe:
+  initialDelaySeconds: {{.StartupProbe.InitialDelaySeconds}}
+  periodSeconds: {{.StartupProbe.PeriodSeconds}}
+  timeoutSeconds: {{.StartupProbe.TimeoutSeconds}}
+  failureThreshold: {{.StartupProbe.FailureThreshold}}
+
+# Liveness probe configuration - only runs after startup probe succeeds
 livenessProbe:
   initialDelaySeconds: {{.LivenessProbe.InitialDelaySeconds}}
   periodSeconds: {{.LivenessProbe.PeriodSeconds}}
   timeoutSeconds: {{.LivenessProbe.TimeoutSeconds}}
+  failureThreshold: {{.LivenessProbe.FailureThreshold}}
 
 # Readiness probe configuration
 readinessProbe:
   initialDelaySeconds: {{.ReadinessProbe.InitialDelaySeconds}}
   periodSeconds: {{.ReadinessProbe.PeriodSeconds}}
   timeoutSeconds: {{.ReadinessProbe.TimeoutSeconds}}
+  failureThreshold: {{.ReadinessProbe.FailureThreshold}}
 
 # Common labels applied to all resources
 commonLabels:

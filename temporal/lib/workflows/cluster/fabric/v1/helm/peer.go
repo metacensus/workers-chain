@@ -18,6 +18,7 @@ type PeerValues struct {
 	Persistence    PersistenceConfig
 	Logging        LoggingConfig
 	Resources      ResourceConfig
+	StartupProbe   PeerProbeConfig
 	LivenessProbe  PeerProbeConfig
 	ReadinessProbe PeerProbeConfig
 	CommonLabels   CommonLabels
@@ -69,6 +70,7 @@ type PeerProbeConfig struct {
 	InitialDelaySeconds int
 	PeriodSeconds       int
 	TimeoutSeconds      int
+	FailureThreshold    int
 }
 
 // NewPeerValues creates PeerValues from PeerConfig
@@ -123,18 +125,31 @@ func NewPeerValues(peerConfig fabricconfig.PeerConfig) *PeerValues {
 			MountPath:    "/var/hyperledger/production",
 		},
 		Logging: LoggingConfig{
-			Level: "INFO",
+			// DEBUG level to diagnose health check failures
+			// Can be changed back to INFO once issues are resolved
+			Level: "DEBUG",
 		},
 		Resources: DefaultResourceConfig("peer"),
-		LivenessProbe: PeerProbeConfig{
-			InitialDelaySeconds: 30,
+		// Startup probe: runs first, gives container time to initialize
+		// Once startup probe succeeds, liveness takes over
+		StartupProbe: PeerProbeConfig{
+			InitialDelaySeconds: 5,
 			PeriodSeconds:       10,
 			TimeoutSeconds:      5,
+			FailureThreshold:    30, // 30 * 10s = 5 minutes to start
+		},
+		// Liveness probe: only runs after startup probe succeeds
+		LivenessProbe: PeerProbeConfig{
+			InitialDelaySeconds: 0, // Startup probe handles initial delay
+			PeriodSeconds:       10,
+			TimeoutSeconds:      5,
+			FailureThreshold:    6, // 6 failures = 60 seconds before restart
 		},
 		ReadinessProbe: PeerProbeConfig{
-			InitialDelaySeconds: 10,
+			InitialDelaySeconds: 5,
 			PeriodSeconds:       5,
 			TimeoutSeconds:      3,
+			FailureThreshold:    3,
 		},
 		CommonLabels: DefaultCommonLabels(),
 	}
