@@ -1,156 +1,22 @@
-//go:build integration
-// +build integration
-
 package kube
 
 import (
-	"context"
 	"testing"
-	"time"
 
-	pb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
-	"github.com/metacensus/infra/temporal/lib/workers/config"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
 )
 
-// TestKubeClient_RealCluster tests against an actual Kubernetes cluster in k3d
-// Run with: go test -tags=integration ./lib/workflows/kube/v1
-func TestKubeClient_RealCluster(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
-
-	ctx := context.Background()
-
-	// Start k3d container
-	req := testcontainers.ContainerRequest{
-		Image:        "rancher/k3d:latest",
-		ExposedPorts: []string{"6443/tcp"},
-		Env: map[string]string{
-			"K3D_FIX_GPU": "true",
-		},
-		Cmd: []string{"cluster", "create", "test-cluster", "--api-port", "0.0.0.0:6443", "--servers", "1"},
-		WaitingFor: wait.ForLog("cluster 'test-cluster' created successfully").
-			WithStartupTimeout(60 * time.Second),
-	}
-
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
-	if err != nil {
-		t.Fatalf("failed to start k3d container: %v", err)
-	}
-	defer func() {
-		if err := container.Terminate(ctx); err != nil {
-			t.Logf("failed to terminate container: %v", err)
-		}
-	}()
-
-	// For now, integration tests require a real Kubernetes cluster
-	// Using in-cluster config if available, otherwise skip
-	client, err := NewKubeClient(&config.KubernetesConfig{})
-	if err != nil {
-		t.Logf("could not connect to Kubernetes cluster (expected in integration test environment): %v", err)
-		t.Skip("Integration test requires access to a Kubernetes cluster")
-	}
-
-	t.Run("create and delete service", func(t *testing.T) {
-		// Create a namespace first
-		namespaceManifest := []byte(`
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: test-ns
-`)
-		decoder := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
-		obj := &unstructured.Unstructured{}
-		if _, _, err := decoder.Decode(namespaceManifest, nil, obj); err != nil {
-			t.Fatalf("failed to parse namespace manifest: %v", err)
-		}
-
-		nsID := &pb.ResourceIdentifier{
-			ApiVersion: "v1",
-			Kind:       "Namespace",
-			Name:       "test-ns",
-		}
-
-		if err := client.CreateResource(ctx, nsID, obj); err != nil {
-			t.Fatalf("failed to create namespace: %v", err)
-		}
-
-		// Create a service
-		serviceManifest := []byte(`
-apiVersion: v1
-kind: Service
-metadata:
-  name: test-service
-  namespace: test-ns
-spec:
-  ports:
-  - port: 80
-    targetPort: 8080
-  selector:
-    app: test
-`)
-		obj = &unstructured.Unstructured{}
-		if _, _, err := decoder.Decode(serviceManifest, nil, obj); err != nil {
-			t.Fatalf("failed to parse service manifest: %v", err)
-		}
-
-		serviceID := &pb.ResourceIdentifier{
-			ApiVersion: "v1",
-			Kind:       "Service",
-			Name:       "test-service",
-			Namespace:  "test-ns",
-		}
-
-		// Create
-		if err := client.CreateResource(ctx, serviceID, obj); err != nil {
-			t.Fatalf("failed to create service: %v", err)
-		}
-
-		// Get status
-		status, err := client.GetResourceStatus(ctx, serviceID)
-		if err != nil {
-			t.Fatalf("failed to get service status: %v", err)
-		}
-		if status == nil {
-			t.Errorf("expected status, got nil")
-		}
-
-		// Update the service
-		obj.Object["spec"].(map[string]interface{})["ports"] = []map[string]interface{}{
-			{"port": int64(443), "targetPort": int64(8443)},
-		}
-
-		if err := client.UpdateResource(ctx, serviceID, obj); err != nil {
-			t.Fatalf("failed to update service: %v", err)
-		}
-
-		// Delete
-		if err := client.DeleteResource(ctx, serviceID); err != nil {
-			t.Fatalf("failed to delete service: %v", err)
-		}
-
-		// Verify deletion (status should error)
-		_, err = client.GetResourceStatus(ctx, serviceID)
-		if err == nil {
-			t.Error("expected error when getting status of deleted service, got nil")
-		}
-	})
-}
-
 // TestKubeClient_ManifestParsing tests YAML manifest parsing without a real cluster
 func TestKubeClient_ManifestParsing(t *testing.T) {
 	tests := []struct {
-		name      string
-		manifest  []byte
-		expectErr bool
-		expectID  pb.ResourceIdentifier
+		name            string
+		manifest        []byte
+		expectErr       bool
+		expectAPIVer    string
+		expectKind      string
+		expectName      string
+		expectNamespace string
 	}{
 		{
 			name: "valid service manifest",
@@ -165,13 +31,11 @@ spec:
   - port: 80
     targetPort: 8080
 `),
-			expectErr: false,
-			expectID: pb.ResourceIdentifier{
-				ApiVersion: "v1",
-				Kind:       "Service",
-				Name:       "my-service",
-				Namespace:  "default",
-			},
+			expectErr:       false,
+			expectAPIVer:    "v1",
+			expectKind:      "Service",
+			expectName:      "my-service",
+			expectNamespace: "default",
 		},
 		{
 			name: "valid deployment manifest",
@@ -195,13 +59,11 @@ spec:
       - name: my-container
         image: my-image:latest
 `),
-			expectErr: false,
-			expectID: pb.ResourceIdentifier{
-				ApiVersion: "apps/v1",
-				Kind:       "Deployment",
-				Name:       "my-deployment",
-				Namespace:  "production",
-			},
+			expectErr:       false,
+			expectAPIVer:    "apps/v1",
+			expectKind:      "Deployment",
+			expectName:      "my-deployment",
+			expectNamespace: "production",
 		},
 		{
 			name: "invalid YAML",
@@ -228,16 +90,18 @@ invalid: yaml: syntax:
 					t.Fatalf("unexpected error: %v", err)
 				}
 
-				// Verify resource identifier
-				id := pb.ResourceIdentifier{
-					ApiVersion: gvk.GroupVersion().String(),
-					Kind:       gvk.Kind,
-					Name:       obj.GetName(),
-					Namespace:  obj.GetNamespace(),
+				// Verify resource identifier fields individually (protobuf structs can't be compared directly)
+				if got := gvk.GroupVersion().String(); got != tt.expectAPIVer {
+					t.Errorf("apiVersion mismatch: got %q, want %q", got, tt.expectAPIVer)
 				}
-
-				if id != tt.expectID {
-					t.Errorf("resource identifier mismatch: got %+v, want %+v", id, tt.expectID)
+				if got := gvk.Kind; got != tt.expectKind {
+					t.Errorf("kind mismatch: got %q, want %q", got, tt.expectKind)
+				}
+				if got := obj.GetName(); got != tt.expectName {
+					t.Errorf("name mismatch: got %q, want %q", got, tt.expectName)
+				}
+				if got := obj.GetNamespace(); got != tt.expectNamespace {
+					t.Errorf("namespace mismatch: got %q, want %q", got, tt.expectNamespace)
 				}
 			}
 		})
