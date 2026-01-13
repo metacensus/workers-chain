@@ -55,11 +55,26 @@ func NewWorkflows() *Workflows {
 
 // BootstrapInfra implements the BootstrapInfra workflow
 func (w *Workflows) BootstrapInfra(ctx workflow.Context, input *pb.BootstrapInfraWorkflowInput) (pb.BootstrapInfraWorkflow, error) {
-	return &bootstrapInfraWorkflow{input: input}, nil
+	return newBootstrapInfraWorkflow(input)
 }
 
 type bootstrapInfraWorkflow struct {
 	input *pb.BootstrapInfraWorkflowInput
+}
+
+// newBootstrapInfraWorkflow creates and validates a new bootstrapInfraWorkflow
+func newBootstrapInfraWorkflow(input *pb.BootstrapInfraWorkflowInput) (*bootstrapInfraWorkflow, error) {
+	w := &bootstrapInfraWorkflow{input: input}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *bootstrapInfraWorkflow) validate() error {
+	// No required field validation - workflow has no required inputs
+	return nil
 }
 
 // Execute orchestrates the initialization of the infrastructure platform.
@@ -79,19 +94,32 @@ func (w *bootstrapInfraWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapInf
 
 // InitFabricShard implements the InitFabricShard workflow
 func (w *Workflows) InitFabricShard(ctx workflow.Context, input *pb.InitFabricShardWorkflowInput) (pb.InitFabricShardWorkflow, error) {
-	return &initFabricShardWorkflow{input: input}, nil
+	return newInitFabricShardWorkflow(input)
 }
 
 type initFabricShardWorkflow struct {
 	input *pb.InitFabricShardWorkflowInput
 }
 
+// newInitFabricShardWorkflow creates and validates a new initFabricShardWorkflow
+func newInitFabricShardWorkflow(input *pb.InitFabricShardWorkflowInput) (*initFabricShardWorkflow, error) {
+	w := &initFabricShardWorkflow{input: input}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *initFabricShardWorkflow) validate() error {
+	if w.input.Req.Org == "" {
+		return ErrOrgRequired
+	}
+	return nil
+}
+
 // Execute orchestrates the complete initialization of a Fabric shard.
 func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricShardOutput, error) {
-	if w.input.Req.Org == "" {
-		return nil, ErrOrgRequired
-	}
-
 	orgCfg := config.OrgConfig{OrgID: w.input.Req.Org}
 
 	// Create Temporal namespace

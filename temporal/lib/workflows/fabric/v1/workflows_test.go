@@ -1,4 +1,4 @@
-package fabric_test
+package fabric
 
 import (
 	"context"
@@ -14,7 +14,6 @@ import (
 	"github.com/metacensus/infra/temporal/gen/workflows/secrets/v1/secretsv1nexus"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
-	fabric "github.com/metacensus/infra/temporal/lib/workflows/fabric/v1"
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 	postgresv1mocks "github.com/metacensus/infra/temporal/mocks/workflows/postgres/v1"
 	"github.com/nexus-rpc/sdk-go/nexus"
@@ -25,6 +24,260 @@ import (
 )
 
 const testOrg = "testorg"
+
+// =============================================================================
+// Constructor / Validation Tests
+// =============================================================================
+// These tests verify input validation without needing a workflow environment.
+// They're fast and focused on the validation logic.
+
+func TestNewDeployCertificateAuthorityWorkflow(t *testing.T) {
+	fabricCfg := fabricconfig.NewFabricConfig(config.OrgConfig{OrgID: testOrg})
+
+	tests := []struct {
+		name      string
+		input     *pb.DeployCertificateAuthorityWorkflowInput
+		wantErr   bool
+		errSubstr string
+	}{
+		{
+			name: "success - tls root CA",
+			input: &pb.DeployCertificateAuthorityWorkflowInput{Req: &pb.DeployCertificateAuthorityInput{
+				CaRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
+			}},
+			wantErr: false,
+		},
+		{
+			name: "success - org intermediate CA",
+			input: &pb.DeployCertificateAuthorityWorkflowInput{Req: &pb.DeployCertificateAuthorityInput{
+				CaRef: &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+			}},
+			wantErr: false,
+		},
+		{
+			name: "error - nil ca_ref",
+			input: &pb.DeployCertificateAuthorityWorkflowInput{Req: &pb.DeployCertificateAuthorityInput{
+				CaRef: nil,
+			}},
+			wantErr:   true,
+			errSubstr: "ca_ref is required",
+		},
+		{
+			name: "error - invalid cert type",
+			input: &pb.DeployCertificateAuthorityWorkflowInput{Req: &pb.DeployCertificateAuthorityInput{
+				CaRef: &pb.CertificateAuthorityRef{CertType: "invalid", Id: "root"},
+			}},
+			wantErr:   true,
+			errSubstr: "cert_type must be 'tls' or 'org'",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wf, err := newDeployCertificateAuthorityWorkflow(tt.input, fabricCfg)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
+					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
+				}
+				if wf != nil {
+					t.Error("expected nil workflow on error")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if wf == nil {
+					t.Fatal("expected non-nil workflow")
+				}
+			}
+		})
+	}
+}
+
+func TestNewCreateCertificateDatabaseWorkflow(t *testing.T) {
+	fabricCfg := fabricconfig.NewFabricConfig(config.OrgConfig{OrgID: testOrg})
+
+	tests := []struct {
+		name      string
+		input     *pb.CreateCertificateDatabaseWorkflowInput
+		wantErr   bool
+		errSubstr string
+	}{
+		{
+			name: "success - tls root CA",
+			input: &pb.CreateCertificateDatabaseWorkflowInput{Req: &pb.CreateCertificateDatabaseInput{
+				CaRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
+			}},
+			wantErr: false,
+		},
+		{
+			name: "success - org intermediate CA",
+			input: &pb.CreateCertificateDatabaseWorkflowInput{Req: &pb.CreateCertificateDatabaseInput{
+				CaRef: &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+			}},
+			wantErr: false,
+		},
+		{
+			name: "error - nil ca_ref",
+			input: &pb.CreateCertificateDatabaseWorkflowInput{Req: &pb.CreateCertificateDatabaseInput{
+				CaRef: nil,
+			}},
+			wantErr:   true,
+			errSubstr: "ca_ref is required",
+		},
+		{
+			name: "error - invalid cert type",
+			input: &pb.CreateCertificateDatabaseWorkflowInput{Req: &pb.CreateCertificateDatabaseInput{
+				CaRef: &pb.CertificateAuthorityRef{CertType: "invalid", Id: "root"},
+			}},
+			wantErr:   true,
+			errSubstr: "cert_type must be 'tls' or 'org'",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wf, err := newCreateCertificateDatabaseWorkflow(tt.input, fabricCfg)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
+					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
+				}
+				if wf != nil {
+					t.Error("expected nil workflow on error")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if wf == nil {
+					t.Fatal("expected non-nil workflow")
+				}
+			}
+		})
+	}
+}
+
+func TestNewCreateIdentityWorkflow(t *testing.T) {
+	fabricCfg := fabricconfig.NewFabricConfig(config.OrgConfig{OrgID: testOrg})
+
+	tests := []struct {
+		name      string
+		input     *pb.CreateIdentityWorkflowInput
+		wantErr   bool
+		errSubstr string
+	}{
+		{
+			name: "success - all required fields",
+			input: &pb.CreateIdentityWorkflowInput{Req: &pb.CreateIdentityInput{
+				IdentityName:      "test-identity",
+				OrgIssuerRef:      &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+				TlsIssuerRef:      &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				StorageSigningRef: secrets.NewVaultRef("test/signing"),
+				StorageTlsRef:     secrets.NewVaultRef("test/tls"),
+			}},
+			wantErr: false,
+		},
+		{
+			name: "error - missing identity name",
+			input: &pb.CreateIdentityWorkflowInput{Req: &pb.CreateIdentityInput{
+				IdentityName:      "",
+				OrgIssuerRef:      &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+				TlsIssuerRef:      &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				StorageSigningRef: secrets.NewVaultRef("test/signing"),
+				StorageTlsRef:     secrets.NewVaultRef("test/tls"),
+			}},
+			wantErr:   true,
+			errSubstr: "identity_name is required",
+		},
+		{
+			name: "error - missing org_issuer_ref",
+			input: &pb.CreateIdentityWorkflowInput{Req: &pb.CreateIdentityInput{
+				IdentityName:      "test-identity",
+				OrgIssuerRef:      nil,
+				TlsIssuerRef:      &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				StorageSigningRef: secrets.NewVaultRef("test/signing"),
+				StorageTlsRef:     secrets.NewVaultRef("test/tls"),
+			}},
+			wantErr:   true,
+			errSubstr: "org_issuer_ref is required",
+		},
+		{
+			name: "error - missing tls_issuer_ref",
+			input: &pb.CreateIdentityWorkflowInput{Req: &pb.CreateIdentityInput{
+				IdentityName:      "test-identity",
+				OrgIssuerRef:      &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+				TlsIssuerRef:      nil,
+				StorageSigningRef: secrets.NewVaultRef("test/signing"),
+				StorageTlsRef:     secrets.NewVaultRef("test/tls"),
+			}},
+			wantErr:   true,
+			errSubstr: "tls_issuer_ref is required",
+		},
+		{
+			name: "error - missing storage_signing_ref",
+			input: &pb.CreateIdentityWorkflowInput{Req: &pb.CreateIdentityInput{
+				IdentityName:      "test-identity",
+				OrgIssuerRef:      &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+				TlsIssuerRef:      &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				StorageSigningRef: nil,
+				StorageTlsRef:     secrets.NewVaultRef("test/tls"),
+			}},
+			wantErr:   true,
+			errSubstr: "storage_signing_ref is required",
+		},
+		{
+			name: "error - missing storage_tls_ref",
+			input: &pb.CreateIdentityWorkflowInput{Req: &pb.CreateIdentityInput{
+				IdentityName:      "test-identity",
+				OrgIssuerRef:      &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+				TlsIssuerRef:      &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				StorageSigningRef: secrets.NewVaultRef("test/signing"),
+				StorageTlsRef:     nil,
+			}},
+			wantErr:   true,
+			errSubstr: "storage_tls_ref is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wf, err := newCreateIdentityWorkflow(tt.input, fabricCfg)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
+					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
+				}
+				if wf != nil {
+					t.Error("expected nil workflow on error")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if wf == nil {
+					t.Fatal("expected non-nil workflow")
+				}
+			}
+		})
+	}
+}
+
+// =============================================================================
+// Workflow Execution Tests
+// =============================================================================
+// These tests verify workflow orchestration with mocked activities.
+// All inputs are valid - validation is tested separately above.
 
 // registerChildWorkflowStubs registers child workflow stubs for mocking.
 // Stubs return zero values - they're never executed when properly mocked.
@@ -161,7 +414,7 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployCertificateStoreInput) (*pb.DeployCertificateStoreOutput, error) {
 				fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
-				workflows := fabric.NewWorkflows(fabricConfig)
+				workflows := NewWorkflows(fabricConfig)
 				wf, err := workflows.DeployCertificateStore(ctx, &pb.DeployCertificateStoreWorkflowInput{Req: input})
 				if err != nil {
 					return nil, err
@@ -221,13 +474,7 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 			expectedErr:            nil,
 			validateCredentialsRef: true,
 		},
-		{
-			name:        "failure - invalid cert type",
-			org:         testOrg,
-			certType:    "invalid",
-			caID:        "root",
-			expectedErr: fabric.ErrInvalidCertType,
-		},
+		// Note: "invalid cert type" validation is tested in TestNewCreateCertificateDatabaseWorkflow above
 		{
 			name:              "failure - create database activity fails",
 			org:               testOrg,
@@ -359,7 +606,7 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.CreateCertificateDatabaseInput) (*pb.CreateCertificateDatabaseOutput, error) {
 				fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
-				workflows := fabric.NewWorkflows(fabricConfig)
+				workflows := NewWorkflows(fabricConfig)
 				wf, err := workflows.CreateCertificateDatabase(ctx, &pb.CreateCertificateDatabaseWorkflowInput{Req: input})
 				if err != nil {
 					return nil, err
@@ -416,105 +663,10 @@ func TestCreateBootstrapAdminWorkflow(t *testing.T) {
 }
 
 func TestCreateIdentityWorkflow(t *testing.T) {
-	tests := []struct {
-		name         string
-		org          string
-		identityName string
-		expectedErr  error // nil = success
-	}{
-		{
-			name:         "failure - missing identity name",
-			org:          testOrg,
-			identityName: "",
-			expectedErr:  fabric.ErrInvalidInput,
-		},
-		// TODO: Add success test cases - requires mocking CreateCertificate child workflow
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			testSuite := &testsuite.WorkflowTestSuite{}
-			env := testSuite.NewTestWorkflowEnvironment()
-
-			// Register child workflow stubs
-			registerChildWorkflowStubs(env)
-
-			// Create OrgConfig for testing
-			orgConfig := config.OrgConfig{OrgID: tt.org}
-
-			// Register activities before mocking
-			env.RegisterActivityWithOptions(
-				func(ctx context.Context, input *secretspb.CreateKeyPairInput) (*secretspb.CreateKeyPairOutput, error) {
-					return &secretspb.CreateKeyPairOutput{SecretRef: input.SecretRef}, nil
-				},
-				activity.RegisterOptions{Name: secretspb.CreateKeyPairActivityName},
-			)
-			env.RegisterActivityWithOptions(
-				func(ctx context.Context, input *pb.RegisterIdentityInput) (*pb.RegisterIdentityOutput, error) {
-					return &pb.RegisterIdentityOutput{EnrollmentSecret: "test-secret"}, nil
-				},
-				activity.RegisterOptions{Name: pb.RegisterIdentityActivityName},
-			)
-			env.RegisterActivityWithOptions(
-				func(ctx context.Context, input *pb.EnrollIdentityInput) (*pb.EnrollIdentityOutput, error) {
-					return &pb.EnrollIdentityOutput{}, nil
-				},
-				activity.RegisterOptions{Name: pb.EnrollIdentityActivityName},
-			)
-
-			// Mock activities
-			env.OnActivity(secretspb.CreateKeyPairActivityName, mock.Anything, mock.Anything).
-				Return(&secretspb.CreateKeyPairOutput{}, nil)
-			env.OnActivity(pb.RegisterIdentityActivityName, mock.Anything, mock.Anything).
-				Return(&pb.RegisterIdentityOutput{EnrollmentSecret: "test-secret"}, nil)
-			env.OnActivity(pb.EnrollIdentityActivityName, mock.Anything, mock.Anything).
-				Return(&pb.EnrollIdentityOutput{}, nil)
-
-			// Build input - use nil refs for validation tests
-			input := &pb.CreateIdentityInput{
-				IdentityName: tt.identityName,
-			}
-			if tt.identityName != "" {
-				// Only set refs for non-empty identity name tests
-				input.Subject = &pb.CertificateSubject{CommonName: tt.identityName}
-				input.OrgIssuerRef = &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"}
-				input.TlsIssuerRef = &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"}
-				input.StorageSigningRef = secrets.NewVaultRef("test/signing")
-				input.StorageTlsRef = secrets.NewVaultRef("test/tls")
-			}
-
-			// Execute workflow
-			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.CreateIdentityInput) (*pb.CreateIdentityOutput, error) {
-				fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
-				workflows := fabric.NewWorkflows(fabricConfig)
-				wf, err := workflows.CreateIdentity(ctx, &pb.CreateIdentityWorkflowInput{Req: input})
-				if err != nil {
-					return nil, err
-				}
-				return wf.Execute(ctx)
-			}, input)
-
-			var result *pb.CreateIdentityOutput
-			err := env.GetWorkflowResult(&result)
-
-			if tt.expectedErr == nil {
-				if err != nil {
-					t.Fatalf("unexpected workflow error: %v", err)
-				}
-				if result == nil {
-					t.Fatal("result is nil")
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("expected error %v, got nil", tt.expectedErr)
-				}
-				// Temporal serializes workflow errors, breaking Go's error chain, so we check the message.
-				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
-					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
-				}
-			}
-		})
-	}
+	// Note: Validation tests for CreateIdentity are in TestNewCreateIdentityWorkflow above.
+	// This test is reserved for execution/orchestration tests.
+	// TODO: Add execution test cases - requires mocking CreateCertificate child workflow
+	t.Skip("TODO: Add execution tests with proper child workflow mocking for CreateIdentity workflow")
 }
 
 func TestDeployCertificateAuthorityWorkflow(t *testing.T) {
@@ -545,20 +697,14 @@ func TestDeployCertificateAuthorityWorkflow(t *testing.T) {
 			caID:        "v1",
 			expectedErr: nil,
 		},
-		{
-			name:        "failure - invalid cert type",
-			org:         testOrg,
-			certType:    "invalid",
-			caID:        "v1",
-			expectedErr: fabric.ErrInvalidCertType,
-		},
+		// Note: "invalid cert type" validation is tested in TestNewDeployCertificateAuthorityWorkflow above
 		{
 			name:            "failure - create access fails",
 			org:             testOrg,
 			certType:        "tls",
 			caID:            "v1",
 			createAccessErr: errors.New("vault policy creation failed"),
-			expectedErr:     fabric.ErrCreateAccess,
+			expectedErr:     ErrCreateAccess,
 		},
 		{
 			name:                         "failure - create certificate database fails",
@@ -566,7 +712,7 @@ func TestDeployCertificateAuthorityWorkflow(t *testing.T) {
 			certType:                     "tls",
 			caID:                         "v1",
 			createCertificateDatabaseErr: errors.New("postgres connection failed"),
-			expectedErr:                  fabric.ErrCreateCertificateDatabase,
+			expectedErr:                  ErrCreateCertificateDatabase,
 		},
 		{
 			name:                 "failure - create certificate fails",
@@ -574,7 +720,7 @@ func TestDeployCertificateAuthorityWorkflow(t *testing.T) {
 			certType:             "tls",
 			caID:                 "v1",
 			createCertificateErr: errors.New("CA connection failed"),
-			expectedErr:          fabric.ErrCreateCertificate,
+			expectedErr:          ErrCreateCertificate,
 		},
 		{
 			name:              "failure - create password fails",
@@ -598,7 +744,7 @@ func TestDeployCertificateAuthorityWorkflow(t *testing.T) {
 			certType:                "tls",
 			caID:                    "v1",
 			createBootstrapAdminErr: errors.New("admin enrollment failed"),
-			expectedErr:             fabric.ErrCreateBootstrapAdmin,
+			expectedErr:             ErrCreateBootstrapAdmin,
 		},
 	}
 
@@ -609,7 +755,7 @@ func TestDeployCertificateAuthorityWorkflow(t *testing.T) {
 
 			orgConfig := config.OrgConfig{OrgID: tt.org}
 			fabricCfg := fabricconfig.NewFabricConfig(orgConfig)
-			workflows := fabric.NewWorkflows(fabricCfg)
+			workflows := NewWorkflows(fabricCfg)
 
 			registerChildWorkflowStubs(env)
 

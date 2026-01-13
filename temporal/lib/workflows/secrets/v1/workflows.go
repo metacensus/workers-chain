@@ -27,11 +27,26 @@ func NewWorkflows() *Workflows {
 
 // CreateAccess implements the CreateAccess workflow
 func (w *Workflows) CreateAccess(ctx workflow.Context, input *pb.CreateAccessWorkflowInput) (pb.CreateAccessWorkflow, error) {
-	return &createAccessWorkflow{input: input}, nil
+	return newCreateAccessWorkflow(input)
 }
 
 type createAccessWorkflow struct {
 	input *pb.CreateAccessWorkflowInput
+}
+
+// newCreateAccessWorkflow creates and validates a new createAccessWorkflow
+func newCreateAccessWorkflow(input *pb.CreateAccessWorkflowInput) (*createAccessWorkflow, error) {
+	w := &createAccessWorkflow{input: input}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *createAccessWorkflow) validate() error {
+	// No required field validation - all fields have reasonable defaults or are optional
+	return nil
 }
 
 // Execute orchestrates the creation of a Vault policy and Kubernetes auth role

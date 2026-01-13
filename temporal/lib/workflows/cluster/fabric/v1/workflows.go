@@ -45,12 +45,29 @@ func NewWorkflows() *Workflows {
 
 // CreateNamespace implements the CreateNamespace workflow
 func (w *Workflows) CreateNamespace(ctx workflow.Context, input *pb.CreateNamespaceWorkflowInput) (pb.CreateNamespaceWorkflow, error) {
-	return &createNamespaceWorkflow{input: input.Req}, nil
+	return newCreateNamespaceWorkflow(input.Req)
 }
 
 // createNamespaceWorkflow implements pb.CreateNamespaceWorkflow
 type createNamespaceWorkflow struct {
 	input *pb.CreateNamespaceInput
+}
+
+// newCreateNamespaceWorkflow creates and validates a new createNamespaceWorkflow
+func newCreateNamespaceWorkflow(input *pb.CreateNamespaceInput) (*createNamespaceWorkflow, error) {
+	w := &createNamespaceWorkflow{input: input}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *createNamespaceWorkflow) validate() error {
+	if w.input.Org == "" {
+		return fmt.Errorf("org is required")
+	}
+	return nil
 }
 
 // Execute creates a Kubernetes namespace
@@ -120,12 +137,29 @@ func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNames
 
 // CreateServiceAccount implements the CreateServiceAccount workflow
 func (w *Workflows) CreateServiceAccount(ctx workflow.Context, input *pb.CreateServiceAccountWorkflowInput) (pb.CreateServiceAccountWorkflow, error) {
-	return &createServiceAccountWorkflow{input: input.Req}, nil
+	return newCreateServiceAccountWorkflow(input.Req)
 }
 
 // createServiceAccountWorkflow implements pb.CreateServiceAccountWorkflow
 type createServiceAccountWorkflow struct {
 	input *pb.CreateServiceAccountInput
+}
+
+// newCreateServiceAccountWorkflow creates and validates a new createServiceAccountWorkflow
+func newCreateServiceAccountWorkflow(input *pb.CreateServiceAccountInput) (*createServiceAccountWorkflow, error) {
+	w := &createServiceAccountWorkflow{input: input}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *createServiceAccountWorkflow) validate() error {
+	if w.input.Org == "" {
+		return fmt.Errorf("org is required")
+	}
+	return nil
 }
 
 // Execute creates a Kubernetes service account
@@ -193,7 +227,7 @@ func (w *createServiceAccountWorkflow) Execute(ctx workflow.Context) (*pb.Create
 
 // CreateDeployment implements the CreateDeployment workflow
 func (w *Workflows) CreateDeployment(ctx workflow.Context, input *pb.CreateDeploymentWorkflowInput) (pb.CreateDeploymentWorkflow, error) {
-	return &createDeploymentWorkflow{input: input.Req}, nil
+	return newCreateDeploymentWorkflow(input.Req)
 }
 
 // createDeploymentWorkflow implements pb.CreateDeploymentWorkflow
@@ -201,16 +235,28 @@ type createDeploymentWorkflow struct {
 	input *pb.CreateDeploymentInput
 }
 
-// Execute deploys resources to Kubernetes based on the specified component type
-func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDeploymentOutput, error) {
-	// Validate input
+// newCreateDeploymentWorkflow creates and validates a new createDeploymentWorkflow
+func newCreateDeploymentWorkflow(input *pb.CreateDeploymentInput) (*createDeploymentWorkflow, error) {
+	w := &createDeploymentWorkflow{input: input}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *createDeploymentWorkflow) validate() error {
 	if w.input.Org == "" {
-		return nil, fmt.Errorf("org is required")
+		return fmt.Errorf("org is required")
 	}
 	if w.input.Component == "" {
-		return nil, fmt.Errorf("component is required")
+		return fmt.Errorf("component is required")
 	}
+	return nil
+}
 
+// Execute deploys resources to Kubernetes based on the specified component type
+func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDeploymentOutput, error) {
 	var chartName string
 	var componentName string
 	var values interface{}

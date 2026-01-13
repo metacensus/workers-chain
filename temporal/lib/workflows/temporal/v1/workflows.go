@@ -12,6 +12,7 @@ import (
 
 // Sentinel errors for temporal workflows
 var (
+	ErrNameRequired               = errors.New("name is required")
 	ErrRegisterNamespaceWorkflow  = errors.New("register namespace workflow failed")
 	ErrNamespaceActivationTimeout = errors.New("namespace activation timeout")
 )
@@ -27,14 +28,29 @@ func NewWorkflows() *Workflows {
 // CreateNamespace implements the AdminWorkflows.CreateNamespace method
 // Returns a workflow instance that will be executed by Temporal
 func (w *Workflows) CreateNamespace(ctx workflow.Context, input *pb.CreateNamespaceWorkflowInput) (pb.CreateNamespaceWorkflow, error) {
-	return &createNamespaceWorkflow{
-		input: input,
-	}, nil
+	return newCreateNamespaceWorkflow(input)
 }
 
 // createNamespaceWorkflow implements pb.CreateNamespaceWorkflow
 type createNamespaceWorkflow struct {
 	input *pb.CreateNamespaceWorkflowInput
+}
+
+// newCreateNamespaceWorkflow creates and validates a new createNamespaceWorkflow
+func newCreateNamespaceWorkflow(input *pb.CreateNamespaceWorkflowInput) (*createNamespaceWorkflow, error) {
+	w := &createNamespaceWorkflow{input: input}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *createNamespaceWorkflow) validate() error {
+	if w.input.Req.Name == "" {
+		return ErrNameRequired
+	}
+	return nil
 }
 
 // Execute calls RegisterNamespace, then polls DescribeNamespace until REGISTERED

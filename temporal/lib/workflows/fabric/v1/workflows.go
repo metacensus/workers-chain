@@ -54,15 +54,27 @@ func NewWorkflows(fabricConfig fabricconfig.FabricConfig) *Workflows {
 // =============================================================================
 
 func (w *Workflows) BootstrapShard(ctx workflow.Context, input *pb.BootstrapShardWorkflowInput) (pb.BootstrapShardWorkflow, error) {
-	return &bootstrapShardWorkflow{
-		input:        input,
-		fabricConfig: w.fabricConfig,
-	}, nil
+	return newBootstrapShardWorkflow(input, w.fabricConfig)
 }
 
 type bootstrapShardWorkflow struct {
 	input        *pb.BootstrapShardWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
+}
+
+// newBootstrapShardWorkflow creates and validates a new bootstrapShardWorkflow
+func newBootstrapShardWorkflow(input *pb.BootstrapShardWorkflowInput, fabricConfig fabricconfig.FabricConfig) (*bootstrapShardWorkflow, error) {
+	w := &bootstrapShardWorkflow{input: input, fabricConfig: fabricConfig}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *bootstrapShardWorkflow) validate() error {
+	// No required field validation - workflow has no required inputs
+	return nil
 }
 
 func (w *bootstrapShardWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapShardOutput, error) {
@@ -118,15 +130,27 @@ func (w *bootstrapShardWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapSha
 // =============================================================================
 
 func (w *Workflows) BootstrapCertificateAuthorities(ctx workflow.Context, input *pb.BootstrapCertificateAuthoritiesWorkflowInput) (pb.BootstrapCertificateAuthoritiesWorkflow, error) {
-	return &bootstrapCertificateAuthoritiesWorkflow{
-		input:        input,
-		fabricConfig: w.fabricConfig,
-	}, nil
+	return newBootstrapCertificateAuthoritiesWorkflow(input, w.fabricConfig)
 }
 
 type bootstrapCertificateAuthoritiesWorkflow struct {
 	input        *pb.BootstrapCertificateAuthoritiesWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
+}
+
+// newBootstrapCertificateAuthoritiesWorkflow creates and validates a new bootstrapCertificateAuthoritiesWorkflow
+func newBootstrapCertificateAuthoritiesWorkflow(input *pb.BootstrapCertificateAuthoritiesWorkflowInput, fabricConfig fabricconfig.FabricConfig) (*bootstrapCertificateAuthoritiesWorkflow, error) {
+	w := &bootstrapCertificateAuthoritiesWorkflow{input: input, fabricConfig: fabricConfig}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *bootstrapCertificateAuthoritiesWorkflow) validate() error {
+	// No required field validation - workflow has no required inputs
+	return nil
 }
 
 func (w *bootstrapCertificateAuthoritiesWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapCertificateAuthoritiesOutput, error) {
@@ -181,15 +205,27 @@ func (w *bootstrapCertificateAuthoritiesWorkflow) Execute(ctx workflow.Context) 
 // =============================================================================
 
 func (w *Workflows) DeployCertificateStore(ctx workflow.Context, input *pb.DeployCertificateStoreWorkflowInput) (pb.DeployCertificateStoreWorkflow, error) {
-	return &deployCertificateStoreWorkflow{
-		input:        input,
-		fabricConfig: w.fabricConfig,
-	}, nil
+	return newDeployCertificateStoreWorkflow(input, w.fabricConfig)
 }
 
 type deployCertificateStoreWorkflow struct {
 	input        *pb.DeployCertificateStoreWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
+}
+
+// newDeployCertificateStoreWorkflow creates and validates a new deployCertificateStoreWorkflow
+func newDeployCertificateStoreWorkflow(input *pb.DeployCertificateStoreWorkflowInput, fabricConfig fabricconfig.FabricConfig) (*deployCertificateStoreWorkflow, error) {
+	w := &deployCertificateStoreWorkflow{input: input, fabricConfig: fabricConfig}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *deployCertificateStoreWorkflow) validate() error {
+	// No required field validation - workflow has no required inputs
+	return nil
 }
 
 func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.DeployCertificateStoreOutput, error) {
@@ -250,10 +286,7 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 // =============================================================================
 
 func (w *Workflows) DeployCertificateAuthority(ctx workflow.Context, input *pb.DeployCertificateAuthorityWorkflowInput) (pb.DeployCertificateAuthorityWorkflow, error) {
-	return &deployCertificateAuthorityWorkflow{
-		input:        input,
-		fabricConfig: w.fabricConfig,
-	}, nil
+	return newDeployCertificateAuthorityWorkflow(input, w.fabricConfig)
 }
 
 type deployCertificateAuthorityWorkflow struct {
@@ -261,19 +294,33 @@ type deployCertificateAuthorityWorkflow struct {
 	fabricConfig fabricconfig.FabricConfig
 }
 
+// newDeployCertificateAuthorityWorkflow creates and validates a new deployCertificateAuthorityWorkflow
+func newDeployCertificateAuthorityWorkflow(input *pb.DeployCertificateAuthorityWorkflowInput, fabricConfig fabricconfig.FabricConfig) (*deployCertificateAuthorityWorkflow, error) {
+	w := &deployCertificateAuthorityWorkflow{input: input, fabricConfig: fabricConfig}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *deployCertificateAuthorityWorkflow) validate() error {
+	caRef := w.input.Req.GetCaRef()
+	if caRef == nil {
+		return fmt.Errorf("%w: ca_ref is required", ErrInvalidInput)
+	}
+	certType := caRef.GetCertType()
+	if certType != "tls" && certType != "org" {
+		return fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidCertType, certType)
+	}
+	return nil
+}
+
 func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.DeployCertificateAuthorityOutput, error) {
 	logger := workflow.GetLogger(ctx)
 	caRef := w.input.Req.GetCaRef()
-	if caRef == nil {
-		return nil, fmt.Errorf("%w: ca_ref is required", ErrInvalidInput)
-	}
-
 	certType := caRef.GetCertType()
 	caID := caRef.GetId()
-
-	if certType != "tls" && certType != "org" {
-		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidCertType, certType)
-	}
 
 	caConfig := w.fabricConfig.CertificateAuthority(certType, caID)
 	logger.Info("Deploying certificate authority", "ca", caConfig.Description())
@@ -473,10 +520,7 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 // =============================================================================
 
 func (w *Workflows) CreateCertificateDatabase(ctx workflow.Context, input *pb.CreateCertificateDatabaseWorkflowInput) (pb.CreateCertificateDatabaseWorkflow, error) {
-	return &createCertificateDatabaseWorkflow{
-		input:        input,
-		fabricConfig: w.fabricConfig,
-	}, nil
+	return newCreateCertificateDatabaseWorkflow(input, w.fabricConfig)
 }
 
 type createCertificateDatabaseWorkflow struct {
@@ -484,19 +528,33 @@ type createCertificateDatabaseWorkflow struct {
 	fabricConfig fabricconfig.FabricConfig
 }
 
+// newCreateCertificateDatabaseWorkflow creates and validates a new createCertificateDatabaseWorkflow
+func newCreateCertificateDatabaseWorkflow(input *pb.CreateCertificateDatabaseWorkflowInput, fabricConfig fabricconfig.FabricConfig) (*createCertificateDatabaseWorkflow, error) {
+	w := &createCertificateDatabaseWorkflow{input: input, fabricConfig: fabricConfig}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *createCertificateDatabaseWorkflow) validate() error {
+	caRef := w.input.Req.GetCaRef()
+	if caRef == nil {
+		return fmt.Errorf("%w: ca_ref is required", ErrInvalidInput)
+	}
+	certType := caRef.GetCertType()
+	if certType != "tls" && certType != "org" {
+		return fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidCertType, certType)
+	}
+	return nil
+}
+
 func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.CreateCertificateDatabaseOutput, error) {
 	logger := workflow.GetLogger(ctx)
 	caRef := w.input.Req.GetCaRef()
-	if caRef == nil {
-		return nil, fmt.Errorf("%w: ca_ref is required", ErrInvalidInput)
-	}
-
 	certType := caRef.GetCertType()
 	caID := caRef.GetId()
-
-	if certType != "tls" && certType != "org" {
-		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidCertType, certType)
-	}
 
 	caConfig := w.fabricConfig.CertificateAuthority(certType, caID)
 	certStore := w.fabricConfig.CertificateStore()
@@ -582,10 +640,7 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 // =============================================================================
 
 func (w *Workflows) CreateCertificate(ctx workflow.Context, input *pb.CreateCertificateWorkflowInput) (pb.CreateCertificateWorkflow, error) {
-	return &createCertificateWorkflow{
-		input:        input,
-		fabricConfig: w.fabricConfig,
-	}, nil
+	return newCreateCertificateWorkflow(input, w.fabricConfig)
 }
 
 type createCertificateWorkflow struct {
@@ -593,24 +648,36 @@ type createCertificateWorkflow struct {
 	fabricConfig fabricconfig.FabricConfig
 }
 
+// newCreateCertificateWorkflow creates and validates a new createCertificateWorkflow
+func newCreateCertificateWorkflow(input *pb.CreateCertificateWorkflowInput, fabricConfig fabricconfig.FabricConfig) (*createCertificateWorkflow, error) {
+	w := &createCertificateWorkflow{input: input, fabricConfig: fabricConfig}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *createCertificateWorkflow) validate() error {
+	req := w.input.Req
+	if req.GetIssuerRef() == nil {
+		return fmt.Errorf("%w: issuer_ref is required (use secrets.CreateSelfSignedCertificate for self-signed)", ErrInvalidInput)
+	}
+	if req.GetStorageRef() == nil {
+		return fmt.Errorf("%w: storage_ref is required", ErrInvalidInput)
+	}
+	certType := req.GetIssuerRef().GetCertType()
+	if certType != "tls" && certType != "org" {
+		return fmt.Errorf("%w: issuer cert_type must be 'tls' or 'org', got '%s'", ErrInvalidCertType, certType)
+	}
+	return nil
+}
+
 func (w *createCertificateWorkflow) Execute(ctx workflow.Context) (*pb.CreateCertificateOutput, error) {
 	req := w.input.Req
 	issuerRef := req.GetIssuerRef()
-
-	if issuerRef == nil {
-		return nil, fmt.Errorf("%w: issuer_ref is required (use secrets.CreateSelfSignedCertificate for self-signed)", ErrInvalidInput)
-	}
-
-	if req.GetStorageRef() == nil {
-		return nil, fmt.Errorf("%w: storage_ref is required", ErrInvalidInput)
-	}
-
 	certType := issuerRef.GetCertType()
 	caID := issuerRef.GetId()
-
-	if certType != "tls" && certType != "org" {
-		return nil, fmt.Errorf("%w: issuer cert_type must be 'tls' or 'org', got '%s'", ErrInvalidCertType, certType)
-	}
 
 	caConfig := w.fabricConfig.CertificateAuthority(certType, caID)
 
@@ -684,10 +751,7 @@ func (w *createCertificateWorkflow) Execute(ctx workflow.Context) (*pb.CreateCer
 // =============================================================================
 
 func (w *Workflows) CreateBootstrapAdmin(ctx workflow.Context, input *pb.CreateBootstrapAdminWorkflowInput) (pb.CreateBootstrapAdminWorkflow, error) {
-	return &createBootstrapAdminWorkflow{
-		input:        input,
-		fabricConfig: w.fabricConfig,
-	}, nil
+	return newCreateBootstrapAdminWorkflow(input, w.fabricConfig)
 }
 
 type createBootstrapAdminWorkflow struct {
@@ -695,13 +759,26 @@ type createBootstrapAdminWorkflow struct {
 	fabricConfig fabricconfig.FabricConfig
 }
 
+// newCreateBootstrapAdminWorkflow creates and validates a new createBootstrapAdminWorkflow
+func newCreateBootstrapAdminWorkflow(input *pb.CreateBootstrapAdminWorkflowInput, fabricConfig fabricconfig.FabricConfig) (*createBootstrapAdminWorkflow, error) {
+	w := &createBootstrapAdminWorkflow{input: input, fabricConfig: fabricConfig}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *createBootstrapAdminWorkflow) validate() error {
+	if w.input.Req.GetCaRef() == nil {
+		return fmt.Errorf("%w: ca_ref is required", ErrInvalidInput)
+	}
+	return nil
+}
+
 func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateBootstrapAdminOutput, error) {
 	logger := workflow.GetLogger(ctx)
 	caRef := w.input.Req.GetCaRef()
-	if caRef == nil {
-		return nil, fmt.Errorf("%w: ca_ref is required", ErrInvalidInput)
-	}
-
 	certType := caRef.GetCertType()
 	caID := caRef.GetId()
 	caConfig := w.fabricConfig.CertificateAuthority(certType, caID)
@@ -808,10 +885,7 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 // =============================================================================
 
 func (w *Workflows) CreateAdmin(ctx workflow.Context, input *pb.CreateAdminWorkflowInput) (pb.CreateAdminWorkflow, error) {
-	return &createAdminWorkflow{
-		input:        input,
-		fabricConfig: w.fabricConfig,
-	}, nil
+	return newCreateAdminWorkflow(input, w.fabricConfig)
 }
 
 type createAdminWorkflow struct {
@@ -819,13 +893,26 @@ type createAdminWorkflow struct {
 	fabricConfig fabricconfig.FabricConfig
 }
 
+// newCreateAdminWorkflow creates and validates a new createAdminWorkflow
+func newCreateAdminWorkflow(input *pb.CreateAdminWorkflowInput, fabricConfig fabricconfig.FabricConfig) (*createAdminWorkflow, error) {
+	w := &createAdminWorkflow{input: input, fabricConfig: fabricConfig}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *createAdminWorkflow) validate() error {
+	if w.input.Req.GetCaRef() == nil {
+		return fmt.Errorf("%w: ca_ref is required", ErrInvalidInput)
+	}
+	return nil
+}
+
 func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutput, error) {
 	logger := workflow.GetLogger(ctx)
 	caRef := w.input.Req.GetCaRef()
-	if caRef == nil {
-		return nil, fmt.Errorf("%w: ca_ref is required", ErrInvalidInput)
-	}
-
 	certType := caRef.GetCertType()
 	caID := caRef.GetId()
 	caConfig := w.fabricConfig.CertificateAuthority(certType, caID)
@@ -922,10 +1009,7 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 // =============================================================================
 
 func (w *Workflows) CreateIdentity(ctx workflow.Context, input *pb.CreateIdentityWorkflowInput) (pb.CreateIdentityWorkflow, error) {
-	return &createIdentityWorkflow{
-		input:        input,
-		fabricConfig: w.fabricConfig,
-	}, nil
+	return newCreateIdentityWorkflow(input, w.fabricConfig)
 }
 
 type createIdentityWorkflow struct {
@@ -933,26 +1017,39 @@ type createIdentityWorkflow struct {
 	fabricConfig fabricconfig.FabricConfig
 }
 
+// newCreateIdentityWorkflow creates and validates a new createIdentityWorkflow
+func newCreateIdentityWorkflow(input *pb.CreateIdentityWorkflowInput, fabricConfig fabricconfig.FabricConfig) (*createIdentityWorkflow, error) {
+	w := &createIdentityWorkflow{input: input, fabricConfig: fabricConfig}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *createIdentityWorkflow) validate() error {
+	req := w.input.Req
+	if req.GetIdentityName() == "" {
+		return fmt.Errorf("%w: identity_name is required", ErrInvalidInput)
+	}
+	if req.GetOrgIssuerRef() == nil {
+		return fmt.Errorf("%w: org_issuer_ref is required", ErrInvalidInput)
+	}
+	if req.GetTlsIssuerRef() == nil {
+		return fmt.Errorf("%w: tls_issuer_ref is required", ErrInvalidInput)
+	}
+	if req.GetStorageSigningRef() == nil {
+		return fmt.Errorf("%w: storage_signing_ref is required", ErrInvalidInput)
+	}
+	if req.GetStorageTlsRef() == nil {
+		return fmt.Errorf("%w: storage_tls_ref is required", ErrInvalidInput)
+	}
+	return nil
+}
+
 func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdentityOutput, error) {
 	req := w.input.Req
 	identityName := req.GetIdentityName()
-
-	if identityName == "" {
-		return nil, fmt.Errorf("%w: identity_name is required", ErrInvalidInput)
-	}
-	if req.GetOrgIssuerRef() == nil {
-		return nil, fmt.Errorf("%w: org_issuer_ref is required", ErrInvalidInput)
-	}
-	if req.GetTlsIssuerRef() == nil {
-		return nil, fmt.Errorf("%w: tls_issuer_ref is required", ErrInvalidInput)
-	}
-	if req.GetStorageSigningRef() == nil {
-		return nil, fmt.Errorf("%w: storage_signing_ref is required", ErrInvalidInput)
-	}
-	if req.GetStorageTlsRef() == nil {
-		return nil, fmt.Errorf("%w: storage_tls_ref is required", ErrInvalidInput)
-	}
-
 	orgIssuer := req.GetOrgIssuerRef()
 	tlsIssuer := req.GetTlsIssuerRef()
 
@@ -1007,15 +1104,27 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 // =============================================================================
 
 func (w *Workflows) DeployCouchDb(ctx workflow.Context, input *pb.DeployCouchDbWorkflowInput) (pb.DeployCouchDbWorkflow, error) {
-	return &deployCouchDbWorkflow{
-		input:        input,
-		fabricConfig: w.fabricConfig,
-	}, nil
+	return newDeployCouchDbWorkflow(input, w.fabricConfig)
 }
 
 type deployCouchDbWorkflow struct {
 	input        *pb.DeployCouchDbWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
+}
+
+// newDeployCouchDbWorkflow creates and validates a new deployCouchDbWorkflow
+func newDeployCouchDbWorkflow(input *pb.DeployCouchDbWorkflowInput, fabricConfig fabricconfig.FabricConfig) (*deployCouchDbWorkflow, error) {
+	w := &deployCouchDbWorkflow{input: input, fabricConfig: fabricConfig}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *deployCouchDbWorkflow) validate() error {
+	// No required field validation - peer_id is used but not strictly required
+	return nil
 }
 
 func (w *deployCouchDbWorkflow) Execute(ctx workflow.Context) (*pb.DeployCouchDbOutput, error) {
@@ -1102,15 +1211,27 @@ func (w *deployCouchDbWorkflow) Execute(ctx workflow.Context) (*pb.DeployCouchDb
 // =============================================================================
 
 func (w *Workflows) DeployPeer(ctx workflow.Context, input *pb.DeployPeerWorkflowInput) (pb.DeployPeerWorkflow, error) {
-	return &deployPeerWorkflow{
-		input:        input,
-		fabricConfig: w.fabricConfig,
-	}, nil
+	return newDeployPeerWorkflow(input, w.fabricConfig)
 }
 
 type deployPeerWorkflow struct {
 	input        *pb.DeployPeerWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
+}
+
+// newDeployPeerWorkflow creates and validates a new deployPeerWorkflow
+func newDeployPeerWorkflow(input *pb.DeployPeerWorkflowInput, fabricConfig fabricconfig.FabricConfig) (*deployPeerWorkflow, error) {
+	w := &deployPeerWorkflow{input: input, fabricConfig: fabricConfig}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *deployPeerWorkflow) validate() error {
+	// No required field validation - peer_id is used but not strictly required
+	return nil
 }
 
 func (w *deployPeerWorkflow) Execute(ctx workflow.Context) (*pb.DeployPeerOutput, error) {
@@ -1183,15 +1304,27 @@ func (w *deployPeerWorkflow) Execute(ctx workflow.Context) (*pb.DeployPeerOutput
 // =============================================================================
 
 func (w *Workflows) DeployOrderer(ctx workflow.Context, input *pb.DeployOrdererWorkflowInput) (pb.DeployOrdererWorkflow, error) {
-	return &deployOrdererWorkflow{
-		input:        input,
-		fabricConfig: w.fabricConfig,
-	}, nil
+	return newDeployOrdererWorkflow(input, w.fabricConfig)
 }
 
 type deployOrdererWorkflow struct {
 	input        *pb.DeployOrdererWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
+}
+
+// newDeployOrdererWorkflow creates and validates a new deployOrdererWorkflow
+func newDeployOrdererWorkflow(input *pb.DeployOrdererWorkflowInput, fabricConfig fabricconfig.FabricConfig) (*deployOrdererWorkflow, error) {
+	w := &deployOrdererWorkflow{input: input, fabricConfig: fabricConfig}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *deployOrdererWorkflow) validate() error {
+	// No required field validation - orderer_id is used but not strictly required
+	return nil
 }
 
 func (w *deployOrdererWorkflow) Execute(ctx workflow.Context) (*pb.DeployOrdererOutput, error) {
@@ -1264,15 +1397,27 @@ func (w *deployOrdererWorkflow) Execute(ctx workflow.Context) (*pb.DeployOrderer
 // =============================================================================
 
 func (w *Workflows) DeployChainCode(ctx workflow.Context, input *pb.DeployChainCodeWorkflowInput) (pb.DeployChainCodeWorkflow, error) {
-	return &deployChainCodeWorkflow{
-		input:        input,
-		fabricConfig: w.fabricConfig,
-	}, nil
+	return newDeployChainCodeWorkflow(input, w.fabricConfig)
 }
 
 type deployChainCodeWorkflow struct {
 	input        *pb.DeployChainCodeWorkflowInput
 	fabricConfig fabricconfig.FabricConfig
+}
+
+// newDeployChainCodeWorkflow creates and validates a new deployChainCodeWorkflow
+func newDeployChainCodeWorkflow(input *pb.DeployChainCodeWorkflowInput, fabricConfig fabricconfig.FabricConfig) (*deployChainCodeWorkflow, error) {
+	w := &deployChainCodeWorkflow{input: input, fabricConfig: fabricConfig}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *deployChainCodeWorkflow) validate() error {
+	// No required field validation - chain_code_id is used but not strictly required
+	return nil
 }
 
 func (w *deployChainCodeWorkflow) Execute(ctx workflow.Context) (*pb.DeployChainCodeOutput, error) {

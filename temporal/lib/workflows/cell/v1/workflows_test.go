@@ -1,4 +1,4 @@
-package cell_test
+package cell
 
 import (
 	"errors"
@@ -13,7 +13,6 @@ import (
 	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1nexus"
 	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	temporalpb "github.com/metacensus/infra/temporal/gen/workflows/temporal/v1"
-	cell "github.com/metacensus/infra/temporal/lib/workflows/cell/v1"
 	temporalmocks "github.com/metacensus/infra/temporal/mocks/workflows/temporal/v1"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/testsuite"
@@ -21,6 +20,64 @@ import (
 )
 
 const testOrg = "testorg"
+
+// =============================================================================
+// Constructor / Validation Tests
+// =============================================================================
+// These tests verify input validation without needing a workflow environment.
+// They're fast and focused on the validation logic.
+
+func TestNewInitFabricShardWorkflow(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     *pb.InitFabricShardWorkflowInput
+		wantErr   bool
+		errSubstr string
+	}{
+		{
+			name:    "success - valid input",
+			input:   &pb.InitFabricShardWorkflowInput{Req: &pb.InitFabricShardInput{Org: "org1"}},
+			wantErr: false,
+		},
+		{
+			name:      "error - empty org",
+			input:     &pb.InitFabricShardWorkflowInput{Req: &pb.InitFabricShardInput{Org: ""}},
+			wantErr:   true,
+			errSubstr: "org is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wf, err := newInitFabricShardWorkflow(tt.input)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
+					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
+				}
+				if wf != nil {
+					t.Error("expected nil workflow on error")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if wf == nil {
+					t.Fatal("expected non-nil workflow")
+				}
+			}
+		})
+	}
+}
+
+// =============================================================================
+// Workflow Execution Tests
+// =============================================================================
+// These tests verify workflow orchestration with mocked activities/child workflows.
+// All inputs are valid - validation is tested separately above.
 
 // registerChildWorkflowStubs registers child workflow stubs for mocking.
 // Stubs return zero values - they're never executed when properly mocked.
@@ -73,21 +130,21 @@ func TestInitFabricShardWorkflow(t *testing.T) {
 		bootstrapShardErr            error
 		expectedErr                  error // nil = success
 	}{
-		{name: "failure - org is required", org: "", expectedErr: cell.ErrOrgRequired},
+		// Note: "org is required" validation is tested in TestNewInitFabricShardWorkflow above
 		{name: "failure - create temporal namespace fails", org: testOrg,
-			createTemporalNamespaceErr: errors.New("temporal namespace error"), expectedErr: cell.ErrCreateTemporalNamespace},
+			createTemporalNamespaceErr: errors.New("temporal namespace error"), expectedErr: ErrCreateTemporalNamespace},
 		{name: "failure - create kubernetes namespace fails", org: testOrg,
-			createKubernetesNamespaceErr: errors.New("k8s namespace error"), expectedErr: cell.ErrCreateKubernetesNamespace},
+			createKubernetesNamespaceErr: errors.New("k8s namespace error"), expectedErr: ErrCreateKubernetesNamespace},
 		{name: "failure - create service account fails", org: testOrg,
-			createServiceAccountErr: errors.New("sa error"), expectedErr: cell.ErrCreateServiceAccount},
+			createServiceAccountErr: errors.New("sa error"), expectedErr: ErrCreateServiceAccount},
 		{name: "failure - create vault access fails", org: testOrg,
-			createVaultAccessErr: errors.New("vault error"), expectedErr: cell.ErrCreateVaultAccess},
+			createVaultAccessErr: errors.New("vault error"), expectedErr: ErrCreateVaultAccess},
 		{name: "failure - deploy fabric worker fails", org: testOrg,
-			createDeploymentErr: errors.New("deploy error"), expectedErr: cell.ErrDeployFabricWorker},
+			createDeploymentErr: errors.New("deploy error"), expectedErr: ErrDeployFabricWorker},
 		{name: "failure - create nexus endpoint fails", org: testOrg,
-			createNexusEndpointErr: errors.New("nexus error"), expectedErr: cell.ErrCreateNexusEndpoint},
+			createNexusEndpointErr: errors.New("nexus error"), expectedErr: ErrCreateNexusEndpoint},
 		{name: "failure - bootstrap shard via nexus fails", org: testOrg,
-			bootstrapShardErr: errors.New("bootstrap error"), expectedErr: cell.ErrBootstrapShard},
+			bootstrapShardErr: errors.New("bootstrap error"), expectedErr: ErrBootstrapShard},
 		{name: "success - all steps complete", org: testOrg, expectedErr: nil},
 	}
 
@@ -129,7 +186,7 @@ func TestInitFabricShardWorkflow(t *testing.T) {
 
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.InitFabricShardInput) (*pb.InitFabricShardOutput, error) {
-				workflows := cell.NewWorkflows()
+				workflows := NewWorkflows()
 				wf, err := workflows.InitFabricShard(ctx, &pb.InitFabricShardWorkflowInput{Req: input})
 				if err != nil {
 					return nil, err
