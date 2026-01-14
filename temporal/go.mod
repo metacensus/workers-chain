@@ -2,8 +2,6 @@ module github.com/metacensus/infra/temporal
 
 go 1.25.5
 
-toolchain go1.25.5
-
 replace github.com/hyperledger/fabric-ca => github.com/jmbarzee/fabric-ca v0.0.0-20260103183611-bf716f732fbc
 
 require (
@@ -16,6 +14,7 @@ require (
 	github.com/bergundy/protoc-gen-go-nexus-temporal v0.0.4
 	github.com/cludden/protoc-gen-go-temporal v1.17.7
 	github.com/hyperledger/fabric-ca v1.5.13
+	github.com/hyperledger/fabric-lib-go v1.1.2
 	github.com/jackc/pgx/v5 v5.7.1
 	github.com/spf13/viper v1.20.0
 	github.com/stretchr/testify v1.11.1
@@ -134,7 +133,6 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/hyperledger/fabric-amcl v0.0.0-20230602173724-9e02669dceb2 // indirect
-	github.com/hyperledger/fabric-lib-go v1.1.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
