@@ -5,6 +5,9 @@ package kube
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -14,9 +17,10 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
-// TestKubeClient_RealCluster tests against an actual Kubernetes cluster in k3d
+// TestKubeClient_RealCluster tests against a k3s cluster running in a container
 // Run with: go test -tags=integration ./lib/workflows/kube/v1
 func TestKubeClient_RealCluster(t *testing.T) {
 	if testing.Short() {
@@ -25,16 +29,32 @@ func TestKubeClient_RealCluster(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Start k3d container
+	// Create temporary directory for kubeconfig
+	tmpDir, err := os.MkdirTemp("", "k3s-kubeconfig-*")
+	if err != nil {
+		t.Fatalf("failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	kubeconfigPath := filepath.Join(tmpDir, "kubeconfig.yaml")
+
+	// Start k3s container (lightweight Kubernetes)
 	req := testcontainers.ContainerRequest{
-		Image:        "rancher/k3d:latest",
+		Image:        "rancher/k3s:v1.28.5-k3s1",
 		ExposedPorts: []string{"6443/tcp"},
 		Env: map[string]string{
-			"K3D_FIX_GPU": "true",
+			"K3S_KUBECONFIG_OUTPUT": "/output/kubeconfig.yaml",
+			"K3S_KUBECONFIG_MODE":   "666",
 		},
-		Cmd: []string{"cluster", "create", "test-cluster", "--api-port", "0.0.0.0:6443", "--servers", "1"},
-		WaitingFor: wait.ForLog("cluster 'test-cluster' created successfully").
-			WithStartupTimeout(60 * time.Second),
+		Cmd: []string{
+			"server",
+			"--disable=traefik",
+			"--disable=metrics-server",
+			"--tls-san=127.0.0.1",
+		},
+		Privileged: true, // k3s requires privileged mode
+		WaitingFor: wait.ForLog("Node controller sync successful").
+			WithStartupTimeout(120 * time.Second),
 	}
 
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -42,7 +62,7 @@ func TestKubeClient_RealCluster(t *testing.T) {
 		Started:          true,
 	})
 	if err != nil {
-		t.Fatalf("failed to start k3d container: %v", err)
+		t.Fatalf("failed to start k3s container: %v", err)
 	}
 	defer func() {
 		if err := container.Terminate(ctx); err != nil {
@@ -50,12 +70,61 @@ func TestKubeClient_RealCluster(t *testing.T) {
 		}
 	}()
 
-	// For now, integration tests require a real Kubernetes cluster
-	// Using in-cluster config if available, otherwise skip
-	client, err := NewKubeClient(&config.KubernetesConfig{})
+	// Give k3s a moment to fully initialize
+	time.Sleep(5 * time.Second)
+
+	// Copy kubeconfig from container
+	reader, err := container.CopyFileFromContainer(ctx, "/output/kubeconfig.yaml")
 	if err != nil {
-		t.Logf("could not connect to Kubernetes cluster (expected in integration test environment): %v", err)
-		t.Skip("Integration test requires access to a Kubernetes cluster")
+		t.Fatalf("failed to copy kubeconfig from container: %v", err)
+	}
+	defer reader.Close()
+
+	kubeconfigFile, err := os.Create(kubeconfigPath)
+	if err != nil {
+		t.Fatalf("failed to create kubeconfig file: %v", err)
+	}
+	defer kubeconfigFile.Close()
+
+	if _, err := kubeconfigFile.ReadFrom(reader); err != nil {
+		t.Fatalf("failed to write kubeconfig: %v", err)
+	}
+
+	// Get the mapped port for k3s API server
+	mappedPort, err := container.MappedPort(ctx, "6443")
+	if err != nil {
+		t.Fatalf("failed to get mapped port: %v", err)
+	}
+
+	// Load and modify kubeconfig to use localhost and mapped port
+	kubeconfigBytes, err := os.ReadFile(kubeconfigPath)
+	if err != nil {
+		t.Fatalf("failed to read kubeconfig: %v", err)
+	}
+
+	kubeconfig, err := clientcmd.Load(kubeconfigBytes)
+	if err != nil {
+		t.Fatalf("failed to parse kubeconfig: %v", err)
+	}
+
+	// Update server URL to use mapped port
+	for _, cluster := range kubeconfig.Clusters {
+		cluster.Server = fmt.Sprintf("https://127.0.0.1:%s", mappedPort.Port())
+		cluster.InsecureSkipTLSVerify = true // For test purposes
+		cluster.CertificateAuthorityData = nil // Must clear CA data when using InsecureSkipTLSVerify
+	}
+
+	// Write updated kubeconfig
+	if err := clientcmd.WriteToFile(*kubeconfig, kubeconfigPath); err != nil {
+		t.Fatalf("failed to write updated kubeconfig: %v", err)
+	}
+
+	// Create Kubernetes client using the kubeconfig
+	client, err := NewKubeClient(&config.KubernetesConfig{
+		KubeconfigPath: kubeconfigPath,
+	})
+	if err != nil {
+		t.Fatalf("failed to create kube client: %v", err)
 	}
 
 	t.Run("create and delete service", func(t *testing.T) {

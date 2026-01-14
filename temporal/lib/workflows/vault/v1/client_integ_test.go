@@ -162,8 +162,14 @@ func TestVaultClient_GenericOperations(t *testing.T) {
 			t.Fatalf("failed to read policy: %v", err)
 		}
 
-		if policy, ok := result["policy"].(string); !ok || policy == "" {
-			t.Error("policy not found in response")
+		// Vault wraps policy response in "data" field
+		data, ok := result["data"].(map[string]any)
+		if !ok {
+			t.Fatalf("expected 'data' field in policy response, got: %v", result)
+		}
+
+		if policy, ok := data["policy"].(string); !ok || policy == "" {
+			t.Error("policy not found in response data")
 		}
 
 		// Delete the policy
@@ -174,6 +180,16 @@ func TestVaultClient_GenericOperations(t *testing.T) {
 	})
 
 	t.Run("write and read auth role", func(t *testing.T) {
+		// Enable Kubernetes auth method first (required in dev mode)
+		enablePath := "sys/auth/kubernetes"
+		enableData := map[string]any{
+			"type": "kubernetes",
+		}
+		err := client.Write(ctx, enablePath, enableData)
+		if err != nil {
+			t.Fatalf("failed to enable kubernetes auth: %v", err)
+		}
+
 		// Write a Kubernetes auth role
 		rolePath := "auth/kubernetes/role/test-role"
 		roleData := map[string]any{
@@ -182,7 +198,7 @@ func TestVaultClient_GenericOperations(t *testing.T) {
 			"policies":                         []string{"test-policy"},
 		}
 
-		err := client.Write(ctx, rolePath, roleData)
+		err = client.Write(ctx, rolePath, roleData)
 		if err != nil {
 			t.Fatalf("failed to write auth role: %v", err)
 		}
@@ -193,8 +209,14 @@ func TestVaultClient_GenericOperations(t *testing.T) {
 			t.Fatalf("failed to read auth role: %v", err)
 		}
 
+		// Vault wraps auth role response in "data" field
+		data, ok := result["data"].(map[string]any)
+		if !ok {
+			t.Fatalf("expected 'data' field in auth role response, got: %v", result)
+		}
+
 		// Verify role data
-		if names, ok := result["bound_service_account_names"].([]any); !ok || len(names) == 0 {
+		if names, ok := data["bound_service_account_names"].([]any); !ok || len(names) == 0 {
 			t.Error("bound_service_account_names not found or empty")
 		}
 
@@ -202,6 +224,12 @@ func TestVaultClient_GenericOperations(t *testing.T) {
 		err = client.Delete(ctx, rolePath)
 		if err != nil {
 			t.Fatalf("failed to delete auth role: %v", err)
+		}
+
+		// Disable the auth method (cleanup)
+		err = client.Delete(ctx, enablePath)
+		if err != nil {
+			t.Logf("failed to disable kubernetes auth (cleanup): %v", err)
 		}
 	})
 }
@@ -252,8 +280,9 @@ func TestVaultClient_ErrorHandling(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error with invalid token, got nil")
 		}
-		if !errors.Is(err, ErrUnauthorized) {
-			t.Errorf("expected ErrUnauthorized, got: %v", err)
+		// Vault returns 403 Forbidden for invalid tokens, not 401 Unauthorized
+		if !errors.Is(err, ErrForbidden) {
+			t.Errorf("expected ErrForbidden, got: %v", err)
 		}
 	})
 
