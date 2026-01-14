@@ -1,8 +1,8 @@
 module github.com/metacensus/infra/temporal
 
-go 1.24.0
+go 1.25.5
 
-toolchain go1.24.5
+toolchain go1.25.5
 
 replace github.com/hyperledger/fabric-ca => github.com/jmbarzee/fabric-ca v0.0.0-20260103183611-bf716f732fbc
 

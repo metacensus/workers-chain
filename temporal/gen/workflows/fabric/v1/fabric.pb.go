@@ -2014,7 +2014,7 @@ var File_fabric_v1_fabric_proto protoreflect.FileDescriptor
 
 const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\n" +
-	"\x16fabric/v1/fabric.proto\x12\tfabric.v1\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\x1a\x18secrets/v1/secrets.proto\"\xa6\x01\n" +
+	"\x16fabric/v1/fabric.proto\x12\tfabric.v1\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x18secrets/v1/secrets.proto\x1a\x1atemporal/v1/temporal.proto\"\xa6\x01\n" +
 	"\x17CertificateAuthorityRef\x12U\n" +
 	"\tcert_type\x18\x01 \x01(\tB8ʵ\x034\xa2\x011json:\"CertType\" validate:\"required,oneof=tls org\"R\bCertType\x124\n" +
 	"\x02id\x18\x02 \x01(\tB$ʵ\x03 \xa2\x01\x1djson:\"Id\" validate:\"required\"R\x02Id\"\xb5\x02\n" +
