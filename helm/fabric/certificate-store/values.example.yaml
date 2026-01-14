@@ -1,8 +1,9 @@
 # Certificate Store Configuration Example
 # This chart deploys PostgreSQL for certificate storage
 
-# Organization identifier (e.g., "org1", "acme-corp")
-org: "org1"
+# Organization identifier (e.g., "acme-corp", "example-org")
+# This should match the org portion of the namespace
+org: "example-org"
 
 # Container image configuration
 image:
@@ -58,6 +59,11 @@ readinessProbe:
 commonLabels:
   managedBy: temporal
   partOf: fabric
+
+# Vault configuration for secrets
+vault:
+  roleName: fabric-example-org
+  secretPath: fabric/example-org/certificate-store
 
 
 

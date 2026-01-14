@@ -1,11 +1,15 @@
-namespace: fabric-org1
+# Namespace where the ServiceAccount will be created (should match org-specific namespace)
+namespace: fabric-example-org
 
-serviceAccountName: fabric-worker-org1
+# ServiceAccount name for the fabric worker in this org
+serviceAccountName: fabric-worker-example-org
 
-roleName: fabric-worker-org1
+# Role name for RBAC permissions
+roleName: fabric-worker-example-org
 
+# Common labels to apply to all resources
 commonLabels:
-  app.kubernetes.io/managed-by: helm
-  app.kubernetes.io/part-of: fabric
+  managedBy: helm
+  partOf: fabric
 
 
