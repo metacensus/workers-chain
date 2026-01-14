@@ -1,0 +1,416 @@
+syntax = "proto3";
+
+package kube.v1;
+
+import "patch/go.proto";
+import "temporal/v1/temporal.proto";
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/kube/v1;kubev1";
+
+// Kubernetes defines activities for deploying resources to Kubernetes
+// Activities work with pre-rendered YAML manifests (from Helm, Kustomize, or plain YAML)
+// Caller is responsible for templating/rendering before calling these activities
+service Kubernetes {
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {task_queue: "infra"};
+  // namespace parameter is used for security enforcement
+
+  // Create creates new resources in the cluster (fails if already exists)
+  rpc Create(CreateInput) returns (CreateOutput) {
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "kube.v1.Create"
+      schedule_to_close_timeout: {seconds: 600} /* 10 minutes */
+    };
+  }
+
+  // Update updates existing resources in the cluster (fails if not found)
+  rpc Update(UpdateInput) returns (UpdateOutput) {
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "kube.v1.Update"
+      schedule_to_close_timeout: {seconds: 600} /* 10 minutes */
+    };
+  }
+
+  // Apply deploys resources to the cluster (create or update)
+  rpc Apply(ApplyInput) returns (ApplyOutput) {
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "kube.v1.Apply"
+      schedule_to_close_timeout: {seconds: 600} /* 10 minutes */
+    };
+  }
+
+  // Delete removes resources from the cluster
+  rpc Delete(DeleteInput) returns (DeleteOutput) {
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "kube.v1.Delete"
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
+    };
+  }
+
+  // GetStatus retrieves the current status of deployed resources
+  rpc GetStatus(GetStatusInput) returns (GetStatusOutput) {
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "kube.v1.GetStatus"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+}
+
+// Resource represents a single Kubernetes resource as YAML
+// Activities parse the YAML to extract metadata before applying
+message Resource {
+  // manifest_yaml is the complete YAML definition of the resource
+  // Activities parse this to extract kind, name, namespace, apiVersion
+  bytes manifest_yaml = 1 [
+    json_name = "ManifestYaml",
+    (go.field).tags = 'json:"ManifestYaml" validate:"required"'
+  ];
+}
+
+// CreateInput defines inputs for the Create activity
+message CreateInput {
+  // resources is a map of resource_id → resource
+  // resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
+  // Each resource's YAML must include namespace (or be cluster-scoped)
+  map<string, Resource> resources = 1 [
+    json_name = "Resources",
+    (go.field).tags = 'json:"Resources" validate:"required"'
+  ];
+}
+
+// CreateOutput represents the result of creating resources
+message CreateOutput {
+  // results contains the outcome for each resource
+  // Keys match the resource_id from CreateInput
+  map<string, CreateResult> results = 1 [
+    json_name = "Results",
+    (go.field).tags = 'json:"Results" validate:"required"'
+  ];
+
+  // summary provides high-level statistics
+  CreateSummary summary = 2 [
+    json_name = "Summary",
+    (go.field).tags = 'json:"Summary" validate:"required"'
+  ];
+}
+
+// CreateResult represents the outcome of creating a single resource
+message CreateResult {
+  // resource_id identifies which resource this result is for
+  string resource_id = 1 [
+    json_name = "ResourceId",
+    (go.field).tags = 'json:"ResourceId" validate:"required"'
+  ];
+
+  // resource_status contains current state (if created successfully)
+  ResourceStatus resource_status = 2 [
+    json_name = "ResourceStatus",
+    (go.field).tags = 'json:"ResourceStatus,omitempty" validate:"omitempty"'
+  ];
+
+  // error_message contains error details (if failed)
+  string error_message = 3 [
+    json_name = "ErrorMessage",
+    (go.field).tags = 'json:"ErrorMessage,omitempty" validate:"omitempty"'
+  ];
+}
+
+// CreateSummary provides aggregate statistics
+message CreateSummary {
+  int32 total = 1 [
+    json_name = "Total",
+    (go.field).tags = 'json:"Total" validate:"required"'
+  ];
+  int32 created = 2 [
+    json_name = "Created",
+    (go.field).tags = 'json:"Created" validate:"required"'
+  ];
+  int32 failed = 3 [
+    json_name = "Failed",
+    (go.field).tags = 'json:"Failed" validate:"required"'
+  ];
+}
+
+// UpdateInput defines inputs for the Update activity
+message UpdateInput {
+  // resources is a map of resource_id → resource
+  // resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
+  // Each resource's YAML must include namespace (or be cluster-scoped)
+  map<string, Resource> resources = 1 [
+    json_name = "Resources",
+    (go.field).tags = 'json:"Resources" validate:"required"'
+  ];
+}
+
+// UpdateOutput represents the result of updating resources
+message UpdateOutput {
+  // results contains the outcome for each resource
+  // Keys match the resource_id from UpdateInput
+  map<string, UpdateResult> results = 1 [
+    json_name = "Results",
+    (go.field).tags = 'json:"Results" validate:"required"'
+  ];
+
+  // summary provides high-level statistics
+  UpdateSummary summary = 2 [
+    json_name = "Summary",
+    (go.field).tags = 'json:"Summary" validate:"required"'
+  ];
+}
+
+// UpdateResult represents the outcome of updating a single resource
+message UpdateResult {
+  // resource_id identifies which resource this result is for
+  string resource_id = 1 [
+    json_name = "ResourceId",
+    (go.field).tags = 'json:"ResourceId" validate:"required"'
+  ];
+
+  // resource_status contains current state (if updated successfully)
+  ResourceStatus resource_status = 2 [
+    json_name = "ResourceStatus",
+    (go.field).tags = 'json:"ResourceStatus,omitempty" validate:"omitempty"'
+  ];
+
+  // error_message contains error details (if failed)
+  string error_message = 3 [
+    json_name = "ErrorMessage",
+    (go.field).tags = 'json:"ErrorMessage,omitempty" validate:"omitempty"'
+  ];
+}
+
+// UpdateSummary provides aggregate statistics
+message UpdateSummary {
+  int32 total = 1 [
+    json_name = "Total",
+    (go.field).tags = 'json:"Total" validate:"required"'
+  ];
+  int32 updated = 2 [
+    json_name = "Updated",
+    (go.field).tags = 'json:"Updated" validate:"required"'
+  ];
+  int32 failed = 3 [
+    json_name = "Failed",
+    (go.field).tags = 'json:"Failed" validate:"required"'
+  ];
+}
+
+// ApplyInput defines inputs for the Apply activity
+message ApplyInput {
+  // resources is a map of resource_id → resource
+  // resource_id is caller-defined for tracking (e.g., "deployment-api", "service-api")
+  // Each resource's YAML must include namespace (or be cluster-scoped)
+  map<string, Resource> resources = 1 [
+    json_name = "Resources",
+    (go.field).tags = 'json:"Resources" validate:"required"'
+  ];
+}
+
+// ApplyOutput represents the result of applying resources
+message ApplyOutput {
+  // results contains the outcome for each resource
+  // Keys match the resource_id from ApplyInput
+  map<string, ApplyResult> results = 1 [
+    json_name = "Results",
+    (go.field).tags = 'json:"Results" validate:"required"'
+  ];
+
+  // summary provides high-level statistics
+  ApplySummary summary = 2 [
+    json_name = "Summary",
+    (go.field).tags = 'json:"Summary" validate:"required"'
+  ];
+}
+
+// ApplyResult represents the outcome of applying a single resource
+message ApplyResult {
+  // resource_id identifies which resource this result is for
+  string resource_id = 1 [
+    json_name = "ResourceId",
+    (go.field).tags = 'json:"ResourceId" validate:"required"'
+  ];
+
+  // resource_status contains current state (if applied successfully)
+  ResourceStatus resource_status = 2 [
+    json_name = "ResourceStatus",
+    (go.field).tags = 'json:"ResourceStatus,omitempty" validate:"omitempty"'
+  ];
+
+  // error_message contains error details (if failed)
+  string error_message = 3 [
+    json_name = "ErrorMessage",
+    (go.field).tags = 'json:"ErrorMessage,omitempty" validate:"omitempty"'
+  ];
+}
+
+// ApplySummary provides aggregate statistics
+message ApplySummary {
+  int32 total = 1 [
+    json_name = "Total",
+    (go.field).tags = 'json:"Total" validate:"required"'
+  ];
+  int32 applied = 2 [
+    json_name = "Applied",
+    (go.field).tags = 'json:"Applied" validate:"required"'
+  ];
+  int32 failed = 3 [
+    json_name = "Failed",
+    (go.field).tags = 'json:"Failed" validate:"required"'
+  ];
+}
+
+// DeleteInput defines inputs for the Delete activity
+message DeleteInput {
+  // resources to delete
+  // Keys are resource_id (same as ApplyInput)
+  // Each resource's YAML must include namespace (or be cluster-scoped)
+  map<string, Resource> resources = 1 [
+    json_name = "Resources",
+    (go.field).tags = 'json:"Resources" validate:"required"'
+  ];
+}
+
+// DeleteOutput represents the result of deleting resources
+message DeleteOutput {
+  // results contains the outcome for each resource
+  map<string, DeleteResult> results = 1 [
+    json_name = "Results",
+    (go.field).tags = 'json:"Results" validate:"required"'
+  ];
+
+  // summary provides high-level statistics
+  DeleteSummary summary = 2 [
+    json_name = "Summary",
+    (go.field).tags = 'json:"Summary" validate:"required"'
+  ];
+}
+
+// DeleteResult represents the outcome of deleting a single resource
+message DeleteResult {
+  // resource_id identifies which resource this result is for
+  string resource_id = 1 [
+    json_name = "ResourceId",
+    (go.field).tags = 'json:"ResourceId" validate:"required"'
+  ];
+
+  // error_message contains error details (if failed)
+  string error_message = 2 [
+    json_name = "ErrorMessage",
+    (go.field).tags = 'json:"ErrorMessage,omitempty" validate:"omitempty"'
+  ];
+}
+
+// DeleteSummary provides aggregate statistics
+message DeleteSummary {
+  int32 total = 1 [
+    json_name = "Total",
+    (go.field).tags = 'json:"Total" validate:"required"'
+  ];
+  int32 deleted = 2 [
+    json_name = "Deleted",
+    (go.field).tags = 'json:"Deleted" validate:"required"'
+  ];
+  int32 failed = 3 [
+    json_name = "Failed",
+    (go.field).tags = 'json:"Failed" validate:"required"'
+  ];
+}
+
+// GetStatusInput queries the status of deployed resources
+message GetStatusInput {
+  // resources to check status for (by resource identifier, not full YAML)
+  map<string, ResourceIdentifier> resources = 1 [
+    json_name = "Resources",
+    (go.field).tags = 'json:"Resources" validate:"required"'
+  ];
+}
+
+// GetStatusOutput represents the current status of resources
+// Activity fails with error if any resources are not ready
+message GetStatusOutput {
+  // resources_ready lists resource IDs that are ready
+  repeated string resources_ready = 1 [
+    json_name = "ResourcesReady",
+    (go.field).tags = 'json:"ResourcesReady" validate:"required"'
+  ];
+}
+
+// ResourceIdentifier uniquely identifies a Kubernetes resource
+message ResourceIdentifier {
+  // api_version is the Kubernetes API version (e.g., "apps/v1", "v1")
+  string api_version = 1 [
+    json_name = "ApiVersion",
+    (go.field).tags = 'json:"ApiVersion" validate:"required"'
+  ];
+
+  // kind is the Kubernetes resource kind (e.g., "Deployment", "Service", "Pod")
+  string kind = 2 [
+    json_name = "Kind",
+    (go.field).tags = 'json:"Kind" validate:"required"'
+  ];
+
+  // name is the resource name
+  string name = 3 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
+
+  // namespace is the resource namespace
+  // Empty for cluster-scoped resources
+  string namespace = 4 [
+    json_name = "Namespace",
+    (go.field).tags = 'json:"Namespace,omitempty" validate:"omitempty"'
+  ];
+}
+
+// ResourceStatus represents the status of a single Kubernetes resource
+message ResourceStatus {
+  // kind is the Kubernetes resource kind (e.g., "Deployment", "Pod", "Service")
+  string kind = 1 [
+    json_name = "Kind",
+    (go.field).tags = 'json:"Kind" validate:"required"'
+  ];
+
+  // name is the resource name
+  string name = 2 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
+
+  // namespace is the resource namespace
+  string namespace = 3 [
+    json_name = "Namespace",
+    (go.field).tags = 'json:"Namespace" validate:"required"'
+  ];
+
+  // status is the current status (e.g., "ready", "pending", "error", "unknown")
+  string status = 4 [
+    json_name = "Status",
+    (go.field).tags = 'json:"Status" validate:"required"'
+  ];
+
+  // ready_replicas is the number of ready replicas (for Deployments, StatefulSets, etc.)
+  // Only populated for workload resources
+  int32 ready_replicas = 5 [
+    json_name = "ReadyReplicas",
+    (go.field).tags = 'json:"ReadyReplicas,omitempty" validate:"omitempty"'
+  ];
+
+  // desired_replicas is the desired number of replicas
+  // Only populated for workload resources
+  int32 desired_replicas = 6 [
+    json_name = "DesiredReplicas",
+    (go.field).tags = 'json:"DesiredReplicas,omitempty" validate:"omitempty"'
+  ];
+
+  // message provides additional context (error messages, warnings, etc.)
+  string message = 7 [
+    json_name = "Message",
+    (go.field).tags = 'json:"Message,omitempty" validate:"omitempty"'
+  ];
+}

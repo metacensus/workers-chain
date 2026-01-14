@@ -1,0 +1,9 @@
+apiVersion: v2
+name: fabric-peer
+description: Hyperledger Fabric peer node for endorsement and ledger maintenance
+type: application
+version: 1.0.0
+appVersion: "2.5.0"
+maintainers:
+  - name: MetaCensus Infrastructure Team
+

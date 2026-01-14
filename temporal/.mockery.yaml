@@ -1,0 +1,142 @@
+# Mockery configuration for generating mocks from protobuf-generated interfaces
+# See: https://vektra.github.io/mockery/
+
+with-expecter: true
+mockname: "Mock{{.InterfaceName}}"
+outpkg: "{{.PackageName}}"
+filename: "{{.InterfaceName | snakecase}}.go"
+dir: "mocks/{{.InterfaceDirRelative}}"
+
+# v3 compatibility settings
+resolve-type-alias: false
+disable-version-string: true
+issue-845-fix: true
+
+packages:
+  # ============================================================================
+  # GENERATED INTERFACES - Workflows and Activities from protobuf
+  # Used for testing workflow orchestration and activity coordination
+  # ============================================================================
+
+  # Vault v1
+  github.com/metacensus/infra/temporal/gen/workflows/vault/v1:
+    config:
+      dir: "mocks/workflows/vault/v1"
+    interfaces:
+      VaultActivities:
+
+  # S3 Provider v1
+  github.com/metacensus/infra/temporal/gen/workflows/provider/aws/s3:
+    config:
+      dir: "mocks/workflows/provider/aws/s3"
+    interfaces:
+      S3ProviderActivities:
+
+  # Temporal Admin v1
+  github.com/metacensus/infra/temporal/gen/workflows/temporal/v1:
+    config:
+      dir: "mocks/workflows/temporal/v1"
+    interfaces:
+      AdminActivities:
+      AdminWorkflows:
+
+  # Cluster Fabric v1 (Kubernetes namespace, service account, deployment workflows)
+  github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1:
+    config:
+      dir: "mocks/workflows/cluster/fabric/v1"
+    interfaces:
+      ClusterWorkflows:
+
+  # Kube Provider v1
+  github.com/metacensus/infra/temporal/gen/workflows/kube/v1:
+    config:
+      dir: "mocks/workflows/kube/v1"
+    interfaces:
+      KubernetesActivities:
+
+  # Helm v1
+  github.com/metacensus/infra/temporal/gen/workflows/helm/v1:
+    config:
+      dir: "mocks/workflows/helm/v1"
+    interfaces:
+      HelmActivities:
+
+  # Postgres v1
+  github.com/metacensus/infra/temporal/gen/workflows/postgres/v1:
+    config:
+      dir: "mocks/workflows/postgres/v1"
+    interfaces:
+      PostgresActivities:
+
+  # ============================================================================
+  # IMPLEMENTATION INTERFACES - Clients from implementation code
+  # Used for testing activity implementations with mocked external dependencies
+  # NOTE: Only include clients for implementations that exist
+  # ============================================================================
+
+  # Vault v1 client
+  github.com/metacensus/infra/temporal/lib/workflows/vault/v1:
+    config:
+      dir: "mocks/workflows/vault/v1"
+      outpkg: "vaultv1"
+    interfaces:
+      VaultClient:
+
+  # Kube v1 client
+  github.com/metacensus/infra/temporal/lib/workflows/kube/v1:
+    config:
+      dir: "mocks/workflows/kube/v1"
+      outpkg: "kubev1"
+    interfaces:
+      KubeClient:
+
+  # Helm v1 client (RepoClient is the repository abstraction)
+  github.com/metacensus/infra/temporal/lib/workflows/helm/v1:
+    config:
+      dir: "mocks/workflows/helm/v1"
+      outpkg: "helmv1"
+    interfaces:
+      RepoClient:
+
+  # Postgres v1 client
+  github.com/metacensus/infra/temporal/lib/workflows/postgres/v1:
+    config:
+      dir: "mocks/workflows/postgres/v1"
+      outpkg: "postgresv1"
+    interfaces:
+      PostgresClient:
+      ClientProvider:
+
+  # Temporal v1 clients - namespace and operator service
+  go.temporal.io/sdk/client:
+    config:
+      dir: "mocks/workflows/temporal/v1"
+      outpkg: "temporalv1"
+    interfaces:
+      NamespaceClient:
+
+  go.temporal.io/api/operatorservice/v1:
+    config:
+      dir: "mocks/workflows/temporal/v1"
+      outpkg: "temporalv1"
+    interfaces:
+      OperatorServiceClient:
+
+  # Secrets v1 provider (for testing activities that fetch/store secrets)
+  github.com/metacensus/infra/temporal/lib/workflows/secrets/v1:
+    config:
+      dir: "mocks/workflows/secrets/v1"
+      outpkg: "secretsv1"
+    interfaces:
+      SecretProvider:
+
+  # S3 client (for testing S3 activities)
+  github.com/metacensus/infra/temporal/lib/workflows/provider/aws/s3:
+    config:
+      dir: "mocks/workflows/provider/aws/s3"
+      outpkg: "s3v1"
+    interfaces:
+      S3Client:
+
+  # NOTE: Terraform client mocks will be added once implementations are created
+

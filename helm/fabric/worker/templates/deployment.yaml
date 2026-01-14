@@ -1,0 +1,70 @@
+{{- /*
+Fabric Worker Deployment
+Deploys a Temporal worker that manages Hyperledger Fabric resources for a specific organization.
+The worker connects to an org-specific Temporal namespace and uses Vault for secret management.
+*/ -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fabric-worker.name" . }}
+  namespace: {{ include "fabric-worker.namespace" . }}
+  labels:
+    {{- include "fabric-worker.commonLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{- include "fabric-worker.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "fabric-worker.commonLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "fabric-worker.serviceAccountName" . }}
+      containers:
+      - name: worker
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: health
+          containerPort: {{ .Values.healthCheck.port }}
+          protocol: TCP
+        env:
+        # Organization configuration
+        - name: ORG_ID
+          value: {{ .Values.org | quote }}
+        # Temporal configuration
+        - name: TEMPORAL_ADDRESS
+          value: {{ .Values.temporal.address | quote }}
+        - name: TEMPORAL_NAMESPACE
+          value: {{ .Values.temporal.namespace | quote }}
+        - name: TEMPORAL_TASK_QUEUE
+          value: {{ .Values.temporal.taskQueue | quote }}
+        # Vault configuration
+        - name: VAULT_ADDR
+          value: {{ .Values.vault.address | quote }}
+        - name: VAULT_ROLE
+          value: {{ .Values.vault.role | quote }}
+        # Logging configuration
+        - name: LOG_LEVEL
+          value: {{ .Values.logLevel | quote }}
+        # Health check configuration
+        - name: HEALTH_CHECK_ADDRESS
+          value: ":{{ .Values.healthCheck.port }}"
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.livenessProbe.path }}
+            port: {{ .Values.healthCheck.port }}
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.readinessProbe.path }}
+            port: {{ .Values.healthCheck.port }}
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+
+
+

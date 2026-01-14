@@ -1,0 +1,9 @@
+apiVersion: v2
+name: fabric-namespace
+description: Kubernetes namespace for Hyperledger Fabric deployments
+type: application
+version: 1.0.0
+appVersion: "1.0"
+maintainers:
+  - name: MetaCensus Infrastructure Team
+

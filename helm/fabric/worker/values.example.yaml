@@ -1,0 +1,61 @@
+# Fabric Worker Configuration Example
+# This chart deploys a Temporal worker for managing Hyperledger Fabric resources
+
+# Organization identifier (e.g., "org1", "acme-corp")
+org: "org1"
+
+# Container image configuration
+image:
+  repository: metacensus/fabric-worker
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# Number of replicas
+replicas: 1
+
+# Temporal configuration
+temporal:
+  address: "temporal-frontend.temporal.svc.cluster.local:7233"
+  namespace: "fabric-org1"
+  taskQueue: "infra"
+
+# Vault configuration
+vault:
+  address: "http://vault.secrets.svc.cluster.local:8200"
+  role: "fabric-org1-worker"
+
+# Logging configuration
+logLevel: "info"
+
+# Health check configuration
+healthCheck:
+  port: 8080
+
+# Resource requests and limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Liveness probe configuration
+livenessProbe:
+  path: /health
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+# Readiness probe configuration
+readinessProbe:
+  path: /ready
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+# Common labels
+commonLabels:
+  managedBy: temporal
+  partOf: fabric
+
+
+

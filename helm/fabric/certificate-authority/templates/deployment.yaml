@@ -1,0 +1,120 @@
+{{- /*
+Certificate Authority Deployment
+Deploys Hyperledger Fabric CA server with access to:
+- Private key and certificate (from Vault)
+- Database credentials (from Vault)
+- Bootstrap admin credentials (from Vault)
+*/ -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "certificate-authority.name" . }}
+  namespace: {{ include "certificate-authority.namespace" . }}
+  labels:
+    {{- include "certificate-authority.commonLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{- include "certificate-authority.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "certificate-authority.commonLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "certificate-authority.name" . }}
+      containers:
+      - name: fabric-ca
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+        - sh
+        - -c
+        - |
+          # Create CA home directory and copy config with injected credentials
+          # NOTE: We use sed for credential injection because Fabric CA's Viper config
+          # does not support environment variable overrides for array elements like
+          # registry.identities[0].name. The FABRIC_CA_SERVER_REGISTRY_IDENTITIES_0_NAME
+          # syntax simply doesn't work. This is the recommended workaround.
+          mkdir -p /etc/hyperledger/fabric-ca-server
+          cp /etc/fabric-ca-config/fabric-ca-server-config.yaml /etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml
+          sed -i "s/BOOTSTRAP_ADMIN_NAME_PLACEHOLDER/${BOOTSTRAP_ADMIN_USERNAME}/g" /etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml
+          sed -i "s/BOOTSTRAP_ADMIN_PASS_PLACEHOLDER/${BOOTSTRAP_ADMIN_PASSWORD}/g" /etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml
+          exec fabric-ca-server start --home /etc/hyperledger/fabric-ca-server
+        ports:
+        - name: ca-server
+          containerPort: {{ .Values.service.port }}
+          protocol: TCP
+        env:
+        # Environment variables override config file values (configmap.yaml is source of truth for static config)
+        # Only use env vars here for SECRETS that cannot be stored in ConfigMap
+        # Ref: https://hyperledger-fabric-ca.readthedocs.io/en/latest/serverconfig.html
+        
+        # Database credentials (secrets) - must be defined BEFORE FABRIC_CA_SERVER_DB_DATASOURCE
+        # because Kubernetes $(VAR) expansion requires referenced vars to exist first
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "certificate-authority.name" . }}-secret
+              key: db-username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "certificate-authority.name" . }}-secret
+              key: db-password
+        # Database datasource - override db.datasource in config file
+        - name: FABRIC_CA_SERVER_DB_DATASOURCE
+          value: "host={{ .Values.database.host }} port={{ .Values.database.port }} user=$(DB_USERNAME) password=$(DB_PASSWORD) dbname={{ .Values.database.name }} sslmode=disable"
+        
+        # Bootstrap admin credentials (secrets) - injected via sed in startup script
+        # Viper array syntax doesn't work for Fabric CA, so we use placeholder substitution
+        - name: BOOTSTRAP_ADMIN_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "certificate-authority.name" . }}-secret
+              key: admin-username
+        - name: BOOTSTRAP_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "certificate-authority.name" . }}-secret
+              key: admin-password
+        
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9443
+            scheme: HTTP
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 9443
+            scheme: HTTP
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+        volumeMounts:
+        - name: vault-secrets
+          mountPath: /mnt/secrets-store
+          readOnly: true
+        - name: ca-config
+          mountPath: /etc/fabric-ca-config
+          readOnly: true
+      volumes:
+      - name: vault-secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: {{ include "certificate-authority.name" . }}-vault
+      - name: ca-config
+        configMap:
+          name: {{ include "certificate-authority.name" . }}-config
+
+
+
+

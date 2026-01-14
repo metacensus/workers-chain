@@ -1,0 +1,24 @@
+{{- /*
+Certificate Store Service
+Provides a stable network endpoint for PostgreSQL database access.
+*/ -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "certificate-store.serviceName" . }}
+  namespace: {{ include "certificate-store.namespace" . }}
+  labels:
+    {{- include "certificate-store.commonLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  clusterIP: None  # Headless service for StatefulSet
+  ports:
+  - name: postgres
+    port: {{ .Values.service.port }}
+    targetPort: postgres
+    protocol: TCP
+  selector:
+    {{- include "certificate-store.selectorLabels" . | nindent 4 }}
+
+
+

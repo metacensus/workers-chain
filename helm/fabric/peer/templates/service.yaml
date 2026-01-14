@@ -1,0 +1,30 @@
+{{- /*
+Peer Service
+Provides a stable network endpoint for peer gRPC, chaincode, and operations access.
+*/ -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "peer.serviceName" . }}
+  namespace: {{ include "peer.namespace" . }}
+  labels:
+    {{- include "peer.commonLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  clusterIP: None  # Headless service for StatefulSet
+  ports:
+  - name: grpc
+    port: {{ .Values.service.port }}
+    targetPort: grpc
+    protocol: TCP
+  - name: chaincode
+    port: {{ .Values.service.chaincodePort }}
+    targetPort: chaincode
+    protocol: TCP
+  - name: operations
+    port: {{ .Values.service.operationsPort }}
+    targetPort: operations
+    protocol: TCP
+  selector:
+    {{- include "peer.selectorLabels" . | nindent 4 }}
+

@@ -1,0 +1,24 @@
+{{- /*
+Certificate Authority Service
+Exposes the CA server for certificate enrollment and management operations
+*/ -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "certificate-authority.serviceName" . }}
+  namespace: {{ include "certificate-authority.namespace" . }}
+  labels:
+    {{- include "certificate-authority.commonLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "certificate-authority.selectorLabels" . | nindent 4 }}
+  ports:
+  - name: ca-server
+    port: {{ .Values.service.port }}
+    targetPort: ca-server
+    protocol: TCP
+
+
+
+

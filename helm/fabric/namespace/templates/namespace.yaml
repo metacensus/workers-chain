@@ -1,0 +1,12 @@
+{{- /*
+Kubernetes Namespace for Fabric components
+This chart creates the namespace where all Fabric components will be deployed.
+Should be deployed once per organization before any other Fabric charts.
+*/ -}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "fabric.namespace" . }}
+  labels:
+    {{- include "fabric.commonLabels" . | nindent 4 }}
+

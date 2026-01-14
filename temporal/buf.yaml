@@ -1,0 +1,24 @@
+version: v2
+modules:
+  - path: proto/workflows
+deps:
+  - buf.build/bergundy/nexus
+  - buf.build/cludden/protoc-gen-go-temporal
+  - buf.build/alta/protopatch
+lint:
+  use:
+    - STANDARD
+  # Allow some flexibility for existing proto files
+  # We use Input/Output naming instead of Request/Response for Temporal workflows
+  except:
+    - SERVICE_SUFFIX
+    - RPC_REQUEST_STANDARD_NAME
+    - RPC_RESPONSE_STANDARD_NAME
+    - RPC_REQUEST_RESPONSE_UNIQUE
+    - ENUM_VALUE_PREFIX
+    - ENUM_ZERO_VALUE_SUFFIX
+    - PACKAGE_DIRECTORY_MATCH
+  disallow_comment_ignores: false
+breaking:
+  use:
+    - FILE

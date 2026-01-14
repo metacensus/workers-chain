@@ -1,0 +1,18 @@
+Service/Entity,Org: Purpose,Org: Issued By,Org: Notes,TLS: Purpose,TLS: Issued By,TLS: Notes
+TLS Root CA,—,—,—,CA Signing,Self-signed,Offline after bootstrap
+TLS Root CA,—,—,—,Server TLS,Self-signed,For CA's HTTPS endpoint
+TLS Int CA,—,—,—,CA Signing,TLS Root CA,Signs all TLS certs
+TLS Int CA,—,—,—,Server TLS,TLS Root CA,For CA's HTTPS endpoint
+TLS Root CA Admin,—,—,—,Identity,TLS Root CA,TLS Root; admin privs
+TLS Root CA Admin,—,—,—,Client TLS,TLS Root CA,TLS Root; admin privs
+TLS Int CA Admin,—,—,—,Identity,TLS Int CA,Admin privs on TLS Int CA (must be in CA's database)
+TLS Int CA Admin,—,—,—,Client TLS,TLS Int CA,mTLS to TLS Int CA
+Org Root CA,CA Signing,Self-signed,Offline after bootstrap,Server TLS,TLS Int CA,For CA's HTTPS endpoint
+Org Int CA,CA Signing,Org Root CA,Signs all identity certs,Server TLS,TLS Int CA,For CA's HTTPS endpoint
+Org Root CA Admin,Identity,Org Root CA,Admin privs on Org Root CA (must be in CA's database),Client TLS,TLS Int CA,mTLS to Org Root CA
+Org Int CA Admin,Identity,Org Int CA,Admin privs on Org Int CA (must be in CA's database),Client TLS,TLS Int CA,mTLS to Org Int CA
+Orderer _,Identity,Org Int CA,MSP signing,Server/Client TLS,TLS Int CA,mTLS with peers and orderers
+Peer _,Identity,Org Int CA,Endorsement signing,Server/Client TLS,TLS Int CA,mTLS with orderers and clients
+Org Admin,Identity,Org Int CA,Channel/chaincode ops,Client TLS,TLS Int CA,mTLS to peers and orderers
+Chaincode,—,—,—,Server TLS,TLS Int CA,Peer-to-chaincode mTLS
+Client App,Identity,Org Int CA,Transaction signing,Client TLS,TLS Int CA,mTLS to peers and orderers

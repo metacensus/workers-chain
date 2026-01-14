@@ -1,0 +1,38 @@
+version: v2
+managed:
+  enabled: true
+plugins:
+  # Generate standard Go protobuf types with custom struct tag patching
+  # protoc-gen-go-patch wraps protoc-gen-go and patches the output
+  - local: protoc-gen-go-patch
+    out: gen/workflows
+    opt:
+      - paths=source_relative
+      - plugin=go
+  # Generate Nexus handler interface and service constants
+  - local: protoc-gen-go-nexus
+    out: gen/workflows
+    opt:
+      - include-service-tags=nexus-enabled
+      - exclude-operation-tags=activity
+      - paths=source_relative
+  # Generate Nexus workflow client for calling Nexus from workflows
+  - local: protoc-gen-go-nexus-temporal
+    out: gen/workflows
+    opt:
+      - include-service-tags=nexus-enabled
+      - exclude-operation-tags=activity
+      - paths=source_relative
+  # Generate Temporal workflow/activity stubs
+  - local: protoc-gen-go_temporal
+    out: gen/workflows
+    opt:
+      - docs-out=./proto/README.md
+      - nexus=true
+      - nexus-include-service-tags=nexus-enabled
+      - nexus-exclude-operation-tags=activity
+      - enable-patch-support=true
+      - paths=source_relative
+    strategy: all
+inputs:
+  - directory: proto/workflows

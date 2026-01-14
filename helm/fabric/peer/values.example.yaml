@@ -1,0 +1,95 @@
+# Fabric Peer Configuration
+# This chart deploys a Hyperledger Fabric peer node
+
+# Organization identifier (e.g., "org1", "acme-corp")
+org: "org1"
+
+# Peer identifier (e.g., "peer0", "peer1")
+peerId: "peer0"
+
+# Container image configuration
+image:
+  repository: hyperledger/fabric-peer
+  tag: "2.5.0"
+  pullPolicy: IfNotPresent
+
+# Number of replicas (1 per StatefulSet - scale by adding peers)
+replicas: 1
+
+# MSP configuration
+msp:
+  id: "org1MSP"
+
+# Vault configuration for CSI driver
+vault:
+  roleName: "fabric-org1-peer0"
+  mspSigningPath: "secret/data/fabric/org1/peer/peer0/signing"
+  mspRootCaCertPath: "secret/data/fabric/org1/ca/org/root/signing"
+  mspIntCaCertPath: "secret/data/fabric/org1/ca/org/v1/signing"
+  tlsPath: "secret/data/fabric/org1/peer/peer0/tls"
+  tlsRootCaCertPath: "secret/data/fabric/org1/ca/tls/root/signing"
+  tlsIntCaCertPath: "secret/data/fabric/org1/ca/tls/v1/signing"
+  couchdbPath: "secret/data/fabric/org1/couchdb/peer0/admin"
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 7051
+  chaincodePort: 7052
+  operationsPort: 9443
+
+# Gossip protocol configuration
+gossip:
+  bootstrap: ""
+  externalEndpoint: "peer0.fabric-org1.svc.cluster.local:7051"
+
+# CouchDB state database
+couchdb:
+  address: "couchdb-peer0.fabric-org1.svc.cluster.local:5984"
+
+# Persistence configuration
+persistence:
+  storageClass: ""
+  accessModes:
+  - ReadWriteOnce
+  size: 20Gi
+
+# Logging configuration
+logging:
+  level: INFO
+
+# Resource requests and limits
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+
+# Startup probe configuration - runs first, gives container time to initialize
+startupProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30  # 30 * 10s = 5 minutes to start
+
+# Liveness probe configuration - only runs after startup probe succeeds
+livenessProbe:
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6  # 6 failures = 60 seconds before restart
+
+# Readiness probe configuration
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Common labels applied to all resources
+commonLabels:
+  managedBy: temporal
+  partOf: fabric
+

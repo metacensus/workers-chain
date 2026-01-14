@@ -1,0 +1,372 @@
+package kube
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+
+	pb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
+	"github.com/metacensus/infra/temporal/lib/workers/config"
+)
+
+// ResourceStatus represents the current state of a resource
+type ResourceStatus struct {
+	Ready           bool
+	Message         string
+	DesiredReplicas int32
+	ReadyReplicas   int32
+}
+
+// KubeClient defines the interface for Kubernetes operations
+// This is a pure API wrapper - no YAML parsing, assumes caller provides correct data
+type KubeClient interface {
+	// CreateResource creates a new resource (fails if already exists)
+	CreateResource(ctx context.Context, id *pb.ResourceIdentifier, obj *unstructured.Unstructured) error
+
+	// UpdateResource updates an existing resource (fails if not found)
+	UpdateResource(ctx context.Context, id *pb.ResourceIdentifier, obj *unstructured.Unstructured) error
+
+	// ApplyResource creates or updates a resource (upsert behavior)
+	// This is a convenience method that tries update first, then create
+	ApplyResource(ctx context.Context, id *pb.ResourceIdentifier, obj *unstructured.Unstructured) error
+
+	// DeleteResource removes a resource (succeeds even if not found)
+	DeleteResource(ctx context.Context, id *pb.ResourceIdentifier) error
+
+	// GetResourceStatus queries the current status of a resource
+	// Returns error if resource doesn't exist or can't determine status
+	GetResourceStatus(ctx context.Context, id *pb.ResourceIdentifier) (*ResourceStatus, error)
+}
+
+// kubeClient implements KubeClient using client-go
+type kubeClient struct {
+	dynamicClient dynamic.Interface
+	typedClient   kubernetes.Interface
+}
+
+// NewKubeClient creates a new Kubernetes client with the given configuration
+func NewKubeClient(cfg *config.KubernetesConfig) (KubeClient, error) {
+	var restConfig *rest.Config
+	var err error
+
+	if cfg.KubeconfigPath != "" {
+		restConfig, err = clientcmd.BuildConfigFromFlags("", cfg.KubeconfigPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load kubeconfig from %s: %w", cfg.KubeconfigPath, err)
+		}
+	} else {
+		restConfig, err = rest.InClusterConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load in-cluster config: %w", err)
+		}
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	typedClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create typed client: %w", err)
+	}
+
+	return &kubeClient{
+		dynamicClient: dynamicClient,
+		typedClient:   typedClient,
+	}, nil
+}
+
+// CreateResource creates a new resource in the cluster
+func (kc *kubeClient) CreateResource(ctx context.Context, id *pb.ResourceIdentifier, obj *unstructured.Unstructured) error {
+	gvr := kc.parseGVR(id.ApiVersion, id.Kind)
+	resourceClient := kc.getResourceClient(gvr, id.Namespace)
+
+	_, err := resourceClient.Create(ctx, obj, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create resource: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateResource updates an existing resource in the cluster
+func (kc *kubeClient) UpdateResource(ctx context.Context, id *pb.ResourceIdentifier, obj *unstructured.Unstructured) error {
+	gvr := kc.parseGVR(id.ApiVersion, id.Kind)
+	resourceClient := kc.getResourceClient(gvr, id.Namespace)
+
+	_, err := resourceClient.Update(ctx, obj, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update resource: %w", err)
+	}
+
+	return nil
+}
+
+// ApplyResource creates or updates a resource (upsert behavior)
+func (kc *kubeClient) ApplyResource(ctx context.Context, id *pb.ResourceIdentifier, obj *unstructured.Unstructured) error {
+	// Try update first, then create if not found
+	err := kc.UpdateResource(ctx, id, obj)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return kc.CreateResource(ctx, id, obj)
+		}
+		return err
+	}
+
+	return nil
+}
+
+// DeleteResource removes a resource from the cluster
+func (kc *kubeClient) DeleteResource(ctx context.Context, id *pb.ResourceIdentifier) error {
+	gvr := kc.parseGVR(id.ApiVersion, id.Kind)
+	resourceClient := kc.getResourceClient(gvr, id.Namespace)
+
+	err := resourceClient.Delete(ctx, id.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to delete resource: %w", err)
+	}
+
+	return nil
+}
+
+// GetResourceStatus queries the current status of a resource
+func (kc *kubeClient) GetResourceStatus(ctx context.Context, id *pb.ResourceIdentifier) (*ResourceStatus, error) {
+	// Use typed client for known resource types with rich status
+	switch id.Kind {
+	case "Deployment":
+		return kc.getDeploymentStatus(ctx, id.Namespace, id.Name)
+	case "StatefulSet":
+		return kc.getStatefulSetStatus(ctx, id.Namespace, id.Name)
+	case "DaemonSet":
+		return kc.getDaemonSetStatus(ctx, id.Namespace, id.Name)
+	case "Pod":
+		return kc.getPodStatus(ctx, id.Namespace, id.Name)
+	default:
+		// For other resources, just check existence
+		return kc.checkExistence(ctx, id)
+	}
+}
+
+// Helper: Parse GVR from APIVersion and Kind
+func (kc *kubeClient) parseGVR(apiVersion, kind string) schema.GroupVersionResource {
+	group, version := parseAPIVersion(apiVersion)
+	resource := kindToResource(kind)
+
+	return schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: resource,
+	}
+}
+
+// Helper: Get resource client (namespaced or cluster-scoped)
+func (kc *kubeClient) getResourceClient(gvr schema.GroupVersionResource, namespace string) dynamic.ResourceInterface {
+	if namespace != "" {
+		return kc.dynamicClient.Resource(gvr).Namespace(namespace)
+	}
+	return kc.dynamicClient.Resource(gvr)
+}
+
+// Status checking implementations
+
+func (kc *kubeClient) getDeploymentStatus(ctx context.Context, namespace, name string) (*ResourceStatus, error) {
+	deployment, err := kc.typedClient.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get deployment: %w", err)
+	}
+
+	status := &ResourceStatus{
+		DesiredReplicas: *deployment.Spec.Replicas,
+		ReadyReplicas:   deployment.Status.ReadyReplicas,
+	}
+
+	if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas &&
+		deployment.Status.UpdatedReplicas == *deployment.Spec.Replicas {
+		status.Ready = true
+		status.Message = "all replicas ready"
+	} else if deployment.Status.ReadyReplicas > 0 {
+		status.Ready = false
+		status.Message = fmt.Sprintf("%d/%d replicas ready", deployment.Status.ReadyReplicas, *deployment.Spec.Replicas)
+	} else {
+		status.Ready = false
+		status.Message = "no replicas ready"
+	}
+
+	return status, nil
+}
+
+func (kc *kubeClient) getStatefulSetStatus(ctx context.Context, namespace, name string) (*ResourceStatus, error) {
+	statefulSet, err := kc.typedClient.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get statefulset: %w", err)
+	}
+
+	status := &ResourceStatus{
+		DesiredReplicas: *statefulSet.Spec.Replicas,
+		ReadyReplicas:   statefulSet.Status.ReadyReplicas,
+	}
+
+	if statefulSet.Status.ReadyReplicas == *statefulSet.Spec.Replicas &&
+		statefulSet.Status.UpdatedReplicas == *statefulSet.Spec.Replicas {
+		status.Ready = true
+		status.Message = "all replicas ready"
+	} else if statefulSet.Status.ReadyReplicas > 0 {
+		status.Ready = false
+		status.Message = fmt.Sprintf("%d/%d replicas ready", statefulSet.Status.ReadyReplicas, *statefulSet.Spec.Replicas)
+	} else {
+		status.Ready = false
+		status.Message = "no replicas ready"
+	}
+
+	return status, nil
+}
+
+func (kc *kubeClient) getDaemonSetStatus(ctx context.Context, namespace, name string) (*ResourceStatus, error) {
+	daemonSet, err := kc.typedClient.AppsV1().DaemonSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get daemonset: %w", err)
+	}
+
+	status := &ResourceStatus{
+		DesiredReplicas: daemonSet.Status.DesiredNumberScheduled,
+		ReadyReplicas:   daemonSet.Status.NumberReady,
+	}
+
+	if daemonSet.Status.NumberReady == daemonSet.Status.DesiredNumberScheduled {
+		status.Ready = true
+		status.Message = "all pods ready"
+	} else if daemonSet.Status.NumberReady > 0 {
+		status.Ready = false
+		status.Message = fmt.Sprintf("%d/%d pods ready", daemonSet.Status.NumberReady, daemonSet.Status.DesiredNumberScheduled)
+	} else {
+		status.Ready = false
+		status.Message = "no pods ready"
+	}
+
+	return status, nil
+}
+
+func (kc *kubeClient) getPodStatus(ctx context.Context, namespace, name string) (*ResourceStatus, error) {
+	pod, err := kc.typedClient.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pod: %w", err)
+	}
+
+	status := &ResourceStatus{}
+
+	switch pod.Status.Phase {
+	case corev1.PodRunning:
+		allReady := true
+		for _, cs := range pod.Status.ContainerStatuses {
+			if !cs.Ready {
+				allReady = false
+				break
+			}
+		}
+		status.Ready = allReady
+		if allReady {
+			status.Message = "all containers running"
+		} else {
+			status.Message = "not all containers ready"
+		}
+	case corev1.PodSucceeded:
+		status.Ready = true
+		status.Message = "pod completed successfully"
+	case corev1.PodFailed:
+		status.Ready = false
+		status.Message = fmt.Sprintf("pod failed: %s", pod.Status.Message)
+	case corev1.PodPending:
+		status.Ready = false
+		status.Message = fmt.Sprintf("pod pending: %s", pod.Status.Message)
+	default:
+		status.Ready = false
+		status.Message = "unknown pod phase"
+	}
+
+	return status, nil
+}
+
+func (kc *kubeClient) checkExistence(ctx context.Context, id *pb.ResourceIdentifier) (*ResourceStatus, error) {
+	gvr := kc.parseGVR(id.ApiVersion, id.Kind)
+	resourceClient := kc.getResourceClient(gvr, id.Namespace)
+
+	_, err := resourceClient.Get(ctx, id.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("resource not found or inaccessible: %w", err)
+	}
+
+	// Resource exists, but we don't have detailed status
+	return &ResourceStatus{
+		Ready:   true,
+		Message: "resource exists",
+	}, nil
+}
+
+// Utility functions
+
+// parseAPIVersion splits "group/version" or "version" into components
+func parseAPIVersion(apiVersion string) (group, version string) {
+	parts := strings.SplitN(apiVersion, "/", 2)
+	if len(parts) == 2 {
+		return parts[0], parts[1]
+	}
+	return "", apiVersion // Core API group
+}
+
+// kindToResource converts Kind to resource name (lowercase plural)
+// Uses explicit mapping for known types, falls back to simple pluralization
+func kindToResource(kind string) string {
+	// Explicit mappings for common Kubernetes resources
+	commonResources := map[string]string{
+		"Namespace":             "namespaces",
+		"Pod":                   "pods",
+		"Service":               "services",
+		"Deployment":            "deployments",
+		"StatefulSet":           "statefulsets",
+		"DaemonSet":             "daemonsets",
+		"ReplicaSet":            "replicasets",
+		"Job":                   "jobs",
+		"CronJob":               "cronjobs",
+		"ConfigMap":             "configmaps",
+		"Secret":                "secrets",
+		"PersistentVolume":      "persistentvolumes",
+		"PersistentVolumeClaim": "persistentvolumeclaims",
+		"ServiceAccount":        "serviceaccounts",
+		"Role":                  "roles",
+		"RoleBinding":           "rolebindings",
+		"ClusterRole":           "clusterroles",
+		"ClusterRoleBinding":    "clusterrolebindings",
+		"Ingress":               "ingresses",
+		"NetworkPolicy":         "networkpolicies",
+		"Endpoints":             "endpoints",
+		"SecretProviderClass":   "secretproviderclasses", // Vault CSI driver
+	}
+
+	if resource, ok := commonResources[kind]; ok {
+		return resource
+	}
+
+	// Fallback: simple lowercase + 's'
+	return strings.ToLower(kind) + "s"
+}
+
+// TODO: Implement wait functionality
+// func (kc *kubeClient) waitForResource(ctx context.Context, id ResourceIdentifier, timeout time.Duration) error {
+//   - Poll GetResourceStatus until Ready or timeout
+//   - Return error if timeout expires
+// }
+
+// TODO: Implement parallel operations at activity layer
+// - Activities can spawn goroutines to call ApplyResource/DeleteResource concurrently
+// - Collect results and aggregate into response

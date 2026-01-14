@@ -1,0 +1,15 @@
+# Namespace where the ServiceAccount will be created (should match org-specific namespace)
+namespace: fabric-example-org
+
+# ServiceAccount name for the fabric worker in this org
+serviceAccountName: fabric-worker-example-org
+
+# Role name for RBAC permissions
+roleName: fabric-worker-example-org
+
+# Common labels to apply to all resources
+commonLabels:
+  managedBy: helm
+  partOf: fabric
+
+
