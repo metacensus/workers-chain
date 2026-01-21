@@ -9,6 +9,7 @@ package cellv1
 import (
 	_ "github.com/alta/protopatch/patch/gopb"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
+	v1 "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -102,7 +103,10 @@ type InitFabricShardInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// org is the organization identifier (e.g., "org1", "acme-corp")
 	// Used to derive namespace names: Temporal namespace "fabric-{org}", K8s namespace "fabric-{org}"
-	Org           string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
+	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
+	// deployment is the Fabric deployment configuration (required)
+	// Specifies all CAs, peers, and orderers to deploy for this shard
+	Deployment    *v1.OrgFabricDeployment `protobuf:"bytes,2,opt,name=deployment,json=Deployment,proto3" json:"Deployment" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -142,6 +146,13 @@ func (x *InitFabricShardInput) GetOrg() string {
 		return x.Org
 	}
 	return ""
+}
+
+func (x *InitFabricShardInput) GetDeployment() *v1.OrgFabricDeployment {
+	if x != nil {
+		return x.Deployment
+	}
+	return nil
 }
 
 // InitFabricShardOutput indicates the result of shard initialization
@@ -185,11 +196,14 @@ var File_cell_v1_cell_proto protoreflect.FileDescriptor
 
 const file_cell_v1_cell_proto_rawDesc = "" +
 	"\n" +
-	"\x12cell/v1/cell.proto\x12\acell.v1\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\x15\n" +
+	"\x12cell/v1/cell.proto\x12\acell.v1\x1a\x16fabric/v1/fabric.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\x15\n" +
 	"\x13BootstrapInfraInput\"\x16\n" +
-	"\x14BootstrapInfraOutput\"O\n" +
+	"\x14BootstrapInfraOutput\"\xbd\x01\n" +
 	"\x14InitFabricShardInput\x127\n" +
-	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\"\x17\n" +
+	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12l\n" +
+	"\n" +
+	"deployment\x18\x02 \x01(\v2\x1e.fabric.v1.OrgFabricDeploymentB,ʵ\x03(\xa2\x01%json:\"Deployment\" validate:\"required\"R\n" +
+	"Deployment\"\x17\n" +
 	"\x15InitFabricShardOutput2\xaf\x02\n" +
 	"\x04Cell\x12\x83\x01\n" +
 	"\x0eBootstrapInfra\x12\x1c.cell.v1.BootstrapInfraInput\x1a\x1d.cell.v1.BootstrapInfraOutput\"4\x8a\xc4\x030*\x14cell/bootstrap-infra0\x01r\x16cell.v1.BootstrapInfra\x12\x93\x01\n" +
@@ -211,21 +225,23 @@ func file_cell_v1_cell_proto_rawDescGZIP() []byte {
 
 var file_cell_v1_cell_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_cell_v1_cell_proto_goTypes = []any{
-	(*BootstrapInfraInput)(nil),   // 0: cell.v1.BootstrapInfraInput
-	(*BootstrapInfraOutput)(nil),  // 1: cell.v1.BootstrapInfraOutput
-	(*InitFabricShardInput)(nil),  // 2: cell.v1.InitFabricShardInput
-	(*InitFabricShardOutput)(nil), // 3: cell.v1.InitFabricShardOutput
+	(*BootstrapInfraInput)(nil),    // 0: cell.v1.BootstrapInfraInput
+	(*BootstrapInfraOutput)(nil),   // 1: cell.v1.BootstrapInfraOutput
+	(*InitFabricShardInput)(nil),   // 2: cell.v1.InitFabricShardInput
+	(*InitFabricShardOutput)(nil),  // 3: cell.v1.InitFabricShardOutput
+	(*v1.OrgFabricDeployment)(nil), // 4: fabric.v1.OrgFabricDeployment
 }
 var file_cell_v1_cell_proto_depIdxs = []int32{
-	0, // 0: cell.v1.Cell.BootstrapInfra:input_type -> cell.v1.BootstrapInfraInput
-	2, // 1: cell.v1.Cell.InitFabricShard:input_type -> cell.v1.InitFabricShardInput
-	1, // 2: cell.v1.Cell.BootstrapInfra:output_type -> cell.v1.BootstrapInfraOutput
-	3, // 3: cell.v1.Cell.InitFabricShard:output_type -> cell.v1.InitFabricShardOutput
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	4, // 0: cell.v1.InitFabricShardInput.deployment:type_name -> fabric.v1.OrgFabricDeployment
+	0, // 1: cell.v1.Cell.BootstrapInfra:input_type -> cell.v1.BootstrapInfraInput
+	2, // 2: cell.v1.Cell.InitFabricShard:input_type -> cell.v1.InitFabricShardInput
+	1, // 3: cell.v1.Cell.BootstrapInfra:output_type -> cell.v1.BootstrapInfraOutput
+	3, // 4: cell.v1.Cell.InitFabricShard:output_type -> cell.v1.InitFabricShardOutput
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_cell_v1_cell_proto_init() }

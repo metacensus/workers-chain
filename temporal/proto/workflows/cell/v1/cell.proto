@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package cell.v1;
 
+import "fabric/v1/fabric.proto";
 import "patch/go.proto";
 import "temporal/v1/temporal.proto";
 
@@ -30,15 +31,6 @@ service Cell {
   }
 
   // InitFabricShard orchestrates the complete initialization of a Fabric shard
-  // This root workflow executes in the central "infra" namespace and coordinates:
-  // 1. Creation of a Temporal namespace for the shard (temporal.v1.CreateNamespace)
-  // 2. Creation of a Kubernetes namespace for the shard (cluster.v1.CreateNamespace)
-  // 3. Creation of a service account for the fabric worker (cluster.v1.CreateServiceAccount)
-  // 4. Creation of Vault access policies for the shard (vault.v1.CreateAccess)
-  // 5. Deployment of the fabric worker pod (cluster.v1.CreateDeployment)
-  // 6. Registration of the Nexus endpoint for fabric.v1.BootstrapShard service
-  // 7. Cross-namespace Nexus call to BootstrapShard workflow in fabric namespace
-  //
   // This workflow is the "hub" that orchestrates the multi-phase bootstrap process.
   // Phase 1 (central): Sets up infrastructure prerequisites
   // Phase 2 (fabric worker): Initiated via Nexus, deploys Fabric components (CAs, peers, orderers)
@@ -73,6 +65,13 @@ message InitFabricShardInput {
   string org = 1 [
     json_name = "Org",
     (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
+  // deployment is the Fabric deployment configuration (required)
+  // Specifies all CAs, peers, and orderers to deploy for this shard
+  fabric.v1.OrgFabricDeployment deployment = 2 [
+    json_name = "Deployment",
+    (go.field).tags = 'json:"Deployment" validate:"required"'
   ];
 }
 

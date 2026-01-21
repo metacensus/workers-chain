@@ -33,51 +33,38 @@ var FabricTaskQueue = "infra"
 
 // fabric.v1.Fabric workflow names
 const (
-	BootstrapCertificateAuthoritiesWorkflowName = "fabric.v1.BootstrapCertificateAuthorities"
-	BootstrapShardWorkflowName                  = "fabric.v1.BootstrapShard"
-	CreateAdminWorkflowName                     = "fabric.v1.CreateAdmin"
-	CreateBootstrapAdminWorkflowName            = "fabric.v1.CreateBootstrapAdmin"
-	CreateCertificateWorkflowName               = "fabric.v1.CreateCertificate"
-	CreateCertificateDatabaseWorkflowName       = "fabric.v1.CreateCertificateDatabase"
-	CreateIdentityWorkflowName                  = "fabric.v1.CreateIdentity"
-	DeployCertificateAuthorityWorkflowName      = "fabric.v1.DeployCertificateAuthority"
-	DeployCertificateStoreWorkflowName          = "fabric.v1.DeployCertificateStore"
-	DeployChainCodeWorkflowName                 = "fabric.v1.DeployChainCode"
-	DeployCouchDbWorkflowName                   = "fabric.v1.DeployCouchDb"
-	DeployOrdererWorkflowName                   = "fabric.v1.DeployOrderer"
-	DeployPeerWorkflowName                      = "fabric.v1.DeployPeer"
+	BootstrapShardWorkflowName             = "fabric.v1.BootstrapShard"
+	CreateAdminWorkflowName                = "fabric.v1.CreateAdmin"
+	CreateBootstrapAdminWorkflowName       = "fabric.v1.CreateBootstrapAdmin"
+	CreateCertificateWorkflowName          = "fabric.v1.CreateCertificate"
+	CreateCertificateDatabaseWorkflowName  = "fabric.v1.CreateCertificateDatabase"
+	CreateIdentityWorkflowName             = "fabric.v1.CreateIdentity"
+	DeployCertificateAuthorityWorkflowName = "fabric.v1.DeployCertificateAuthority"
+	DeployCertificateStoreWorkflowName     = "fabric.v1.DeployCertificateStore"
+	DeployChainCodeWorkflowName            = "fabric.v1.DeployChainCode"
+	DeployCouchDbWorkflowName              = "fabric.v1.DeployCouchDb"
+	DeployOrdererWorkflowName              = "fabric.v1.DeployOrderer"
+	DeployPeerWorkflowName                 = "fabric.v1.DeployPeer"
 )
 
 // fabric.v1.Fabric workflow id expressions
 var (
-	BootstrapCertificateAuthoritiesIdexpression = expression.MustParseExpression("fabric/bootstrap-certificate-authorities")
-	BootstrapShardIdexpression                  = expression.MustParseExpression("fabric/bootstrap-shard")
-	CreateAdminIdexpression                     = expression.MustParseExpression("fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }")
-	CreateBootstrapAdminIdexpression            = expression.MustParseExpression("fabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }")
-	CreateCertificateIdexpression               = expression.MustParseExpression("fabric/create-certificate/${! Purpose }")
-	CreateCertificateDatabaseIdexpression       = expression.MustParseExpression("fabric/create-certificate-database/${! CaRef.CertType }/${! CaRef.Id }")
-	CreateIdentityIdexpression                  = expression.MustParseExpression("fabric/create-identity/${! IdentityName }")
-	DeployCertificateAuthorityIdexpression      = expression.MustParseExpression("fabric/deploy-certificate-authority/${! CaRef.CertType }/${! CaRef.Id }")
-	DeployCertificateStoreIdexpression          = expression.MustParseExpression("fabric/deploy-certificate-store")
-	DeployChainCodeIdexpression                 = expression.MustParseExpression("fabric/deploy-chaincode/${! ChainCodeId }")
-	DeployCouchDbIdexpression                   = expression.MustParseExpression("fabric/deploy-couchdb/${! PeerId }")
-	DeployOrdererIdexpression                   = expression.MustParseExpression("fabric/deploy-orderer/${! OrdererId }")
-	DeployPeerIdexpression                      = expression.MustParseExpression("fabric/deploy-peer/${! PeerId }")
+	BootstrapShardIdexpression             = expression.MustParseExpression("fabric/bootstrap-shard")
+	CreateAdminIdexpression                = expression.MustParseExpression("fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }")
+	CreateBootstrapAdminIdexpression       = expression.MustParseExpression("fabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }")
+	CreateCertificateIdexpression          = expression.MustParseExpression("fabric/create-certificate/${! Purpose }")
+	CreateCertificateDatabaseIdexpression  = expression.MustParseExpression("fabric/create-certificate-database/${! CaRef.CertType }/${! CaRef.Id }")
+	CreateIdentityIdexpression             = expression.MustParseExpression("fabric/create-identity/${! IdentityName }")
+	DeployCertificateAuthorityIdexpression = expression.MustParseExpression("fabric/deploy-certificate-authority/${! Spec.Self.CertType }/${! Spec.Self.Id }")
+	DeployCertificateStoreIdexpression     = expression.MustParseExpression("fabric/deploy-certificate-store")
+	DeployChainCodeIdexpression            = expression.MustParseExpression("fabric/deploy-chaincode/${! ChainCodeId }")
+	DeployCouchDbIdexpression              = expression.MustParseExpression("fabric/deploy-couchdb/${! PeerId }")
+	DeployOrdererIdexpression              = expression.MustParseExpression("fabric/deploy-orderer/${! Spec.Id }")
+	DeployPeerIdexpression                 = expression.MustParseExpression("fabric/deploy-peer/${! Spec.Id }")
 )
 
 // FabricClient describes a client for a(n) fabric.v1.Fabric worker
 type FabricClient interface {
-	// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
-	// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
-	// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
-	BootstrapCertificateAuthorities(ctx context.Context, req *BootstrapCertificateAuthoritiesInput, opts ...*BootstrapCertificateAuthoritiesOptions) (*BootstrapCertificateAuthoritiesOutput, error)
-
-	// BootstrapCertificateAuthoritiesAsync starts a(n) fabric.v1.BootstrapCertificateAuthorities workflow and returns a handle to the workflow run
-	BootstrapCertificateAuthoritiesAsync(ctx context.Context, req *BootstrapCertificateAuthoritiesInput, opts ...*BootstrapCertificateAuthoritiesOptions) (BootstrapCertificateAuthoritiesRun, error)
-
-	// GetBootstrapCertificateAuthorities retrieves a handle to an existing fabric.v1.BootstrapCertificateAuthorities workflow execution
-	GetBootstrapCertificateAuthorities(ctx context.Context, workflowID string, runID string) BootstrapCertificateAuthoritiesRun
-
 	// BootstrapShard is the entry point for Phase 2 of shard initialization
 	// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
 	// and deploys all Fabric components (CAs, peers, orderers) for the organization.
@@ -277,52 +264,6 @@ func (opts *fabricClientOptions) getLogger() *slog.Logger {
 		return opts.log
 	}
 	return slog.Default()
-}
-
-// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
-// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
-// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
-func (c *fabricClient) BootstrapCertificateAuthorities(ctx context.Context, req *BootstrapCertificateAuthoritiesInput, options ...*BootstrapCertificateAuthoritiesOptions) (*BootstrapCertificateAuthoritiesOutput, error) {
-	run, err := c.BootstrapCertificateAuthoritiesAsync(ctx, req, options...)
-	if err != nil {
-		return nil, err
-	}
-	return run.Get(ctx)
-}
-
-// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
-// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
-// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
-func (c *fabricClient) BootstrapCertificateAuthoritiesAsync(ctx context.Context, req *BootstrapCertificateAuthoritiesInput, options ...*BootstrapCertificateAuthoritiesOptions) (BootstrapCertificateAuthoritiesRun, error) {
-	var o *BootstrapCertificateAuthoritiesOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewBootstrapCertificateAuthoritiesOptions()
-	}
-	opts, err := o.Build(req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
-	}
-	run, err := c.client.ExecuteWorkflow(ctx, opts, BootstrapCertificateAuthoritiesWorkflowName, req)
-	if err != nil {
-		return nil, err
-	}
-	if run == nil {
-		return nil, errors.New("execute workflow returned nil run")
-	}
-	return &bootstrapCertificateAuthoritiesRun{
-		client: c,
-		run:    run,
-	}, nil
-}
-
-// GetBootstrapCertificateAuthorities fetches an existing fabric.v1.BootstrapCertificateAuthorities execution
-func (c *fabricClient) GetBootstrapCertificateAuthorities(ctx context.Context, workflowID string, runID string) BootstrapCertificateAuthoritiesRun {
-	return &bootstrapCertificateAuthoritiesRun{
-		client: c,
-		run:    c.client.GetWorkflow(ctx, workflowID, runID),
-	}
 }
 
 // BootstrapShard is the entry point for Phase 2 of shard initialization
@@ -879,189 +820,6 @@ func (c *fabricClient) CancelWorkflow(ctx context.Context, workflowID string, ru
 // TerminateWorkflow terminates an existing workflow execution
 func (c *fabricClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
 	return c.client.TerminateWorkflow(ctx, workflowID, runID, reason, details...)
-}
-
-// BootstrapCertificateAuthoritiesOptions provides configuration for a fabric.v1.BootstrapCertificateAuthorities workflow operation
-type BootstrapCertificateAuthoritiesOptions struct {
-	options                  client.StartWorkflowOptions
-	executionTimeout         *time.Duration
-	id                       *string
-	idReusePolicy            enumsv1.WorkflowIdReusePolicy
-	retryPolicy              *temporal.RetryPolicy
-	runTimeout               *time.Duration
-	searchAttributes         map[string]any
-	taskQueue                *string
-	taskTimeout              *time.Duration
-	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
-}
-
-// NewBootstrapCertificateAuthoritiesOptions initializes a new BootstrapCertificateAuthoritiesOptions value
-func NewBootstrapCertificateAuthoritiesOptions() *BootstrapCertificateAuthoritiesOptions {
-	return &BootstrapCertificateAuthoritiesOptions{}
-}
-
-// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
-func (o *BootstrapCertificateAuthoritiesOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
-	opts := o.options
-	if v := o.id; v != nil {
-		opts.ID = *v
-	} else if opts.ID == "" {
-		id, err := expression.EvalExpression(BootstrapCertificateAuthoritiesIdexpression, req)
-		if err != nil {
-			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", BootstrapCertificateAuthoritiesWorkflowName, err)
-		}
-		opts.ID = id
-	}
-	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = v
-	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-	}
-	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
-		opts.WorkflowIDConflictPolicy = v
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = FabricTaskQueue
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.searchAttributes; v != nil {
-		opts.SearchAttributes = o.searchAttributes
-	}
-	if v := o.executionTimeout; v != nil {
-		opts.WorkflowExecutionTimeout = *v
-	}
-	if v := o.runTimeout; v != nil {
-		opts.WorkflowRunTimeout = *v
-	}
-	if v := o.taskTimeout; v != nil {
-		opts.WorkflowTaskTimeout = *v
-	}
-	return opts, nil
-}
-
-// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
-func (o *BootstrapCertificateAuthoritiesOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *BootstrapCertificateAuthoritiesOptions {
-	o.options = options
-	return o
-}
-
-// WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *BootstrapCertificateAuthoritiesOptions) WithExecutionTimeout(d time.Duration) *BootstrapCertificateAuthoritiesOptions {
-	o.executionTimeout = &d
-	return o
-}
-
-// WithID sets the ID value
-func (o *BootstrapCertificateAuthoritiesOptions) WithID(id string) *BootstrapCertificateAuthoritiesOptions {
-	o.id = &id
-	return o
-}
-
-// WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *BootstrapCertificateAuthoritiesOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *BootstrapCertificateAuthoritiesOptions {
-	o.idReusePolicy = policy
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *BootstrapCertificateAuthoritiesOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *BootstrapCertificateAuthoritiesOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithRunTimeout sets the WorkflowRunTimeout value
-func (o *BootstrapCertificateAuthoritiesOptions) WithRunTimeout(d time.Duration) *BootstrapCertificateAuthoritiesOptions {
-	o.runTimeout = &d
-	return o
-}
-
-// WithSearchAttributes sets the SearchAttributes value
-func (o *BootstrapCertificateAuthoritiesOptions) WithSearchAttributes(sa map[string]any) *BootstrapCertificateAuthoritiesOptions {
-	o.searchAttributes = sa
-	return o
-}
-
-// WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *BootstrapCertificateAuthoritiesOptions) WithTaskTimeout(d time.Duration) *BootstrapCertificateAuthoritiesOptions {
-	o.taskTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *BootstrapCertificateAuthoritiesOptions) WithTaskQueue(tq string) *BootstrapCertificateAuthoritiesOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *BootstrapCertificateAuthoritiesOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *BootstrapCertificateAuthoritiesOptions {
-	o.workflowIdConflictPolicy = policy
-	return o
-}
-
-// BootstrapCertificateAuthoritiesRun describes a(n) fabric.v1.BootstrapCertificateAuthorities workflow run
-type BootstrapCertificateAuthoritiesRun interface {
-	// ID returns the workflow ID
-	ID() string
-
-	// RunID returns the workflow instance ID
-	RunID() string
-
-	// Run returns the inner client.WorkflowRun
-	Run() client.WorkflowRun
-
-	// Get blocks until the workflow is complete and returns the result
-	Get(ctx context.Context) (*BootstrapCertificateAuthoritiesOutput, error)
-
-	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-	Cancel(ctx context.Context) error
-
-	// Terminate terminates a workflow in execution, returning an error if applicable
-	Terminate(ctx context.Context, reason string, details ...interface{}) error
-}
-
-// bootstrapCertificateAuthoritiesRun provides an internal implementation of a(n) BootstrapCertificateAuthoritiesRunRun
-type bootstrapCertificateAuthoritiesRun struct {
-	client *fabricClient
-	run    client.WorkflowRun
-}
-
-// ID returns the workflow ID
-func (r *bootstrapCertificateAuthoritiesRun) ID() string {
-	return r.run.GetID()
-}
-
-// Run returns the inner client.WorkflowRun
-func (r *bootstrapCertificateAuthoritiesRun) Run() client.WorkflowRun {
-	return r.run
-}
-
-// RunID returns the execution ID
-func (r *bootstrapCertificateAuthoritiesRun) RunID() string {
-	return r.run.GetRunID()
-}
-
-// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *bootstrapCertificateAuthoritiesRun) Cancel(ctx context.Context) error {
-	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
-}
-
-// Get blocks until the workflow is complete, returning the result if applicable
-func (r *bootstrapCertificateAuthoritiesRun) Get(ctx context.Context) (*BootstrapCertificateAuthoritiesOutput, error) {
-	var resp BootstrapCertificateAuthoritiesOutput
-	if err := r.run.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Terminate terminates a workflow in execution, returning an error if applicable
-func (r *bootstrapCertificateAuthoritiesRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
-	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
 // BootstrapShardOptions provides configuration for a fabric.v1.BootstrapShard workflow operation
@@ -3264,10 +3022,6 @@ func (r *deployPeerRun) Terminate(ctx context.Context, reason string, details ..
 var (
 	// fabricRegistrationMutex is a mutex for registering fabric.v1.Fabric workflows
 	fabricRegistrationMutex sync.Mutex
-	// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
-	// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
-	// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
-	BootstrapCertificateAuthoritiesFunction func(workflow.Context, *BootstrapCertificateAuthoritiesInput) (*BootstrapCertificateAuthoritiesOutput, error)
 	// BootstrapShard is the entry point for Phase 2 of shard initialization
 	// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
 	// and deploys all Fabric components (CAs, peers, orderers) for the organization.
@@ -3319,10 +3073,6 @@ var (
 type (
 	// FabricWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
 	FabricWorkflowFunctions interface {
-		// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
-		// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
-		// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
-		BootstrapCertificateAuthorities(workflow.Context, *BootstrapCertificateAuthoritiesInput) (*BootstrapCertificateAuthoritiesOutput, error)
 		// BootstrapShard is the entry point for Phase 2 of shard initialization
 		// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
 		// and deploys all Fabric components (CAs, peers, orderers) for the organization.
@@ -3375,16 +3125,6 @@ type (
 
 func NewFabricWorkflowFunctions() FabricWorkflowFunctions {
 	return &fabricWorkflowFunctions{}
-}
-
-// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
-// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
-// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
-func (f *fabricWorkflowFunctions) BootstrapCertificateAuthorities(ctx workflow.Context, req *BootstrapCertificateAuthoritiesInput) (*BootstrapCertificateAuthoritiesOutput, error) {
-	if BootstrapCertificateAuthoritiesFunction == nil {
-		return nil, errors.New("BootstrapCertificateAuthorities requires workflow registration via RegisterFabricWorkflows or RegisterBootstrapCertificateAuthoritiesWorkflow")
-	}
-	return BootstrapCertificateAuthoritiesFunction(ctx, req)
 }
 
 // BootstrapShard is the entry point for Phase 2 of shard initialization
@@ -3506,11 +3246,6 @@ func (f *fabricWorkflowFunctions) DeployPeer(ctx workflow.Context, req *DeployPe
 
 // FabricWorkflows provides methods for initializing new fabric.v1.Fabric workflow values
 type FabricWorkflows interface {
-	// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
-	// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
-	// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
-	BootstrapCertificateAuthorities(ctx workflow.Context, input *BootstrapCertificateAuthoritiesWorkflowInput) (BootstrapCertificateAuthoritiesWorkflow, error)
-
 	// BootstrapShard is the entry point for Phase 2 of shard initialization
 	// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
 	// and deploys all Fabric components (CAs, peers, orderers) for the organization.
@@ -3571,7 +3306,6 @@ type FabricWorkflows interface {
 
 // RegisterFabricWorkflows registers fabric.v1.Fabric workflows with the given worker
 func RegisterFabricWorkflows(r worker.WorkflowRegistry, workflows FabricWorkflows) {
-	RegisterBootstrapCertificateAuthoritiesWorkflow(r, workflows.BootstrapCertificateAuthorities)
 	RegisterBootstrapShardWorkflow(r, workflows.BootstrapShard)
 	RegisterCreateAdminWorkflow(r, workflows.CreateAdmin)
 	RegisterCreateBootstrapAdminWorkflow(r, workflows.CreateBootstrapAdmin)
@@ -3584,283 +3318,6 @@ func RegisterFabricWorkflows(r worker.WorkflowRegistry, workflows FabricWorkflow
 	RegisterDeployCouchDbWorkflow(r, workflows.DeployCouchDb)
 	RegisterDeployOrdererWorkflow(r, workflows.DeployOrderer)
 	RegisterDeployPeerWorkflow(r, workflows.DeployPeer)
-}
-
-// RegisterBootstrapCertificateAuthoritiesWorkflow registers a fabric.v1.Fabric.BootstrapCertificateAuthorities workflow with the given worker
-func RegisterBootstrapCertificateAuthoritiesWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *BootstrapCertificateAuthoritiesWorkflowInput) (BootstrapCertificateAuthoritiesWorkflow, error)) {
-	fabricRegistrationMutex.Lock()
-	defer fabricRegistrationMutex.Unlock()
-	BootstrapCertificateAuthoritiesFunction = buildBootstrapCertificateAuthorities(wf)
-	r.RegisterWorkflowWithOptions(BootstrapCertificateAuthoritiesFunction, workflow.RegisterOptions{Name: BootstrapCertificateAuthoritiesWorkflowName})
-}
-
-// buildBootstrapCertificateAuthorities converts a BootstrapCertificateAuthorities workflow struct into a valid workflow function
-func buildBootstrapCertificateAuthorities(ctor func(workflow.Context, *BootstrapCertificateAuthoritiesWorkflowInput) (BootstrapCertificateAuthoritiesWorkflow, error)) func(workflow.Context, *BootstrapCertificateAuthoritiesInput) (*BootstrapCertificateAuthoritiesOutput, error) {
-	return func(ctx workflow.Context, req *BootstrapCertificateAuthoritiesInput) (*BootstrapCertificateAuthoritiesOutput, error) {
-		input := &BootstrapCertificateAuthoritiesWorkflowInput{
-			Req: req,
-		}
-		wf, err := ctor(ctx, input)
-		if err != nil {
-			return nil, err
-		}
-		if initializable, ok := wf.(helpers.Initializable); ok {
-			if err := initializable.Initialize(ctx); err != nil {
-				return nil, err
-			}
-		}
-		return wf.Execute(ctx)
-	}
-}
-
-// BootstrapCertificateAuthoritiesWorkflowInput describes the input to a(n) fabric.v1.BootstrapCertificateAuthorities workflow constructor
-type BootstrapCertificateAuthoritiesWorkflowInput struct {
-	Req *BootstrapCertificateAuthoritiesInput
-}
-
-// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
-// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
-// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
-//
-// workflow details: (name: "fabric.v1.BootstrapCertificateAuthorities", id: "fabric/bootstrap-certificate-authorities")
-type BootstrapCertificateAuthoritiesWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.v1.BootstrapCertificateAuthorities workflow
-	Execute(ctx workflow.Context) (*BootstrapCertificateAuthoritiesOutput, error)
-}
-
-// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
-// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
-// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
-func BootstrapCertificateAuthoritiesChild(ctx workflow.Context, req *BootstrapCertificateAuthoritiesInput, options ...*BootstrapCertificateAuthoritiesChildOptions) (*BootstrapCertificateAuthoritiesOutput, error) {
-	childRun, err := BootstrapCertificateAuthoritiesChildAsync(ctx, req, options...)
-	if err != nil {
-		return nil, err
-	}
-	return childRun.Get(ctx)
-}
-
-// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
-// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
-// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
-func BootstrapCertificateAuthoritiesChildAsync(ctx workflow.Context, req *BootstrapCertificateAuthoritiesInput, options ...*BootstrapCertificateAuthoritiesChildOptions) (*BootstrapCertificateAuthoritiesChildRun, error) {
-	var o *BootstrapCertificateAuthoritiesChildOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewBootstrapCertificateAuthoritiesChildOptions()
-	}
-	opts, err := o.Build(ctx, req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
-	}
-	ctx = workflow.WithChildOptions(ctx, opts)
-	if o.dc != nil {
-		ctx = workflow.WithDataConverter(ctx, o.dc)
-	}
-	return &BootstrapCertificateAuthoritiesChildRun{Future: workflow.ExecuteChildWorkflow(ctx, BootstrapCertificateAuthoritiesWorkflowName, req)}, nil
-}
-
-// BootstrapCertificateAuthoritiesChildOptions provides configuration for a child fabric.v1.BootstrapCertificateAuthorities workflow operation
-type BootstrapCertificateAuthoritiesChildOptions struct {
-	options                  workflow.ChildWorkflowOptions
-	executionTimeout         *time.Duration
-	id                       *string
-	idReusePolicy            enumsv1.WorkflowIdReusePolicy
-	retryPolicy              *temporal.RetryPolicy
-	runTimeout               *time.Duration
-	searchAttributes         map[string]any
-	taskQueue                *string
-	taskTimeout              *time.Duration
-	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
-	dc                       converter.DataConverter
-	parentClosePolicy        enumsv1.ParentClosePolicy
-	waitForCancellation      *bool
-}
-
-// NewBootstrapCertificateAuthoritiesChildOptions initializes a new BootstrapCertificateAuthoritiesChildOptions value
-func NewBootstrapCertificateAuthoritiesChildOptions() *BootstrapCertificateAuthoritiesChildOptions {
-	return &BootstrapCertificateAuthoritiesChildOptions{}
-}
-
-// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
-func (o *BootstrapCertificateAuthoritiesChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
-	opts := o.options
-	if v := o.id; v != nil {
-		opts.WorkflowID = *v
-	} else if opts.WorkflowID == "" {
-		// wrap expression evaluation in local activity
-		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
-		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
-			lao := workflow.GetLocalActivityOptions(ctx)
-			lao.ScheduleToCloseTimeout = time.Second * 10
-			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
-				id, err := expression.EvalExpression(BootstrapCertificateAuthoritiesIdexpression, req)
-				if err != nil {
-					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", BootstrapCertificateAuthoritiesWorkflowName, err)
-				}
-				return id, nil
-			}).Get(ctx, &opts.WorkflowID); err != nil {
-				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", BootstrapCertificateAuthoritiesWorkflowName, err)
-			}
-		} else {
-			id, err := expression.EvalExpression(BootstrapCertificateAuthoritiesIdexpression, req)
-			if err != nil {
-				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", BootstrapCertificateAuthoritiesWorkflowName, err)
-			}
-			opts.WorkflowID = id
-		}
-	}
-	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = v
-	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = FabricTaskQueue
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.searchAttributes; v != nil {
-		opts.SearchAttributes = o.searchAttributes
-	}
-	if v := o.executionTimeout; v != nil {
-		opts.WorkflowExecutionTimeout = *v
-	}
-	if v := o.runTimeout; v != nil {
-		opts.WorkflowRunTimeout = *v
-	}
-	if v := o.taskTimeout; v != nil {
-		opts.WorkflowTaskTimeout = *v
-	}
-	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
-		opts.ParentClosePolicy = v
-	}
-	if v := o.waitForCancellation; v != nil {
-		opts.WaitForCancellation = *v
-	}
-	return opts, nil
-}
-
-// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
-func (o *BootstrapCertificateAuthoritiesChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *BootstrapCertificateAuthoritiesChildOptions {
-	o.options = options
-	return o
-}
-
-// WithDataConverter registers a DataConverter for the child workflow
-func (o *BootstrapCertificateAuthoritiesChildOptions) WithDataConverter(dc converter.DataConverter) *BootstrapCertificateAuthoritiesChildOptions {
-	o.dc = dc
-	return o
-}
-
-// WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *BootstrapCertificateAuthoritiesChildOptions) WithExecutionTimeout(d time.Duration) *BootstrapCertificateAuthoritiesChildOptions {
-	o.executionTimeout = &d
-	return o
-}
-
-// WithID sets the WorkflowID value
-func (o *BootstrapCertificateAuthoritiesChildOptions) WithID(id string) *BootstrapCertificateAuthoritiesChildOptions {
-	o.id = &id
-	return o
-}
-
-// WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *BootstrapCertificateAuthoritiesChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *BootstrapCertificateAuthoritiesChildOptions {
-	o.idReusePolicy = policy
-	return o
-}
-
-// WithParentClosePolicy sets the WorkflowIDReusePolicy value
-func (o *BootstrapCertificateAuthoritiesChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *BootstrapCertificateAuthoritiesChildOptions {
-	o.parentClosePolicy = policy
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *BootstrapCertificateAuthoritiesChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *BootstrapCertificateAuthoritiesChildOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithRunTimeout sets the WorkflowRunTimeout value
-func (o *BootstrapCertificateAuthoritiesChildOptions) WithRunTimeout(d time.Duration) *BootstrapCertificateAuthoritiesChildOptions {
-	o.runTimeout = &d
-	return o
-}
-
-// WithSearchAttributes sets the SearchAttributes value
-func (o *BootstrapCertificateAuthoritiesChildOptions) WithSearchAttributes(sa map[string]any) *BootstrapCertificateAuthoritiesChildOptions {
-	o.searchAttributes = sa
-	return o
-}
-
-// WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *BootstrapCertificateAuthoritiesChildOptions) WithTaskTimeout(d time.Duration) *BootstrapCertificateAuthoritiesChildOptions {
-	o.taskTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *BootstrapCertificateAuthoritiesChildOptions) WithTaskQueue(tq string) *BootstrapCertificateAuthoritiesChildOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWaitForCancellation sets the WaitForCancellation value
-func (o *BootstrapCertificateAuthoritiesChildOptions) WithWaitForCancellation(wait bool) *BootstrapCertificateAuthoritiesChildOptions {
-	o.waitForCancellation = &wait
-	return o
-}
-
-// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *BootstrapCertificateAuthoritiesChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *BootstrapCertificateAuthoritiesChildOptions {
-	o.workflowIdConflictPolicy = policy
-	return o
-}
-
-// BootstrapCertificateAuthoritiesChildRun describes a child BootstrapCertificateAuthorities workflow run
-type BootstrapCertificateAuthoritiesChildRun struct {
-	Future workflow.ChildWorkflowFuture
-}
-
-// Get blocks until the workflow is completed, returning the response value
-func (r *BootstrapCertificateAuthoritiesChildRun) Get(ctx workflow.Context) (*BootstrapCertificateAuthoritiesOutput, error) {
-	var resp BootstrapCertificateAuthoritiesOutput
-	if err := r.Future.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Select adds this completion to the selector. Callback can be nil.
-func (r *BootstrapCertificateAuthoritiesChildRun) Select(sel workflow.Selector, fn func(*BootstrapCertificateAuthoritiesChildRun)) workflow.Selector {
-	return sel.AddFuture(r.Future, func(workflow.Future) {
-		if fn != nil {
-			fn(r)
-		}
-	})
-}
-
-// SelectStart adds waiting for start to the selector. Callback can be nil.
-func (r *BootstrapCertificateAuthoritiesChildRun) SelectStart(sel workflow.Selector, fn func(*BootstrapCertificateAuthoritiesChildRun)) workflow.Selector {
-	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
-		if fn != nil {
-			fn(r)
-		}
-	})
-}
-
-// WaitStart waits for the child workflow to start
-func (r *BootstrapCertificateAuthoritiesChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
-	var exec workflow.Execution
-	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
-		return nil, err
-	}
-	return &exec, nil
 }
 
 // RegisterBootstrapShardWorkflow registers a fabric.v1.Fabric.BootstrapShard workflow with the given worker
@@ -5565,7 +5022,7 @@ type DeployCertificateAuthorityWorkflowInput struct {
 // - Root CAs: self-signed signing cert, TLS from self (TLS Root) or TLS Int (Org Root)
 // - Int CAs: parent-signed signing cert, TLS from parent (TLS) or TLS Int (Org)
 //
-// workflow details: (name: "fabric.v1.DeployCertificateAuthority", id: "fabric/deploy-certificate-authority/${! CaRef.CertType }/${! CaRef.Id }")
+// workflow details: (name: "fabric.v1.DeployCertificateAuthority", id: "fabric/deploy-certificate-authority/${! Spec.Self.CertType }/${! Spec.Self.Id }")
 type DeployCertificateAuthorityWorkflow interface {
 	// Execute defines the entrypoint to a(n) fabric.v1.DeployCertificateAuthority workflow
 	Execute(ctx workflow.Context) (*DeployCertificateAuthorityOutput, error)
@@ -6665,7 +6122,7 @@ type DeployOrdererWorkflowInput struct {
 // DeployOrderer deploys a Fabric orderer node
 // Orderers provide consensus and block ordering services
 //
-// workflow details: (name: "fabric.v1.DeployOrderer", id: "fabric/deploy-orderer/${! OrdererId }")
+// workflow details: (name: "fabric.v1.DeployOrderer", id: "fabric/deploy-orderer/${! Spec.Id }")
 type DeployOrdererWorkflow interface {
 	// Execute defines the entrypoint to a(n) fabric.v1.DeployOrderer workflow
 	Execute(ctx workflow.Context) (*DeployOrdererOutput, error)
@@ -6939,7 +6396,7 @@ type DeployPeerWorkflowInput struct {
 // DeployPeer deploys a Fabric peer node
 // Peers endorse transactions and maintain ledger state
 //
-// workflow details: (name: "fabric.v1.DeployPeer", id: "fabric/deploy-peer/${! PeerId }")
+// workflow details: (name: "fabric.v1.DeployPeer", id: "fabric/deploy-peer/${! Spec.Id }")
 type DeployPeerWorkflow interface {
 	// Execute defines the entrypoint to a(n) fabric.v1.DeployPeer workflow
 	Execute(ctx workflow.Context) (*DeployPeerOutput, error)
@@ -7201,35 +6658,6 @@ func NewTestFabricClient(env *testsuite.TestWorkflowEnvironment, workflows Fabri
 		RegisterFabricActivities(env, activities)
 	}
 	return &TestFabricClient{env, workflows}
-}
-
-// BootstrapCertificateAuthorities executes a(n) fabric.v1.BootstrapCertificateAuthorities workflow in the test environment
-func (c *TestFabricClient) BootstrapCertificateAuthorities(ctx context.Context, req *BootstrapCertificateAuthoritiesInput, opts ...*BootstrapCertificateAuthoritiesOptions) (*BootstrapCertificateAuthoritiesOutput, error) {
-	run, err := c.BootstrapCertificateAuthoritiesAsync(ctx, req, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return run.Get(ctx)
-}
-
-// BootstrapCertificateAuthoritiesAsync executes a(n) fabric.v1.BootstrapCertificateAuthorities workflow in the test environment
-func (c *TestFabricClient) BootstrapCertificateAuthoritiesAsync(ctx context.Context, req *BootstrapCertificateAuthoritiesInput, options ...*BootstrapCertificateAuthoritiesOptions) (BootstrapCertificateAuthoritiesRun, error) {
-	var o *BootstrapCertificateAuthoritiesOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewBootstrapCertificateAuthoritiesOptions()
-	}
-	opts, err := o.Build(req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
-	}
-	return &testBootstrapCertificateAuthoritiesRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
-}
-
-// GetBootstrapCertificateAuthorities is a noop
-func (c *TestFabricClient) GetBootstrapCertificateAuthorities(ctx context.Context, workflowID string, runID string) BootstrapCertificateAuthoritiesRun {
-	return &testBootstrapCertificateAuthoritiesRun{env: c.env, workflows: c.workflows}
 }
 
 // BootstrapShard executes a(n) fabric.v1.BootstrapShard workflow in the test environment
@@ -7589,64 +7017,6 @@ func (c *TestFabricClient) CancelWorkflow(ctx context.Context, workflowID string
 // TerminateWorkflow terminates an existing workflow execution
 func (c *TestFabricClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
 	return c.CancelWorkflow(ctx, workflowID, runID)
-}
-
-var _ BootstrapCertificateAuthoritiesRun = &testBootstrapCertificateAuthoritiesRun{}
-
-// testBootstrapCertificateAuthoritiesRun provides convenience methods for interacting with a(n) fabric.v1.BootstrapCertificateAuthorities workflow in the test environment
-type testBootstrapCertificateAuthoritiesRun struct {
-	client    *TestFabricClient
-	env       *testsuite.TestWorkflowEnvironment
-	isStarted atomic.Bool
-	opts      *client.StartWorkflowOptions
-	req       *BootstrapCertificateAuthoritiesInput
-	workflows FabricWorkflows
-}
-
-// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *testBootstrapCertificateAuthoritiesRun) Cancel(ctx context.Context) error {
-	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
-}
-
-// Get retrieves a test fabric.v1.BootstrapCertificateAuthorities workflow result
-func (r *testBootstrapCertificateAuthoritiesRun) Get(context.Context) (*BootstrapCertificateAuthoritiesOutput, error) {
-	if r.isStarted.CompareAndSwap(false, true) {
-		r.env.ExecuteWorkflow(BootstrapCertificateAuthoritiesWorkflowName, r.req)
-	}
-	if !r.env.IsWorkflowCompleted() {
-		return nil, errors.New("workflow in progress")
-	}
-	if err := r.env.GetWorkflowError(); err != nil {
-		return nil, err
-	}
-	var result BootstrapCertificateAuthoritiesOutput
-	if err := r.env.GetWorkflowResult(&result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// ID returns a test fabric.v1.BootstrapCertificateAuthorities workflow run's workflow ID
-func (r *testBootstrapCertificateAuthoritiesRun) ID() string {
-	if r.opts != nil {
-		return r.opts.ID
-	}
-	return ""
-}
-
-// Run noop implementation
-func (r *testBootstrapCertificateAuthoritiesRun) Run() client.WorkflowRun {
-	return nil
-}
-
-// RunID noop implementation
-func (r *testBootstrapCertificateAuthoritiesRun) RunID() string {
-	return ""
-}
-
-// Terminate terminates a workflow in execution, returning an error if applicable
-func (r *testBootstrapCertificateAuthoritiesRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
-	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
 var _ BootstrapShardRun = &testBootstrapShardRun{}

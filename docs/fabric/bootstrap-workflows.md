@@ -153,31 +153,21 @@ Workflow: cell.v1.InitFabricShard ✅ (Runs in infra namespace)
 
 ```
 Workflow: fabric.v1.BootstrapShard 🟡 (Runs in fabric-<org> namespace)
-├─ Workflow: fabric.v1.BootstrapCertificateAuthorities ✅
+│  Input: OrgFabricDeployment (required - specifies all CAs, peers, orderers)
 │
-├─ for each Peer (at least 3)
+├─ Workflow: fabric.v1.DeployCertificateStore ✅
+│
+├─ for each CertificateAuthoritySpec in deployment.certificate_authorities
+│ └─ Workflow: fabric.v1.DeployCertificateAuthority ✅
+│
+├─ for each PeerSpec in deployment.peers
 │ ├─ Workflow: fabric.v1.DeployCouchDb ✅
 │ └─ Workflow: fabric.v1.DeployPeer ✅
 │
-├─ for each Orderer (at least 1)
+├─ for each OrdererSpec in deployment.orderers
 │ └─ Workflow: fabric.v1.DeployOrderer ✅
 │
-├─ for each ChainCode (at least 2)
-│ └─ Workflow: fabric.v1.DeployChainCode 🟡 (skeleton implemented, deployment TODO)
-│
-└─ TODO: Hook into existing chains/channels (osnadmin channel join)
-```
-
-
-## Fabric Certificate Authority Bootstrap
-
-```
-Workflow: fabric.v1.BootstrapCertificateAuthorities ✅
-├─ Workflow: fabric.v1.DeployCertificateStore ✅
-│
-└─ for each (tls, org)
-  ├─ Workflow: fabric.v1.DeployRootCertificateAuthority ✅
-  └─ Workflow: fabric.v1.DeployCertificateAuthority 🟡 (DB+access ready, intermediate cert TODO)
+└─ TODO: Deploy chaincode, hook into channels (osnadmin channel join)
 ```
 
 

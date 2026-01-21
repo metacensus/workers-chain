@@ -17,9 +17,6 @@ const (
 	vaultSecretMetadataPrefix = "secret/metadata"
 )
 
-// TLS Intermediate CA ID - used for cross-chain TLS cert issuance
-const tlsIntermediateCAID = "v1"
-
 // FabricConfig provides access to all Fabric-related configuration.
 // It acts as a factory for component-specific configs.
 // It embeds OrgConfig to provide direct access to org-level configuration.
@@ -247,113 +244,11 @@ func (ca CertificateAuthorityConfig) TLSDNSNames() []string {
 	}
 }
 
-// TLSCommonName returns the common name for the CA's TLS certificate.
-// If the TLS issuer is the same as the signing issuer (e.g., TLS Int CA where
-// both certs come from TLS Root), appends "-tls" to avoid registration collision.
-// Example: "certificate-authority-tls-v1-tls" (when colliding)
-//
-//	"certificate-authority-tls-v1" (when different issuers or self-signed)
-func (ca CertificateAuthorityConfig) TLSCommonName() string {
-	signingIssuer := ca.SigningIssuer()
-	tlsIssuer := ca.TLSIssuer()
-
-	// Self-signed cases: no collision (not registering with a CA)
-	if signingIssuer == nil || tlsIssuer == nil {
-		return ca.ComponentName()
-	}
-
-	// Check if same CA issues both - need different identity name
-	if signingIssuer.CertType() == tlsIssuer.CertType() && signingIssuer.CAID() == tlsIssuer.CAID() {
-		return fmt.Sprintf("%s-tls", ca.ComponentName())
-	}
-
-	// Different CAs - can use same name
-	return ca.ComponentName()
-}
-
-// ------------ Issuer Resolution ------------
+// ------------ Properties ------------
 
 // IsRoot returns true if this is a root CA.
 func (ca CertificateAuthorityConfig) IsRoot() bool {
 	return ca.caID == "root"
-}
-
-// IsTLS returns true if this is a TLS CA (not an Org CA).
-func (ca CertificateAuthorityConfig) IsTLS() bool {
-	return ca.certType == "tls"
-}
-
-// withTypeAndID returns a new config with different certType and caID.
-func (ca CertificateAuthorityConfig) withTypeAndID(certType, caID string) CertificateAuthorityConfig {
-	return CertificateAuthorityConfig{
-		OrgConfig: ca.OrgConfig,
-		certType:  certType,
-		caID:      caID,
-	}
-}
-
-// withID returns a new config with different caID but same certType.
-func (ca CertificateAuthorityConfig) withID(caID string) CertificateAuthorityConfig {
-	return ca.withTypeAndID(ca.certType, caID)
-}
-
-// SigningIssuer returns who issues this CA's signing certificate.
-// Returns nil for self-signed (root CAs).
-// Intermediate CAs are signed by their chain's root.
-func (ca CertificateAuthorityConfig) SigningIssuer() *CertificateAuthorityConfig {
-	if ca.IsRoot() {
-		return nil // Self-signed
-	}
-	issuer := ca.withID("root")
-	return &issuer
-}
-
-// TLSIssuer returns who issues this CA's TLS certificate.
-// Returns nil for self-signed (TLS Root only).
-//
-// Issuer matrix:
-//   - TLS Root CA: self-signed
-//   - TLS Int CA: TLS Root CA
-//   - Org Root CA: TLS Int CA (cross-chain!)
-//   - Org Int CA: TLS Int CA (cross-chain!)
-func (ca CertificateAuthorityConfig) TLSIssuer() *CertificateAuthorityConfig {
-	switch {
-	case ca.IsTLS() && ca.IsRoot():
-		return nil // TLS Root CA self-signs its TLS cert
-	case ca.IsTLS():
-		issuer := ca.withID("root") // TLS Int gets TLS from TLS Root
-		return &issuer
-	default:
-		issuer := ca.withTypeAndID("tls", tlsIntermediateCAID) // Org CAs get TLS from TLS Int
-		return &issuer
-	}
-}
-
-// AdminSigningIssuer returns who issues admin identity certs for this CA.
-// All admins get identity certs from the CA they administer.
-// This is required because Fabric CA checks its database to verify admin privileges -
-// the admin's cert must be in the CA's database for privileged operations to succeed.
-//
-// Note: The original design (Fabric Certs.csv) had TLS Int CA admins getting identity
-// from TLS Root CA, but this doesn't work with Fabric CA's database-centric model.
-// Fixed 2026-01-04: All admins now get identity from their own CA.
-func (ca CertificateAuthorityConfig) AdminSigningIssuer() CertificateAuthorityConfig {
-	// Admin identity always comes from the CA itself
-	return ca
-}
-
-// AdminTLSIssuer returns who issues admin client TLS certs for this CA.
-//
-// Issuer matrix:
-//   - TLS Root CA Admin: TLS Root CA
-//   - TLS Int CA Admin: TLS Int CA
-//   - Org Root CA Admin: TLS Int CA
-//   - Org Int CA Admin: TLS Int CA
-func (ca CertificateAuthorityConfig) AdminTLSIssuer() CertificateAuthorityConfig {
-	if ca.IsTLS() && ca.IsRoot() {
-		return ca // TLS Root CA admin TLS from TLS Root
-	}
-	return ca.withTypeAndID("tls", tlsIntermediateCAID) // Everyone else from TLS Int
 }
 
 // ------------ Vault Properties: CA Server Certs ------------
@@ -552,42 +447,10 @@ func (ca CertificateAuthorityConfig) AdminCommonName() string {
 	return fmt.Sprintf("admin@%s", ca.ComponentName())
 }
 
-// AdminTLSCommonName returns the common name for the CA admin's TLS certificate.
-// If the TLS issuer is the same as the signing issuer, appends "-tls" to avoid
-// registration collision (can't register same identity name twice with same CA).
-// Example: "admin-tls@certificate-authority-tls-root" (when colliding)
-//
-//	"admin@certificate-authority-tls-root" (when different CAs)
-func (ca CertificateAuthorityConfig) AdminTLSCommonName() string {
-	signingIssuer := ca.AdminSigningIssuer()
-	tlsIssuer := ca.AdminTLSIssuer()
-
-	// Check if same CA issues both - need different identity name to avoid collision
-	if signingIssuer.CertType() == tlsIssuer.CertType() && signingIssuer.CAID() == tlsIssuer.CAID() {
-		return fmt.Sprintf("admin-tls@%s", ca.ComponentName())
-	}
-	// Different CAs - can use same name (registered with different CAs)
-	return ca.AdminCommonName()
-}
-
 // BootstrapAdminCommonName returns the common name for the bootstrap admin's signing certificate.
 // Example: "bootstrap-admin@certificate-authority-tls-root"
 func (ca CertificateAuthorityConfig) BootstrapAdminCommonName() string {
 	return fmt.Sprintf("bootstrap-admin@%s", ca.ComponentName())
-}
-
-// BootstrapAdminTLSCommonName returns the common name for the bootstrap admin's TLS certificate.
-// If the TLS issuer is the same as the signing issuer, appends "-tls" to avoid
-// registration collision. For bootstrap enrollment, this matters less since we're
-// enrolling with existing credentials, but we use consistent naming.
-func (ca CertificateAuthorityConfig) BootstrapAdminTLSCommonName() string {
-	signingIssuer := ca.AdminSigningIssuer()
-	tlsIssuer := ca.AdminTLSIssuer()
-
-	if signingIssuer.CertType() == tlsIssuer.CertType() && signingIssuer.CAID() == tlsIssuer.CAID() {
-		return fmt.Sprintf("bootstrap-admin-tls@%s", ca.ComponentName())
-	}
-	return ca.BootstrapAdminCommonName()
 }
 
 // ------------ Helper Functions ------------
@@ -952,27 +815,6 @@ func (p PeerConfig) OrganizationalUnit() string {
 	return "peer"
 }
 
-// OrgIssuerRef returns the CA reference for issuing the org identity certificate.
-// Peers get their identity from the Org Intermediate CA.
-func (p PeerConfig) OrgIssuerCertType() string {
-	return "org"
-}
-
-// OrgIssuerID returns the CA ID for the org identity issuer.
-func (p PeerConfig) OrgIssuerID() string {
-	return "v1" // Org Intermediate CA
-}
-
-// TLSIssuerCertType returns the cert type for the TLS issuer.
-func (p PeerConfig) TLSIssuerCertType() string {
-	return "tls"
-}
-
-// TLSIssuerID returns the CA ID for the TLS issuer.
-func (p PeerConfig) TLSIssuerID() string {
-	return "v1" // TLS Intermediate CA
-}
-
 // ============= Orderer Configuration =============
 
 // OrdererConfig encapsulates all configuration for a Hyperledger Fabric orderer.
@@ -1181,25 +1023,4 @@ func (o OrdererConfig) CommonName() string {
 // Orderers use "orderer" as their OU.
 func (o OrdererConfig) OrganizationalUnit() string {
 	return "orderer"
-}
-
-// OrgIssuerCertType returns the cert type for the org identity issuer.
-// Orderers get their identity from the Org Intermediate CA.
-func (o OrdererConfig) OrgIssuerCertType() string {
-	return "org"
-}
-
-// OrgIssuerID returns the CA ID for the org identity issuer.
-func (o OrdererConfig) OrgIssuerID() string {
-	return "v1" // Org Intermediate CA
-}
-
-// TLSIssuerCertType returns the cert type for the TLS issuer.
-func (o OrdererConfig) TLSIssuerCertType() string {
-	return "tls"
-}
-
-// TLSIssuerID returns the CA ID for the TLS issuer.
-func (o OrdererConfig) TLSIssuerID() string {
-	return "v1" // TLS Intermediate CA
 }

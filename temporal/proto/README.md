@@ -41,7 +41,6 @@
     - [fabric.v1.Fabric](#fabric-v1-fabric)
       - [Workflows](#fabric-v1-fabric-workflows)
         - [fabric.v1.BootstrapShard](#fabric-v1-bootstrapshard-workflow)
-        - [fabric.v1.BootstrapCertificateAuthorities](#fabric-v1-bootstrapcertificateauthorities-workflow)
         - [fabric.v1.DeployCertificateStore](#fabric-v1-deploycertificatestore-workflow)
         - [fabric.v1.DeployCertificateAuthority](#fabric-v1-deploycertificateauthority-workflow)
         - [fabric.v1.CreateCertificateDatabase](#fabric-v1-createcertificatedatabase-workflow)
@@ -60,13 +59,12 @@
         - [fabric.v1.RevokeIdentity](#fabric-v1-revokeidentity-activity)
         - [fabric.v1.BootstrapEnrollIdentity](#fabric-v1-bootstrapenrollidentity-activity)
   - Messages
-    - [fabric.v1.BootstrapCertificateAuthoritiesInput](#fabric-v1-bootstrapcertificateauthoritiesinput)
-    - [fabric.v1.BootstrapCertificateAuthoritiesOutput](#fabric-v1-bootstrapcertificateauthoritiesoutput)
     - [fabric.v1.BootstrapEnrollIdentityInput](#fabric-v1-bootstrapenrollidentityinput)
     - [fabric.v1.BootstrapEnrollIdentityOutput](#fabric-v1-bootstrapenrollidentityoutput)
     - [fabric.v1.BootstrapShardInput](#fabric-v1-bootstrapshardinput)
     - [fabric.v1.BootstrapShardOutput](#fabric-v1-bootstrapshardoutput)
     - [fabric.v1.CertificateAuthorityRef](#fabric-v1-certificateauthorityref)
+    - [fabric.v1.CertificateAuthoritySpec](#fabric-v1-certificateauthorityspec)
     - [fabric.v1.CertificateSubject](#fabric-v1-certificatesubject)
     - [fabric.v1.CreateAdminInput](#fabric-v1-createadmininput)
     - [fabric.v1.CreateAdminOutput](#fabric-v1-createadminoutput)
@@ -94,6 +92,9 @@
     - [fabric.v1.DeployPeerOutput](#fabric-v1-deploypeeroutput)
     - [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
     - [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
+    - [fabric.v1.OrdererSpec](#fabric-v1-ordererspec)
+    - [fabric.v1.OrgFabricDeployment](#fabric-v1-orgfabricdeployment)
+    - [fabric.v1.PeerSpec](#fabric-v1-peerspec)
     - [fabric.v1.RegisterIdentityInput](#fabric-v1-registeridentityinput)
     - [fabric.v1.RegisterIdentityInput.AttributesEntry](#fabric-v1-registeridentityinput-attributesentry)
     - [fabric.v1.RegisterIdentityOutput](#fabric-v1-registeridentityoutput)
@@ -790,6 +791,16 @@ Phase 2 (fabric worker): Initiated via Nexus, deploys Fabric components (CAs, pe
 <th>Description</th>
 </tr>
 <tr>
+<td>deployment</td>
+<td><a href="#fabric-v1-orgfabricdeployment">fabric.v1.OrgFabricDeployment</a></td>
+<td><pre>
+deployment is the Fabric deployment configuration (required)
+Specifies all CAs, peers, and orderers to deploy for this shard<br>
+
+json_name: Deployment
+go_name: Deployment
+go_tags: json:"Deployment" validate:"required"</pre></td>
+</tr><tr>
 <td>org</td>
 <td>string</td>
 <td><pre>
@@ -849,6 +860,16 @@ InitFabricShardInput specifies the parameters for initializing a Fabric shard
 <th>Description</th>
 </tr>
 <tr>
+<td>deployment</td>
+<td><a href="#fabric-v1-orgfabricdeployment">fabric.v1.OrgFabricDeployment</a></td>
+<td><pre>
+deployment is the Fabric deployment configuration (required)
+Specifies all CAs, peers, and orderers to deploy for this shard<br>
+
+json_name: Deployment
+go_name: Deployment
+go_tags: json:"Deployment" validate:"required"</pre></td>
+</tr><tr>
 <td>org</td>
 <td>string</td>
 <td><pre>
@@ -1231,7 +1252,24 @@ Called via Nexus from the central worker after Phase 1 completes
 
 **Input:** [fabric.v1.BootstrapShardInput](#fabric-v1-bootstrapshardinput)
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>deployment</td>
+<td><a href="#fabric-v1-orgfabricdeployment">fabric.v1.OrgFabricDeployment</a></td>
+<td><pre>
+deployment is the complete fabric deployment configuration (required)
+Caller must specify all CAs, peers, and orderers - no defaults<br>
 
+json_name: Deployment
+go_name: Deployment
+go_tags: json:"Deployment" validate:"required"</pre></td>
+</tr>
+</table>
 
 **Output:** [fabric.v1.BootstrapShardOutput](#fabric-v1-bootstrapshardoutput)
 
@@ -1242,32 +1280,6 @@ Called via Nexus from the central worker after Phase 1 completes
 <table>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/bootstrap-shard</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-</table>
-
----
-<a name="fabric-v1-bootstrapcertificateauthorities-workflow"></a>
-### fabric.v1.BootstrapCertificateAuthorities
-
-<pre>
-BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
-for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
-Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
-</pre>
-
-**Input:** [fabric.v1.BootstrapCertificateAuthoritiesInput](#fabric-v1-bootstrapcertificateauthoritiesinput)
-
-
-
-**Output:** [fabric.v1.BootstrapCertificateAuthoritiesOutput](#fabric-v1-bootstrapcertificateauthoritiesoutput)
-
-
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/bootstrap-certificate-authorities</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -1316,14 +1328,14 @@ This unified workflow handles both root and intermediate CAs:
 <th>Description</th>
 </tr>
 <tr>
-<td>ca_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td>spec</td>
+<td><a href="#fabric-v1-certificateauthorityspec">fabric.v1.CertificateAuthoritySpec</a></td>
 <td><pre>
-ca_ref identifies which CA to deploy<br>
+spec defines the CA to deploy (required)<br>
 
-json_name: CaRef
-go_name: CaRef
-go_tags: json:"CaRef" validate:"required"</pre></td>
+json_name: Spec
+go_name: Spec
+go_tags: json:"Spec" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1335,7 +1347,7 @@ go_tags: json:"CaRef" validate:"required"</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/deploy-certificate-authority/${! CaRef.CertType }/${! CaRef.Id }</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-certificate-authority/${! Spec.Self.CertType }/${! Spec.Self.Id }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -1560,6 +1572,25 @@ ca_ref identifies which CA to create the bootstrap admin for<br>
 json_name: CaRef
 go_name: CaRef
 go_tags: json:"CaRef" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+tls_issuer identifies who issues the bootstrap admin's TLS certificate.
+If nil/empty, uses the CA itself (TLS Root CA case).<br>
+
+json_name: TlsIssuer
+go_name: TlsIssuer
+go_tags: json:"TlsIssuer,omitempty"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration specifies how long the bootstrap admin certificates are valid.<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration,omitempty"</pre></td>
 </tr>
 </table>
 
@@ -1627,6 +1658,34 @@ ca_ref identifies which CA to create the admin for<br>
 json_name: CaRef
 go_name: CaRef
 go_tags: json:"CaRef" validate:"required"</pre></td>
+</tr><tr>
+<td>signing_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+signing_issuer identifies who issues the admin's signing certificate.
+Per Fabric CA constraints, this should be the CA itself (admin must be in CA's database).<br>
+
+json_name: SigningIssuer
+go_name: SigningIssuer
+go_tags: json:"SigningIssuer,omitempty"</pre></td>
+</tr><tr>
+<td>tls_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+tls_issuer identifies who issues the admin's TLS certificate.<br>
+
+json_name: TlsIssuer
+go_name: TlsIssuer
+go_tags: json:"TlsIssuer,omitempty"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration specifies how long the admin certificates are valid.<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration,omitempty"</pre></td>
 </tr>
 </table>
 
@@ -1869,14 +1928,14 @@ Peers endorse transactions and maintain ledger state
 <th>Description</th>
 </tr>
 <tr>
-<td>peer_id</td>
-<td>string</td>
+<td>spec</td>
+<td><a href="#fabric-v1-peerspec">fabric.v1.PeerSpec</a></td>
 <td><pre>
-peer_id identifies this peer (e.g., "peer0", "peer1")<br>
+spec defines the peer to deploy (required)<br>
 
-json_name: PeerId
-go_name: PeerId
-go_tags: json:"PeerId" validate:"required"</pre></td>
+json_name: Spec
+go_name: Spec
+go_tags: json:"Spec" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1888,7 +1947,7 @@ go_tags: json:"PeerId" validate:"required"</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/deploy-peer/${! PeerId }</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-peer/${! Spec.Id }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -1910,14 +1969,14 @@ Orderers provide consensus and block ordering services
 <th>Description</th>
 </tr>
 <tr>
-<td>orderer_id</td>
-<td>string</td>
+<td>spec</td>
+<td><a href="#fabric-v1-ordererspec">fabric.v1.OrdererSpec</a></td>
 <td><pre>
-orderer_id identifies this orderer (e.g., "orderer0", "orderer1")<br>
+spec defines the orderer to deploy (required)<br>
 
-json_name: OrdererId
-go_name: OrdererId
-go_tags: json:"OrdererId" validate:"required"</pre></td>
+json_name: Spec
+go_name: Spec
+go_tags: json:"Spec" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1929,7 +1988,7 @@ go_tags: json:"OrdererId" validate:"required"</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/deploy-orderer/${! OrdererId }</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-orderer/${! Spec.Id }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -2390,24 +2449,6 @@ go_tags: json:"CertRef" validate:"required"</pre></td>
 <a name="fabric-v1-messages"></a>
 ## Messages
 
-<a name="fabric-v1-bootstrapcertificateauthoritiesinput"></a>
-### fabric.v1.BootstrapCertificateAuthoritiesInput
-
-<pre>
-BootstrapCertificateAuthoritiesInput specifies the parameters for bootstrapping certificate authorities
-</pre>
-
-
-
-<a name="fabric-v1-bootstrapcertificateauthoritiesoutput"></a>
-### fabric.v1.BootstrapCertificateAuthoritiesOutput
-
-<pre>
-BootstrapCertificateAuthoritiesOutput indicates the result of CA bootstrapping
-</pre>
-
-
-
 <a name="fabric-v1-bootstrapenrollidentityinput"></a>
 ### fabric.v1.BootstrapEnrollIdentityInput
 
@@ -2536,6 +2577,25 @@ go_tags: json:"CertRef" validate:"required"</pre></td>
 BootstrapShardInput specifies the parameters for bootstrapping a Fabric shard
 </pre>
 
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>deployment</td>
+<td><a href="#fabric-v1-orgfabricdeployment">fabric.v1.OrgFabricDeployment</a></td>
+<td><pre>
+deployment is the complete fabric deployment configuration (required)
+Caller must specify all CAs, peers, and orderers - no defaults<br>
+
+json_name: Deployment
+go_name: Deployment
+go_tags: json:"Deployment" validate:"required"</pre></td>
+</tr>
+</table>
+
 
 
 <a name="fabric-v1-bootstrapshardoutput"></a>
@@ -2579,6 +2639,62 @@ id identifies the CA within its chain ("root" or version like "v1")<br>
 json_name: Id
 go_name: Id
 go_tags: json:"Id" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-certificateauthorityspec"></a>
+### fabric.v1.CertificateAuthoritySpec
+
+<pre>
+CertificateAuthoritySpec defines a certificate authority to deploy
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>self</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+self identifies this CA<br>
+
+json_name: Self
+go_name: Self
+go_tags: json:"Self" validate:"required"</pre></td>
+</tr><tr>
+<td>signing_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+signing_issuer identifies who issues this CA's signing certificate
+If nil/empty, the signing cert is self-signed (root CAs)<br>
+
+json_name: SigningIssuer
+go_name: SigningIssuer
+go_tags: json:"SigningIssuer,omitempty"</pre></td>
+</tr><tr>
+<td>tls_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+tls_issuer identifies who issues this CA's TLS certificate
+If nil/empty, the TLS cert is self-signed (TLS Root CA only)<br>
+
+json_name: TlsIssuer
+go_name: TlsIssuer
+go_tags: json:"TlsIssuer,omitempty"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration specifies how long the CA certificates are valid<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration,omitempty"</pre></td>
 </tr>
 </table>
 
@@ -2660,6 +2776,34 @@ ca_ref identifies which CA to create the admin for<br>
 json_name: CaRef
 go_name: CaRef
 go_tags: json:"CaRef" validate:"required"</pre></td>
+</tr><tr>
+<td>signing_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+signing_issuer identifies who issues the admin's signing certificate.
+Per Fabric CA constraints, this should be the CA itself (admin must be in CA's database).<br>
+
+json_name: SigningIssuer
+go_name: SigningIssuer
+go_tags: json:"SigningIssuer,omitempty"</pre></td>
+</tr><tr>
+<td>tls_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+tls_issuer identifies who issues the admin's TLS certificate.<br>
+
+json_name: TlsIssuer
+go_name: TlsIssuer
+go_tags: json:"TlsIssuer,omitempty"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration specifies how long the admin certificates are valid.<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration,omitempty"</pre></td>
 </tr>
 </table>
 
@@ -2723,6 +2867,25 @@ ca_ref identifies which CA to create the bootstrap admin for<br>
 json_name: CaRef
 go_name: CaRef
 go_tags: json:"CaRef" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+tls_issuer identifies who issues the bootstrap admin's TLS certificate.
+If nil/empty, uses the CA itself (TLS Root CA case).<br>
+
+json_name: TlsIssuer
+go_name: TlsIssuer
+go_tags: json:"TlsIssuer,omitempty"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration specifies how long the bootstrap admin certificates are valid.<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration,omitempty"</pre></td>
 </tr>
 </table>
 
@@ -3155,14 +3318,14 @@ DeployCertificateAuthorityInput specifies the parameters for deploying a CA
 <th>Description</th>
 </tr>
 <tr>
-<td>ca_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td>spec</td>
+<td><a href="#fabric-v1-certificateauthorityspec">fabric.v1.CertificateAuthoritySpec</a></td>
 <td><pre>
-ca_ref identifies which CA to deploy<br>
+spec defines the CA to deploy (required)<br>
 
-json_name: CaRef
-go_name: CaRef
-go_tags: json:"CaRef" validate:"required"</pre></td>
+json_name: Spec
+go_name: Spec
+go_tags: json:"Spec" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3281,14 +3444,14 @@ DeployOrdererInput specifies the parameters for deploying a Fabric orderer
 <th>Description</th>
 </tr>
 <tr>
-<td>orderer_id</td>
-<td>string</td>
+<td>spec</td>
+<td><a href="#fabric-v1-ordererspec">fabric.v1.OrdererSpec</a></td>
 <td><pre>
-orderer_id identifies this orderer (e.g., "orderer0", "orderer1")<br>
+spec defines the orderer to deploy (required)<br>
 
-json_name: OrdererId
-go_name: OrdererId
-go_tags: json:"OrdererId" validate:"required"</pre></td>
+json_name: Spec
+go_name: Spec
+go_tags: json:"Spec" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3317,14 +3480,14 @@ DeployPeerInput specifies the parameters for deploying a Fabric peer
 <th>Description</th>
 </tr>
 <tr>
-<td>peer_id</td>
-<td>string</td>
+<td>spec</td>
+<td><a href="#fabric-v1-peerspec">fabric.v1.PeerSpec</a></td>
 <td><pre>
-peer_id identifies this peer (e.g., "peer0", "peer1")<br>
+spec defines the peer to deploy (required)<br>
 
-json_name: PeerId
-go_name: PeerId
-go_tags: json:"PeerId" validate:"required"</pre></td>
+json_name: Spec
+go_name: Spec
+go_tags: json:"Spec" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3457,6 +3620,143 @@ cert_ref points to where the certificate was stored<br>
 json_name: CertRef
 go_name: CertRef
 go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-ordererspec"></a>
+### fabric.v1.OrdererSpec
+
+<pre>
+OrdererSpec defines an orderer to deploy
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>id</td>
+<td>string</td>
+<td><pre>
+id identifies this orderer (e.g., "orderer0", "orderer1")<br>
+
+json_name: Id
+go_name: Id
+go_tags: json:"Id" validate:"required"</pre></td>
+</tr><tr>
+<td>org_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+org_issuer identifies which CA issues the orderer's identity certificate<br>
+
+json_name: OrgIssuer
+go_name: OrgIssuer
+go_tags: json:"OrgIssuer" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+tls_issuer identifies which CA issues the orderer's TLS certificate<br>
+
+json_name: TlsIssuer
+go_name: TlsIssuer
+go_tags: json:"TlsIssuer" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-orgfabricdeployment"></a>
+### fabric.v1.OrgFabricDeployment
+
+<pre>
+OrgFabricDeployment represents the complete fabric deployment configuration
+Passed as required input to BootstrapShard - no defaults, caller must specify all components
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>certificate_authorities</td>
+<td><a href="#fabric-v1-certificateauthorityspec">fabric.v1.CertificateAuthoritySpec</a></td>
+<td><pre>
+certificate_authorities specifies the CAs to deploy (in order)
+Order matters: TLS chain must be deployed before Org chain<br>
+
+json_name: CertificateAuthorities
+go_name: CertificateAuthorities
+go_tags: json:"CertificateAuthorities" validate:"required,min=1"</pre></td>
+</tr><tr>
+<td>orderers</td>
+<td><a href="#fabric-v1-ordererspec">fabric.v1.OrdererSpec</a></td>
+<td><pre>
+orderers specifies the orderers to deploy<br>
+
+json_name: Orderers
+go_name: Orderers
+go_tags: json:"Orderers" validate:"required,min=1"</pre></td>
+</tr><tr>
+<td>peers</td>
+<td><a href="#fabric-v1-peerspec">fabric.v1.PeerSpec</a></td>
+<td><pre>
+peers specifies the peers to deploy<br>
+
+json_name: Peers
+go_name: Peers
+go_tags: json:"Peers" validate:"required,min=1"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-peerspec"></a>
+### fabric.v1.PeerSpec
+
+<pre>
+PeerSpec defines a peer to deploy
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>id</td>
+<td>string</td>
+<td><pre>
+id identifies this peer (e.g., "peer0", "peer1")<br>
+
+json_name: Id
+go_name: Id
+go_tags: json:"Id" validate:"required"</pre></td>
+</tr><tr>
+<td>org_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+org_issuer identifies which CA issues the peer's identity certificate<br>
+
+json_name: OrgIssuer
+go_name: OrgIssuer
+go_tags: json:"OrgIssuer" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+tls_issuer identifies which CA issues the peer's TLS certificate<br>
+
+json_name: TlsIssuer
+go_name: TlsIssuer
+go_tags: json:"TlsIssuer" validate:"required"</pre></td>
 </tr>
 </table>
 

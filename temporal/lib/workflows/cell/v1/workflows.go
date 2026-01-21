@@ -173,7 +173,9 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 
 	// Call BootstrapShard workflow via Nexus
 	nexusClient := fabricv1nexustemporal.NewFabricNexusClient(orgCfg.NexusEndpointBootstrapShard())
-	bootstrapOutput, err := nexusClient.BootstrapShard(ctx, &fabricpb.BootstrapShardInput{}, workflow.NexusOperationOptions{
+	bootstrapOutput, err := nexusClient.BootstrapShard(ctx, &fabricpb.BootstrapShardInput{
+		Deployment: w.input.Req.GetDeployment(),
+	}, workflow.NexusOperationOptions{
 		ScheduleToCloseTimeout: 30 * time.Minute,
 	})
 	if err != nil {
