@@ -1,6 +1,10 @@
 # Fabric Worker Configuration Example
 # This chart deploys a Temporal worker for managing Hyperledger Fabric resources
 
+# Operator identifier (e.g., "metacensus")
+# The operator owns shared infrastructure like TLS certificate authorities
+operator: "metacensus"
+
 # Organization identifier (e.g., "org1", "acme-corp")
 org: "org1"
 

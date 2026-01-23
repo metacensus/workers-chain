@@ -47,6 +47,28 @@ func (c *FabricNexusClient) BootstrapShard(ctx workflow.Context, input *v1.Boots
 	return &output, err
 }
 
+type BootstrapCertificateAuthoritiesFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *BootstrapCertificateAuthoritiesFuture) GetTyped(ctx workflow.Context) (*v1.BootstrapCertificateAuthoritiesOutput, error) {
+	var output v1.BootstrapCertificateAuthoritiesOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) BootstrapCertificateAuthoritiesAsync(ctx workflow.Context, input *v1.BootstrapCertificateAuthoritiesInput, options workflow.NexusOperationOptions) BootstrapCertificateAuthoritiesFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricBootstrapCertificateAuthoritiesOperationName, input, options)
+	return BootstrapCertificateAuthoritiesFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) BootstrapCertificateAuthorities(ctx workflow.Context, input *v1.BootstrapCertificateAuthoritiesInput, options workflow.NexusOperationOptions) (*v1.BootstrapCertificateAuthoritiesOutput, error) {
+	var output v1.BootstrapCertificateAuthoritiesOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricBootstrapCertificateAuthoritiesOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
 type DeployCertificateStoreFuture struct {
 	workflow.NexusOperationFuture
 }

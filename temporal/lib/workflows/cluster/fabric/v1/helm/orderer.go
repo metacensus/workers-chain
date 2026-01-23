@@ -52,20 +52,25 @@ type OrdererProbeConfig struct {
 	TimeoutSeconds      int
 }
 
-// NewOrdererValues creates OrdererValues from OrdererConfig
-// This ensures consistency between Helm values and workflow/activity configuration
-func NewOrdererValues(ordererConfig fabricconfig.OrdererConfig) *OrdererValues {
-	fabricCfg := fabricconfig.NewFabricConfig(ordererConfig.OrgConfig)
-
-	// Get the CA configs for cert paths
-	// MSP needs: Root CA in cacerts/, Intermediate CA in intermediatecerts/
-	orgRootCA := fabricCfg.CertificateAuthority("org", "root")
-	orgIntCA := fabricCfg.CertificateAuthority("org", "v1")
-	tlsRootCA := fabricCfg.CertificateAuthority("tls", "root")
-	tlsIntCA := fabricCfg.CertificateAuthority("tls", "v1")
-
+// NewOrdererValues creates OrdererValues from OrdererConfig and CA configurations.
+// The CA configs are passed explicitly to support shared TLS CAs owned by the operator
+// while org CAs remain owned by the organization.
+//
+// Parameters:
+//   - ordererConfig: Configuration for the orderer itself
+//   - orgRootCA: Org Root CA config (for MSP cacerts/)
+//   - orgIntCA: Org Intermediate CA config (for MSP intermediatecerts/)
+//   - tlsRootCA: TLS Root CA config (for TLS trust chain)
+//   - tlsIntCA: TLS Intermediate CA config (for TLS certificates)
+func NewOrdererValues(
+	ordererConfig fabricconfig.OrdererConfig,
+	orgRootCA fabricconfig.CertificateAuthorityConfig,
+	orgIntCA fabricconfig.CertificateAuthorityConfig,
+	tlsRootCA fabricconfig.CertificateAuthorityConfig,
+	tlsIntCA fabricconfig.CertificateAuthorityConfig,
+) *OrdererValues {
 	return &OrdererValues{
-		Org:       ordererConfig.OrgID,
+		Org:       ordererConfig.OwnerID(),
 		OrdererId: ordererConfig.OrdererID(),
 		Image:     DefaultImageConfig("orderer", ""),
 		Replicas:  1, // Single instance per orderer StatefulSet
@@ -111,4 +116,3 @@ func NewOrdererValues(ordererConfig fabricconfig.OrdererConfig) *OrdererValues {
 		CommonLabels: DefaultCommonLabels(),
 	}
 }
-

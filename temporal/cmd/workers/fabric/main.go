@@ -16,6 +16,9 @@ func main() {
 	config.InitializeVault()
 	config.InitializeKubernetes()
 	config.InitializeWorker()
+	if err := config.InitializeOperator(); err != nil {
+		log.Fatalf("Failed to initialize Operator config: %v", err)
+	}
 	if err := config.InitializeOrg(); err != nil {
 		log.Fatalf("Failed to initialize Org config: %v", err)
 	}

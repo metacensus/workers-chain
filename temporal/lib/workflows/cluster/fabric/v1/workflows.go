@@ -73,7 +73,7 @@ func (w *createNamespaceWorkflow) validate() error {
 // Execute creates a Kubernetes namespace
 func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNamespaceOutput, error) {
 	orgCfg := config.OrgConfig{OrgID: w.input.Org}
-	values := helm.NewNamespaceValues(orgCfg)
+	values := helm.NewNamespaceValues(orgCfg, w.input.IsOperator)
 	namespaceName := values.Name
 
 	// Convert Go struct to protobuf Struct
@@ -277,12 +277,11 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		chartName = chartCertificateStore
 		componentName = componentCertificateStore
 		// Create config objects to get consistent configuration values
-		fabricCfg := fabricconfig.NewFabricConfig(orgCfg)
-		certStoreConfig := fabricCfg.CertificateStore()
+		certStoreConfig := fabricconfig.NewCertificateStoreConfig(orgCfg)
 		certStoreValues := helm.NewCertificateStoreValues(certStoreConfig)
 		values = certStoreValues
-		namespaceName = certStoreConfig.KubernetesNamespace() // Use from certStoreConfig which embeds OrgConfig
-		deploymentName = componentCertificateStore            // Matches helm chart: {{ include "certificate-store.name" . }}
+		namespaceName = certStoreConfig.KubernetesNamespace()
+		deploymentName = componentCertificateStore // Matches helm chart: {{ include "certificate-store.name" . }}
 	case strings.HasPrefix(w.input.Component, componentCertificateAuthority):
 		// Certificate authority component names follow pattern: "certificate-authority-{certType}-{caID}"
 		// Examples: "certificate-authority-tls-root", "certificate-authority-org-v1"
@@ -301,8 +300,7 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		chartName = chartCertificateAuthority
 		componentName = componentCertificateAuthority
 		// Create config objects to get consistent configuration values
-		fabricCfg := fabricconfig.NewFabricConfig(orgCfg)
-		caConfig := fabricCfg.CertificateAuthority(certType, caID)
+		caConfig := fabricconfig.NewCertificateAuthorityConfig(orgCfg, certType, caID)
 		caValues := helm.NewCertificateAuthorityValues(caConfig)
 		values = caValues
 		namespaceName = caConfig.KubernetesNamespace()
@@ -319,8 +317,7 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		chartName = chartCouchDb
 		componentName = componentCouchDb
 		// Create config objects to get consistent configuration values
-		fabricCfg := fabricconfig.NewFabricConfig(orgCfg)
-		couchDbConfig := fabricCfg.CouchDb(peerID)
+		couchDbConfig := fabricconfig.NewCouchDbConfig(orgCfg, peerID)
 		couchDbValues := helm.NewCouchDbValues(couchDbConfig)
 		values = couchDbValues
 		namespaceName = couchDbConfig.KubernetesNamespace()
@@ -333,9 +330,14 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		chartName = chartPeer
 		componentName = componentPeer
 		// Create config objects to get consistent configuration values
-		fabricCfg := fabricconfig.NewFabricConfig(orgCfg)
-		peerConfig := fabricCfg.Peer(peerID)
-		peerValues := helm.NewPeerValues(peerConfig)
+		peerConfig := fabricconfig.NewPeerConfig(orgCfg, peerID)
+		// Construct CA configs - currently all owned by the org, but TLS CAs
+		// will be owned by the operator after shared TLS CA migration
+		orgRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "org", "root")
+		orgIntCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "org", "v1")
+		tlsRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "tls", "root")
+		tlsIntCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "tls", "v1")
+		peerValues := helm.NewPeerValues(peerConfig, orgRootCA, orgIntCA, tlsRootCA, tlsIntCA)
 		values = peerValues
 		namespaceName = peerConfig.KubernetesNamespace()
 		deploymentName = peerConfig.ComponentName() // Matches helm chart: {{ include "peer.name" . }}
@@ -347,9 +349,14 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		chartName = chartOrderer
 		componentName = componentOrderer
 		// Create config objects to get consistent configuration values
-		fabricCfg := fabricconfig.NewFabricConfig(orgCfg)
-		ordererConfig := fabricCfg.Orderer(ordererID)
-		ordererValues := helm.NewOrdererValues(ordererConfig)
+		ordererConfig := fabricconfig.NewOrdererConfig(orgCfg, ordererID)
+		// Construct CA configs - currently all owned by the org, but TLS CAs
+		// will be owned by the operator after shared TLS CA migration
+		orgRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "org", "root")
+		orgIntCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "org", "v1")
+		tlsRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "tls", "root")
+		tlsIntCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "tls", "v1")
+		ordererValues := helm.NewOrdererValues(ordererConfig, orgRootCA, orgIntCA, tlsRootCA, tlsIntCA)
 		values = ordererValues
 		namespaceName = ordererConfig.KubernetesNamespace()
 		deploymentName = ordererConfig.ComponentName() // Matches helm chart: {{ include "orderer.name" . }}

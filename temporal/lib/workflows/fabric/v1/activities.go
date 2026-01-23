@@ -8,7 +8,8 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
-	"github.com/metacensus/infra/temporal/lib/workers/fabric/config"
+	"github.com/metacensus/infra/temporal/lib/workers/config"
+	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	"github.com/metacensus/infra/temporal/lib/workflows/common"
 	"github.com/metacensus/infra/temporal/lib/workflows/fabric/v1/certauthority"
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
@@ -35,19 +36,19 @@ type Activities struct {
 	// clientProvider manages cached Clients for Register/Revoke operations
 	clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig]
 
-	fabricConfig config.FabricConfig
+	orgConfig config.OrgConfig
 }
 
 // NewActivities creates a new Activities instance
 func NewActivities(
 	secretProvider secrets.SecretProvider,
 	clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig],
-	fabricConfig config.FabricConfig,
+	orgConfig config.OrgConfig,
 ) *Activities {
 	return &Activities{
 		secretProvider: secretProvider,
 		clientProvider: clientProvider,
-		fabricConfig:   fabricConfig,
+		orgConfig:      orgConfig,
 	}
 }
 
@@ -111,7 +112,7 @@ func (a *Activities) RegisterIdentity(ctx context.Context, req *pb.RegisterIdent
 		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidActivityInput, certType)
 	}
 
-	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(a.orgConfig, certType, caID)
 
 	// Create config with explicit admin credentials (nil = use default permanent admin)
 	hydrator := certauthority.NewConfig(caConfig, req.GetAdminCredentialsRef())
@@ -179,7 +180,7 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidActivityInput, certType)
 	}
 
-	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(a.orgConfig, certType, caID)
 
 	// Step 1: Fetch the pre-generated keypair from Vault
 	secret, err := a.secretProvider.FetchSecret(ctx, req.GetKeyRef())
@@ -300,7 +301,7 @@ func (a *Activities) RevokeIdentity(ctx context.Context, req *pb.RevokeIdentityI
 		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidActivityInput, certType)
 	}
 
-	caConfig := a.fabricConfig.CertificateAuthority(certType, caID)
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(a.orgConfig, certType, caID)
 
 	// Create config with explicit admin credentials (nil = use default permanent admin)
 	hydrator := certauthority.NewConfig(caConfig, req.GetAdminCredentialsRef())

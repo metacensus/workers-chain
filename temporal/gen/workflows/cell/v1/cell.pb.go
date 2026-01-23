@@ -98,6 +98,90 @@ func (*BootstrapInfraOutput) Descriptor() ([]byte, []int) {
 	return file_cell_v1_cell_proto_rawDescGZIP(), []int{1}
 }
 
+// InitFabricInput specifies the parameters for initializing operator-level Fabric infrastructure
+type InitFabricInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// certificate_authorities specifies the TLS CA chain to deploy (root + v1)
+	// This is operator-level shared infrastructure
+	CertificateAuthorities []*v1.CertificateAuthoritySpec `protobuf:"bytes,1,rep,name=certificate_authorities,json=CertificateAuthorities,proto3" json:"CertificateAuthorities" validate:"required,dive"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *InitFabricInput) Reset() {
+	*x = InitFabricInput{}
+	mi := &file_cell_v1_cell_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InitFabricInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InitFabricInput) ProtoMessage() {}
+
+func (x *InitFabricInput) ProtoReflect() protoreflect.Message {
+	mi := &file_cell_v1_cell_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InitFabricInput.ProtoReflect.Descriptor instead.
+func (*InitFabricInput) Descriptor() ([]byte, []int) {
+	return file_cell_v1_cell_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *InitFabricInput) GetCertificateAuthorities() []*v1.CertificateAuthoritySpec {
+	if x != nil {
+		return x.CertificateAuthorities
+	}
+	return nil
+}
+
+// InitFabricOutput indicates the result of operator-level Fabric initialization
+type InitFabricOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InitFabricOutput) Reset() {
+	*x = InitFabricOutput{}
+	mi := &file_cell_v1_cell_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InitFabricOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InitFabricOutput) ProtoMessage() {}
+
+func (x *InitFabricOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_cell_v1_cell_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InitFabricOutput.ProtoReflect.Descriptor instead.
+func (*InitFabricOutput) Descriptor() ([]byte, []int) {
+	return file_cell_v1_cell_proto_rawDescGZIP(), []int{3}
+}
+
 // InitFabricShardInput specifies the parameters for initializing a Fabric shard
 type InitFabricShardInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -113,7 +197,7 @@ type InitFabricShardInput struct {
 
 func (x *InitFabricShardInput) Reset() {
 	*x = InitFabricShardInput{}
-	mi := &file_cell_v1_cell_proto_msgTypes[2]
+	mi := &file_cell_v1_cell_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -125,7 +209,7 @@ func (x *InitFabricShardInput) String() string {
 func (*InitFabricShardInput) ProtoMessage() {}
 
 func (x *InitFabricShardInput) ProtoReflect() protoreflect.Message {
-	mi := &file_cell_v1_cell_proto_msgTypes[2]
+	mi := &file_cell_v1_cell_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -138,7 +222,7 @@ func (x *InitFabricShardInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InitFabricShardInput.ProtoReflect.Descriptor instead.
 func (*InitFabricShardInput) Descriptor() ([]byte, []int) {
-	return file_cell_v1_cell_proto_rawDescGZIP(), []int{2}
+	return file_cell_v1_cell_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *InitFabricShardInput) GetOrg() string {
@@ -164,7 +248,7 @@ type InitFabricShardOutput struct {
 
 func (x *InitFabricShardOutput) Reset() {
 	*x = InitFabricShardOutput{}
-	mi := &file_cell_v1_cell_proto_msgTypes[3]
+	mi := &file_cell_v1_cell_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -176,7 +260,7 @@ func (x *InitFabricShardOutput) String() string {
 func (*InitFabricShardOutput) ProtoMessage() {}
 
 func (x *InitFabricShardOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_cell_v1_cell_proto_msgTypes[3]
+	mi := &file_cell_v1_cell_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -189,7 +273,7 @@ func (x *InitFabricShardOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InitFabricShardOutput.ProtoReflect.Descriptor instead.
 func (*InitFabricShardOutput) Descriptor() ([]byte, []int) {
-	return file_cell_v1_cell_proto_rawDescGZIP(), []int{3}
+	return file_cell_v1_cell_proto_rawDescGZIP(), []int{5}
 }
 
 var File_cell_v1_cell_proto protoreflect.FileDescriptor
@@ -198,15 +282,20 @@ const file_cell_v1_cell_proto_rawDesc = "" +
 	"\n" +
 	"\x12cell/v1/cell.proto\x12\acell.v1\x1a\x16fabric/v1/fabric.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\x15\n" +
 	"\x13BootstrapInfraInput\"\x16\n" +
-	"\x14BootstrapInfraOutput\"\xbd\x01\n" +
+	"\x14BootstrapInfraOutput\"\xaf\x01\n" +
+	"\x0fInitFabricInput\x12\x9b\x01\n" +
+	"\x17certificate_authorities\x18\x01 \x03(\v2#.fabric.v1.CertificateAuthoritySpecB=ʵ\x039\xa2\x016json:\"CertificateAuthorities\" validate:\"required,dive\"R\x16CertificateAuthorities\"\x12\n" +
+	"\x10InitFabricOutput\"\xbd\x01\n" +
 	"\x14InitFabricShardInput\x127\n" +
 	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12l\n" +
 	"\n" +
 	"deployment\x18\x02 \x01(\v2\x1e.fabric.v1.OrgFabricDeploymentB,ʵ\x03(\xa2\x01%json:\"Deployment\" validate:\"required\"R\n" +
 	"Deployment\"\x17\n" +
-	"\x15InitFabricShardOutput2\xaf\x02\n" +
+	"\x15InitFabricShardOutput2\xa0\x03\n" +
 	"\x04Cell\x12\x83\x01\n" +
-	"\x0eBootstrapInfra\x12\x1c.cell.v1.BootstrapInfraInput\x1a\x1d.cell.v1.BootstrapInfraOutput\"4\x8a\xc4\x030*\x14cell/bootstrap-infra0\x01r\x16cell.v1.BootstrapInfra\x12\x93\x01\n" +
+	"\x0eBootstrapInfra\x12\x1c.cell.v1.BootstrapInfraInput\x1a\x1d.cell.v1.BootstrapInfraOutput\"4\x8a\xc4\x030*\x14cell/bootstrap-infra0\x01r\x16cell.v1.BootstrapInfra\x12o\n" +
+	"\n" +
+	"InitFabric\x12\x18.cell.v1.InitFabricInput\x1a\x19.cell.v1.InitFabricOutput\",\x8a\xc4\x03(*\x10cell/init-fabric0\x01r\x12cell.v1.InitFabric\x12\x93\x01\n" +
 	"\x0fInitFabricShard\x12\x1d.cell.v1.InitFabricShardInput\x1a\x1e.cell.v1.InitFabricShardOutput\"A\x8a\xc4\x03=* cell/init-fabric-shard/${! Org }0\x01r\x17cell.v1.InitFabricShard\x1a\v\x8a\xc4\x03\a\n" +
 	"\x05infraB\x98\x01\n" +
 	"\vcom.cell.v1B\tCellProtoP\x01ZAgithub.com/metacensus/infra/temporal/gen/workflows/cell/v1;cellv1\xa2\x02\x03CXX\xaa\x02\aCell.V1\xca\x02\aCell\\V1\xe2\x02\x13Cell\\V1\\GPBMetadata\xea\x02\bCell::V1b\x06proto3"
@@ -223,25 +312,31 @@ func file_cell_v1_cell_proto_rawDescGZIP() []byte {
 	return file_cell_v1_cell_proto_rawDescData
 }
 
-var file_cell_v1_cell_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_cell_v1_cell_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_cell_v1_cell_proto_goTypes = []any{
-	(*BootstrapInfraInput)(nil),    // 0: cell.v1.BootstrapInfraInput
-	(*BootstrapInfraOutput)(nil),   // 1: cell.v1.BootstrapInfraOutput
-	(*InitFabricShardInput)(nil),   // 2: cell.v1.InitFabricShardInput
-	(*InitFabricShardOutput)(nil),  // 3: cell.v1.InitFabricShardOutput
-	(*v1.OrgFabricDeployment)(nil), // 4: fabric.v1.OrgFabricDeployment
+	(*BootstrapInfraInput)(nil),         // 0: cell.v1.BootstrapInfraInput
+	(*BootstrapInfraOutput)(nil),        // 1: cell.v1.BootstrapInfraOutput
+	(*InitFabricInput)(nil),             // 2: cell.v1.InitFabricInput
+	(*InitFabricOutput)(nil),            // 3: cell.v1.InitFabricOutput
+	(*InitFabricShardInput)(nil),        // 4: cell.v1.InitFabricShardInput
+	(*InitFabricShardOutput)(nil),       // 5: cell.v1.InitFabricShardOutput
+	(*v1.CertificateAuthoritySpec)(nil), // 6: fabric.v1.CertificateAuthoritySpec
+	(*v1.OrgFabricDeployment)(nil),      // 7: fabric.v1.OrgFabricDeployment
 }
 var file_cell_v1_cell_proto_depIdxs = []int32{
-	4, // 0: cell.v1.InitFabricShardInput.deployment:type_name -> fabric.v1.OrgFabricDeployment
-	0, // 1: cell.v1.Cell.BootstrapInfra:input_type -> cell.v1.BootstrapInfraInput
-	2, // 2: cell.v1.Cell.InitFabricShard:input_type -> cell.v1.InitFabricShardInput
-	1, // 3: cell.v1.Cell.BootstrapInfra:output_type -> cell.v1.BootstrapInfraOutput
-	3, // 4: cell.v1.Cell.InitFabricShard:output_type -> cell.v1.InitFabricShardOutput
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	6, // 0: cell.v1.InitFabricInput.certificate_authorities:type_name -> fabric.v1.CertificateAuthoritySpec
+	7, // 1: cell.v1.InitFabricShardInput.deployment:type_name -> fabric.v1.OrgFabricDeployment
+	0, // 2: cell.v1.Cell.BootstrapInfra:input_type -> cell.v1.BootstrapInfraInput
+	2, // 3: cell.v1.Cell.InitFabric:input_type -> cell.v1.InitFabricInput
+	4, // 4: cell.v1.Cell.InitFabricShard:input_type -> cell.v1.InitFabricShardInput
+	1, // 5: cell.v1.Cell.BootstrapInfra:output_type -> cell.v1.BootstrapInfraOutput
+	3, // 6: cell.v1.Cell.InitFabric:output_type -> cell.v1.InitFabricOutput
+	5, // 7: cell.v1.Cell.InitFabricShard:output_type -> cell.v1.InitFabricShardOutput
+	5, // [5:8] is the sub-list for method output_type
+	2, // [2:5] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_cell_v1_cell_proto_init() }
@@ -255,7 +350,7 @@ func file_cell_v1_cell_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cell_v1_cell_proto_rawDesc), len(file_cell_v1_cell_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -29,7 +29,7 @@ type CouchDbVaultConfig struct {
 // This ensures consistency between Helm values and workflow/activity configuration
 func NewCouchDbValues(couchDbConfig fabricconfig.CouchDbConfig) *CouchDbValues {
 	return &CouchDbValues{
-		Org:      couchDbConfig.OrgID,
+		Org:      couchDbConfig.OwnerID(),
 		PeerId:   couchDbConfig.PeerID(),
 		Image:    DefaultImageConfig("couchdb", ""),
 		Replicas: 1, // Single instance per peer

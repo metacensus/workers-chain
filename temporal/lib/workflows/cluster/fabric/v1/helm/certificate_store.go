@@ -50,7 +50,7 @@ type DBProbeConfig struct {
 // This ensures consistency between Helm values and workflow/activity configuration
 func NewCertificateStoreValues(certStoreConfig fabricconfig.CertificateStoreConfig) *CertificateStoreValues {
 	return &CertificateStoreValues{
-		Org: certStoreConfig.OrgID,
+		Org: certStoreConfig.OwnerID(),
 		Image: ImageConfig{
 			Repository: "postgres",
 			Tag:        "16-alpine",

@@ -25,6 +25,11 @@ const FabricBootstrapShardOperationName = "BootstrapShard"
 
 var FabricBootstrapShardOperation = nexus.NewOperationReference[*v1.BootstrapShardInput, *v1.BootstrapShardOutput](FabricBootstrapShardOperationName)
 
+// FabricBootstrapCertificateAuthoritiesOperationName defines the fully-qualified name for the BootstrapCertificateAuthorities operation.
+const FabricBootstrapCertificateAuthoritiesOperationName = "BootstrapCertificateAuthorities"
+
+var FabricBootstrapCertificateAuthoritiesOperation = nexus.NewOperationReference[*v1.BootstrapCertificateAuthoritiesInput, *v1.BootstrapCertificateAuthoritiesOutput](FabricBootstrapCertificateAuthoritiesOperationName)
+
 // FabricDeployCertificateStoreOperationName defines the fully-qualified name for the DeployCertificateStore operation.
 const FabricDeployCertificateStoreOperationName = "DeployCertificateStore"
 
@@ -82,6 +87,7 @@ var FabricDeployChainCodeOperation = nexus.NewOperationReference[*v1.DeployChain
 
 type FabricNexusHandler interface {
 	BootstrapShard(name string) nexus.Operation[*v1.BootstrapShardInput, *v1.BootstrapShardOutput]
+	BootstrapCertificateAuthorities(name string) nexus.Operation[*v1.BootstrapCertificateAuthoritiesInput, *v1.BootstrapCertificateAuthoritiesOutput]
 	DeployCertificateStore(name string) nexus.Operation[*v1.DeployCertificateStoreInput, *v1.DeployCertificateStoreOutput]
 	DeployCertificateAuthority(name string) nexus.Operation[*v1.DeployCertificateAuthorityInput, *v1.DeployCertificateAuthorityOutput]
 	CreateCertificateDatabase(name string) nexus.Operation[*v1.CreateCertificateDatabaseInput, *v1.CreateCertificateDatabaseOutput]
@@ -97,7 +103,7 @@ type FabricNexusHandler interface {
 
 func NewFabricNexusService(h FabricNexusHandler) (*nexus.Service, error) {
 	svc := nexus.NewService(FabricServiceName)
-	err := svc.Register(h.BootstrapShard(FabricBootstrapShardOperationName), h.DeployCertificateStore(FabricDeployCertificateStoreOperationName), h.DeployCertificateAuthority(FabricDeployCertificateAuthorityOperationName), h.CreateCertificateDatabase(FabricCreateCertificateDatabaseOperationName), h.CreateCertificate(FabricCreateCertificateOperationName), h.CreateBootstrapAdmin(FabricCreateBootstrapAdminOperationName), h.CreateAdmin(FabricCreateAdminOperationName), h.CreateIdentity(FabricCreateIdentityOperationName), h.DeployCouchDb(FabricDeployCouchDbOperationName), h.DeployPeer(FabricDeployPeerOperationName), h.DeployOrderer(FabricDeployOrdererOperationName), h.DeployChainCode(FabricDeployChainCodeOperationName))
+	err := svc.Register(h.BootstrapShard(FabricBootstrapShardOperationName), h.BootstrapCertificateAuthorities(FabricBootstrapCertificateAuthoritiesOperationName), h.DeployCertificateStore(FabricDeployCertificateStoreOperationName), h.DeployCertificateAuthority(FabricDeployCertificateAuthorityOperationName), h.CreateCertificateDatabase(FabricCreateCertificateDatabaseOperationName), h.CreateCertificate(FabricCreateCertificateOperationName), h.CreateBootstrapAdmin(FabricCreateBootstrapAdminOperationName), h.CreateAdmin(FabricCreateAdminOperationName), h.CreateIdentity(FabricCreateIdentityOperationName), h.DeployCouchDb(FabricDeployCouchDbOperationName), h.DeployPeer(FabricDeployPeerOperationName), h.DeployOrderer(FabricDeployOrdererOperationName), h.DeployChainCode(FabricDeployChainCodeOperationName))
 	if err != nil {
 		return nil, err
 	}
@@ -115,6 +121,20 @@ func (h *unimplementedFabricBootstrapShard) Name() string {
 }
 func (h *UnimplementedFabricNexusHandler) BootstrapShard(name string) nexus.Operation[*v1.BootstrapShardInput, *v1.BootstrapShardOutput] {
 	return &unimplementedFabricBootstrapShard{
+		name: name,
+	}
+}
+
+type unimplementedFabricBootstrapCertificateAuthorities struct {
+	nexus.UnimplementedOperation[*v1.BootstrapCertificateAuthoritiesInput, *v1.BootstrapCertificateAuthoritiesOutput]
+	name string
+}
+
+func (h *unimplementedFabricBootstrapCertificateAuthorities) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) BootstrapCertificateAuthorities(name string) nexus.Operation[*v1.BootstrapCertificateAuthoritiesInput, *v1.BootstrapCertificateAuthoritiesOutput] {
+	return &unimplementedFabricBootstrapCertificateAuthorities{
 		name: name,
 	}
 }

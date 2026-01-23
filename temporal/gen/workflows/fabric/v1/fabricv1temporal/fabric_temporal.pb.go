@@ -19,6 +19,22 @@ import (
 // Nexus handler for fabric.v1.Fabric
 type FabricNexusHandler struct{}
 
+// BootstrapCertificateAuthorities deploys the certificate store and TLS CA chain
+// This workflow is used by operator-level infrastructure to set up shared TLS CAs
+// It validates that only TLS CAs are specified in the input
+func (h *FabricNexusHandler) BootstrapCertificateAuthorities(name string) nexus.Operation[*v1.BootstrapCertificateAuthoritiesInput, *v1.BootstrapCertificateAuthoritiesOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.BootstrapCertificateAuthoritiesInput, *v1.BootstrapCertificateAuthoritiesOutput]{
+		Handler: func(ctx context.Context, input *v1.BootstrapCertificateAuthoritiesInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.BootstrapCertificateAuthoritiesOutput], error) {
+			o, err := v1.NewBootstrapCertificateAuthoritiesOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.BootstrapCertificateAuthoritiesOutput](ctx, opts, o, v1.BootstrapCertificateAuthoritiesWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
 // BootstrapShard is the entry point for Phase 2 of shard initialization
 // This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
 // and deploys all Fabric components (CAs, peers, orderers) for the organization.

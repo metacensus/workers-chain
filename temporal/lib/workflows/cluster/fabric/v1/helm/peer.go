@@ -31,14 +31,14 @@ type PeerMspConfig struct {
 
 // PeerVaultConfig represents Vault paths for peer certificates
 type PeerVaultConfig struct {
-	RoleName              string
-	MspSigningPath        string
-	MspRootCaCertPath     string // Org Root CA cert for cacerts/
-	MspIntCaCertPath      string // Org Int CA cert for intermediatecerts/
-	TlsPath               string
-	TlsRootCaCertPath     string // TLS Root CA cert
-	TlsIntCaCertPath      string // TLS Int CA cert
-	CouchdbPath           string
+	RoleName          string
+	MspSigningPath    string
+	MspRootCaCertPath string // Org Root CA cert for cacerts/
+	MspIntCaCertPath  string // Org Int CA cert for intermediatecerts/
+	TlsPath           string
+	TlsRootCaCertPath string // TLS Root CA cert
+	TlsIntCaCertPath  string // TLS Int CA cert
+	CouchdbPath       string
 }
 
 // PeerServiceConfig represents service port configuration for a peer
@@ -73,21 +73,21 @@ type PeerProbeConfig struct {
 	FailureThreshold    int
 }
 
-// NewPeerValues creates PeerValues from PeerConfig
-// This ensures consistency between Helm values and workflow/activity configuration
-func NewPeerValues(peerConfig fabricconfig.PeerConfig) *PeerValues {
-	fabricCfg := fabricconfig.NewFabricConfig(peerConfig.OrgConfig)
-	couchDbConfig := fabricCfg.CouchDb(peerConfig.PeerID())
-
-	// Get the CA configs for cert paths
-	// MSP needs: Root CA in cacerts/, Intermediate CA in intermediatecerts/
-	orgRootCA := fabricCfg.CertificateAuthority("org", "root")
-	orgIntCA := fabricCfg.CertificateAuthority("org", "v1")
-	tlsRootCA := fabricCfg.CertificateAuthority("tls", "root")
-	tlsIntCA := fabricCfg.CertificateAuthority("tls", "v1")
+// NewPeerValues creates PeerValues from PeerConfig and CA configurations.
+// CA configs are passed explicitly to allow TLS CAs to be owned by a different owner (operator)
+// than the org CAs (which are owned by the org).
+// This ensures consistency between Helm values and workflow/activity configuration.
+func NewPeerValues(
+	peerConfig fabricconfig.PeerConfig,
+	orgRootCA fabricconfig.CertificateAuthorityConfig,
+	orgIntCA fabricconfig.CertificateAuthorityConfig,
+	tlsRootCA fabricconfig.CertificateAuthorityConfig,
+	tlsIntCA fabricconfig.CertificateAuthorityConfig,
+) *PeerValues {
+	couchDbConfig := fabricconfig.NewCouchDbConfig(peerConfig.OwnerConfig, peerConfig.PeerID())
 
 	return &PeerValues{
-		Org:      peerConfig.OrgID,
+		Org:      peerConfig.OwnerID(),
 		PeerId:   peerConfig.PeerID(),
 		Image:    DefaultImageConfig("peer", ""),
 		Replicas: 1, // Single instance per peer StatefulSet
@@ -154,4 +154,3 @@ func NewPeerValues(peerConfig fabricconfig.PeerConfig) *PeerValues {
 		CommonLabels: DefaultCommonLabels(),
 	}
 }
-

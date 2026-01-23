@@ -30,6 +30,18 @@ service Cell {
     };
   }
 
+  // InitFabric orchestrates the initialization of operator-level Fabric infrastructure
+  // This workflow deploys shared infrastructure (TLS CAs, cert store) in the operator namespace
+  // and runs once at platform bootstrap time.
+  rpc InitFabric(InitFabricInput) returns (InitFabricOutput) {
+    // Workflow execution metadata
+    option (temporal.v1.workflow) = {
+      name: "cell.v1.InitFabric"
+      id: 'cell/init-fabric'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
   // InitFabricShard orchestrates the complete initialization of a Fabric shard
   // This workflow is the "hub" that orchestrates the multi-phase bootstrap process.
   // Phase 1 (central): Sets up infrastructure prerequisites
@@ -53,6 +65,23 @@ message BootstrapInfraInput {
 
 // BootstrapInfraOutput indicates the result of infrastructure bootstrap
 message BootstrapInfraOutput {
+  // Empty for now - output structure to be defined as implementation progresses
+}
+
+// ==================== InitFabric Workflow Messages ====================
+
+// InitFabricInput specifies the parameters for initializing operator-level Fabric infrastructure
+message InitFabricInput {
+  // certificate_authorities specifies the TLS CA chain to deploy (root + v1)
+  // This is operator-level shared infrastructure
+  repeated fabric.v1.CertificateAuthoritySpec certificate_authorities = 1 [
+    json_name = "CertificateAuthorities",
+    (go.field).tags = 'json:"CertificateAuthorities" validate:"required,dive"'
+  ];
+}
+
+// InitFabricOutput indicates the result of operator-level Fabric initialization
+message InitFabricOutput {
   // Empty for now - output structure to be defined as implementation progresses
 }
 

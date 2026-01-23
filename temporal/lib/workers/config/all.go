@@ -19,6 +19,7 @@ const (
 	vaultEngineType    = "VAULT_ENGINE_TYPE"
 
 	kubeconfigPathName = "KUBECONFIG"
+	operatorIDName     = "OPERATOR_ID"
 	orgIDName          = "ORG_ID"
 )
 

@@ -173,6 +173,17 @@ service Fabric {
     };
   }
 
+  // BootstrapCertificateAuthorities deploys the certificate store and TLS CA chain
+  // This workflow is used by operator-level infrastructure to set up shared TLS CAs
+  // It validates that only TLS CAs are specified in the input
+  rpc BootstrapCertificateAuthorities(BootstrapCertificateAuthoritiesInput) returns (BootstrapCertificateAuthoritiesOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.BootstrapCertificateAuthorities"
+      id: 'fabric/bootstrap-certificate-authorities'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
   // DeployCertificateStore deploys the shared certificate store (PostgreSQL)
   // used by all certificate authorities in the organization.
   rpc DeployCertificateStore(DeployCertificateStoreInput) returns (DeployCertificateStoreOutput) {
@@ -340,9 +351,16 @@ service FabricActivities {
 
 // BootstrapShardInput specifies the parameters for bootstrapping a Fabric shard
 message BootstrapShardInput {
+  // org is the organization identifier (required)
+  // All resources will be created in the org's namespace and vault paths
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
   // deployment is the complete fabric deployment configuration (required)
   // Caller must specify all CAs, peers, and orderers - no defaults
-  OrgFabricDeployment deployment = 1 [
+  OrgFabricDeployment deployment = 2 [
     json_name = "Deployment",
     (go.field).tags = 'json:"Deployment" validate:"required"'
   ];
@@ -353,11 +371,40 @@ message BootstrapShardOutput {
   // Empty for now
 }
 
+// ==================== BootstrapCertificateAuthorities Workflow Messages ====================
+
+// BootstrapCertificateAuthoritiesInput specifies the parameters for bootstrapping certificate infrastructure
+message BootstrapCertificateAuthoritiesInput {
+  // org is the owner identifier (operator or organization)
+  // All resources will be created in this owner's namespace and vault paths
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
+  // certificate_authorities specifies the CAs to deploy (in order)
+  // Must be TLS CAs only - workflow validates cert_type="tls"
+  repeated CertificateAuthoritySpec certificate_authorities = 2 [
+    json_name = "CertificateAuthorities",
+    (go.field).tags = 'json:"CertificateAuthorities" validate:"required,min=1"'
+  ];
+}
+
+// BootstrapCertificateAuthoritiesOutput indicates the result of certificate infrastructure bootstrapping
+message BootstrapCertificateAuthoritiesOutput {
+  // Empty for now
+}
+
 // ==================== DeployCertificateStore Workflow Messages ====================
 
 // DeployCertificateStoreInput specifies the parameters for deploying the certificate store
 message DeployCertificateStoreInput {
-  // Empty - org is implicit from the worker's namespace
+  // org is the owner identifier (operator or organization)
+  // The certificate store will be created in this owner's namespace
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
 }
 
 // DeployCertificateStoreOutput indicates the result of certificate store deployment
@@ -369,8 +416,15 @@ message DeployCertificateStoreOutput {
 
 // DeployCertificateAuthorityInput specifies the parameters for deploying a CA
 message DeployCertificateAuthorityInput {
+  // org is the owner identifier (operator or organization)
+  // The CA will be created in this owner's namespace
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
   // spec defines the CA to deploy (required)
-  CertificateAuthoritySpec spec = 1 [
+  CertificateAuthoritySpec spec = 2 [
     json_name = "Spec",
     (go.field).tags = 'json:"Spec" validate:"required"'
   ];
@@ -385,8 +439,14 @@ message DeployCertificateAuthorityOutput {
 
 // CreateCertificateDatabaseInput specifies the parameters for creating a certificate database
 message CreateCertificateDatabaseInput {
+  // org is the owner identifier (operator or organization)
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
   // ca_ref identifies which CA this database is for
-  CertificateAuthorityRef ca_ref = 1 [
+  CertificateAuthorityRef ca_ref = 2 [
     json_name = "CaRef",
     (go.field).tags = 'json:"CaRef" validate:"required"'
   ];
@@ -405,51 +465,57 @@ message CreateCertificateDatabaseOutput {
 
 // CreateCertificateInput specifies the parameters for creating a certificate
 message CreateCertificateInput {
+  // org is the owner identifier (operator or organization)
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
   // issuer_ref identifies which CA signs this certificate.
   // If nil/empty, creates a self-signed certificate.
-  CertificateAuthorityRef issuer_ref = 1 [
+  CertificateAuthorityRef issuer_ref = 2 [
     json_name = "IssuerRef",
     (go.field).tags = 'json:"IssuerRef"'
   ];
 
   // profile determines key usages ("ca", "tls", or "" for default identity)
-  string profile = 2 [
+  string profile = 3 [
     json_name = "Profile",
     (go.field).tags = 'json:"Profile"'
   ];
 
   // subject specifies the certificate subject fields
-  CertificateSubject subject = 3 [
+  CertificateSubject subject = 4 [
     json_name = "Subject",
     (go.field).tags = 'json:"Subject" validate:"required"'
   ];
 
   // storage_ref is where to store keypair + certificate
-  secrets.v1.SecretRef storage_ref = 4 [
+  secrets.v1.SecretRef storage_ref = 5 [
     json_name = "StorageRef",
     (go.field).tags = 'json:"StorageRef" validate:"required"'
   ];
 
   // admin_credentials_ref is the issuer's admin credentials (for registration)
   // Required unless self-signed
-  secrets.v1.SecretRef admin_credentials_ref = 5 [
+  secrets.v1.SecretRef admin_credentials_ref = 6 [
     json_name = "AdminCredentialsRef",
     (go.field).tags = 'json:"AdminCredentialsRef"'
   ];
 
   // purpose is a human-readable label for the workflow ID (e.g., "tls-root-signing")
-  string purpose = 6 [
+  string purpose = 7 [
     json_name = "Purpose",
     (go.field).tags = 'json:"Purpose" validate:"required"'
   ];
 
   // attributes are additional CA attributes for the identity (e.g., hf.IntermediateCA)
-  map<string, string> attributes = 7 [json_name = "Attributes"];
+  map<string, string> attributes = 8 [json_name = "Attributes"];
 
   // chain_ref is an optional location to store the CA chain separately.
   // Required for intermediate CA signing certs (profile="ca") so Fabric CA
   // can verify client certificates issued by the intermediate CA.
-  secrets.v1.SecretRef chain_ref = 8 [
+  secrets.v1.SecretRef chain_ref = 9 [
     json_name = "ChainRef",
     (go.field).tags = 'json:"ChainRef,omitempty"'
   ];
@@ -458,7 +524,7 @@ message CreateCertificateInput {
   // This determines the OU field in the issued certificate.
   // Valid values: "peer", "orderer", "admin", "client" (default: "client")
   // The OU is critical for NodeOUs classification in the MSP.
-  string identity_type = 9 [
+  string identity_type = 10 [
     json_name = "IdentityType",
     (go.field).tags = 'json:"IdentityType,omitempty"'
   ];
@@ -477,21 +543,27 @@ message CreateCertificateOutput {
 
 // CreateBootstrapAdminInput specifies the parameters for creating a bootstrap admin
 message CreateBootstrapAdminInput {
+  // org is the owner identifier (operator or organization)
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
   // ca_ref identifies which CA to create the bootstrap admin for
-  CertificateAuthorityRef ca_ref = 1 [
+  CertificateAuthorityRef ca_ref = 2 [
     json_name = "CaRef",
     (go.field).tags = 'json:"CaRef" validate:"required"'
   ];
 
   // tls_issuer identifies who issues the bootstrap admin's TLS certificate.
   // If nil/empty, uses the CA itself (TLS Root CA case).
-  CertificateAuthorityRef tls_issuer = 2 [
+  CertificateAuthorityRef tls_issuer = 3 [
     json_name = "TlsIssuer",
     (go.field).tags = 'json:"TlsIssuer,omitempty"'
   ];
 
   // validity_duration specifies how long the bootstrap admin certificates are valid.
-  google.protobuf.Duration validity_duration = 3 [
+  google.protobuf.Duration validity_duration = 4 [
     json_name = "ValidityDuration",
     (go.field).tags = 'json:"ValidityDuration,omitempty"'
   ];
@@ -516,27 +588,33 @@ message CreateBootstrapAdminOutput {
 
 // CreateAdminInput specifies the parameters for creating a permanent admin
 message CreateAdminInput {
+  // org is the owner identifier (operator or organization)
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
   // ca_ref identifies which CA to create the admin for
-  CertificateAuthorityRef ca_ref = 1 [
+  CertificateAuthorityRef ca_ref = 2 [
     json_name = "CaRef",
     (go.field).tags = 'json:"CaRef" validate:"required"'
   ];
 
   // signing_issuer identifies who issues the admin's signing certificate.
   // Per Fabric CA constraints, this should be the CA itself (admin must be in CA's database).
-  CertificateAuthorityRef signing_issuer = 2 [
+  CertificateAuthorityRef signing_issuer = 3 [
     json_name = "SigningIssuer",
     (go.field).tags = 'json:"SigningIssuer,omitempty"'
   ];
 
   // tls_issuer identifies who issues the admin's TLS certificate.
-  CertificateAuthorityRef tls_issuer = 3 [
+  CertificateAuthorityRef tls_issuer = 4 [
     json_name = "TlsIssuer",
     (go.field).tags = 'json:"TlsIssuer,omitempty"'
   ];
 
   // validity_duration specifies how long the admin certificates are valid.
-  google.protobuf.Duration validity_duration = 4 [
+  google.protobuf.Duration validity_duration = 5 [
     json_name = "ValidityDuration",
     (go.field).tags = 'json:"ValidityDuration,omitempty"'
   ];
@@ -561,49 +639,55 @@ message CreateAdminOutput {
 
 // CreateIdentityInput specifies the parameters for creating a Fabric identity
 message CreateIdentityInput {
+  // org is the owner identifier (operator or organization)
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
   // identity_name is the unique name for this identity (e.g., "peer0", "orderer0", "admin")
-  string identity_name = 1 [
+  string identity_name = 2 [
     json_name = "IdentityName",
     (go.field).tags = 'json:"IdentityName" validate:"required"'
   ];
 
   // subject specifies the certificate subject fields
-  CertificateSubject subject = 2 [
+  CertificateSubject subject = 3 [
     json_name = "Subject",
     (go.field).tags = 'json:"Subject" validate:"required"'
   ];
 
   // org_issuer_ref identifies which Org CA issues the identity certificate
   // Typically the Org Intermediate CA (org/v1)
-  CertificateAuthorityRef org_issuer_ref = 3 [
+  CertificateAuthorityRef org_issuer_ref = 4 [
     json_name = "OrgIssuerRef",
     (go.field).tags = 'json:"OrgIssuerRef" validate:"required"'
   ];
 
   // tls_issuer_ref identifies which TLS CA issues the TLS certificate
   // Typically the TLS Intermediate CA (tls/v1)
-  CertificateAuthorityRef tls_issuer_ref = 4 [
+  CertificateAuthorityRef tls_issuer_ref = 5 [
     json_name = "TlsIssuerRef",
     (go.field).tags = 'json:"TlsIssuerRef" validate:"required"'
   ];
 
   // storage_signing_ref is where to store the org identity (keypair + cert)
-  secrets.v1.SecretRef storage_signing_ref = 5 [
+  secrets.v1.SecretRef storage_signing_ref = 6 [
     json_name = "StorageSigningRef",
     (go.field).tags = 'json:"StorageSigningRef" validate:"required"'
   ];
 
   // storage_tls_ref is where to store the TLS identity (keypair + cert)
-  secrets.v1.SecretRef storage_tls_ref = 6 [
+  secrets.v1.SecretRef storage_tls_ref = 7 [
     json_name = "StorageTlsRef",
     (go.field).tags = 'json:"StorageTlsRef" validate:"required"'
   ];
 
   // attributes are additional CA attributes for the identity
-  map<string, string> attributes = 7 [json_name = "Attributes"];
+  map<string, string> attributes = 8 [json_name = "Attributes"];
 
   // tls_profile specifies the TLS signing profile ("tls" for server/client, "" for client-only)
-  string tls_profile = 8 [
+  string tls_profile = 9 [
     json_name = "TlsProfile",
     (go.field).tags = 'json:"TlsProfile"'
   ];
@@ -612,7 +696,7 @@ message CreateIdentityInput {
   // This determines the OU field in the issued certificate.
   // Valid values: "peer", "orderer", "admin", "client" (default: "client")
   // The OU is critical for NodeOUs classification in the MSP.
-  string identity_type = 9 [
+  string identity_type = 10 [
     json_name = "IdentityType",
     (go.field).tags = 'json:"IdentityType,omitempty"'
   ];
@@ -847,8 +931,14 @@ message BootstrapEnrollIdentityOutput {
 
 // DeployCouchDbInput specifies the parameters for deploying a CouchDB instance
 message DeployCouchDbInput {
+  // org is the owner identifier (organization)
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
   // peer_id identifies which peer this CouchDB is for (e.g., "peer0", "peer1")
-  string peer_id = 1 [
+  string peer_id = 2 [
     json_name = "PeerId",
     (go.field).tags = 'json:"PeerId" validate:"required"'
   ];
@@ -863,8 +953,14 @@ message DeployCouchDbOutput {
 
 // DeployPeerInput specifies the parameters for deploying a Fabric peer
 message DeployPeerInput {
+  // org is the owner identifier (organization)
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
   // spec defines the peer to deploy (required)
-  PeerSpec spec = 1 [
+  PeerSpec spec = 2 [
     json_name = "Spec",
     (go.field).tags = 'json:"Spec" validate:"required"'
   ];
@@ -879,8 +975,14 @@ message DeployPeerOutput {
 
 // DeployOrdererInput specifies the parameters for deploying a Fabric orderer
 message DeployOrdererInput {
+  // org is the owner identifier (organization)
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
   // spec defines the orderer to deploy (required)
-  OrdererSpec spec = 1 [
+  OrdererSpec spec = 2 [
     json_name = "Spec",
     (go.field).tags = 'json:"Spec" validate:"required"'
   ];
@@ -895,8 +997,14 @@ message DeployOrdererOutput {
 
 // DeployChainCodeInput specifies the parameters for deploying a chaincode
 message DeployChainCodeInput {
+  // org is the owner identifier (organization)
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
   // chain_code_id identifies this chaincode (e.g., "asset-transfer", "fabcar")
-  string chain_code_id = 1 [
+  string chain_code_id = 2 [
     json_name = "ChainCodeId",
     (go.field).tags = 'json:"ChainCodeId" validate:"required"'
   ];

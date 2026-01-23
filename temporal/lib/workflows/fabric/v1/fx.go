@@ -3,7 +3,7 @@ package fabric
 import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1temporal"
-	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
+	"github.com/metacensus/infra/temporal/lib/workers/config"
 	"github.com/metacensus/infra/temporal/lib/workflows/common"
 	"github.com/metacensus/infra/temporal/lib/workflows/fabric/v1/certauthority"
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
@@ -28,8 +28,9 @@ import (
 //	-> Activities
 var Module = fx.Options(
 	// Provide Workflows implementing pb.FabricWorkflows interface
-	fx.Provide(func(fabricConfig fabricconfig.FabricConfig) pb.FabricWorkflows {
-		return NewWorkflows(fabricConfig)
+	// Workflows no longer depend on global orgConfig - they get org from input
+	fx.Provide(func() pb.FabricWorkflows {
+		return NewWorkflows()
 	}),
 
 	// Provide Client multi-client provider
@@ -47,13 +48,13 @@ var Module = fx.Options(
 	// Activities get:
 	// - secretProvider: for fetching/storing secrets with type safety
 	// - clientProvider: for cached Client access (Register/Revoke operations)
-	// - fabricConfig: for building CA-specific configurations
+	// - orgConfig: for building CA-specific configurations (activities run on fabric worker which has ORG_ID)
 	fx.Provide(func(
 		secretProvider secrets.SecretProvider,
 		clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig],
-		fabricConfig fabricconfig.FabricConfig,
+		orgConfig config.OrgConfig,
 	) *Activities {
-		return NewActivities(secretProvider, clientProvider, fabricConfig)
+		return NewActivities(secretProvider, clientProvider, orgConfig)
 	}),
 )
 

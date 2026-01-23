@@ -1,0 +1,31 @@
+{{- /*
+NetworkPolicy for operator namespace
+Allows ingress from fabric org namespaces to TLS CA services on port 7054.
+This enables org components to obtain TLS certificates from shared operator-owned CAs.
+Only deployed when isOperator is true.
+*/ -}}
+{{- if .Values.isOperator }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-fabric-ca-access
+  namespace: {{ include "fabric.namespace" . }}
+  labels:
+    {{- include "fabric.commonLabels" . | nindent 4 }}
+spec:
+  # Apply to all pods in the operator namespace
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow ingress from any namespace with app.kubernetes.io/part-of=fabric label
+    # This includes all fabric org namespaces (fabric-org1, fabric-org2, etc.)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: fabric
+      ports:
+        # CA server port (Hyperledger Fabric CA)
+        - protocol: TCP
+          port: 7054
+{{- end }}

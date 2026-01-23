@@ -58,6 +58,14 @@ message CreateNamespaceInput {
     json_name = "Org",
     (go.field).tags = 'json:"Org" validate:"required"'
   ];
+
+  // is_operator indicates whether this is the operator namespace
+  // When true, network policies will be created to allow cross-namespace
+  // access from fabric org namespaces to TLS CA services on port 7054
+  bool is_operator = 2 [
+    json_name = "IsOperator",
+    (go.field).tags = 'json:"IsOperator,omitempty"'
+  ];
 }
 
 message CreateNamespaceOutput {

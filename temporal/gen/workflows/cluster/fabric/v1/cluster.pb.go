@@ -27,7 +27,11 @@ type CreateNamespaceInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// org is the organization identifier (e.g., "org1")
 	// The namespace will be named "fabric-{org}"
-	Org           string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
+	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
+	// is_operator indicates whether this is the operator namespace
+	// When true, network policies will be created to allow cross-namespace
+	// access from fabric org namespaces to TLS CA services on port 7054
+	IsOperator    bool `protobuf:"varint,2,opt,name=is_operator,json=IsOperator,proto3" json:"IsOperator,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -67,6 +71,13 @@ func (x *CreateNamespaceInput) GetOrg() string {
 		return x.Org
 	}
 	return ""
+}
+
+func (x *CreateNamespaceInput) GetIsOperator() bool {
+	if x != nil {
+		return x.IsOperator
+	}
+	return false
 }
 
 type CreateNamespaceOutput struct {
@@ -306,9 +317,11 @@ var File_cluster_fabric_v1_cluster_proto protoreflect.FileDescriptor
 
 const file_cluster_fabric_v1_cluster_proto_rawDesc = "" +
 	"\n" +
-	"\x1fcluster/fabric/v1/cluster.proto\x12\x11cluster.fabric.v1\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"O\n" +
+	"\x1fcluster/fabric/v1/cluster.proto\x12\x11cluster.fabric.v1\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\x94\x01\n" +
 	"\x14CreateNamespaceInput\x127\n" +
-	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\"o\n" +
+	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12C\n" +
+	"\vis_operator\x18\x02 \x01(\bB\"ʵ\x03\x1e\xa2\x01\x1bjson:\"IsOperator,omitempty\"R\n" +
+	"IsOperator\"o\n" +
 	"\x15CreateNamespaceOutput\x12V\n" +
 	"\x0enamespace_name\x18\x01 \x01(\tB/ʵ\x03+\xa2\x01(json:\"NamespaceName\" validate:\"required\"R\rNamespaceName\"T\n" +
 	"\x19CreateServiceAccountInput\x127\n" +

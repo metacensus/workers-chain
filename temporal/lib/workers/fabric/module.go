@@ -26,12 +26,12 @@ var Module = fx.Module("fabric",
 		config.GetOrg,
 	),
 
-	// Provide fabric-specific configs
-	fx.Provide(func(orgConfig *config.OrgConfig) fabricconfig.FabricConfig {
-		return fabricconfig.NewFabricConfig(*orgConfig)
+	// Provide fabric-specific configs derived from OrgConfig
+	fx.Provide(func(orgConfig *config.OrgConfig) config.OrgConfig {
+		return *orgConfig
 	}),
-	fx.Provide(func(fabricConfig fabricconfig.FabricConfig) fabricconfig.CertificateStoreConfig {
-		return fabricConfig.CertificateStore()
+	fx.Provide(func(orgConfig config.OrgConfig) fabricconfig.CertificateStoreConfig {
+		return fabricconfig.NewCertificateStoreConfig(orgConfig)
 	}),
 
 	// Provide temporal worker

@@ -55,8 +55,7 @@ type CAProbeConfig struct {
 // This ensures consistency between Helm values and workflow/activity configuration
 func NewCertificateAuthorityValues(caConfig fabricconfig.CertificateAuthorityConfig) *CertificateAuthorityValues {
 	// Get certificate store config for database connection
-	fabricCfg := fabricconfig.NewFabricConfig(caConfig.OrgConfig)
-	certStoreConfig := fabricCfg.CertificateStore()
+	certStoreConfig := fabricconfig.NewCertificateStoreConfig(caConfig.OwnerConfig)
 
 	// Determine if this is an intermediate CA that needs a chain file
 	var signingChainPath string
@@ -66,7 +65,7 @@ func NewCertificateAuthorityValues(caConfig fabricconfig.CertificateAuthorityCon
 	}
 
 	return &CertificateAuthorityValues{
-		Org:      caConfig.OrgID,
+		Org:      caConfig.OwnerID(),
 		CertType: caConfig.CertType(),
 		CaId:     caConfig.CAID(),
 		Image: ImageConfig{

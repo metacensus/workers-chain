@@ -11,9 +11,9 @@ import (
 
 // NewPostgresClientProvider creates a ClientProvider for postgres with secret-backed credentials.
 // Uses ClientProvider (single-client pattern) because there is exactly one postgres deployment.
-func NewPostgresClientProvider(config CertStorePostgresConfig, secretProvider secrets.SecretProvider) *common.ClientProvider[PostgresClient, PostgresConfig] {
+func NewPostgresClientProvider(cfg CertStorePostgresConfig, secretProvider secrets.SecretProvider) *common.ClientProvider[PostgresClient, PostgresConfig] {
 	return common.NewClientProvider(
-		config,
+		cfg,
 		secretProvider,
 		NewPostgresClient, // ClientConstructor
 	)

@@ -16,6 +16,9 @@ func main() {
 	config.InitializeVault()
 	config.InitializeKubernetes()
 	config.InitializeWorker()
+	if err := config.InitializeOperator(); err != nil {
+		log.Fatalf("Failed to initialize operator config: %v", err)
+	}
 
 	cfg := config.GetTemporal()
 	log.Println("Connecting to Temporal at", cfg.Address)
