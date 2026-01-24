@@ -849,6 +849,392 @@ func (*DeployCertificateAuthorityOutput) Descriptor() ([]byte, []int) {
 	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{14}
 }
 
+// DeployTlsRootCertificateAuthorityInput specifies parameters for deploying TLS Root CA
+type DeployTlsRootCertificateAuthorityInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// org is the owner identifier (operator)
+	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
+	// validity_duration specifies how long the CA certificates are valid
+	ValidityDuration *durationpb.Duration `protobuf:"bytes,2,opt,name=validity_duration,json=ValidityDuration,proto3" json:"ValidityDuration,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *DeployTlsRootCertificateAuthorityInput) Reset() {
+	*x = DeployTlsRootCertificateAuthorityInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployTlsRootCertificateAuthorityInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployTlsRootCertificateAuthorityInput) ProtoMessage() {}
+
+func (x *DeployTlsRootCertificateAuthorityInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployTlsRootCertificateAuthorityInput.ProtoReflect.Descriptor instead.
+func (*DeployTlsRootCertificateAuthorityInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *DeployTlsRootCertificateAuthorityInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *DeployTlsRootCertificateAuthorityInput) GetValidityDuration() *durationpb.Duration {
+	if x != nil {
+		return x.ValidityDuration
+	}
+	return nil
+}
+
+// DeployTlsRootCertificateAuthorityOutput indicates the result of TLS Root CA deployment
+type DeployTlsRootCertificateAuthorityOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployTlsRootCertificateAuthorityOutput) Reset() {
+	*x = DeployTlsRootCertificateAuthorityOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployTlsRootCertificateAuthorityOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployTlsRootCertificateAuthorityOutput) ProtoMessage() {}
+
+func (x *DeployTlsRootCertificateAuthorityOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployTlsRootCertificateAuthorityOutput.ProtoReflect.Descriptor instead.
+func (*DeployTlsRootCertificateAuthorityOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{16}
+}
+
+// DeployTlsIntermediateCertificateAuthorityInput specifies parameters for deploying TLS Intermediate CA
+type DeployTlsIntermediateCertificateAuthorityInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// org is the owner identifier (operator)
+	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
+	// validity_duration specifies how long the CA certificates are valid
+	ValidityDuration *durationpb.Duration `protobuf:"bytes,2,opt,name=validity_duration,json=ValidityDuration,proto3" json:"ValidityDuration,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *DeployTlsIntermediateCertificateAuthorityInput) Reset() {
+	*x = DeployTlsIntermediateCertificateAuthorityInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployTlsIntermediateCertificateAuthorityInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployTlsIntermediateCertificateAuthorityInput) ProtoMessage() {}
+
+func (x *DeployTlsIntermediateCertificateAuthorityInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployTlsIntermediateCertificateAuthorityInput.ProtoReflect.Descriptor instead.
+func (*DeployTlsIntermediateCertificateAuthorityInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *DeployTlsIntermediateCertificateAuthorityInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *DeployTlsIntermediateCertificateAuthorityInput) GetValidityDuration() *durationpb.Duration {
+	if x != nil {
+		return x.ValidityDuration
+	}
+	return nil
+}
+
+// DeployTlsIntermediateCertificateAuthorityOutput indicates the result of TLS Intermediate CA deployment
+type DeployTlsIntermediateCertificateAuthorityOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployTlsIntermediateCertificateAuthorityOutput) Reset() {
+	*x = DeployTlsIntermediateCertificateAuthorityOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployTlsIntermediateCertificateAuthorityOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployTlsIntermediateCertificateAuthorityOutput) ProtoMessage() {}
+
+func (x *DeployTlsIntermediateCertificateAuthorityOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployTlsIntermediateCertificateAuthorityOutput.ProtoReflect.Descriptor instead.
+func (*DeployTlsIntermediateCertificateAuthorityOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{18}
+}
+
+// DeployOrgRootCertificateAuthorityInput specifies parameters for deploying Org Root CA
+type DeployOrgRootCertificateAuthorityInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// org is the owner identifier (organization)
+	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
+	// validity_duration specifies how long the CA certificates are valid
+	ValidityDuration *durationpb.Duration `protobuf:"bytes,2,opt,name=validity_duration,json=ValidityDuration,proto3" json:"ValidityDuration,omitempty"`
+	// tls_issuer identifies the TLS Intermediate CA (always TLS Int for Org Root)
+	TlsIssuer     *CertificateAuthorityRef `protobuf:"bytes,3,opt,name=tls_issuer,json=TlsIssuer,proto3" json:"TlsIssuer" validate:"required"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployOrgRootCertificateAuthorityInput) Reset() {
+	*x = DeployOrgRootCertificateAuthorityInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployOrgRootCertificateAuthorityInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployOrgRootCertificateAuthorityInput) ProtoMessage() {}
+
+func (x *DeployOrgRootCertificateAuthorityInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployOrgRootCertificateAuthorityInput.ProtoReflect.Descriptor instead.
+func (*DeployOrgRootCertificateAuthorityInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *DeployOrgRootCertificateAuthorityInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *DeployOrgRootCertificateAuthorityInput) GetValidityDuration() *durationpb.Duration {
+	if x != nil {
+		return x.ValidityDuration
+	}
+	return nil
+}
+
+func (x *DeployOrgRootCertificateAuthorityInput) GetTlsIssuer() *CertificateAuthorityRef {
+	if x != nil {
+		return x.TlsIssuer
+	}
+	return nil
+}
+
+// DeployOrgRootCertificateAuthorityOutput indicates the result of Org Root CA deployment
+type DeployOrgRootCertificateAuthorityOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployOrgRootCertificateAuthorityOutput) Reset() {
+	*x = DeployOrgRootCertificateAuthorityOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployOrgRootCertificateAuthorityOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployOrgRootCertificateAuthorityOutput) ProtoMessage() {}
+
+func (x *DeployOrgRootCertificateAuthorityOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployOrgRootCertificateAuthorityOutput.ProtoReflect.Descriptor instead.
+func (*DeployOrgRootCertificateAuthorityOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{20}
+}
+
+// DeployOrgIntermediateCertificateAuthorityInput specifies parameters for deploying Org Intermediate CA
+type DeployOrgIntermediateCertificateAuthorityInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// org is the owner identifier (organization)
+	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
+	// validity_duration specifies how long the CA certificates are valid
+	ValidityDuration *durationpb.Duration `protobuf:"bytes,2,opt,name=validity_duration,json=ValidityDuration,proto3" json:"ValidityDuration,omitempty"`
+	// tls_issuer identifies the TLS Intermediate CA (always TLS Int for Org Intermediate)
+	TlsIssuer     *CertificateAuthorityRef `protobuf:"bytes,3,opt,name=tls_issuer,json=TlsIssuer,proto3" json:"TlsIssuer" validate:"required"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployOrgIntermediateCertificateAuthorityInput) Reset() {
+	*x = DeployOrgIntermediateCertificateAuthorityInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployOrgIntermediateCertificateAuthorityInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployOrgIntermediateCertificateAuthorityInput) ProtoMessage() {}
+
+func (x *DeployOrgIntermediateCertificateAuthorityInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployOrgIntermediateCertificateAuthorityInput.ProtoReflect.Descriptor instead.
+func (*DeployOrgIntermediateCertificateAuthorityInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *DeployOrgIntermediateCertificateAuthorityInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *DeployOrgIntermediateCertificateAuthorityInput) GetValidityDuration() *durationpb.Duration {
+	if x != nil {
+		return x.ValidityDuration
+	}
+	return nil
+}
+
+func (x *DeployOrgIntermediateCertificateAuthorityInput) GetTlsIssuer() *CertificateAuthorityRef {
+	if x != nil {
+		return x.TlsIssuer
+	}
+	return nil
+}
+
+// DeployOrgIntermediateCertificateAuthorityOutput indicates the result of Org Intermediate CA deployment
+type DeployOrgIntermediateCertificateAuthorityOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployOrgIntermediateCertificateAuthorityOutput) Reset() {
+	*x = DeployOrgIntermediateCertificateAuthorityOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployOrgIntermediateCertificateAuthorityOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployOrgIntermediateCertificateAuthorityOutput) ProtoMessage() {}
+
+func (x *DeployOrgIntermediateCertificateAuthorityOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployOrgIntermediateCertificateAuthorityOutput.ProtoReflect.Descriptor instead.
+func (*DeployOrgIntermediateCertificateAuthorityOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{22}
+}
+
 // CreateCertificateDatabaseInput specifies the parameters for creating a certificate database
 type CreateCertificateDatabaseInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -862,7 +1248,7 @@ type CreateCertificateDatabaseInput struct {
 
 func (x *CreateCertificateDatabaseInput) Reset() {
 	*x = CreateCertificateDatabaseInput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[15]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -874,7 +1260,7 @@ func (x *CreateCertificateDatabaseInput) String() string {
 func (*CreateCertificateDatabaseInput) ProtoMessage() {}
 
 func (x *CreateCertificateDatabaseInput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[15]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -887,7 +1273,7 @@ func (x *CreateCertificateDatabaseInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCertificateDatabaseInput.ProtoReflect.Descriptor instead.
 func (*CreateCertificateDatabaseInput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{15}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *CreateCertificateDatabaseInput) GetOrg() string {
@@ -915,7 +1301,7 @@ type CreateCertificateDatabaseOutput struct {
 
 func (x *CreateCertificateDatabaseOutput) Reset() {
 	*x = CreateCertificateDatabaseOutput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[16]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -927,7 +1313,7 @@ func (x *CreateCertificateDatabaseOutput) String() string {
 func (*CreateCertificateDatabaseOutput) ProtoMessage() {}
 
 func (x *CreateCertificateDatabaseOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[16]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -940,7 +1326,7 @@ func (x *CreateCertificateDatabaseOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCertificateDatabaseOutput.ProtoReflect.Descriptor instead.
 func (*CreateCertificateDatabaseOutput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{16}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *CreateCertificateDatabaseOutput) GetCredentialsRef() *v1.SecretRef {
@@ -986,7 +1372,7 @@ type CreateCertificateInput struct {
 
 func (x *CreateCertificateInput) Reset() {
 	*x = CreateCertificateInput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[17]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -998,7 +1384,7 @@ func (x *CreateCertificateInput) String() string {
 func (*CreateCertificateInput) ProtoMessage() {}
 
 func (x *CreateCertificateInput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[17]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1011,7 +1397,7 @@ func (x *CreateCertificateInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCertificateInput.ProtoReflect.Descriptor instead.
 func (*CreateCertificateInput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{17}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CreateCertificateInput) GetOrg() string {
@@ -1095,7 +1481,7 @@ type CreateCertificateOutput struct {
 
 func (x *CreateCertificateOutput) Reset() {
 	*x = CreateCertificateOutput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[18]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1107,7 +1493,7 @@ func (x *CreateCertificateOutput) String() string {
 func (*CreateCertificateOutput) ProtoMessage() {}
 
 func (x *CreateCertificateOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[18]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1120,10 +1506,165 @@ func (x *CreateCertificateOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCertificateOutput.ProtoReflect.Descriptor instead.
 func (*CreateCertificateOutput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{18}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *CreateCertificateOutput) GetIdentity() *IdentityRef {
+	if x != nil {
+		return x.Identity
+	}
+	return nil
+}
+
+// IssueTlsCertificateInput specifies the parameters for issuing a certificate from TLS CA
+type IssueTlsCertificateInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// org is the organization requesting the certificate
+	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
+	// issuer_ref identifies which TLS CA to use (typically {CertType: "tls", Id: "v1"})
+	IssuerRef *CertificateAuthorityRef `protobuf:"bytes,2,opt,name=issuer_ref,json=IssuerRef,proto3" json:"IssuerRef" validate:"required"`
+	// profile specifies the CA profile to use ("tls", "ca", etc.)
+	Profile string `protobuf:"bytes,3,opt,name=profile,json=Profile,proto3" json:"Profile"`
+	// subject defines the certificate subject fields
+	Subject *CertificateSubject `protobuf:"bytes,4,opt,name=subject,json=Subject,proto3" json:"Subject" validate:"required"`
+	// storage specifies where to store the certificate (org namespace)
+	Storage *IdentityRef `protobuf:"bytes,5,opt,name=storage,json=Storage,proto3" json:"Storage" validate:"required"`
+	// purpose is a unique identifier for this certificate (used in workflow ID)
+	Purpose string `protobuf:"bytes,6,opt,name=purpose,json=Purpose,proto3" json:"Purpose" validate:"required"`
+	// issuer_cert_ref points to the TLS CA's signing certificate for chain building
+	IssuerCertRef *v1.SecretRef `protobuf:"bytes,7,opt,name=issuer_cert_ref,json=IssuerCertRef,proto3" json:"IssuerCertRef" validate:"required"`
+	// attributes are optional Fabric CA attributes for the identity
+	Attributes    map[string]string `protobuf:"bytes,8,rep,name=attributes,json=Attributes,proto3" json:"Attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IssueTlsCertificateInput) Reset() {
+	*x = IssueTlsCertificateInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IssueTlsCertificateInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IssueTlsCertificateInput) ProtoMessage() {}
+
+func (x *IssueTlsCertificateInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IssueTlsCertificateInput.ProtoReflect.Descriptor instead.
+func (*IssueTlsCertificateInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *IssueTlsCertificateInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *IssueTlsCertificateInput) GetIssuerRef() *CertificateAuthorityRef {
+	if x != nil {
+		return x.IssuerRef
+	}
+	return nil
+}
+
+func (x *IssueTlsCertificateInput) GetProfile() string {
+	if x != nil {
+		return x.Profile
+	}
+	return ""
+}
+
+func (x *IssueTlsCertificateInput) GetSubject() *CertificateSubject {
+	if x != nil {
+		return x.Subject
+	}
+	return nil
+}
+
+func (x *IssueTlsCertificateInput) GetStorage() *IdentityRef {
+	if x != nil {
+		return x.Storage
+	}
+	return nil
+}
+
+func (x *IssueTlsCertificateInput) GetPurpose() string {
+	if x != nil {
+		return x.Purpose
+	}
+	return ""
+}
+
+func (x *IssueTlsCertificateInput) GetIssuerCertRef() *v1.SecretRef {
+	if x != nil {
+		return x.IssuerCertRef
+	}
+	return nil
+}
+
+func (x *IssueTlsCertificateInput) GetAttributes() map[string]string {
+	if x != nil {
+		return x.Attributes
+	}
+	return nil
+}
+
+// IssueTlsCertificateOutput indicates the result of TLS certificate issuance
+type IssueTlsCertificateOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// identity points to the created identity (key + certificate)
+	Identity      *IdentityRef `protobuf:"bytes,1,opt,name=identity,json=Identity,proto3" json:"Identity" validate:"required"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IssueTlsCertificateOutput) Reset() {
+	*x = IssueTlsCertificateOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IssueTlsCertificateOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IssueTlsCertificateOutput) ProtoMessage() {}
+
+func (x *IssueTlsCertificateOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IssueTlsCertificateOutput.ProtoReflect.Descriptor instead.
+func (*IssueTlsCertificateOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *IssueTlsCertificateOutput) GetIdentity() *IdentityRef {
 	if x != nil {
 		return x.Identity
 	}
@@ -1148,7 +1689,7 @@ type CreateBootstrapAdminInput struct {
 
 func (x *CreateBootstrapAdminInput) Reset() {
 	*x = CreateBootstrapAdminInput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[19]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1160,7 +1701,7 @@ func (x *CreateBootstrapAdminInput) String() string {
 func (*CreateBootstrapAdminInput) ProtoMessage() {}
 
 func (x *CreateBootstrapAdminInput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[19]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1173,7 +1714,7 @@ func (x *CreateBootstrapAdminInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateBootstrapAdminInput.ProtoReflect.Descriptor instead.
 func (*CreateBootstrapAdminInput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{19}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *CreateBootstrapAdminInput) GetOrg() string {
@@ -1217,7 +1758,7 @@ type CreateBootstrapAdminOutput struct {
 
 func (x *CreateBootstrapAdminOutput) Reset() {
 	*x = CreateBootstrapAdminOutput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[20]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1229,7 +1770,7 @@ func (x *CreateBootstrapAdminOutput) String() string {
 func (*CreateBootstrapAdminOutput) ProtoMessage() {}
 
 func (x *CreateBootstrapAdminOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[20]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1242,7 +1783,7 @@ func (x *CreateBootstrapAdminOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateBootstrapAdminOutput.ProtoReflect.Descriptor instead.
 func (*CreateBootstrapAdminOutput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{20}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *CreateBootstrapAdminOutput) GetSigningIdentity() *IdentityRef {
@@ -1279,7 +1820,7 @@ type CreateAdminInput struct {
 
 func (x *CreateAdminInput) Reset() {
 	*x = CreateAdminInput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[21]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1291,7 +1832,7 @@ func (x *CreateAdminInput) String() string {
 func (*CreateAdminInput) ProtoMessage() {}
 
 func (x *CreateAdminInput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[21]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1304,7 +1845,7 @@ func (x *CreateAdminInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAdminInput.ProtoReflect.Descriptor instead.
 func (*CreateAdminInput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{21}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *CreateAdminInput) GetOrg() string {
@@ -1355,7 +1896,7 @@ type CreateAdminOutput struct {
 
 func (x *CreateAdminOutput) Reset() {
 	*x = CreateAdminOutput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[22]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1367,7 +1908,7 @@ func (x *CreateAdminOutput) String() string {
 func (*CreateAdminOutput) ProtoMessage() {}
 
 func (x *CreateAdminOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[22]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1380,7 +1921,7 @@ func (x *CreateAdminOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAdminOutput.ProtoReflect.Descriptor instead.
 func (*CreateAdminOutput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{22}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *CreateAdminOutput) GetSigningIdentity() *IdentityRef {
@@ -1431,7 +1972,7 @@ type CreateIdentityInput struct {
 
 func (x *CreateIdentityInput) Reset() {
 	*x = CreateIdentityInput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[23]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1443,7 +1984,7 @@ func (x *CreateIdentityInput) String() string {
 func (*CreateIdentityInput) ProtoMessage() {}
 
 func (x *CreateIdentityInput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[23]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1456,7 +1997,7 @@ func (x *CreateIdentityInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateIdentityInput.ProtoReflect.Descriptor instead.
 func (*CreateIdentityInput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{23}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *CreateIdentityInput) GetOrg() string {
@@ -1542,7 +2083,7 @@ type CreateIdentityOutput struct {
 
 func (x *CreateIdentityOutput) Reset() {
 	*x = CreateIdentityOutput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[24]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1554,7 +2095,7 @@ func (x *CreateIdentityOutput) String() string {
 func (*CreateIdentityOutput) ProtoMessage() {}
 
 func (x *CreateIdentityOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[24]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1567,7 +2108,7 @@ func (x *CreateIdentityOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateIdentityOutput.ProtoReflect.Descriptor instead.
 func (*CreateIdentityOutput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{24}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *CreateIdentityOutput) GetSigningIdentity() *IdentityRef {
@@ -1607,7 +2148,7 @@ type RegisterIdentityInput struct {
 
 func (x *RegisterIdentityInput) Reset() {
 	*x = RegisterIdentityInput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[25]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1619,7 +2160,7 @@ func (x *RegisterIdentityInput) String() string {
 func (*RegisterIdentityInput) ProtoMessage() {}
 
 func (x *RegisterIdentityInput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[25]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1632,7 +2173,7 @@ func (x *RegisterIdentityInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterIdentityInput.ProtoReflect.Descriptor instead.
 func (*RegisterIdentityInput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{25}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *RegisterIdentityInput) GetOrg() string {
@@ -1695,7 +2236,7 @@ type RegisterIdentityOutput struct {
 
 func (x *RegisterIdentityOutput) Reset() {
 	*x = RegisterIdentityOutput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[26]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1707,7 +2248,7 @@ func (x *RegisterIdentityOutput) String() string {
 func (*RegisterIdentityOutput) ProtoMessage() {}
 
 func (x *RegisterIdentityOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[26]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1720,7 +2261,7 @@ func (x *RegisterIdentityOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterIdentityOutput.ProtoReflect.Descriptor instead.
 func (*RegisterIdentityOutput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{26}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *RegisterIdentityOutput) GetEnrollmentSecret() string {
@@ -1763,7 +2304,7 @@ type EnrollIdentityInput struct {
 
 func (x *EnrollIdentityInput) Reset() {
 	*x = EnrollIdentityInput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[27]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1775,7 +2316,7 @@ func (x *EnrollIdentityInput) String() string {
 func (*EnrollIdentityInput) ProtoMessage() {}
 
 func (x *EnrollIdentityInput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[27]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1788,7 +2329,7 @@ func (x *EnrollIdentityInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollIdentityInput.ProtoReflect.Descriptor instead.
 func (*EnrollIdentityInput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{27}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *EnrollIdentityInput) GetOrg() string {
@@ -1865,7 +2406,7 @@ type EnrollIdentityOutput struct {
 
 func (x *EnrollIdentityOutput) Reset() {
 	*x = EnrollIdentityOutput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[28]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1877,7 +2418,7 @@ func (x *EnrollIdentityOutput) String() string {
 func (*EnrollIdentityOutput) ProtoMessage() {}
 
 func (x *EnrollIdentityOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[28]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1890,7 +2431,7 @@ func (x *EnrollIdentityOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollIdentityOutput.ProtoReflect.Descriptor instead.
 func (*EnrollIdentityOutput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{28}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *EnrollIdentityOutput) GetIdentity() *IdentityRef {
@@ -1919,7 +2460,7 @@ type RevokeIdentityInput struct {
 
 func (x *RevokeIdentityInput) Reset() {
 	*x = RevokeIdentityInput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[29]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1931,7 +2472,7 @@ func (x *RevokeIdentityInput) String() string {
 func (*RevokeIdentityInput) ProtoMessage() {}
 
 func (x *RevokeIdentityInput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[29]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1944,7 +2485,7 @@ func (x *RevokeIdentityInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeIdentityInput.ProtoReflect.Descriptor instead.
 func (*RevokeIdentityInput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{29}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *RevokeIdentityInput) GetOrg() string {
@@ -1993,7 +2534,7 @@ type RevokeIdentityOutput struct {
 
 func (x *RevokeIdentityOutput) Reset() {
 	*x = RevokeIdentityOutput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[30]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2005,7 +2546,7 @@ func (x *RevokeIdentityOutput) String() string {
 func (*RevokeIdentityOutput) ProtoMessage() {}
 
 func (x *RevokeIdentityOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[30]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2018,7 +2559,7 @@ func (x *RevokeIdentityOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeIdentityOutput.ProtoReflect.Descriptor instead.
 func (*RevokeIdentityOutput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{30}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *RevokeIdentityOutput) GetRevoked() bool {
@@ -2056,7 +2597,7 @@ type BootstrapEnrollIdentityInput struct {
 
 func (x *BootstrapEnrollIdentityInput) Reset() {
 	*x = BootstrapEnrollIdentityInput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[31]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2068,7 +2609,7 @@ func (x *BootstrapEnrollIdentityInput) String() string {
 func (*BootstrapEnrollIdentityInput) ProtoMessage() {}
 
 func (x *BootstrapEnrollIdentityInput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[31]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2081,7 +2622,7 @@ func (x *BootstrapEnrollIdentityInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BootstrapEnrollIdentityInput.ProtoReflect.Descriptor instead.
 func (*BootstrapEnrollIdentityInput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{31}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *BootstrapEnrollIdentityInput) GetCaUrl() string {
@@ -2144,7 +2685,7 @@ type BootstrapEnrollIdentityOutput struct {
 
 func (x *BootstrapEnrollIdentityOutput) Reset() {
 	*x = BootstrapEnrollIdentityOutput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[32]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2156,7 +2697,7 @@ func (x *BootstrapEnrollIdentityOutput) String() string {
 func (*BootstrapEnrollIdentityOutput) ProtoMessage() {}
 
 func (x *BootstrapEnrollIdentityOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[32]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2169,7 +2710,7 @@ func (x *BootstrapEnrollIdentityOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BootstrapEnrollIdentityOutput.ProtoReflect.Descriptor instead.
 func (*BootstrapEnrollIdentityOutput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{32}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *BootstrapEnrollIdentityOutput) GetIdentity() *IdentityRef {
@@ -2192,7 +2733,7 @@ type DeployCouchDbInput struct {
 
 func (x *DeployCouchDbInput) Reset() {
 	*x = DeployCouchDbInput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[33]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2204,7 +2745,7 @@ func (x *DeployCouchDbInput) String() string {
 func (*DeployCouchDbInput) ProtoMessage() {}
 
 func (x *DeployCouchDbInput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[33]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2217,7 +2758,7 @@ func (x *DeployCouchDbInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeployCouchDbInput.ProtoReflect.Descriptor instead.
 func (*DeployCouchDbInput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{33}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *DeployCouchDbInput) GetOrg() string {
@@ -2243,7 +2784,7 @@ type DeployCouchDbOutput struct {
 
 func (x *DeployCouchDbOutput) Reset() {
 	*x = DeployCouchDbOutput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[34]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2255,7 +2796,7 @@ func (x *DeployCouchDbOutput) String() string {
 func (*DeployCouchDbOutput) ProtoMessage() {}
 
 func (x *DeployCouchDbOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[34]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2268,7 +2809,7 @@ func (x *DeployCouchDbOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeployCouchDbOutput.ProtoReflect.Descriptor instead.
 func (*DeployCouchDbOutput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{34}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{44}
 }
 
 // DeployPeerInput specifies the parameters for deploying a Fabric peer
@@ -2284,7 +2825,7 @@ type DeployPeerInput struct {
 
 func (x *DeployPeerInput) Reset() {
 	*x = DeployPeerInput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[35]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2296,7 +2837,7 @@ func (x *DeployPeerInput) String() string {
 func (*DeployPeerInput) ProtoMessage() {}
 
 func (x *DeployPeerInput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[35]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2309,7 +2850,7 @@ func (x *DeployPeerInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeployPeerInput.ProtoReflect.Descriptor instead.
 func (*DeployPeerInput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{35}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *DeployPeerInput) GetOrg() string {
@@ -2335,7 +2876,7 @@ type DeployPeerOutput struct {
 
 func (x *DeployPeerOutput) Reset() {
 	*x = DeployPeerOutput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[36]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2347,7 +2888,7 @@ func (x *DeployPeerOutput) String() string {
 func (*DeployPeerOutput) ProtoMessage() {}
 
 func (x *DeployPeerOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[36]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2360,7 +2901,7 @@ func (x *DeployPeerOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeployPeerOutput.ProtoReflect.Descriptor instead.
 func (*DeployPeerOutput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{36}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{46}
 }
 
 // DeployOrdererInput specifies the parameters for deploying a Fabric orderer
@@ -2376,7 +2917,7 @@ type DeployOrdererInput struct {
 
 func (x *DeployOrdererInput) Reset() {
 	*x = DeployOrdererInput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[37]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2388,7 +2929,7 @@ func (x *DeployOrdererInput) String() string {
 func (*DeployOrdererInput) ProtoMessage() {}
 
 func (x *DeployOrdererInput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[37]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2401,7 +2942,7 @@ func (x *DeployOrdererInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeployOrdererInput.ProtoReflect.Descriptor instead.
 func (*DeployOrdererInput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{37}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *DeployOrdererInput) GetOrg() string {
@@ -2427,7 +2968,7 @@ type DeployOrdererOutput struct {
 
 func (x *DeployOrdererOutput) Reset() {
 	*x = DeployOrdererOutput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[38]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2439,7 +2980,7 @@ func (x *DeployOrdererOutput) String() string {
 func (*DeployOrdererOutput) ProtoMessage() {}
 
 func (x *DeployOrdererOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[38]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2452,7 +2993,7 @@ func (x *DeployOrdererOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeployOrdererOutput.ProtoReflect.Descriptor instead.
 func (*DeployOrdererOutput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{38}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{48}
 }
 
 // DeployChainCodeInput specifies the parameters for deploying a chaincode
@@ -2468,7 +3009,7 @@ type DeployChainCodeInput struct {
 
 func (x *DeployChainCodeInput) Reset() {
 	*x = DeployChainCodeInput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[39]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2480,7 +3021,7 @@ func (x *DeployChainCodeInput) String() string {
 func (*DeployChainCodeInput) ProtoMessage() {}
 
 func (x *DeployChainCodeInput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[39]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2493,7 +3034,7 @@ func (x *DeployChainCodeInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeployChainCodeInput.ProtoReflect.Descriptor instead.
 func (*DeployChainCodeInput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{39}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *DeployChainCodeInput) GetOrg() string {
@@ -2519,7 +3060,7 @@ type DeployChainCodeOutput struct {
 
 func (x *DeployChainCodeOutput) Reset() {
 	*x = DeployChainCodeOutput{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[40]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2531,7 +3072,7 @@ func (x *DeployChainCodeOutput) String() string {
 func (*DeployChainCodeOutput) ProtoMessage() {}
 
 func (x *DeployChainCodeOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[40]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2544,7 +3085,7 @@ func (x *DeployChainCodeOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeployChainCodeOutput.ProtoReflect.Descriptor instead.
 func (*DeployChainCodeOutput) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{40}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{50}
 }
 
 var File_fabric_v1_fabric_proto protoreflect.FileDescriptor
@@ -2602,7 +3143,27 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x1fDeployCertificateAuthorityInput\x127\n" +
 	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12_\n" +
 	"\x04spec\x18\x02 \x01(\v2#.fabric.v1.CertificateAuthoritySpecB&ʵ\x03\"\xa2\x01\x1fjson:\"Spec\" validate:\"required\"R\x04Spec\"\"\n" +
-	" DeployCertificateAuthorityOutput\"\xbd\x01\n" +
+	" DeployCertificateAuthorityOutput\"\xd3\x01\n" +
+	"&DeployTlsRootCertificateAuthorityInput\x127\n" +
+	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12p\n" +
+	"\x11validity_duration\x18\x02 \x01(\v2\x19.google.protobuf.DurationB(ʵ\x03$\xa2\x01!json:\"ValidityDuration,omitempty\"R\x10ValidityDuration\")\n" +
+	"'DeployTlsRootCertificateAuthorityOutput\"\xdb\x01\n" +
+	".DeployTlsIntermediateCertificateAuthorityInput\x127\n" +
+	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12p\n" +
+	"\x11validity_duration\x18\x02 \x01(\v2\x19.google.protobuf.DurationB(ʵ\x03$\xa2\x01!json:\"ValidityDuration,omitempty\"R\x10ValidityDuration\"1\n" +
+	"/DeployTlsIntermediateCertificateAuthorityOutput\"\xc3\x02\n" +
+	"&DeployOrgRootCertificateAuthorityInput\x127\n" +
+	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12p\n" +
+	"\x11validity_duration\x18\x02 \x01(\v2\x19.google.protobuf.DurationB(ʵ\x03$\xa2\x01!json:\"ValidityDuration,omitempty\"R\x10ValidityDuration\x12n\n" +
+	"\n" +
+	"tls_issuer\x18\x03 \x01(\v2\".fabric.v1.CertificateAuthorityRefB+ʵ\x03'\xa2\x01$json:\"TlsIssuer\" validate:\"required\"R\tTlsIssuer\")\n" +
+	"'DeployOrgRootCertificateAuthorityOutput\"\xcb\x02\n" +
+	".DeployOrgIntermediateCertificateAuthorityInput\x127\n" +
+	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12p\n" +
+	"\x11validity_duration\x18\x02 \x01(\v2\x19.google.protobuf.DurationB(ʵ\x03$\xa2\x01!json:\"ValidityDuration,omitempty\"R\x10ValidityDuration\x12n\n" +
+	"\n" +
+	"tls_issuer\x18\x03 \x01(\v2\".fabric.v1.CertificateAuthorityRefB+ʵ\x03'\xa2\x01$json:\"TlsIssuer\" validate:\"required\"R\tTlsIssuer\"1\n" +
+	"/DeployOrgIntermediateCertificateAuthorityOutput\"\xbd\x01\n" +
 	"\x1eCreateCertificateDatabaseInput\x127\n" +
 	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12b\n" +
 	"\x06ca_ref\x18\x02 \x01(\v2\".fabric.v1.CertificateAuthorityRefB'ʵ\x03#\xa2\x01 json:\"CaRef\" validate:\"required\"R\x05CaRef\"\x93\x01\n" +
@@ -2627,6 +3188,23 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"y\n" +
 	"\x17CreateCertificateOutput\x12^\n" +
+	"\bidentity\x18\x01 \x01(\v2\x16.fabric.v1.IdentityRefB*ʵ\x03&\xa2\x01#json:\"Identity\" validate:\"required\"R\bIdentity\"\xa2\x06\n" +
+	"\x18IssueTlsCertificateInput\x127\n" +
+	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12n\n" +
+	"\n" +
+	"issuer_ref\x18\x02 \x01(\v2\".fabric.v1.CertificateAuthorityRefB+ʵ\x03'\xa2\x01$json:\"IssuerRef\" validate:\"required\"R\tIssuerRef\x12/\n" +
+	"\aprofile\x18\x03 \x01(\tB\x15ʵ\x03\x11\xa2\x01\x0ejson:\"Profile\"R\aProfile\x12b\n" +
+	"\asubject\x18\x04 \x01(\v2\x1d.fabric.v1.CertificateSubjectB)ʵ\x03%\xa2\x01\"json:\"Subject\" validate:\"required\"R\aSubject\x12[\n" +
+	"\astorage\x18\x05 \x01(\v2\x16.fabric.v1.IdentityRefB)ʵ\x03%\xa2\x01\"json:\"Storage\" validate:\"required\"R\aStorage\x12C\n" +
+	"\apurpose\x18\x06 \x01(\tB)ʵ\x03%\xa2\x01\"json:\"Purpose\" validate:\"required\"R\aPurpose\x12n\n" +
+	"\x0fissuer_cert_ref\x18\a \x01(\v2\x15.secrets.v1.SecretRefB/ʵ\x03+\xa2\x01(json:\"IssuerCertRef\" validate:\"required\"R\rIssuerCertRef\x12w\n" +
+	"\n" +
+	"attributes\x18\b \x03(\v23.fabric.v1.IssueTlsCertificateInput.AttributesEntryB\"ʵ\x03\x1e\xa2\x01\x1bjson:\"Attributes,omitempty\"R\n" +
+	"Attributes\x1a=\n" +
+	"\x0fAttributesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"{\n" +
+	"\x19IssueTlsCertificateOutput\x12^\n" +
 	"\bidentity\x18\x01 \x01(\v2\x16.fabric.v1.IdentityRefB*ʵ\x03&\xa2\x01#json:\"Identity\" validate:\"required\"R\bIdentity\"\x90\x03\n" +
 	"\x19CreateBootstrapAdminInput\x127\n" +
 	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12b\n" +
@@ -2730,14 +3308,19 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x14DeployChainCodeInput\x127\n" +
 	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12Q\n" +
 	"\rchain_code_id\x18\x02 \x01(\tB-ʵ\x03)\xa2\x01&json:\"ChainCodeId\" validate:\"required\"R\vChainCodeId\"\x17\n" +
-	"\x15DeployChainCodeOutput2\xcc\x12\n" +
+	"\x15DeployChainCodeOutput2\xc3\x1b\n" +
 	"\x06Fabric\x12\x8b\x01\n" +
 	"\x0eBootstrapShard\x12\x1e.fabric.v1.BootstrapShardInput\x1a\x1f.fabric.v1.BootstrapShardOutput\"8\x8a\xc4\x034*\x16fabric/bootstrap-shard0\x01r\x18fabric.v1.BootstrapShard\x12\xe1\x01\n" +
 	"\x1fBootstrapCertificateAuthorities\x12/.fabric.v1.BootstrapCertificateAuthoritiesInput\x1a0.fabric.v1.BootstrapCertificateAuthoritiesOutput\"[\x8a\xc4\x03W*(fabric/bootstrap-certificate-authorities0\x01r)fabric.v1.BootstrapCertificateAuthorities\x12\xb4\x01\n" +
 	"\x16DeployCertificateStore\x12&.fabric.v1.DeployCertificateStoreInput\x1a'.fabric.v1.DeployCertificateStoreOutput\"I\x8a\xc4\x03E*\x1ffabric/deploy-certificate-store0\x01r fabric.v1.DeployCertificateStore\x12\xf4\x01\n" +
-	"\x1aDeployCertificateAuthority\x12*.fabric.v1.DeployCertificateAuthorityInput\x1a+.fabric.v1.DeployCertificateAuthorityOutput\"}\x8a\xc4\x03y*Ofabric/deploy-certificate-authority/${! Spec.Self.CertType }/${! Spec.Self.Id }0\x01r$fabric.v1.DeployCertificateAuthority\x12\xe7\x01\n" +
+	"\x1aDeployCertificateAuthority\x12*.fabric.v1.DeployCertificateAuthorityInput\x1a+.fabric.v1.DeployCertificateAuthorityOutput\"}\x8a\xc4\x03y*Ofabric/deploy-certificate-authority/${! Spec.Self.CertType }/${! Spec.Self.Id }0\x01r$fabric.v1.DeployCertificateAuthority\x12\xdd\x01\n" +
+	"!DeployTlsRootCertificateAuthority\x121.fabric.v1.DeployTlsRootCertificateAuthorityInput\x1a2.fabric.v1.DeployTlsRootCertificateAuthorityOutput\"Q\x8a\xc4\x03M*\x1cfabric/${! Org }/ca/tls-root0\x01r+fabric.v1.DeployTlsRootCertificateAuthority\x12\xfc\x01\n" +
+	")DeployTlsIntermediateCertificateAuthority\x129.fabric.v1.DeployTlsIntermediateCertificateAuthorityInput\x1a:.fabric.v1.DeployTlsIntermediateCertificateAuthorityOutput\"X\x8a\xc4\x03T*\x1bfabric/${! Org }/ca/tls-int0\x01r3fabric.v1.DeployTlsIntermediateCertificateAuthority\x12\xdd\x01\n" +
+	"!DeployOrgRootCertificateAuthority\x121.fabric.v1.DeployOrgRootCertificateAuthorityInput\x1a2.fabric.v1.DeployOrgRootCertificateAuthorityOutput\"Q\x8a\xc4\x03M*\x1cfabric/${! Org }/ca/org-root0\x01r+fabric.v1.DeployOrgRootCertificateAuthority\x12\xfc\x01\n" +
+	")DeployOrgIntermediateCertificateAuthority\x129.fabric.v1.DeployOrgIntermediateCertificateAuthorityInput\x1a:.fabric.v1.DeployOrgIntermediateCertificateAuthorityOutput\"X\x8a\xc4\x03T*\x1bfabric/${! Org }/ca/org-int0\x01r3fabric.v1.DeployOrgIntermediateCertificateAuthority\x12\xe7\x01\n" +
 	"\x19CreateCertificateDatabase\x12).fabric.v1.CreateCertificateDatabaseInput\x1a*.fabric.v1.CreateCertificateDatabaseOutput\"s\x8a\xc4\x03o*Ffabric/create-certificate-database/${! CaRef.CertType }/${! CaRef.Id }0\x01r#fabric.v1.CreateCertificateDatabase\x12\xa8\x01\n" +
-	"\x11CreateCertificate\x12!.fabric.v1.CreateCertificateInput\x1a\".fabric.v1.CreateCertificateOutput\"L\x8a\xc4\x03H*'fabric/create-certificate/${! Purpose }0\x01r\x1bfabric.v1.CreateCertificate\x12\xce\x01\n" +
+	"\x11CreateCertificate\x12!.fabric.v1.CreateCertificateInput\x1a\".fabric.v1.CreateCertificateOutput\"L\x8a\xc4\x03H*'fabric/create-certificate/${! Purpose }0\x01r\x1bfabric.v1.CreateCertificate\x12\xb6\x01\n" +
+	"\x13IssueTlsCertificate\x12#.fabric.v1.IssueTlsCertificateInput\x1a$.fabric.v1.IssueTlsCertificateOutput\"T\x8a\xc4\x03P*-fabric/issue-tls-cert/${! Org }/${! Purpose }0\x01r\x1dfabric.v1.IssueTlsCertificate\x12\xce\x01\n" +
 	"\x14CreateBootstrapAdmin\x12$.fabric.v1.CreateBootstrapAdminInput\x1a%.fabric.v1.CreateBootstrapAdminOutput\"i\x8a\xc4\x03e*Afabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }0\x01r\x1efabric.v1.CreateBootstrapAdmin\x12\xa0\x01\n" +
 	"\vCreateAdmin\x12\x1b.fabric.v1.CreateAdminInput\x1a\x1c.fabric.v1.CreateAdminOutput\"V\x8a\xc4\x03R*7fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }0\x01r\x15fabric.v1.CreateAdmin\x12\x9e\x01\n" +
 	"\x0eCreateIdentity\x12\x1e.fabric.v1.CreateIdentityInput\x1a\x1f.fabric.v1.CreateIdentityOutput\"K\x8a\xc4\x03G*)fabric/create-identity/${! IdentityName }0\x01r\x18fabric.v1.CreateIdentity\x12\x93\x01\n" +
@@ -2768,54 +3351,65 @@ func file_fabric_v1_fabric_proto_rawDescGZIP() []byte {
 	return file_fabric_v1_fabric_proto_rawDescData
 }
 
-var file_fabric_v1_fabric_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
+var file_fabric_v1_fabric_proto_msgTypes = make([]protoimpl.MessageInfo, 55)
 var file_fabric_v1_fabric_proto_goTypes = []any{
-	(*OrgFabricDeployment)(nil),                   // 0: fabric.v1.OrgFabricDeployment
-	(*CertificateAuthoritySpec)(nil),              // 1: fabric.v1.CertificateAuthoritySpec
-	(*PeerSpec)(nil),                              // 2: fabric.v1.PeerSpec
-	(*OrdererSpec)(nil),                           // 3: fabric.v1.OrdererSpec
-	(*CertificateAuthorityRef)(nil),               // 4: fabric.v1.CertificateAuthorityRef
-	(*IdentityRef)(nil),                           // 5: fabric.v1.IdentityRef
-	(*CertificateSubject)(nil),                    // 6: fabric.v1.CertificateSubject
-	(*BootstrapShardInput)(nil),                   // 7: fabric.v1.BootstrapShardInput
-	(*BootstrapShardOutput)(nil),                  // 8: fabric.v1.BootstrapShardOutput
-	(*BootstrapCertificateAuthoritiesInput)(nil),  // 9: fabric.v1.BootstrapCertificateAuthoritiesInput
-	(*BootstrapCertificateAuthoritiesOutput)(nil), // 10: fabric.v1.BootstrapCertificateAuthoritiesOutput
-	(*DeployCertificateStoreInput)(nil),           // 11: fabric.v1.DeployCertificateStoreInput
-	(*DeployCertificateStoreOutput)(nil),          // 12: fabric.v1.DeployCertificateStoreOutput
-	(*DeployCertificateAuthorityInput)(nil),       // 13: fabric.v1.DeployCertificateAuthorityInput
-	(*DeployCertificateAuthorityOutput)(nil),      // 14: fabric.v1.DeployCertificateAuthorityOutput
-	(*CreateCertificateDatabaseInput)(nil),        // 15: fabric.v1.CreateCertificateDatabaseInput
-	(*CreateCertificateDatabaseOutput)(nil),       // 16: fabric.v1.CreateCertificateDatabaseOutput
-	(*CreateCertificateInput)(nil),                // 17: fabric.v1.CreateCertificateInput
-	(*CreateCertificateOutput)(nil),               // 18: fabric.v1.CreateCertificateOutput
-	(*CreateBootstrapAdminInput)(nil),             // 19: fabric.v1.CreateBootstrapAdminInput
-	(*CreateBootstrapAdminOutput)(nil),            // 20: fabric.v1.CreateBootstrapAdminOutput
-	(*CreateAdminInput)(nil),                      // 21: fabric.v1.CreateAdminInput
-	(*CreateAdminOutput)(nil),                     // 22: fabric.v1.CreateAdminOutput
-	(*CreateIdentityInput)(nil),                   // 23: fabric.v1.CreateIdentityInput
-	(*CreateIdentityOutput)(nil),                  // 24: fabric.v1.CreateIdentityOutput
-	(*RegisterIdentityInput)(nil),                 // 25: fabric.v1.RegisterIdentityInput
-	(*RegisterIdentityOutput)(nil),                // 26: fabric.v1.RegisterIdentityOutput
-	(*EnrollIdentityInput)(nil),                   // 27: fabric.v1.EnrollIdentityInput
-	(*EnrollIdentityOutput)(nil),                  // 28: fabric.v1.EnrollIdentityOutput
-	(*RevokeIdentityInput)(nil),                   // 29: fabric.v1.RevokeIdentityInput
-	(*RevokeIdentityOutput)(nil),                  // 30: fabric.v1.RevokeIdentityOutput
-	(*BootstrapEnrollIdentityInput)(nil),          // 31: fabric.v1.BootstrapEnrollIdentityInput
-	(*BootstrapEnrollIdentityOutput)(nil),         // 32: fabric.v1.BootstrapEnrollIdentityOutput
-	(*DeployCouchDbInput)(nil),                    // 33: fabric.v1.DeployCouchDbInput
-	(*DeployCouchDbOutput)(nil),                   // 34: fabric.v1.DeployCouchDbOutput
-	(*DeployPeerInput)(nil),                       // 35: fabric.v1.DeployPeerInput
-	(*DeployPeerOutput)(nil),                      // 36: fabric.v1.DeployPeerOutput
-	(*DeployOrdererInput)(nil),                    // 37: fabric.v1.DeployOrdererInput
-	(*DeployOrdererOutput)(nil),                   // 38: fabric.v1.DeployOrdererOutput
-	(*DeployChainCodeInput)(nil),                  // 39: fabric.v1.DeployChainCodeInput
-	(*DeployChainCodeOutput)(nil),                 // 40: fabric.v1.DeployChainCodeOutput
-	nil,                                           // 41: fabric.v1.CreateCertificateInput.AttributesEntry
-	nil,                                           // 42: fabric.v1.CreateIdentityInput.AttributesEntry
-	nil,                                           // 43: fabric.v1.RegisterIdentityInput.AttributesEntry
-	(*durationpb.Duration)(nil),                   // 44: google.protobuf.Duration
-	(*v1.SecretRef)(nil),                          // 45: secrets.v1.SecretRef
+	(*OrgFabricDeployment)(nil),                             // 0: fabric.v1.OrgFabricDeployment
+	(*CertificateAuthoritySpec)(nil),                        // 1: fabric.v1.CertificateAuthoritySpec
+	(*PeerSpec)(nil),                                        // 2: fabric.v1.PeerSpec
+	(*OrdererSpec)(nil),                                     // 3: fabric.v1.OrdererSpec
+	(*CertificateAuthorityRef)(nil),                         // 4: fabric.v1.CertificateAuthorityRef
+	(*IdentityRef)(nil),                                     // 5: fabric.v1.IdentityRef
+	(*CertificateSubject)(nil),                              // 6: fabric.v1.CertificateSubject
+	(*BootstrapShardInput)(nil),                             // 7: fabric.v1.BootstrapShardInput
+	(*BootstrapShardOutput)(nil),                            // 8: fabric.v1.BootstrapShardOutput
+	(*BootstrapCertificateAuthoritiesInput)(nil),            // 9: fabric.v1.BootstrapCertificateAuthoritiesInput
+	(*BootstrapCertificateAuthoritiesOutput)(nil),           // 10: fabric.v1.BootstrapCertificateAuthoritiesOutput
+	(*DeployCertificateStoreInput)(nil),                     // 11: fabric.v1.DeployCertificateStoreInput
+	(*DeployCertificateStoreOutput)(nil),                    // 12: fabric.v1.DeployCertificateStoreOutput
+	(*DeployCertificateAuthorityInput)(nil),                 // 13: fabric.v1.DeployCertificateAuthorityInput
+	(*DeployCertificateAuthorityOutput)(nil),                // 14: fabric.v1.DeployCertificateAuthorityOutput
+	(*DeployTlsRootCertificateAuthorityInput)(nil),          // 15: fabric.v1.DeployTlsRootCertificateAuthorityInput
+	(*DeployTlsRootCertificateAuthorityOutput)(nil),         // 16: fabric.v1.DeployTlsRootCertificateAuthorityOutput
+	(*DeployTlsIntermediateCertificateAuthorityInput)(nil),  // 17: fabric.v1.DeployTlsIntermediateCertificateAuthorityInput
+	(*DeployTlsIntermediateCertificateAuthorityOutput)(nil), // 18: fabric.v1.DeployTlsIntermediateCertificateAuthorityOutput
+	(*DeployOrgRootCertificateAuthorityInput)(nil),          // 19: fabric.v1.DeployOrgRootCertificateAuthorityInput
+	(*DeployOrgRootCertificateAuthorityOutput)(nil),         // 20: fabric.v1.DeployOrgRootCertificateAuthorityOutput
+	(*DeployOrgIntermediateCertificateAuthorityInput)(nil),  // 21: fabric.v1.DeployOrgIntermediateCertificateAuthorityInput
+	(*DeployOrgIntermediateCertificateAuthorityOutput)(nil), // 22: fabric.v1.DeployOrgIntermediateCertificateAuthorityOutput
+	(*CreateCertificateDatabaseInput)(nil),                  // 23: fabric.v1.CreateCertificateDatabaseInput
+	(*CreateCertificateDatabaseOutput)(nil),                 // 24: fabric.v1.CreateCertificateDatabaseOutput
+	(*CreateCertificateInput)(nil),                          // 25: fabric.v1.CreateCertificateInput
+	(*CreateCertificateOutput)(nil),                         // 26: fabric.v1.CreateCertificateOutput
+	(*IssueTlsCertificateInput)(nil),                        // 27: fabric.v1.IssueTlsCertificateInput
+	(*IssueTlsCertificateOutput)(nil),                       // 28: fabric.v1.IssueTlsCertificateOutput
+	(*CreateBootstrapAdminInput)(nil),                       // 29: fabric.v1.CreateBootstrapAdminInput
+	(*CreateBootstrapAdminOutput)(nil),                      // 30: fabric.v1.CreateBootstrapAdminOutput
+	(*CreateAdminInput)(nil),                                // 31: fabric.v1.CreateAdminInput
+	(*CreateAdminOutput)(nil),                               // 32: fabric.v1.CreateAdminOutput
+	(*CreateIdentityInput)(nil),                             // 33: fabric.v1.CreateIdentityInput
+	(*CreateIdentityOutput)(nil),                            // 34: fabric.v1.CreateIdentityOutput
+	(*RegisterIdentityInput)(nil),                           // 35: fabric.v1.RegisterIdentityInput
+	(*RegisterIdentityOutput)(nil),                          // 36: fabric.v1.RegisterIdentityOutput
+	(*EnrollIdentityInput)(nil),                             // 37: fabric.v1.EnrollIdentityInput
+	(*EnrollIdentityOutput)(nil),                            // 38: fabric.v1.EnrollIdentityOutput
+	(*RevokeIdentityInput)(nil),                             // 39: fabric.v1.RevokeIdentityInput
+	(*RevokeIdentityOutput)(nil),                            // 40: fabric.v1.RevokeIdentityOutput
+	(*BootstrapEnrollIdentityInput)(nil),                    // 41: fabric.v1.BootstrapEnrollIdentityInput
+	(*BootstrapEnrollIdentityOutput)(nil),                   // 42: fabric.v1.BootstrapEnrollIdentityOutput
+	(*DeployCouchDbInput)(nil),                              // 43: fabric.v1.DeployCouchDbInput
+	(*DeployCouchDbOutput)(nil),                             // 44: fabric.v1.DeployCouchDbOutput
+	(*DeployPeerInput)(nil),                                 // 45: fabric.v1.DeployPeerInput
+	(*DeployPeerOutput)(nil),                                // 46: fabric.v1.DeployPeerOutput
+	(*DeployOrdererInput)(nil),                              // 47: fabric.v1.DeployOrdererInput
+	(*DeployOrdererOutput)(nil),                             // 48: fabric.v1.DeployOrdererOutput
+	(*DeployChainCodeInput)(nil),                            // 49: fabric.v1.DeployChainCodeInput
+	(*DeployChainCodeOutput)(nil),                           // 50: fabric.v1.DeployChainCodeOutput
+	nil,                                                     // 51: fabric.v1.CreateCertificateInput.AttributesEntry
+	nil,                                                     // 52: fabric.v1.IssueTlsCertificateInput.AttributesEntry
+	nil,                                                     // 53: fabric.v1.CreateIdentityInput.AttributesEntry
+	nil,                                                     // 54: fabric.v1.RegisterIdentityInput.AttributesEntry
+	(*durationpb.Duration)(nil),                             // 55: google.protobuf.Duration
+	(*v1.SecretRef)(nil),                                    // 56: secrets.v1.SecretRef
 }
 var file_fabric_v1_fabric_proto_depIdxs = []int32{
 	1,  // 0: fabric.v1.OrgFabricDeployment.certificate_authorities:type_name -> fabric.v1.CertificateAuthoritySpec
@@ -2824,102 +3418,124 @@ var file_fabric_v1_fabric_proto_depIdxs = []int32{
 	4,  // 3: fabric.v1.CertificateAuthoritySpec.self:type_name -> fabric.v1.CertificateAuthorityRef
 	4,  // 4: fabric.v1.CertificateAuthoritySpec.signing_issuer:type_name -> fabric.v1.CertificateAuthorityRef
 	4,  // 5: fabric.v1.CertificateAuthoritySpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	44, // 6: fabric.v1.CertificateAuthoritySpec.validity_duration:type_name -> google.protobuf.Duration
+	55, // 6: fabric.v1.CertificateAuthoritySpec.validity_duration:type_name -> google.protobuf.Duration
 	4,  // 7: fabric.v1.PeerSpec.org_issuer:type_name -> fabric.v1.CertificateAuthorityRef
 	4,  // 8: fabric.v1.PeerSpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
 	4,  // 9: fabric.v1.OrdererSpec.org_issuer:type_name -> fabric.v1.CertificateAuthorityRef
 	4,  // 10: fabric.v1.OrdererSpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	45, // 11: fabric.v1.IdentityRef.key_ref:type_name -> secrets.v1.SecretRef
-	45, // 12: fabric.v1.IdentityRef.cert_ref:type_name -> secrets.v1.SecretRef
+	56, // 11: fabric.v1.IdentityRef.key_ref:type_name -> secrets.v1.SecretRef
+	56, // 12: fabric.v1.IdentityRef.cert_ref:type_name -> secrets.v1.SecretRef
 	0,  // 13: fabric.v1.BootstrapShardInput.deployment:type_name -> fabric.v1.OrgFabricDeployment
 	1,  // 14: fabric.v1.BootstrapCertificateAuthoritiesInput.certificate_authorities:type_name -> fabric.v1.CertificateAuthoritySpec
 	1,  // 15: fabric.v1.DeployCertificateAuthorityInput.spec:type_name -> fabric.v1.CertificateAuthoritySpec
-	4,  // 16: fabric.v1.CreateCertificateDatabaseInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	45, // 17: fabric.v1.CreateCertificateDatabaseOutput.credentials_ref:type_name -> secrets.v1.SecretRef
-	4,  // 18: fabric.v1.CreateCertificateInput.issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	6,  // 19: fabric.v1.CreateCertificateInput.subject:type_name -> fabric.v1.CertificateSubject
-	5,  // 20: fabric.v1.CreateCertificateInput.storage:type_name -> fabric.v1.IdentityRef
-	5,  // 21: fabric.v1.CreateCertificateInput.admin_identity:type_name -> fabric.v1.IdentityRef
-	41, // 22: fabric.v1.CreateCertificateInput.attributes:type_name -> fabric.v1.CreateCertificateInput.AttributesEntry
-	45, // 23: fabric.v1.CreateCertificateInput.issuer_cert_ref:type_name -> secrets.v1.SecretRef
-	5,  // 24: fabric.v1.CreateCertificateOutput.identity:type_name -> fabric.v1.IdentityRef
-	4,  // 25: fabric.v1.CreateBootstrapAdminInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	4,  // 26: fabric.v1.CreateBootstrapAdminInput.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	44, // 27: fabric.v1.CreateBootstrapAdminInput.validity_duration:type_name -> google.protobuf.Duration
-	5,  // 28: fabric.v1.CreateBootstrapAdminOutput.signing_identity:type_name -> fabric.v1.IdentityRef
-	5,  // 29: fabric.v1.CreateBootstrapAdminOutput.tls_identity:type_name -> fabric.v1.IdentityRef
-	4,  // 30: fabric.v1.CreateAdminInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	4,  // 31: fabric.v1.CreateAdminInput.signing_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	4,  // 32: fabric.v1.CreateAdminInput.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	44, // 33: fabric.v1.CreateAdminInput.validity_duration:type_name -> google.protobuf.Duration
-	5,  // 34: fabric.v1.CreateAdminOutput.signing_identity:type_name -> fabric.v1.IdentityRef
-	5,  // 35: fabric.v1.CreateAdminOutput.tls_identity:type_name -> fabric.v1.IdentityRef
-	6,  // 36: fabric.v1.CreateIdentityInput.subject:type_name -> fabric.v1.CertificateSubject
-	4,  // 37: fabric.v1.CreateIdentityInput.org_issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	4,  // 38: fabric.v1.CreateIdentityInput.tls_issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	5,  // 39: fabric.v1.CreateIdentityInput.signing_storage:type_name -> fabric.v1.IdentityRef
-	5,  // 40: fabric.v1.CreateIdentityInput.tls_storage:type_name -> fabric.v1.IdentityRef
-	42, // 41: fabric.v1.CreateIdentityInput.attributes:type_name -> fabric.v1.CreateIdentityInput.AttributesEntry
-	5,  // 42: fabric.v1.CreateIdentityOutput.signing_identity:type_name -> fabric.v1.IdentityRef
-	5,  // 43: fabric.v1.CreateIdentityOutput.tls_identity:type_name -> fabric.v1.IdentityRef
-	4,  // 44: fabric.v1.RegisterIdentityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	43, // 45: fabric.v1.RegisterIdentityInput.attributes:type_name -> fabric.v1.RegisterIdentityInput.AttributesEntry
-	5,  // 46: fabric.v1.RegisterIdentityInput.admin_identity:type_name -> fabric.v1.IdentityRef
-	4,  // 47: fabric.v1.EnrollIdentityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	5,  // 48: fabric.v1.EnrollIdentityInput.storage:type_name -> fabric.v1.IdentityRef
-	6,  // 49: fabric.v1.EnrollIdentityInput.subject:type_name -> fabric.v1.CertificateSubject
-	45, // 50: fabric.v1.EnrollIdentityInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
-	45, // 51: fabric.v1.EnrollIdentityInput.issuer_cert_ref:type_name -> secrets.v1.SecretRef
-	5,  // 52: fabric.v1.EnrollIdentityOutput.identity:type_name -> fabric.v1.IdentityRef
-	4,  // 53: fabric.v1.RevokeIdentityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	5,  // 54: fabric.v1.RevokeIdentityInput.admin_identity:type_name -> fabric.v1.IdentityRef
-	45, // 55: fabric.v1.BootstrapEnrollIdentityInput.bootstrap_credentials_ref:type_name -> secrets.v1.SecretRef
-	5,  // 56: fabric.v1.BootstrapEnrollIdentityInput.storage:type_name -> fabric.v1.IdentityRef
-	6,  // 57: fabric.v1.BootstrapEnrollIdentityInput.subject:type_name -> fabric.v1.CertificateSubject
-	45, // 58: fabric.v1.BootstrapEnrollIdentityInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
-	45, // 59: fabric.v1.BootstrapEnrollIdentityInput.issuer_cert_ref:type_name -> secrets.v1.SecretRef
-	5,  // 60: fabric.v1.BootstrapEnrollIdentityOutput.identity:type_name -> fabric.v1.IdentityRef
-	2,  // 61: fabric.v1.DeployPeerInput.spec:type_name -> fabric.v1.PeerSpec
-	3,  // 62: fabric.v1.DeployOrdererInput.spec:type_name -> fabric.v1.OrdererSpec
-	7,  // 63: fabric.v1.Fabric.BootstrapShard:input_type -> fabric.v1.BootstrapShardInput
-	9,  // 64: fabric.v1.Fabric.BootstrapCertificateAuthorities:input_type -> fabric.v1.BootstrapCertificateAuthoritiesInput
-	11, // 65: fabric.v1.Fabric.DeployCertificateStore:input_type -> fabric.v1.DeployCertificateStoreInput
-	13, // 66: fabric.v1.Fabric.DeployCertificateAuthority:input_type -> fabric.v1.DeployCertificateAuthorityInput
-	15, // 67: fabric.v1.Fabric.CreateCertificateDatabase:input_type -> fabric.v1.CreateCertificateDatabaseInput
-	17, // 68: fabric.v1.Fabric.CreateCertificate:input_type -> fabric.v1.CreateCertificateInput
-	19, // 69: fabric.v1.Fabric.CreateBootstrapAdmin:input_type -> fabric.v1.CreateBootstrapAdminInput
-	21, // 70: fabric.v1.Fabric.CreateAdmin:input_type -> fabric.v1.CreateAdminInput
-	23, // 71: fabric.v1.Fabric.CreateIdentity:input_type -> fabric.v1.CreateIdentityInput
-	33, // 72: fabric.v1.Fabric.DeployCouchDb:input_type -> fabric.v1.DeployCouchDbInput
-	35, // 73: fabric.v1.Fabric.DeployPeer:input_type -> fabric.v1.DeployPeerInput
-	37, // 74: fabric.v1.Fabric.DeployOrderer:input_type -> fabric.v1.DeployOrdererInput
-	39, // 75: fabric.v1.Fabric.DeployChainCode:input_type -> fabric.v1.DeployChainCodeInput
-	25, // 76: fabric.v1.FabricActivities.RegisterIdentity:input_type -> fabric.v1.RegisterIdentityInput
-	27, // 77: fabric.v1.FabricActivities.EnrollIdentity:input_type -> fabric.v1.EnrollIdentityInput
-	29, // 78: fabric.v1.FabricActivities.RevokeIdentity:input_type -> fabric.v1.RevokeIdentityInput
-	31, // 79: fabric.v1.FabricActivities.BootstrapEnrollIdentity:input_type -> fabric.v1.BootstrapEnrollIdentityInput
-	8,  // 80: fabric.v1.Fabric.BootstrapShard:output_type -> fabric.v1.BootstrapShardOutput
-	10, // 81: fabric.v1.Fabric.BootstrapCertificateAuthorities:output_type -> fabric.v1.BootstrapCertificateAuthoritiesOutput
-	12, // 82: fabric.v1.Fabric.DeployCertificateStore:output_type -> fabric.v1.DeployCertificateStoreOutput
-	14, // 83: fabric.v1.Fabric.DeployCertificateAuthority:output_type -> fabric.v1.DeployCertificateAuthorityOutput
-	16, // 84: fabric.v1.Fabric.CreateCertificateDatabase:output_type -> fabric.v1.CreateCertificateDatabaseOutput
-	18, // 85: fabric.v1.Fabric.CreateCertificate:output_type -> fabric.v1.CreateCertificateOutput
-	20, // 86: fabric.v1.Fabric.CreateBootstrapAdmin:output_type -> fabric.v1.CreateBootstrapAdminOutput
-	22, // 87: fabric.v1.Fabric.CreateAdmin:output_type -> fabric.v1.CreateAdminOutput
-	24, // 88: fabric.v1.Fabric.CreateIdentity:output_type -> fabric.v1.CreateIdentityOutput
-	34, // 89: fabric.v1.Fabric.DeployCouchDb:output_type -> fabric.v1.DeployCouchDbOutput
-	36, // 90: fabric.v1.Fabric.DeployPeer:output_type -> fabric.v1.DeployPeerOutput
-	38, // 91: fabric.v1.Fabric.DeployOrderer:output_type -> fabric.v1.DeployOrdererOutput
-	40, // 92: fabric.v1.Fabric.DeployChainCode:output_type -> fabric.v1.DeployChainCodeOutput
-	26, // 93: fabric.v1.FabricActivities.RegisterIdentity:output_type -> fabric.v1.RegisterIdentityOutput
-	28, // 94: fabric.v1.FabricActivities.EnrollIdentity:output_type -> fabric.v1.EnrollIdentityOutput
-	30, // 95: fabric.v1.FabricActivities.RevokeIdentity:output_type -> fabric.v1.RevokeIdentityOutput
-	32, // 96: fabric.v1.FabricActivities.BootstrapEnrollIdentity:output_type -> fabric.v1.BootstrapEnrollIdentityOutput
-	80, // [80:97] is the sub-list for method output_type
-	63, // [63:80] is the sub-list for method input_type
-	63, // [63:63] is the sub-list for extension type_name
-	63, // [63:63] is the sub-list for extension extendee
-	0,  // [0:63] is the sub-list for field type_name
+	55, // 16: fabric.v1.DeployTlsRootCertificateAuthorityInput.validity_duration:type_name -> google.protobuf.Duration
+	55, // 17: fabric.v1.DeployTlsIntermediateCertificateAuthorityInput.validity_duration:type_name -> google.protobuf.Duration
+	55, // 18: fabric.v1.DeployOrgRootCertificateAuthorityInput.validity_duration:type_name -> google.protobuf.Duration
+	4,  // 19: fabric.v1.DeployOrgRootCertificateAuthorityInput.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	55, // 20: fabric.v1.DeployOrgIntermediateCertificateAuthorityInput.validity_duration:type_name -> google.protobuf.Duration
+	4,  // 21: fabric.v1.DeployOrgIntermediateCertificateAuthorityInput.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	4,  // 22: fabric.v1.CreateCertificateDatabaseInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	56, // 23: fabric.v1.CreateCertificateDatabaseOutput.credentials_ref:type_name -> secrets.v1.SecretRef
+	4,  // 24: fabric.v1.CreateCertificateInput.issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	6,  // 25: fabric.v1.CreateCertificateInput.subject:type_name -> fabric.v1.CertificateSubject
+	5,  // 26: fabric.v1.CreateCertificateInput.storage:type_name -> fabric.v1.IdentityRef
+	5,  // 27: fabric.v1.CreateCertificateInput.admin_identity:type_name -> fabric.v1.IdentityRef
+	51, // 28: fabric.v1.CreateCertificateInput.attributes:type_name -> fabric.v1.CreateCertificateInput.AttributesEntry
+	56, // 29: fabric.v1.CreateCertificateInput.issuer_cert_ref:type_name -> secrets.v1.SecretRef
+	5,  // 30: fabric.v1.CreateCertificateOutput.identity:type_name -> fabric.v1.IdentityRef
+	4,  // 31: fabric.v1.IssueTlsCertificateInput.issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	6,  // 32: fabric.v1.IssueTlsCertificateInput.subject:type_name -> fabric.v1.CertificateSubject
+	5,  // 33: fabric.v1.IssueTlsCertificateInput.storage:type_name -> fabric.v1.IdentityRef
+	56, // 34: fabric.v1.IssueTlsCertificateInput.issuer_cert_ref:type_name -> secrets.v1.SecretRef
+	52, // 35: fabric.v1.IssueTlsCertificateInput.attributes:type_name -> fabric.v1.IssueTlsCertificateInput.AttributesEntry
+	5,  // 36: fabric.v1.IssueTlsCertificateOutput.identity:type_name -> fabric.v1.IdentityRef
+	4,  // 37: fabric.v1.CreateBootstrapAdminInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	4,  // 38: fabric.v1.CreateBootstrapAdminInput.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	55, // 39: fabric.v1.CreateBootstrapAdminInput.validity_duration:type_name -> google.protobuf.Duration
+	5,  // 40: fabric.v1.CreateBootstrapAdminOutput.signing_identity:type_name -> fabric.v1.IdentityRef
+	5,  // 41: fabric.v1.CreateBootstrapAdminOutput.tls_identity:type_name -> fabric.v1.IdentityRef
+	4,  // 42: fabric.v1.CreateAdminInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	4,  // 43: fabric.v1.CreateAdminInput.signing_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	4,  // 44: fabric.v1.CreateAdminInput.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	55, // 45: fabric.v1.CreateAdminInput.validity_duration:type_name -> google.protobuf.Duration
+	5,  // 46: fabric.v1.CreateAdminOutput.signing_identity:type_name -> fabric.v1.IdentityRef
+	5,  // 47: fabric.v1.CreateAdminOutput.tls_identity:type_name -> fabric.v1.IdentityRef
+	6,  // 48: fabric.v1.CreateIdentityInput.subject:type_name -> fabric.v1.CertificateSubject
+	4,  // 49: fabric.v1.CreateIdentityInput.org_issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	4,  // 50: fabric.v1.CreateIdentityInput.tls_issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	5,  // 51: fabric.v1.CreateIdentityInput.signing_storage:type_name -> fabric.v1.IdentityRef
+	5,  // 52: fabric.v1.CreateIdentityInput.tls_storage:type_name -> fabric.v1.IdentityRef
+	53, // 53: fabric.v1.CreateIdentityInput.attributes:type_name -> fabric.v1.CreateIdentityInput.AttributesEntry
+	5,  // 54: fabric.v1.CreateIdentityOutput.signing_identity:type_name -> fabric.v1.IdentityRef
+	5,  // 55: fabric.v1.CreateIdentityOutput.tls_identity:type_name -> fabric.v1.IdentityRef
+	4,  // 56: fabric.v1.RegisterIdentityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	54, // 57: fabric.v1.RegisterIdentityInput.attributes:type_name -> fabric.v1.RegisterIdentityInput.AttributesEntry
+	5,  // 58: fabric.v1.RegisterIdentityInput.admin_identity:type_name -> fabric.v1.IdentityRef
+	4,  // 59: fabric.v1.EnrollIdentityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	5,  // 60: fabric.v1.EnrollIdentityInput.storage:type_name -> fabric.v1.IdentityRef
+	6,  // 61: fabric.v1.EnrollIdentityInput.subject:type_name -> fabric.v1.CertificateSubject
+	56, // 62: fabric.v1.EnrollIdentityInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
+	56, // 63: fabric.v1.EnrollIdentityInput.issuer_cert_ref:type_name -> secrets.v1.SecretRef
+	5,  // 64: fabric.v1.EnrollIdentityOutput.identity:type_name -> fabric.v1.IdentityRef
+	4,  // 65: fabric.v1.RevokeIdentityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	5,  // 66: fabric.v1.RevokeIdentityInput.admin_identity:type_name -> fabric.v1.IdentityRef
+	56, // 67: fabric.v1.BootstrapEnrollIdentityInput.bootstrap_credentials_ref:type_name -> secrets.v1.SecretRef
+	5,  // 68: fabric.v1.BootstrapEnrollIdentityInput.storage:type_name -> fabric.v1.IdentityRef
+	6,  // 69: fabric.v1.BootstrapEnrollIdentityInput.subject:type_name -> fabric.v1.CertificateSubject
+	56, // 70: fabric.v1.BootstrapEnrollIdentityInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
+	56, // 71: fabric.v1.BootstrapEnrollIdentityInput.issuer_cert_ref:type_name -> secrets.v1.SecretRef
+	5,  // 72: fabric.v1.BootstrapEnrollIdentityOutput.identity:type_name -> fabric.v1.IdentityRef
+	2,  // 73: fabric.v1.DeployPeerInput.spec:type_name -> fabric.v1.PeerSpec
+	3,  // 74: fabric.v1.DeployOrdererInput.spec:type_name -> fabric.v1.OrdererSpec
+	7,  // 75: fabric.v1.Fabric.BootstrapShard:input_type -> fabric.v1.BootstrapShardInput
+	9,  // 76: fabric.v1.Fabric.BootstrapCertificateAuthorities:input_type -> fabric.v1.BootstrapCertificateAuthoritiesInput
+	11, // 77: fabric.v1.Fabric.DeployCertificateStore:input_type -> fabric.v1.DeployCertificateStoreInput
+	13, // 78: fabric.v1.Fabric.DeployCertificateAuthority:input_type -> fabric.v1.DeployCertificateAuthorityInput
+	15, // 79: fabric.v1.Fabric.DeployTlsRootCertificateAuthority:input_type -> fabric.v1.DeployTlsRootCertificateAuthorityInput
+	17, // 80: fabric.v1.Fabric.DeployTlsIntermediateCertificateAuthority:input_type -> fabric.v1.DeployTlsIntermediateCertificateAuthorityInput
+	19, // 81: fabric.v1.Fabric.DeployOrgRootCertificateAuthority:input_type -> fabric.v1.DeployOrgRootCertificateAuthorityInput
+	21, // 82: fabric.v1.Fabric.DeployOrgIntermediateCertificateAuthority:input_type -> fabric.v1.DeployOrgIntermediateCertificateAuthorityInput
+	23, // 83: fabric.v1.Fabric.CreateCertificateDatabase:input_type -> fabric.v1.CreateCertificateDatabaseInput
+	25, // 84: fabric.v1.Fabric.CreateCertificate:input_type -> fabric.v1.CreateCertificateInput
+	27, // 85: fabric.v1.Fabric.IssueTlsCertificate:input_type -> fabric.v1.IssueTlsCertificateInput
+	29, // 86: fabric.v1.Fabric.CreateBootstrapAdmin:input_type -> fabric.v1.CreateBootstrapAdminInput
+	31, // 87: fabric.v1.Fabric.CreateAdmin:input_type -> fabric.v1.CreateAdminInput
+	33, // 88: fabric.v1.Fabric.CreateIdentity:input_type -> fabric.v1.CreateIdentityInput
+	43, // 89: fabric.v1.Fabric.DeployCouchDb:input_type -> fabric.v1.DeployCouchDbInput
+	45, // 90: fabric.v1.Fabric.DeployPeer:input_type -> fabric.v1.DeployPeerInput
+	47, // 91: fabric.v1.Fabric.DeployOrderer:input_type -> fabric.v1.DeployOrdererInput
+	49, // 92: fabric.v1.Fabric.DeployChainCode:input_type -> fabric.v1.DeployChainCodeInput
+	35, // 93: fabric.v1.FabricActivities.RegisterIdentity:input_type -> fabric.v1.RegisterIdentityInput
+	37, // 94: fabric.v1.FabricActivities.EnrollIdentity:input_type -> fabric.v1.EnrollIdentityInput
+	39, // 95: fabric.v1.FabricActivities.RevokeIdentity:input_type -> fabric.v1.RevokeIdentityInput
+	41, // 96: fabric.v1.FabricActivities.BootstrapEnrollIdentity:input_type -> fabric.v1.BootstrapEnrollIdentityInput
+	8,  // 97: fabric.v1.Fabric.BootstrapShard:output_type -> fabric.v1.BootstrapShardOutput
+	10, // 98: fabric.v1.Fabric.BootstrapCertificateAuthorities:output_type -> fabric.v1.BootstrapCertificateAuthoritiesOutput
+	12, // 99: fabric.v1.Fabric.DeployCertificateStore:output_type -> fabric.v1.DeployCertificateStoreOutput
+	14, // 100: fabric.v1.Fabric.DeployCertificateAuthority:output_type -> fabric.v1.DeployCertificateAuthorityOutput
+	16, // 101: fabric.v1.Fabric.DeployTlsRootCertificateAuthority:output_type -> fabric.v1.DeployTlsRootCertificateAuthorityOutput
+	18, // 102: fabric.v1.Fabric.DeployTlsIntermediateCertificateAuthority:output_type -> fabric.v1.DeployTlsIntermediateCertificateAuthorityOutput
+	20, // 103: fabric.v1.Fabric.DeployOrgRootCertificateAuthority:output_type -> fabric.v1.DeployOrgRootCertificateAuthorityOutput
+	22, // 104: fabric.v1.Fabric.DeployOrgIntermediateCertificateAuthority:output_type -> fabric.v1.DeployOrgIntermediateCertificateAuthorityOutput
+	24, // 105: fabric.v1.Fabric.CreateCertificateDatabase:output_type -> fabric.v1.CreateCertificateDatabaseOutput
+	26, // 106: fabric.v1.Fabric.CreateCertificate:output_type -> fabric.v1.CreateCertificateOutput
+	28, // 107: fabric.v1.Fabric.IssueTlsCertificate:output_type -> fabric.v1.IssueTlsCertificateOutput
+	30, // 108: fabric.v1.Fabric.CreateBootstrapAdmin:output_type -> fabric.v1.CreateBootstrapAdminOutput
+	32, // 109: fabric.v1.Fabric.CreateAdmin:output_type -> fabric.v1.CreateAdminOutput
+	34, // 110: fabric.v1.Fabric.CreateIdentity:output_type -> fabric.v1.CreateIdentityOutput
+	44, // 111: fabric.v1.Fabric.DeployCouchDb:output_type -> fabric.v1.DeployCouchDbOutput
+	46, // 112: fabric.v1.Fabric.DeployPeer:output_type -> fabric.v1.DeployPeerOutput
+	48, // 113: fabric.v1.Fabric.DeployOrderer:output_type -> fabric.v1.DeployOrdererOutput
+	50, // 114: fabric.v1.Fabric.DeployChainCode:output_type -> fabric.v1.DeployChainCodeOutput
+	36, // 115: fabric.v1.FabricActivities.RegisterIdentity:output_type -> fabric.v1.RegisterIdentityOutput
+	38, // 116: fabric.v1.FabricActivities.EnrollIdentity:output_type -> fabric.v1.EnrollIdentityOutput
+	40, // 117: fabric.v1.FabricActivities.RevokeIdentity:output_type -> fabric.v1.RevokeIdentityOutput
+	42, // 118: fabric.v1.FabricActivities.BootstrapEnrollIdentity:output_type -> fabric.v1.BootstrapEnrollIdentityOutput
+	97, // [97:119] is the sub-list for method output_type
+	75, // [75:97] is the sub-list for method input_type
+	75, // [75:75] is the sub-list for extension type_name
+	75, // [75:75] is the sub-list for extension extendee
+	0,  // [0:75] is the sub-list for field type_name
 }
 
 func init() { file_fabric_v1_fabric_proto_init() }
@@ -2933,7 +3549,7 @@ func file_fabric_v1_fabric_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_fabric_v1_fabric_proto_rawDesc), len(file_fabric_v1_fabric_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   44,
+			NumMessages:   55,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

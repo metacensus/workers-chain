@@ -32,7 +32,7 @@ This document outlines the complete execution flow for deploying a Fabric organi
 - **K8s Location:** `fabric-{org}` namespace (one pod per org, runs in its own namespace)
 - **K8s RBAC:** Role bound to `fabric-{org}` namespace (manages resources in same namespace)
 - **Vault Token:** Scoped to `secret/fabric/{org}/*`
-- **Nexus Calls:** Calls `CreateScopedIdentityAccess` in "infra" namespace via Nexus
+- **Nexus Calls:** Calls `CreateScopedIdentityAccess` and `IssueTlsCertificate` in "infra" namespace via Nexus
 - **Responsibilities:** Fabric deployment, identity provisioning, certificate management
 
 **Isolation Strategy:** 
@@ -133,7 +133,17 @@ Fabric Worker orchestrates organization deployment:
 
 ```
 Workflow: cell.v1.BootstrapInfra ✅ (Runs in infra namespace)
-└─ Activity: temporal.v1.CreateNexusEndpoint ✅ (creates secrets-CreateAccess endpoint)
+├─ Activity: temporal.v1.CreateNexusEndpoint ✅ (creates secrets-CreateAccess endpoint)
+└─ Workflow: cell.v1.InitFabric ✅
+```
+
+```
+Workflow: cell.v1.InitFabric ✅ (Runs in infra namespace)
+├─ Workflow: cluster.fabric.v1.CreateNamespace ✅
+├─ Workflow: cluster.fabric.v1.CreateServiceAccount ✅
+├─ Workflow: secrets.v1.CreateAccess ✅
+├─ Activity: temporal.v1.CreateNexusEndpoint ✅ (creates fabric-IssueTlsCertificate endpoint)
+└─ Workflow: fabric.v1.BootstrapCertificateAuthorities ✅
 ```
 
 ```
@@ -157,8 +167,13 @@ Workflow: fabric.v1.BootstrapShard 🟡 (Runs in fabric-<org> namespace)
 │
 ├─ Workflow: fabric.v1.DeployCertificateStore ✅
 │
-├─ for each CertificateAuthoritySpec in deployment.certificate_authorities
-│ └─ Workflow: fabric.v1.DeployCertificateAuthority ✅
+├─ Workflow: fabric.v1.DeployTlsRootCertificateAuthority ✅ (operator-owned, self-signed)
+│
+├─ Workflow: fabric.v1.DeployTlsIntermediateCertificateAuthority ✅ (operator-owned, issued by TLS Root via direct calls)
+│
+├─ Workflow: fabric.v1.DeployOrgRootCertificateAuthority ✅ (org-owned, self-signed signing, TLS via Nexus)
+│
+├─ Workflow: fabric.v1.DeployOrgIntermediateCertificateAuthority ✅ (org-owned, signing from Org Root, TLS via Nexus)
 │
 ├─ for each PeerSpec in deployment.peers
 │ ├─ Workflow: fabric.v1.DeployCouchDb ✅
@@ -225,28 +240,54 @@ Workflow: fabric.v1.CreateCertificateDatabase ✅
 ```
 
 ```
-Workflow: fabric.v1.DeployRootCertificateAuthority ✅
+Workflow: fabric.v1.DeployTlsRootCertificateAuthority ✅
 ├─ Nexus Call: secrets.v1.CreateAccess ✅ [→ Infra Worker in infra namespace]
 ├─ Workflow: fabric.v1.CreateCertificateDatabase ✅
-├─ Activity: secrets.v1.CreateKeyPair ✅ (for CA's signing key)
-├─ Activity: secrets.v1.CreateSelfSignedCertificate ✅ (CA's certificate)
+├─ Activity: secrets.v1.CreateKeyPair ✅ (signing key)
+├─ Activity: secrets.v1.CreateSelfSignedCertificate ✅ (signing cert)
+├─ Activity: secrets.v1.CreateKeyPair ✅ (TLS key)
+├─ Activity: secrets.v1.CreateSelfSignedCertificate ✅ (TLS cert)
 ├─ Activity: secrets.v1.CreatePassword ✅ (bootstrap admin credentials)
 ├─ Workflow: cluster.fabric.v1.CreateDeployment ✅
-└─ Workflow: fabric.v1.BootstrapCertificateAuthorityAdmin ✅
+├─ Workflow: fabric.v1.CreateBootstrapAdmin ✅ (TLS issuer: self)
+└─ Workflow: fabric.v1.CreateAdmin ✅ (TLS issuer: self)
 ```
 
 ```
-Workflow: fabric.v1.DeployCertificateAuthority ✅
+Workflow: fabric.v1.DeployTlsIntermediateCertificateAuthority ✅
 ├─ Nexus Call: secrets.v1.CreateAccess ✅ [→ Infra Worker in infra namespace]
 ├─ Workflow: fabric.v1.CreateCertificateDatabase ✅
-├─ Workflow: cluster.fabric.v1.ScaleDeployment ❌ (optional, not implemented)
-├─ Activity: secrets.v1.CreateKeyPair ✅ (intermediate CA key)
-├─ Activity: fabric.v1.RegisterIdentity ✅ (register with root CA)
-├─ Activity: fabric.v1.EnrollIdentity ✅ (get cert signed by root CA)
-├─ Workflow: cluster.fabric.v1.ScaleDeployment ❌ (optional, not implemented)
+├─ Workflow: fabric.v1.CreateCertificate ✅ (signing cert from TLS Root via direct call)
+├─ Workflow: fabric.v1.CreateCertificate ✅ (TLS cert from TLS Root via direct call)
 ├─ Activity: secrets.v1.CreatePassword ✅ (bootstrap admin credentials)
 ├─ Workflow: cluster.fabric.v1.CreateDeployment ✅
-└─ Workflow: fabric.v1.BootstrapCertificateAuthorityAdmin ✅
+├─ Workflow: fabric.v1.CreateBootstrapAdmin ✅ (TLS issuer: self)
+└─ Workflow: fabric.v1.CreateAdmin ✅ (TLS issuer: self)
+```
+
+```
+Workflow: fabric.v1.DeployOrgRootCertificateAuthority ✅
+├─ Nexus Call: secrets.v1.CreateAccess ✅ [→ Infra Worker in infra namespace]
+├─ Workflow: fabric.v1.CreateCertificateDatabase ✅
+├─ Activity: secrets.v1.CreateKeyPair ✅ (signing key)
+├─ Activity: secrets.v1.CreateSelfSignedCertificate ✅ (signing cert)
+├─ Nexus Call: fabric.v1.IssueTlsCertificate ✅ [→ Operator Worker in fabric-operator namespace]
+├─ Activity: secrets.v1.CreatePassword ✅ (bootstrap admin credentials)
+├─ Workflow: cluster.fabric.v1.CreateDeployment ✅
+├─ Workflow: fabric.v1.CreateBootstrapAdmin ✅ (TLS issuer: TLS Int)
+└─ Workflow: fabric.v1.CreateAdmin ✅ (TLS issuer: TLS Int)
+```
+
+```
+Workflow: fabric.v1.DeployOrgIntermediateCertificateAuthority ✅
+├─ Nexus Call: secrets.v1.CreateAccess ✅ [→ Infra Worker in infra namespace]
+├─ Workflow: fabric.v1.CreateCertificateDatabase ✅
+├─ Workflow: fabric.v1.CreateCertificate ✅ (signing cert from Org Root via direct call)
+├─ Nexus Call: fabric.v1.IssueTlsCertificate ✅ [→ Operator Worker in fabric-operator namespace]
+├─ Activity: secrets.v1.CreatePassword ✅ (bootstrap admin credentials)
+├─ Workflow: cluster.fabric.v1.CreateDeployment ✅
+├─ Workflow: fabric.v1.CreateBootstrapAdmin ✅ (TLS issuer: TLS Int)
+└─ Workflow: fabric.v1.CreateAdmin ✅ (TLS issuer: TLS Int)
 ```
 
 

@@ -225,6 +225,46 @@ service Fabric {
     };
   }
 
+  // DeployTlsRootCertificateAuthority deploys the TLS Root Certificate Authority
+  // Operator-owned, self-signed signing and TLS certificates, admin TLS from self
+  rpc DeployTlsRootCertificateAuthority(DeployTlsRootCertificateAuthorityInput) returns (DeployTlsRootCertificateAuthorityOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployTlsRootCertificateAuthority"
+      id: 'fabric/${! Org }/ca/tls-root'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployTlsIntermediateCertificateAuthority deploys the TLS Intermediate Certificate Authority
+  // Operator-owned, issued by TLS Root via direct workflow calls, admin TLS from self
+  rpc DeployTlsIntermediateCertificateAuthority(DeployTlsIntermediateCertificateAuthorityInput) returns (DeployTlsIntermediateCertificateAuthorityOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployTlsIntermediateCertificateAuthority"
+      id: 'fabric/${! Org }/ca/tls-int'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployOrgRootCertificateAuthority deploys the Organization Root Certificate Authority
+  // Org-owned, self-signed signing cert, TLS cert via Nexus from TLS Int, admin TLS from TLS Int
+  rpc DeployOrgRootCertificateAuthority(DeployOrgRootCertificateAuthorityInput) returns (DeployOrgRootCertificateAuthorityOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployOrgRootCertificateAuthority"
+      id: 'fabric/${! Org }/ca/org-root'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployOrgIntermediateCertificateAuthority deploys the Organization Intermediate Certificate Authority
+  // Org-owned, signing cert from Org Root via direct call, TLS cert via Nexus from TLS Int, admin TLS from TLS Int
+  rpc DeployOrgIntermediateCertificateAuthority(DeployOrgIntermediateCertificateAuthorityInput) returns (DeployOrgIntermediateCertificateAuthorityOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployOrgIntermediateCertificateAuthority"
+      id: 'fabric/${! Org }/ca/org-int'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
   // CreateCertificateDatabase creates a dedicated database and user for a certificate authority
   // in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
   // isolated database to store issued certificates and revocation information.
@@ -243,6 +283,18 @@ service Fabric {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.CreateCertificate"
       id: 'fabric/create-certificate/${! Purpose }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // IssueTlsCertificate issues a certificate from the operator's TLS CA
+  // This Nexus operation allows org workers to request TLS certificates without
+  // accessing operator admin credentials. The operator worker performs the issuance
+  // and stores the result in the org's vault namespace.
+  rpc IssueTlsCertificate(IssueTlsCertificateInput) returns (IssueTlsCertificateOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.IssueTlsCertificate"
+      id: 'fabric/issue-tls-cert/${! Org }/${! Purpose }'
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
@@ -454,6 +506,106 @@ message DeployCertificateAuthorityOutput {
   // Empty for now
 }
 
+// ==================== DeployTlsRootCertificateAuthority Workflow Messages ====================
+
+// DeployTlsRootCertificateAuthorityInput specifies parameters for deploying TLS Root CA
+message DeployTlsRootCertificateAuthorityInput {
+  // org is the owner identifier (operator)
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
+  // validity_duration specifies how long the CA certificates are valid
+  google.protobuf.Duration validity_duration = 2 [
+    json_name = "ValidityDuration",
+    (go.field).tags = 'json:"ValidityDuration,omitempty"'
+  ];
+}
+
+// DeployTlsRootCertificateAuthorityOutput indicates the result of TLS Root CA deployment
+message DeployTlsRootCertificateAuthorityOutput {
+  // Empty for now
+}
+
+// ==================== DeployTlsIntermediateCertificateAuthority Workflow Messages ====================
+
+// DeployTlsIntermediateCertificateAuthorityInput specifies parameters for deploying TLS Intermediate CA
+message DeployTlsIntermediateCertificateAuthorityInput {
+  // org is the owner identifier (operator)
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
+  // validity_duration specifies how long the CA certificates are valid
+  google.protobuf.Duration validity_duration = 2 [
+    json_name = "ValidityDuration",
+    (go.field).tags = 'json:"ValidityDuration,omitempty"'
+  ];
+}
+
+// DeployTlsIntermediateCertificateAuthorityOutput indicates the result of TLS Intermediate CA deployment
+message DeployTlsIntermediateCertificateAuthorityOutput {
+  // Empty for now
+}
+
+// ==================== DeployOrgRootCertificateAuthority Workflow Messages ====================
+
+// DeployOrgRootCertificateAuthorityInput specifies parameters for deploying Org Root CA
+message DeployOrgRootCertificateAuthorityInput {
+  // org is the owner identifier (organization)
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
+  // validity_duration specifies how long the CA certificates are valid
+  google.protobuf.Duration validity_duration = 2 [
+    json_name = "ValidityDuration",
+    (go.field).tags = 'json:"ValidityDuration,omitempty"'
+  ];
+
+  // tls_issuer identifies the TLS Intermediate CA (always TLS Int for Org Root)
+  CertificateAuthorityRef tls_issuer = 3 [
+    json_name = "TlsIssuer",
+    (go.field).tags = 'json:"TlsIssuer" validate:"required"'
+  ];
+}
+
+// DeployOrgRootCertificateAuthorityOutput indicates the result of Org Root CA deployment
+message DeployOrgRootCertificateAuthorityOutput {
+  // Empty for now
+}
+
+// ==================== DeployOrgIntermediateCertificateAuthority Workflow Messages ====================
+
+// DeployOrgIntermediateCertificateAuthorityInput specifies parameters for deploying Org Intermediate CA
+message DeployOrgIntermediateCertificateAuthorityInput {
+  // org is the owner identifier (organization)
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
+  // validity_duration specifies how long the CA certificates are valid
+  google.protobuf.Duration validity_duration = 2 [
+    json_name = "ValidityDuration",
+    (go.field).tags = 'json:"ValidityDuration,omitempty"'
+  ];
+
+  // tls_issuer identifies the TLS Intermediate CA (always TLS Int for Org Intermediate)
+  CertificateAuthorityRef tls_issuer = 3 [
+    json_name = "TlsIssuer",
+    (go.field).tags = 'json:"TlsIssuer" validate:"required"'
+  ];
+}
+
+// DeployOrgIntermediateCertificateAuthorityOutput indicates the result of Org Intermediate CA deployment
+message DeployOrgIntermediateCertificateAuthorityOutput {
+  // Empty for now
+}
+
 // ==================== CreateCertificateDatabase Workflow Messages ====================
 
 // CreateCertificateDatabaseInput specifies the parameters for creating a certificate database
@@ -551,6 +703,68 @@ message CreateCertificateInput {
 
 // CreateCertificateOutput indicates the result of certificate creation
 message CreateCertificateOutput {
+  // identity points to the created identity (key + certificate)
+  IdentityRef identity = 1 [
+    json_name = "Identity",
+    (go.field).tags = 'json:"Identity" validate:"required"'
+  ];
+}
+
+// ==================== IssueTlsCertificate Workflow Messages ====================
+
+// IssueTlsCertificateInput specifies the parameters for issuing a certificate from TLS CA
+message IssueTlsCertificateInput {
+  // org is the organization requesting the certificate
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
+  // issuer_ref identifies which TLS CA to use (typically {CertType: "tls", Id: "v1"})
+  CertificateAuthorityRef issuer_ref = 2 [
+    json_name = "IssuerRef",
+    (go.field).tags = 'json:"IssuerRef" validate:"required"'
+  ];
+
+  // profile specifies the CA profile to use ("tls", "ca", etc.)
+  string profile = 3 [
+    json_name = "Profile",
+    (go.field).tags = 'json:"Profile"'
+  ];
+
+  // subject defines the certificate subject fields
+  CertificateSubject subject = 4 [
+    json_name = "Subject",
+    (go.field).tags = 'json:"Subject" validate:"required"'
+  ];
+
+  // storage specifies where to store the certificate (org namespace)
+  IdentityRef storage = 5 [
+    json_name = "Storage",
+    (go.field).tags = 'json:"Storage" validate:"required"'
+  ];
+
+  // purpose is a unique identifier for this certificate (used in workflow ID)
+  string purpose = 6 [
+    json_name = "Purpose",
+    (go.field).tags = 'json:"Purpose" validate:"required"'
+  ];
+
+  // issuer_cert_ref points to the TLS CA's signing certificate for chain building
+  secrets.v1.SecretRef issuer_cert_ref = 7 [
+    json_name = "IssuerCertRef",
+    (go.field).tags = 'json:"IssuerCertRef" validate:"required"'
+  ];
+
+  // attributes are optional Fabric CA attributes for the identity
+  map<string, string> attributes = 8 [
+    json_name = "Attributes",
+    (go.field).tags = 'json:"Attributes,omitempty"'
+  ];
+}
+
+// IssueTlsCertificateOutput indicates the result of TLS certificate issuance
+message IssueTlsCertificateOutput {
   // identity points to the created identity (key + certificate)
   IdentityRef identity = 1 [
     json_name = "Identity",

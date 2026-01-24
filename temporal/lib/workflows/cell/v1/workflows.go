@@ -41,6 +41,7 @@ var (
 	ErrCreateOperatorKubernetesNamespace = errors.New("create operator kubernetes namespace")
 	ErrCreateOperatorServiceAccount      = errors.New("create operator service account")
 	ErrCreateOperatorVaultAccess         = errors.New("create operator vault access")
+	ErrCreateTLSCANexusEndpoint          = errors.New("create TLS CA nexus endpoint")
 
 	// InitFabricShard errors
 	ErrOrgRequired               = errors.New("org is required")
@@ -192,6 +193,16 @@ func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput
 		return nil, fmt.Errorf("%w: %w", ErrCreateOperatorVaultAccess, err)
 	}
 
+	// Register Nexus endpoint for operator TLS CA certificate issuance
+	temporalCfg := config.GetTemporal()
+	if _, err := temporalpb.CreateNexusEndpoint(ctx, &temporalpb.CreateNexusEndpointInput{
+		Name:      "fabric-IssueTlsCertificate",
+		Namespace: temporalCfg.Namespace,
+		TaskQueue: "infra",
+	}); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateTLSCANexusEndpoint, err)
+	}
+
 	// Deploy certificate store and TLS CA chain
 	// Pass operator ID as the "org" since this is operator-owned infrastructure
 	if _, err := fabricpb.BootstrapCertificateAuthoritiesChild(ctx, &fabricpb.BootstrapCertificateAuthoritiesInput{
@@ -209,8 +220,13 @@ func buildOperatorVaultPolicy(operatorCfg config.OperatorConfig) *vaultpb.Policy
 	dataPathPattern := path.Join(vaultSecretDataPrefix, fabricSecretBase, operatorCfg.OwnerID(), "*")
 	metadataPathPattern := path.Join(vaultSecretMetadataPrefix, fabricSecretBase, operatorCfg.OwnerID(), "*")
 
+	// Allow writing certificates to all org namespaces (for TLS cert issuance via Nexus)
+	allOrgCertsPattern := path.Join(vaultSecretDataPrefix, fabricSecretBase, "*", "certs/*")
+	allOrgCertsMetadataPattern := path.Join(vaultSecretMetadataPrefix, fabricSecretBase, "*", "certs/*")
+
 	return &vaultpb.PolicyDocument{
 		Rules: []*vaultpb.PolicyRule{
+			// Operator namespace: full access
 			{
 				Path: dataPathPattern,
 				Capabilities: []vaultpb.Capability{
@@ -224,6 +240,20 @@ func buildOperatorVaultPolicy(operatorCfg config.OperatorConfig) *vaultpb.Policy
 				Path: metadataPathPattern,
 				Capabilities: []vaultpb.Capability{
 					vaultpb.Capability_CAPABILITY_LIST,
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+			// All org namespaces: write access to certs/* only (for TLS issuance)
+			{
+				Path: allOrgCertsPattern,
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_CREATE,
+					vaultpb.Capability_CAPABILITY_UPDATE,
+				},
+			},
+			{
+				Path: allOrgCertsMetadataPattern,
+				Capabilities: []vaultpb.Capability{
 					vaultpb.Capability_CAPABILITY_READ,
 				},
 			},

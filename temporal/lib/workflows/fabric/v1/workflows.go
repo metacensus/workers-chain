@@ -7,6 +7,7 @@ import (
 
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
+	fabricv1nexustemporal "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1nexustemporal"
 	kubepb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
 	postgrespb "github.com/metacensus/infra/temporal/gen/workflows/postgres/v1"
 	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
@@ -189,6 +190,11 @@ func (w *bootstrapCertificateAuthoritiesWorkflow) validate() error {
 		if caSpec.GetSelf() == nil {
 			return fmt.Errorf("%w: certificate_authorities[%d].self is required", ErrInvalidInput, i)
 		}
+		// BootstrapCertificateAuthorities is for operator-level TLS infrastructure only
+		if caSpec.GetSelf().GetCertType() != "tls" {
+			return fmt.Errorf("%w: certificate_authorities[%d] must have cert_type='tls', got '%s'",
+				ErrInvalidInput, i, caSpec.GetSelf().GetCertType())
+		}
 	}
 	return nil
 }
@@ -205,21 +211,63 @@ func (w *bootstrapCertificateAuthoritiesWorkflow) Execute(ctx workflow.Context) 
 		return nil, fmt.Errorf("%w: %w", ErrDeployCertificateStore, err)
 	}
 
-	// Step 2: Deploy CAs in order (order is important: TLS Root before TLS Intermediate)
+	// Step 2: Deploy CAs in order using specialized workflows
+	// Order is critical: TLS Root → TLS Int → Org Root → Org Int
 	logger.Info("Deploying certificate authorities")
-	for _, caSpec := range w.input.Req.GetCertificateAuthorities() {
-		logger.Info("Deploying certificate authority",
-			"certType", caSpec.GetSelf().GetCertType(),
-			"id", caSpec.GetSelf().GetId())
 
-		if _, err := pb.DeployCertificateAuthorityChild(ctx, &pb.DeployCertificateAuthorityInput{
-			Org:  org,
-			Spec: caSpec,
+	// Build map of CA specs by certType/id for easy lookup
+	caSpecs := make(map[string]*pb.CertificateAuthoritySpec)
+	for _, spec := range w.input.Req.GetCertificateAuthorities() {
+		key := fmt.Sprintf("%s/%s", spec.GetSelf().GetCertType(), spec.GetSelf().GetId())
+		caSpecs[key] = spec
+	}
+
+	// Deploy TLS Root CA
+	if tlsRootSpec, ok := caSpecs["tls/root"]; ok {
+		logger.Info("Deploying TLS Root CA")
+		if _, err := pb.DeployTlsRootCertificateAuthorityChild(ctx, &pb.DeployTlsRootCertificateAuthorityInput{
+			Org:              org,
+			ValidityDuration: tlsRootSpec.GetValidityDuration(),
 		}); err != nil {
-			return nil, fmt.Errorf("deploy %s/%s: %w",
-				caSpec.GetSelf().GetCertType(), caSpec.GetSelf().GetId(), err)
+			return nil, fmt.Errorf("deploy TLS Root CA: %w", err)
 		}
 	}
+
+	// Deploy TLS Intermediate CA
+	if tlsIntSpec, ok := caSpecs["tls/int"]; ok {
+		logger.Info("Deploying TLS Intermediate CA")
+		if _, err := pb.DeployTlsIntermediateCertificateAuthorityChild(ctx, &pb.DeployTlsIntermediateCertificateAuthorityInput{
+			Org:              org,
+			ValidityDuration: tlsIntSpec.GetValidityDuration(),
+		}); err != nil {
+			return nil, fmt.Errorf("deploy TLS Intermediate CA: %w", err)
+		}
+	}
+
+	// Deploy Org Root CA
+	if orgRootSpec, ok := caSpecs["org/root"]; ok {
+		logger.Info("Deploying Org Root CA")
+		if _, err := pb.DeployOrgRootCertificateAuthorityChild(ctx, &pb.DeployOrgRootCertificateAuthorityInput{
+			Org:              org,
+			ValidityDuration: orgRootSpec.GetValidityDuration(),
+			TlsIssuer:        &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
+		}); err != nil {
+			return nil, fmt.Errorf("deploy Org Root CA: %w", err)
+		}
+	}
+
+	// Deploy Org Intermediate CA
+	if orgIntSpec, ok := caSpecs["org/int"]; ok {
+		logger.Info("Deploying Org Intermediate CA")
+		if _, err := pb.DeployOrgIntermediateCertificateAuthorityChild(ctx, &pb.DeployOrgIntermediateCertificateAuthorityInput{
+			Org:              org,
+			ValidityDuration: orgIntSpec.GetValidityDuration(),
+			TlsIssuer:        &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
+		}); err != nil {
+			return nil, fmt.Errorf("deploy Org Intermediate CA: %w", err)
+		}
+	}
+
 	logger.Info("All certificate authorities deployed successfully")
 
 	return &pb.BootstrapCertificateAuthoritiesOutput{}, nil
@@ -504,40 +552,60 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 			return nil, fmt.Errorf("failed to generate self-signed TLS certificate: %w", err)
 		}
 	} else {
-		// Issued by TLS CA - get config for the issuer to access its admin credentials
-		// Use computeTLSCommonName() to avoid registration collision when both signing and TLS certs
-		// come from the same CA (e.g., TLS Int CA)
-		// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
-		var tlsIssuerOwner config.OwnerConfig
-		if tlsIssuerRef.GetCertType() == "tls" {
-			tlsIssuerOwner = operatorConfig
-		} else {
-			tlsIssuerOwner = orgConfig
-		}
-		tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(tlsIssuerOwner, tlsIssuerRef.GetCertType(), tlsIssuerRef.GetId())
+		// Issued by TLS CA - use Nexus for cross-namespace certificate issuance
 		tlsCommonName := computeTLSCommonName(caConfig.ComponentName(), signingIssuerRef, tlsIssuerRef)
-		logger.Info("Creating CA-signed TLS certificate", "ca", caConfig.Description(), "issuer", tlsIssuerConfig.Description())
-		_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
-			Org:       org,
-			IssuerRef: tlsIssuerRef,
-			Profile:   "tls",
-			Subject: &pb.CertificateSubject{
-				CommonName:         tlsCommonName, // Different name if same CA issues both
-				Organization:       org,
-				OrganizationalUnit: caConfig.OrganizationalUnit(),
-				DnsNames:           caConfig.TLSDNSNames(),
-			},
-			Storage: &pb.IdentityRef{
-				KeyRef:  caConfig.VaultTLSKeyRef(),
-				CertRef: caConfig.VaultTLSCertRef(),
-			},
-			AdminIdentity: &pb.IdentityRef{
-				KeyRef:  tlsIssuerConfig.VaultAdminSigningKeyRef(),
-				CertRef: tlsIssuerConfig.VaultAdminSigningCertRef(),
-			},
-			Purpose:       tlsPurpose,
-			IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
-		})
+
+		if tlsIssuerRef.GetCertType() == "tls" {
+			// TLS CA is operator-owned - use Nexus to issue from operator worker
+			logger.Info("Creating CA TLS certificate via Nexus", "ca", caConfig.Description(), "issuer", tlsIssuerRef)
+
+			tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(operatorConfig, tlsIssuerRef.GetCertType(), tlsIssuerRef.GetId())
+			nexusClient := fabricv1nexustemporal.NewFabricNexusClient("fabric-IssueTlsCertificate")
+			_, err = nexusClient.IssueTlsCertificate(ctx, &pb.IssueTlsCertificateInput{
+				Org:       org,
+				IssuerRef: tlsIssuerRef,
+				Profile:   "tls",
+				Subject: &pb.CertificateSubject{
+					CommonName:         tlsCommonName,
+					Organization:       org,
+					OrganizationalUnit: caConfig.OrganizationalUnit(),
+					DnsNames:           caConfig.TLSDNSNames(),
+				},
+				Storage: &pb.IdentityRef{
+					KeyRef:  caConfig.VaultTLSKeyRef(),
+					CertRef: caConfig.VaultTLSCertRef(),
+				},
+				Purpose:       tlsPurpose,
+				IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
+			}, workflow.NexusOperationOptions{
+				ScheduleToCloseTimeout: 5 * time.Minute,
+			})
+		} else {
+			// Org CA issuer - use direct call with org config
+			tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, tlsIssuerRef.GetCertType(), tlsIssuerRef.GetId())
+			logger.Info("Creating CA-signed TLS certificate", "ca", caConfig.Description(), "issuer", tlsIssuerConfig.Description())
+			_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
+				Org:       org,
+				IssuerRef: tlsIssuerRef,
+				Profile:   "tls",
+				Subject: &pb.CertificateSubject{
+					CommonName:         tlsCommonName,
+					Organization:       org,
+					OrganizationalUnit: caConfig.OrganizationalUnit(),
+					DnsNames:           caConfig.TLSDNSNames(),
+				},
+				Storage: &pb.IdentityRef{
+					KeyRef:  caConfig.VaultTLSKeyRef(),
+					CertRef: caConfig.VaultTLSCertRef(),
+				},
+				AdminIdentity: &pb.IdentityRef{
+					KeyRef:  tlsIssuerConfig.VaultAdminSigningKeyRef(),
+					CertRef: tlsIssuerConfig.VaultAdminSigningCertRef(),
+				},
+				Purpose:       tlsPurpose,
+				IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
+			})
+		}
 		if err != nil {
 			return nil, fmt.Errorf("%w (tls): %w", ErrCreateCertificate, err)
 		}
@@ -602,6 +670,749 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 
 	logger.Info("Certificate authority deployment complete", "ca", caConfig.Description())
 	return &pb.DeployCertificateAuthorityOutput{}, nil
+}
+
+// =============================================================================
+// DeployTlsRootCertificateAuthority - TLS Root CA (operator-owned, self-signed)
+// =============================================================================
+
+func (w *Workflows) DeployTlsRootCertificateAuthority(ctx workflow.Context, input *pb.DeployTlsRootCertificateAuthorityWorkflowInput) (pb.DeployTlsRootCertificateAuthorityWorkflow, error) {
+	return newDeployTlsRootCertificateAuthorityWorkflow(input)
+}
+
+type deployTlsRootCertificateAuthorityWorkflow struct {
+	input *pb.DeployTlsRootCertificateAuthorityWorkflowInput
+}
+
+func newDeployTlsRootCertificateAuthorityWorkflow(input *pb.DeployTlsRootCertificateAuthorityWorkflowInput) (*deployTlsRootCertificateAuthorityWorkflow, error) {
+	w := &deployTlsRootCertificateAuthorityWorkflow{input: input}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+func (w *deployTlsRootCertificateAuthorityWorkflow) validate() error {
+	if w.input == nil || w.input.Req == nil {
+		return fmt.Errorf("%w: input must not be nil", ErrInvalidInput)
+	}
+	req := w.input.Req
+	if req.GetOrg() == "" {
+		return fmt.Errorf("%w: org must not be empty", ErrInvalidInput)
+	}
+	return nil
+}
+
+func (w *deployTlsRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.DeployTlsRootCertificateAuthorityOutput, error) {
+	logger := workflow.GetLogger(ctx)
+	org := w.input.Req.GetOrg()
+	operatorConfig := config.GetOperator()
+	validityDuration := w.input.Req.GetValidityDuration().AsDuration()
+
+	// TLS Root CA is always operator-owned, certType="tls", id="root"
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(operatorConfig, "tls", "root")
+	caRef := &pb.CertificateAuthorityRef{CertType: "tls", Id: "root"}
+	logger.Info("Deploying TLS Root Certificate Authority", "ca", caConfig.Description())
+
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    3,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
+
+	// Step 1: Create Vault access
+	nexusClient := secretsv1nexustemporal.NewSecretsNexusClient(secretsCreateAccessNexusEndpoint)
+	_, err := nexusClient.CreateAccess(ctx, &secretspb.CreateAccessInput{
+		PolicyName:          caConfig.PolicyName(),
+		PolicyDocument:      caConfig.VaultPolicy(),
+		AuthRoleName:        caConfig.AuthRoleName(),
+		ServiceAccountName:  caConfig.ServiceAccountName(),
+		KubernetesNamespace: caConfig.KubernetesNamespace(),
+	}, workflow.NexusOperationOptions{
+		ScheduleToCloseTimeout: 5 * time.Minute,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateAccess, err)
+	}
+
+	// Step 2: Create certificate database
+	if _, err := pb.CreateCertificateDatabaseChild(ctx, &pb.CreateCertificateDatabaseInput{
+		Org:   org,
+		CaRef: caRef,
+	}); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateCertificateDatabase, err)
+	}
+
+	// Step 3: Create self-signed signing certificate
+	logger.Info("Creating self-signed signing certificate", "ca", caConfig.Description())
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
+		SecretRef: caConfig.VaultSigningKeyRef(),
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate signing key pair: %w", err)
+	}
+
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateSelfSignedCertificateActivityName, &secretspb.CreateSelfSignedCertificateInput{
+		KeyRef:             caConfig.VaultSigningKeyRef(),
+		CertRef:            caConfig.VaultSigningCertRef(),
+		CommonName:         caConfig.ComponentName(),
+		Organization:       org,
+		OrganizationalUnit: caConfig.OrganizationalUnit(),
+		ValidityDuration:   durationpb.New(validityDuration),
+		MaxPathLength:      1,
+		DnsNames:           nil, // No SANs for CA signing certs
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate self-signed signing certificate: %w", err)
+	}
+
+	// Step 4: Create self-signed TLS certificate
+	logger.Info("Creating self-signed TLS certificate", "ca", caConfig.Description())
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
+		SecretRef: caConfig.VaultTLSKeyRef(),
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate TLS key pair: %w", err)
+	}
+
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateSelfSignedCertificateActivityName, &secretspb.CreateSelfSignedCertificateInput{
+		KeyRef:             caConfig.VaultTLSKeyRef(),
+		CertRef:            caConfig.VaultTLSCertRef(),
+		CommonName:         caConfig.ComponentName(),
+		Organization:       org,
+		OrganizationalUnit: caConfig.OrganizationalUnit(),
+		ValidityDuration:   durationpb.New(validityDuration),
+		MaxPathLength:      0,                      // Not a CA cert
+		DnsNames:           caConfig.TLSDNSNames(), // SANs required for TLS
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate self-signed TLS certificate: %w", err)
+	}
+
+	// Step 5: Generate bootstrap admin credentials
+	logger.Info("Generating bootstrap admin credentials", "ca", caConfig.Description())
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
+		SecretRef: caConfig.VaultBootstrapAdminCredentialsRef(),
+		Username:  "bootstrap-admin",
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate bootstrap admin credentials: %w", err)
+	}
+
+	// Step 6: Deploy CA pod
+	logger.Info("Deploying CA pod", "ca", caConfig.Description())
+	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
+		Org:       org,
+		Component: caConfig.ComponentName(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to deploy CA: %w", err)
+	}
+
+	// Step 7: Create bootstrap admin (TLS from self)
+	logger.Info("Creating bootstrap admin", "ca", caConfig.Description())
+	_, err = pb.CreateBootstrapAdminChild(ctx, &pb.CreateBootstrapAdminInput{
+		Org:              org,
+		CaRef:            caRef,
+		TlsIssuer:        caRef, // Admin TLS from self (TLS Root)
+		ValidityDuration: w.input.Req.GetValidityDuration(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateBootstrapAdmin, err)
+	}
+
+	// Step 8: Create permanent admin (TLS from self)
+	logger.Info("Creating permanent admin", "ca", caConfig.Description())
+	_, err = pb.CreateAdminChild(ctx, &pb.CreateAdminInput{
+		Org:              org,
+		CaRef:            caRef,
+		SigningIssuer:    caRef, // Admin signing from self
+		TlsIssuer:        caRef, // Admin TLS from self
+		ValidityDuration: w.input.Req.GetValidityDuration(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateAdmin, err)
+	}
+
+	logger.Info("TLS Root Certificate Authority deployment complete", "ca", caConfig.Description())
+	return &pb.DeployTlsRootCertificateAuthorityOutput{}, nil
+}
+
+// =============================================================================
+// DeployTlsIntermediateCertificateAuthority - TLS Int CA (operator-owned, issued by TLS Root)
+// =============================================================================
+
+func (w *Workflows) DeployTlsIntermediateCertificateAuthority(ctx workflow.Context, input *pb.DeployTlsIntermediateCertificateAuthorityWorkflowInput) (pb.DeployTlsIntermediateCertificateAuthorityWorkflow, error) {
+	return newDeployTlsIntermediateCertificateAuthorityWorkflow(input)
+}
+
+type deployTlsIntermediateCertificateAuthorityWorkflow struct {
+	input *pb.DeployTlsIntermediateCertificateAuthorityWorkflowInput
+}
+
+func newDeployTlsIntermediateCertificateAuthorityWorkflow(input *pb.DeployTlsIntermediateCertificateAuthorityWorkflowInput) (*deployTlsIntermediateCertificateAuthorityWorkflow, error) {
+	w := &deployTlsIntermediateCertificateAuthorityWorkflow{input: input}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+func (w *deployTlsIntermediateCertificateAuthorityWorkflow) validate() error {
+	if w.input == nil || w.input.Req == nil {
+		return fmt.Errorf("%w: input must not be nil", ErrInvalidInput)
+	}
+	req := w.input.Req
+	if req.GetOrg() == "" {
+		return fmt.Errorf("%w: org must not be empty", ErrInvalidInput)
+	}
+	return nil
+}
+
+func (w *deployTlsIntermediateCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.DeployTlsIntermediateCertificateAuthorityOutput, error) {
+	logger := workflow.GetLogger(ctx)
+	org := w.input.Req.GetOrg()
+	operatorConfig := config.GetOperator()
+
+	// TLS Int CA is always operator-owned, certType="tls", id="int"
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(operatorConfig, "tls", "int")
+	caRef := &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"}
+	
+	// Parent is always TLS Root (operator-owned, direct call)
+	signingIssuerRef := &pb.CertificateAuthorityRef{CertType: "tls", Id: "root"}
+	tlsIssuerRef := &pb.CertificateAuthorityRef{CertType: "tls", Id: "root"}
+	signingIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(operatorConfig, "tls", "root")
+	
+	logger.Info("Deploying TLS Intermediate Certificate Authority", "ca", caConfig.Description())
+
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    3,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
+
+	// Step 1: Create Vault access
+	nexusClient := secretsv1nexustemporal.NewSecretsNexusClient(secretsCreateAccessNexusEndpoint)
+	_, err := nexusClient.CreateAccess(ctx, &secretspb.CreateAccessInput{
+		PolicyName:          caConfig.PolicyName(),
+		PolicyDocument:      caConfig.VaultPolicy(),
+		AuthRoleName:        caConfig.AuthRoleName(),
+		ServiceAccountName:  caConfig.ServiceAccountName(),
+		KubernetesNamespace: caConfig.KubernetesNamespace(),
+	}, workflow.NexusOperationOptions{
+		ScheduleToCloseTimeout: 5 * time.Minute,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateAccess, err)
+	}
+
+	// Step 2: Create certificate database
+	if _, err := pb.CreateCertificateDatabaseChild(ctx, &pb.CreateCertificateDatabaseInput{
+		Org:   org,
+		CaRef: caRef,
+	}); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateCertificateDatabase, err)
+	}
+
+	// Step 3: Create signing certificate issued by TLS Root (direct workflow call, not Nexus)
+	logger.Info("Creating CA-signed signing certificate via direct call", "ca", caConfig.Description(), "issuer", signingIssuerConfig.Description())
+	signingPurpose := fmt.Sprintf("tls-int-signing")
+	_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
+		Org:       org,
+		IssuerRef: signingIssuerRef,
+		Profile:   "ca",
+		Subject: &pb.CertificateSubject{
+			CommonName:         caConfig.ComponentName(),
+			Organization:       org,
+			OrganizationalUnit: caConfig.OrganizationalUnit(),
+		},
+		Storage: &pb.IdentityRef{
+			KeyRef:  caConfig.VaultSigningKeyRef(),
+			CertRef: caConfig.VaultSigningCertRef(),
+		},
+		AdminIdentity: &pb.IdentityRef{
+			KeyRef:  signingIssuerConfig.VaultAdminSigningKeyRef(),
+			CertRef: signingIssuerConfig.VaultAdminSigningCertRef(),
+		},
+		Purpose: signingPurpose,
+		Attributes: map[string]string{
+			"hf.IntermediateCA": "true",
+		},
+		IssuerCertRef: signingIssuerConfig.VaultSigningCertRef(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w (signing): %w", ErrCreateCertificate, err)
+	}
+
+	// Step 4: Create TLS certificate issued by TLS Root (direct workflow call, not Nexus)
+	// CRITICAL FIX: This was using Nexus before, causing the bug
+	logger.Info("Creating CA-signed TLS certificate via direct call", "ca", caConfig.Description(), "issuer", signingIssuerConfig.Description())
+	tlsPurpose := fmt.Sprintf("tls-int-tls")
+	tlsCommonName := computeTLSCommonName(caConfig.ComponentName(), signingIssuerRef, tlsIssuerRef)
+	_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
+		Org:       org,
+		IssuerRef: tlsIssuerRef,
+		Profile:   "tls",
+		Subject: &pb.CertificateSubject{
+			CommonName:         tlsCommonName,
+			Organization:       org,
+			OrganizationalUnit: caConfig.OrganizationalUnit(),
+			DnsNames:           caConfig.TLSDNSNames(),
+		},
+		Storage: &pb.IdentityRef{
+			KeyRef:  caConfig.VaultTLSKeyRef(),
+			CertRef: caConfig.VaultTLSCertRef(),
+		},
+		AdminIdentity: &pb.IdentityRef{
+			KeyRef:  signingIssuerConfig.VaultAdminSigningKeyRef(),
+			CertRef: signingIssuerConfig.VaultAdminSigningCertRef(),
+		},
+		Purpose:       tlsPurpose,
+		IssuerCertRef: signingIssuerConfig.VaultSigningCertRef(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w (tls): %w", ErrCreateCertificate, err)
+	}
+
+	// Step 5: Generate bootstrap admin credentials
+	logger.Info("Generating bootstrap admin credentials", "ca", caConfig.Description())
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
+		SecretRef: caConfig.VaultBootstrapAdminCredentialsRef(),
+		Username:  "bootstrap-admin",
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate bootstrap admin credentials: %w", err)
+	}
+
+	// Step 6: Deploy CA pod
+	logger.Info("Deploying CA pod", "ca", caConfig.Description())
+	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
+		Org:       org,
+		Component: caConfig.ComponentName(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to deploy CA: %w", err)
+	}
+
+	// Step 7: Create bootstrap admin (TLS from self)
+	logger.Info("Creating bootstrap admin", "ca", caConfig.Description())
+	_, err = pb.CreateBootstrapAdminChild(ctx, &pb.CreateBootstrapAdminInput{
+		Org:              org,
+		CaRef:            caRef,
+		TlsIssuer:        caRef, // Admin TLS from self (TLS Int)
+		ValidityDuration: w.input.Req.GetValidityDuration(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateBootstrapAdmin, err)
+	}
+
+	// Step 8: Create permanent admin (TLS from self)
+	logger.Info("Creating permanent admin", "ca", caConfig.Description())
+	_, err = pb.CreateAdminChild(ctx, &pb.CreateAdminInput{
+		Org:              org,
+		CaRef:            caRef,
+		SigningIssuer:    caRef, // Admin signing from self
+		TlsIssuer:        caRef, // Admin TLS from self
+		ValidityDuration: w.input.Req.GetValidityDuration(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateAdmin, err)
+	}
+
+	logger.Info("TLS Intermediate Certificate Authority deployment complete", "ca", caConfig.Description())
+	return &pb.DeployTlsIntermediateCertificateAuthorityOutput{}, nil
+}
+
+// =============================================================================
+// DeployOrgRootCertificateAuthority - Org Root CA (org-owned, self-signed signing, TLS via Nexus)
+// =============================================================================
+
+func (w *Workflows) DeployOrgRootCertificateAuthority(ctx workflow.Context, input *pb.DeployOrgRootCertificateAuthorityWorkflowInput) (pb.DeployOrgRootCertificateAuthorityWorkflow, error) {
+	return newDeployOrgRootCertificateAuthorityWorkflow(input)
+}
+
+type deployOrgRootCertificateAuthorityWorkflow struct {
+	input *pb.DeployOrgRootCertificateAuthorityWorkflowInput
+}
+
+func newDeployOrgRootCertificateAuthorityWorkflow(input *pb.DeployOrgRootCertificateAuthorityWorkflowInput) (*deployOrgRootCertificateAuthorityWorkflow, error) {
+	w := &deployOrgRootCertificateAuthorityWorkflow{input: input}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+func (w *deployOrgRootCertificateAuthorityWorkflow) validate() error {
+	if w.input == nil || w.input.Req == nil {
+		return fmt.Errorf("%w: input must not be nil", ErrInvalidInput)
+	}
+	req := w.input.Req
+	if req.GetOrg() == "" {
+		return fmt.Errorf("%w: org must not be empty", ErrInvalidInput)
+	}
+	if req.GetTlsIssuer() == nil {
+		return fmt.Errorf("%w: tls_issuer must not be nil", ErrInvalidInput)
+	}
+	return nil
+}
+
+func (w *deployOrgRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.DeployOrgRootCertificateAuthorityOutput, error) {
+	logger := workflow.GetLogger(ctx)
+	org := w.input.Req.GetOrg()
+	orgConfig := config.NewOrgConfig(org)
+	operatorConfig := config.GetOperator()
+	validityDuration := w.input.Req.GetValidityDuration().AsDuration()
+
+	// Org Root CA is always org-owned, certType="org", id="root"
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, "org", "root")
+	caRef := &pb.CertificateAuthorityRef{CertType: "org", Id: "root"}
+	
+	// TLS issuer is always TLS Int (from input)
+	tlsIssuerRef := w.input.Req.GetTlsIssuer()
+	tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(operatorConfig, tlsIssuerRef.GetCertType(), tlsIssuerRef.GetId())
+	
+	logger.Info("Deploying Org Root Certificate Authority", "ca", caConfig.Description())
+
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    3,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
+
+	// Step 1: Create Vault access
+	nexusClient := secretsv1nexustemporal.NewSecretsNexusClient(secretsCreateAccessNexusEndpoint)
+	_, err := nexusClient.CreateAccess(ctx, &secretspb.CreateAccessInput{
+		PolicyName:          caConfig.PolicyName(),
+		PolicyDocument:      caConfig.VaultPolicy(),
+		AuthRoleName:        caConfig.AuthRoleName(),
+		ServiceAccountName:  caConfig.ServiceAccountName(),
+		KubernetesNamespace: caConfig.KubernetesNamespace(),
+	}, workflow.NexusOperationOptions{
+		ScheduleToCloseTimeout: 5 * time.Minute,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateAccess, err)
+	}
+
+	// Step 2: Create certificate database
+	if _, err := pb.CreateCertificateDatabaseChild(ctx, &pb.CreateCertificateDatabaseInput{
+		Org:   org,
+		CaRef: caRef,
+	}); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateCertificateDatabase, err)
+	}
+
+	// Step 3: Create self-signed signing certificate
+	logger.Info("Creating self-signed signing certificate", "ca", caConfig.Description())
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
+		SecretRef: caConfig.VaultSigningKeyRef(),
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate signing key pair: %w", err)
+	}
+
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateSelfSignedCertificateActivityName, &secretspb.CreateSelfSignedCertificateInput{
+		KeyRef:             caConfig.VaultSigningKeyRef(),
+		CertRef:            caConfig.VaultSigningCertRef(),
+		CommonName:         caConfig.ComponentName(),
+		Organization:       org,
+		OrganizationalUnit: caConfig.OrganizationalUnit(),
+		ValidityDuration:   durationpb.New(validityDuration),
+		MaxPathLength:      1,
+		DnsNames:           nil, // No SANs for CA signing certs
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate self-signed signing certificate: %w", err)
+	}
+
+	// Step 4: Create TLS certificate via Nexus from operator's TLS Int CA
+	logger.Info("Creating CA TLS certificate via Nexus", "ca", caConfig.Description(), "issuer", tlsIssuerRef)
+	tlsPurpose := fmt.Sprintf("org-root-tls")
+	tlsCommonName := computeTLSCommonName(caConfig.ComponentName(), nil, tlsIssuerRef)
+	
+	fabricNexusClient := fabricv1nexustemporal.NewFabricNexusClient("fabric-IssueTlsCertificate")
+	_, err = fabricNexusClient.IssueTlsCertificate(ctx, &pb.IssueTlsCertificateInput{
+		Org:       org,
+		IssuerRef: tlsIssuerRef,
+		Profile:   "tls",
+		Subject: &pb.CertificateSubject{
+			CommonName:         tlsCommonName,
+			Organization:       org,
+			OrganizationalUnit: caConfig.OrganizationalUnit(),
+			DnsNames:           caConfig.TLSDNSNames(),
+		},
+		Storage: &pb.IdentityRef{
+			KeyRef:  caConfig.VaultTLSKeyRef(),
+			CertRef: caConfig.VaultTLSCertRef(),
+		},
+		Purpose:       tlsPurpose,
+		IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
+	}, workflow.NexusOperationOptions{
+		ScheduleToCloseTimeout: 5 * time.Minute,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w (tls): %w", ErrCreateCertificate, err)
+	}
+
+	// Step 5: Generate bootstrap admin credentials
+	logger.Info("Generating bootstrap admin credentials", "ca", caConfig.Description())
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
+		SecretRef: caConfig.VaultBootstrapAdminCredentialsRef(),
+		Username:  "bootstrap-admin",
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate bootstrap admin credentials: %w", err)
+	}
+
+	// Step 6: Deploy CA pod
+	logger.Info("Deploying CA pod", "ca", caConfig.Description())
+	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
+		Org:       org,
+		Component: caConfig.ComponentName(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to deploy CA: %w", err)
+	}
+
+	// Step 7: Create bootstrap admin (TLS from TLS Int, not self)
+	logger.Info("Creating bootstrap admin", "ca", caConfig.Description())
+	_, err = pb.CreateBootstrapAdminChild(ctx, &pb.CreateBootstrapAdminInput{
+		Org:              org,
+		CaRef:            caRef,
+		TlsIssuer:        tlsIssuerRef, // Admin TLS from TLS Int (not self)
+		ValidityDuration: w.input.Req.GetValidityDuration(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateBootstrapAdmin, err)
+	}
+
+	// Step 8: Create permanent admin (TLS from TLS Int, not self)
+	logger.Info("Creating permanent admin", "ca", caConfig.Description())
+	_, err = pb.CreateAdminChild(ctx, &pb.CreateAdminInput{
+		Org:              org,
+		CaRef:            caRef,
+		SigningIssuer:    caRef,        // Admin signing from self
+		TlsIssuer:        tlsIssuerRef, // Admin TLS from TLS Int (not self)
+		ValidityDuration: w.input.Req.GetValidityDuration(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateAdmin, err)
+	}
+
+	logger.Info("Org Root Certificate Authority deployment complete", "ca", caConfig.Description())
+	return &pb.DeployOrgRootCertificateAuthorityOutput{}, nil
+}
+
+// =============================================================================
+// DeployOrgIntermediateCertificateAuthority - Org Int CA (org-owned, signing from Org Root, TLS via Nexus)
+// =============================================================================
+
+func (w *Workflows) DeployOrgIntermediateCertificateAuthority(ctx workflow.Context, input *pb.DeployOrgIntermediateCertificateAuthorityWorkflowInput) (pb.DeployOrgIntermediateCertificateAuthorityWorkflow, error) {
+	return newDeployOrgIntermediateCertificateAuthorityWorkflow(input)
+}
+
+type deployOrgIntermediateCertificateAuthorityWorkflow struct {
+	input *pb.DeployOrgIntermediateCertificateAuthorityWorkflowInput
+}
+
+func newDeployOrgIntermediateCertificateAuthorityWorkflow(input *pb.DeployOrgIntermediateCertificateAuthorityWorkflowInput) (*deployOrgIntermediateCertificateAuthorityWorkflow, error) {
+	w := &deployOrgIntermediateCertificateAuthorityWorkflow{input: input}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+func (w *deployOrgIntermediateCertificateAuthorityWorkflow) validate() error {
+	if w.input == nil || w.input.Req == nil {
+		return fmt.Errorf("%w: input must not be nil", ErrInvalidInput)
+	}
+	req := w.input.Req
+	if req.GetOrg() == "" {
+		return fmt.Errorf("%w: org must not be empty", ErrInvalidInput)
+	}
+	if req.GetTlsIssuer() == nil {
+		return fmt.Errorf("%w: tls_issuer must not be nil", ErrInvalidInput)
+	}
+	return nil
+}
+
+func (w *deployOrgIntermediateCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.DeployOrgIntermediateCertificateAuthorityOutput, error) {
+	logger := workflow.GetLogger(ctx)
+	org := w.input.Req.GetOrg()
+	orgConfig := config.NewOrgConfig(org)
+	operatorConfig := config.GetOperator()
+
+	// Org Int CA is always org-owned, certType="org", id="int"
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, "org", "int")
+	caRef := &pb.CertificateAuthorityRef{CertType: "org", Id: "int"}
+	
+	// Signing issuer is always Org Root (org-owned, direct call)
+	signingIssuerRef := &pb.CertificateAuthorityRef{CertType: "org", Id: "root"}
+	signingIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, "org", "root")
+	
+	// TLS issuer is always TLS Int (from input, via Nexus)
+	tlsIssuerRef := w.input.Req.GetTlsIssuer()
+	tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(operatorConfig, tlsIssuerRef.GetCertType(), tlsIssuerRef.GetId())
+	
+	logger.Info("Deploying Org Intermediate Certificate Authority", "ca", caConfig.Description())
+
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    3,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
+
+	// Step 1: Create Vault access
+	nexusClient := secretsv1nexustemporal.NewSecretsNexusClient(secretsCreateAccessNexusEndpoint)
+	_, err := nexusClient.CreateAccess(ctx, &secretspb.CreateAccessInput{
+		PolicyName:          caConfig.PolicyName(),
+		PolicyDocument:      caConfig.VaultPolicy(),
+		AuthRoleName:        caConfig.AuthRoleName(),
+		ServiceAccountName:  caConfig.ServiceAccountName(),
+		KubernetesNamespace: caConfig.KubernetesNamespace(),
+	}, workflow.NexusOperationOptions{
+		ScheduleToCloseTimeout: 5 * time.Minute,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateAccess, err)
+	}
+
+	// Step 2: Create certificate database
+	if _, err := pb.CreateCertificateDatabaseChild(ctx, &pb.CreateCertificateDatabaseInput{
+		Org:   org,
+		CaRef: caRef,
+	}); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateCertificateDatabase, err)
+	}
+
+	// Step 3: Create signing certificate issued by Org Root (direct workflow call)
+	logger.Info("Creating CA-signed signing certificate via direct call", "ca", caConfig.Description(), "issuer", signingIssuerConfig.Description())
+	signingPurpose := fmt.Sprintf("org-int-signing")
+	_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
+		Org:       org,
+		IssuerRef: signingIssuerRef,
+		Profile:   "ca",
+		Subject: &pb.CertificateSubject{
+			CommonName:         caConfig.ComponentName(),
+			Organization:       org,
+			OrganizationalUnit: caConfig.OrganizationalUnit(),
+		},
+		Storage: &pb.IdentityRef{
+			KeyRef:  caConfig.VaultSigningKeyRef(),
+			CertRef: caConfig.VaultSigningCertRef(),
+		},
+		AdminIdentity: &pb.IdentityRef{
+			KeyRef:  signingIssuerConfig.VaultAdminSigningKeyRef(),
+			CertRef: signingIssuerConfig.VaultAdminSigningCertRef(),
+		},
+		Purpose: signingPurpose,
+		Attributes: map[string]string{
+			"hf.IntermediateCA": "true",
+		},
+		IssuerCertRef: signingIssuerConfig.VaultSigningCertRef(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w (signing): %w", ErrCreateCertificate, err)
+	}
+
+	// Step 4: Create TLS certificate via Nexus from operator's TLS Int CA
+	logger.Info("Creating CA TLS certificate via Nexus", "ca", caConfig.Description(), "issuer", tlsIssuerRef)
+	tlsPurpose := fmt.Sprintf("org-int-tls")
+	tlsCommonName := computeTLSCommonName(caConfig.ComponentName(), signingIssuerRef, tlsIssuerRef)
+	
+	fabricNexusClient := fabricv1nexustemporal.NewFabricNexusClient("fabric-IssueTlsCertificate")
+	_, err = fabricNexusClient.IssueTlsCertificate(ctx, &pb.IssueTlsCertificateInput{
+		Org:       org,
+		IssuerRef: tlsIssuerRef,
+		Profile:   "tls",
+		Subject: &pb.CertificateSubject{
+			CommonName:         tlsCommonName,
+			Organization:       org,
+			OrganizationalUnit: caConfig.OrganizationalUnit(),
+			DnsNames:           caConfig.TLSDNSNames(),
+		},
+		Storage: &pb.IdentityRef{
+			KeyRef:  caConfig.VaultTLSKeyRef(),
+			CertRef: caConfig.VaultTLSCertRef(),
+		},
+		Purpose:       tlsPurpose,
+		IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
+	}, workflow.NexusOperationOptions{
+		ScheduleToCloseTimeout: 5 * time.Minute,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w (tls): %w", ErrCreateCertificate, err)
+	}
+
+	// Step 5: Generate bootstrap admin credentials
+	logger.Info("Generating bootstrap admin credentials", "ca", caConfig.Description())
+	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
+		SecretRef: caConfig.VaultBootstrapAdminCredentialsRef(),
+		Username:  "bootstrap-admin",
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate bootstrap admin credentials: %w", err)
+	}
+
+	// Step 6: Deploy CA pod
+	logger.Info("Deploying CA pod", "ca", caConfig.Description())
+	_, err = clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
+		Org:       org,
+		Component: caConfig.ComponentName(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to deploy CA: %w", err)
+	}
+
+	// Step 7: Create bootstrap admin (TLS from TLS Int, not self)
+	logger.Info("Creating bootstrap admin", "ca", caConfig.Description())
+	_, err = pb.CreateBootstrapAdminChild(ctx, &pb.CreateBootstrapAdminInput{
+		Org:              org,
+		CaRef:            caRef,
+		TlsIssuer:        tlsIssuerRef, // Admin TLS from TLS Int (not self)
+		ValidityDuration: w.input.Req.GetValidityDuration(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateBootstrapAdmin, err)
+	}
+
+	// Step 8: Create permanent admin (TLS from TLS Int, not self)
+	logger.Info("Creating permanent admin", "ca", caConfig.Description())
+	_, err = pb.CreateAdminChild(ctx, &pb.CreateAdminInput{
+		Org:              org,
+		CaRef:            caRef,
+		SigningIssuer:    caRef,        // Admin signing from self
+		TlsIssuer:        tlsIssuerRef, // Admin TLS from TLS Int (not self)
+		ValidityDuration: w.input.Req.GetValidityDuration(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateAdmin, err)
+	}
+
+	logger.Info("Org Intermediate Certificate Authority deployment complete", "ca", caConfig.Description())
+	return &pb.DeployOrgIntermediateCertificateAuthorityOutput{}, nil
 }
 
 // =============================================================================
@@ -870,6 +1681,115 @@ func (w *createCertificateWorkflow) Execute(ctx workflow.Context) (*pb.CreateCer
 	}
 
 	return &pb.CreateCertificateOutput{
+		Identity: storage,
+	}, nil
+}
+
+// =============================================================================
+// IssueTlsCertificate - Nexus operation for cross-namespace TLS cert issuance
+// =============================================================================
+
+func (w *Workflows) IssueTlsCertificate(ctx workflow.Context, input *pb.IssueTlsCertificateWorkflowInput) (pb.IssueTlsCertificateWorkflow, error) {
+	return newIssueTlsCertificateWorkflow(input)
+}
+
+type IssueTlsCertificateWorkflow struct {
+	input *pb.IssueTlsCertificateWorkflowInput
+}
+
+// newIssueTlsCertificateWorkflow creates and validates a new IssueTlsCertificateWorkflow
+func newIssueTlsCertificateWorkflow(input *pb.IssueTlsCertificateWorkflowInput) (*IssueTlsCertificateWorkflow, error) {
+	w := &IssueTlsCertificateWorkflow{input: input}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *IssueTlsCertificateWorkflow) validate() error {
+	req := w.input.Req
+	if req.GetOrg() == "" {
+		return fmt.Errorf("%w: org is required", ErrInvalidInput)
+	}
+	if req.GetIssuerRef() == nil {
+		return fmt.Errorf("%w: issuer_ref is required", ErrInvalidInput)
+	}
+	if req.GetIssuerRef().GetCertType() != "tls" {
+		return fmt.Errorf("%w: issuer must be TLS CA", ErrInvalidCertType)
+	}
+	if req.GetStorage() == nil {
+		return fmt.Errorf("%w: storage is required", ErrInvalidInput)
+	}
+	if req.GetSubject() == nil {
+		return fmt.Errorf("%w: subject is required", ErrInvalidInput)
+	}
+	return nil
+}
+
+func (w *IssueTlsCertificateWorkflow) Execute(ctx workflow.Context) (*pb.IssueTlsCertificateOutput, error) {
+	req := w.input.Req
+	operatorConfig := config.GetOperator()
+	issuerRef := req.GetIssuerRef()
+	storage := req.GetStorage()
+
+	// Get TLS CA config (operator-owned)
+	tlsCAConfig := fabricconfig.NewCertificateAuthorityConfig(operatorConfig, issuerRef.GetCertType(), issuerRef.GetId())
+
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumInterval:    30 * time.Second,
+			MaximumAttempts:    3,
+		},
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, ao)
+
+	// Step 1: Generate key pair (stored in org namespace)
+	err := workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
+		SecretRef: storage.GetKeyRef(),
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate key pair: %w", err)
+	}
+
+	// Step 2: Register identity with TLS CA (using operator admin credentials)
+	var registerOutput pb.RegisterIdentityOutput
+	err = workflow.ExecuteActivity(activityCtx, pb.RegisterIdentityActivityName, &pb.RegisterIdentityInput{
+		Org:          operatorConfig.OwnerID(), // Operator owns the TLS CA
+		CaRef:        issuerRef,
+		IdentityName: req.GetSubject().GetCommonName(),
+		Affiliation:  "",
+		Attributes:   req.GetAttributes(),
+		IdentityType: "client", // Default type
+		AdminIdentity: &pb.IdentityRef{
+			KeyRef:  tlsCAConfig.VaultAdminSigningKeyRef(),
+			CertRef: tlsCAConfig.VaultAdminSigningCertRef(),
+		},
+	}).Get(ctx, &registerOutput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to register identity: %w", err)
+	}
+
+	// Step 3: Enroll identity (stores cert in org namespace)
+	err = workflow.ExecuteActivity(activityCtx, pb.EnrollIdentityActivityName, &pb.EnrollIdentityInput{
+		Org:              operatorConfig.OwnerID(), // CA is operator-owned
+		CaRef:            issuerRef,
+		IdentityName:     req.GetSubject().GetCommonName(),
+		EnrollmentSecret: registerOutput.GetEnrollmentSecret(),
+		Storage:          storage, // Org namespace storage
+		Subject:          req.GetSubject(),
+		CaTlsCertRef:     tlsCAConfig.VaultTLSCertRef(),
+		IssuerCertRef:    req.GetIssuerCertRef(),
+		Profile:          req.GetProfile(),
+	}).Get(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to enroll identity: %w", err)
+	}
+
+	return &pb.IssueTlsCertificateOutput{
 		Identity: storage,
 	}, nil
 }
@@ -1207,20 +2127,42 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 		KeyRef:  caConfig.VaultAdminTLSKeyRef(),
 		CertRef: caConfig.VaultAdminTLSCertRef(),
 	}
-	_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
-		Org:       org,
-		IssuerRef: tlsIssuerRef,
-		Profile:   "tls",
-		Subject: &pb.CertificateSubject{
-			CommonName:         tlsCommonName, // Different name if same CA issues both
-			Organization:       org,
-			OrganizationalUnit: caConfig.OrganizationalUnit(),
-		},
-		Storage:       tlsStorage,
-		AdminIdentity: tlsAdminIdentity,
-		Purpose:       tlsPurpose,
-		IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
-	})
+
+	if tlsIssuerRef.GetCertType() == "tls" {
+		// TLS CA issuer - use Nexus for cross-namespace certificate issuance
+		nexusClient := fabricv1nexustemporal.NewFabricNexusClient("fabric-IssueTlsCertificate")
+		_, err = nexusClient.IssueTlsCertificate(ctx, &pb.IssueTlsCertificateInput{
+			Org:       org,
+			IssuerRef: tlsIssuerRef,
+			Profile:   "tls",
+			Subject: &pb.CertificateSubject{
+				CommonName:         tlsCommonName,
+				Organization:       org,
+				OrganizationalUnit: caConfig.OrganizationalUnit(),
+			},
+			Storage:       tlsStorage,
+			Purpose:       tlsPurpose,
+			IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
+		}, workflow.NexusOperationOptions{
+			ScheduleToCloseTimeout: 5 * time.Minute,
+		})
+	} else {
+		// Org CA or self - use direct CreateCertificate with appropriate admin identity
+		_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
+			Org:       org,
+			IssuerRef: tlsIssuerRef,
+			Profile:   "tls",
+			Subject: &pb.CertificateSubject{
+				CommonName:         tlsCommonName, // Different name if same CA issues both
+				Organization:       org,
+				OrganizationalUnit: caConfig.OrganizationalUnit(),
+			},
+			Storage:       tlsStorage,
+			AdminIdentity: tlsAdminIdentity,
+			Purpose:       tlsPurpose,
+			IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
+		})
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to create admin TLS identity: %w", err)
 	}
@@ -1343,24 +2285,47 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 	// Create TLS client cert
 	// TLS certs don't need identity_type since NodeOUs only applies to org/signing certs
 	tlsPurpose := fmt.Sprintf("identity-%s-tls", identityName)
-	_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
-		Org:       org,
-		IssuerRef: tlsIssuer,
-		Profile:   req.GetTlsProfile(),
-		Subject: &pb.CertificateSubject{
-			CommonName:         req.GetSubject().GetCommonName(),
-			Organization:       req.GetSubject().GetOrganization(),
-			OrganizationalUnit: req.GetSubject().GetOrganizationalUnit(),
-			DnsNames:           req.GetSubject().GetDnsNames(),
-		},
-		Storage: tlsStorage,
-		AdminIdentity: &pb.IdentityRef{
-			KeyRef:  tlsIssuerConfig.VaultAdminSigningKeyRef(),
-			CertRef: tlsIssuerConfig.VaultAdminSigningCertRef(),
-		},
-		Purpose:       tlsPurpose,
-		IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
-	})
+
+	if tlsIssuer.GetCertType() == "tls" {
+		// TLS CA issuer - use Nexus for cross-namespace certificate issuance
+		nexusClient := fabricv1nexustemporal.NewFabricNexusClient("fabric-IssueTlsCertificate")
+		_, err = nexusClient.IssueTlsCertificate(ctx, &pb.IssueTlsCertificateInput{
+			Org:       org,
+			IssuerRef: tlsIssuer,
+			Profile:   req.GetTlsProfile(),
+			Subject: &pb.CertificateSubject{
+				CommonName:         req.GetSubject().GetCommonName(),
+				Organization:       req.GetSubject().GetOrganization(),
+				OrganizationalUnit: req.GetSubject().GetOrganizationalUnit(),
+				DnsNames:           req.GetSubject().GetDnsNames(),
+			},
+			Storage:       tlsStorage,
+			Purpose:       tlsPurpose,
+			IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
+		}, workflow.NexusOperationOptions{
+			ScheduleToCloseTimeout: 5 * time.Minute,
+		})
+	} else {
+		// Org CA - use direct CreateCertificate
+		_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
+			Org:       org,
+			IssuerRef: tlsIssuer,
+			Profile:   req.GetTlsProfile(),
+			Subject: &pb.CertificateSubject{
+				CommonName:         req.GetSubject().GetCommonName(),
+				Organization:       req.GetSubject().GetOrganization(),
+				OrganizationalUnit: req.GetSubject().GetOrganizationalUnit(),
+				DnsNames:           req.GetSubject().GetDnsNames(),
+			},
+			Storage: tlsStorage,
+			AdminIdentity: &pb.IdentityRef{
+				KeyRef:  tlsIssuerConfig.VaultAdminSigningKeyRef(),
+				CertRef: tlsIssuerConfig.VaultAdminSigningCertRef(),
+			},
+			Purpose:       tlsPurpose,
+			IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
+		})
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to create TLS identity: %w", err)
 	}
