@@ -98,6 +98,7 @@
     - [fabric.v1.DeployPeerOutput](#fabric-v1-deploypeeroutput)
     - [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
     - [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
+    - [fabric.v1.IdentityRef](#fabric-v1-identityref)
     - [fabric.v1.OrdererSpec](#fabric-v1-ordererspec)
     - [fabric.v1.OrgFabricDeployment](#fabric-v1-orgfabricdeployment)
     - [fabric.v1.PeerSpec](#fabric-v1-peerspec)
@@ -1626,15 +1627,15 @@ Used for CA signing certs, TLS certs, and any other certificate needs.
 <th>Description</th>
 </tr>
 <tr>
-<td>admin_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>admin_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-admin_credentials_ref is the issuer's admin credentials (for registration)
+admin_identity is the issuer's admin identity for CA authentication
 Required unless self-signed<br>
 
-json_name: AdminCredentialsRef
-go_name: AdminCredentialsRef
-go_tags: json:"AdminCredentialsRef"</pre></td>
+json_name: AdminIdentity
+go_name: AdminIdentity
+go_tags: json:"AdminIdentity"</pre></td>
 </tr><tr>
 <td>attributes</td>
 <td><a href="#fabric-v1-createcertificateinput-attributesentry">fabric.v1.CreateCertificateInput.AttributesEntry</a></td>
@@ -1643,17 +1644,6 @@ attributes are additional CA attributes for the identity (e.g., hf.IntermediateC
 
 json_name: Attributes
 go_name: Attributes</pre></td>
-</tr><tr>
-<td>chain_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-chain_ref is an optional location to store the CA chain separately.
-Required for intermediate CA signing certs (profile="ca") so Fabric CA
-can verify client certificates issued by the intermediate CA.<br>
-
-json_name: ChainRef
-go_name: ChainRef
-go_tags: json:"ChainRef,omitempty"</pre></td>
 </tr><tr>
 <td>identity_type</td>
 <td>string</td>
@@ -1666,6 +1656,16 @@ The OU is critical for NodeOUs classification in the MSP.<br>
 json_name: IdentityType
 go_name: IdentityType
 go_tags: json:"IdentityType,omitempty"</pre></td>
+</tr><tr>
+<td>issuer_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
+Used to fetch the issuer's chain for building the full certificate chain<br>
+
+json_name: IssuerCertRef
+go_name: IssuerCertRef
+go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
 </tr><tr>
 <td>issuer_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
@@ -1704,14 +1704,14 @@ json_name: Purpose
 go_name: Purpose
 go_tags: json:"Purpose" validate:"required"</pre></td>
 </tr><tr>
-<td>storage_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-storage_ref is where to store keypair + certificate<br>
+storage is where to store the created identity (key + certificate)<br>
 
-json_name: StorageRef
-go_name: StorageRef
-go_tags: json:"StorageRef" validate:"required"</pre></td>
+json_name: Storage
+go_name: Storage
+go_tags: json:"Storage" validate:"required"</pre></td>
 </tr><tr>
 <td>subject</td>
 <td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
@@ -1733,14 +1733,14 @@ go_tags: json:"Subject" validate:"required"</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-credentials_ref points to the stored keypair + certificate<br>
+identity points to the created identity (key + certificate)<br>
 
-json_name: CredentialsRef
-go_name: CredentialsRef
-go_tags: json:"CredentialsRef" validate:"required"</pre></td>
+json_name: Identity
+go_name: Identity
+go_tags: json:"Identity" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1819,23 +1819,23 @@ go_tags: json:"ValidityDuration,omitempty"</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>signing_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>signing_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-signing_credentials_ref points to the bootstrap admin's signing identity<br>
+signing_identity points to the bootstrap admin's signing identity<br>
 
-json_name: SigningCredentialsRef
-go_name: SigningCredentialsRef
-go_tags: json:"SigningCredentialsRef" validate:"required"</pre></td>
+json_name: SigningIdentity
+go_name: SigningIdentity
+go_tags: json:"SigningIdentity" validate:"required"</pre></td>
 </tr><tr>
-<td>tls_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>tls_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-tls_credentials_ref points to the bootstrap admin's TLS client certificate<br>
+tls_identity points to the bootstrap admin's TLS client identity<br>
 
-json_name: TlsCredentialsRef
-go_name: TlsCredentialsRef
-go_tags: json:"TlsCredentialsRef" validate:"required"</pre></td>
+json_name: TlsIdentity
+go_name: TlsIdentity
+go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1923,23 +1923,23 @@ go_tags: json:"ValidityDuration,omitempty"</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>signing_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>signing_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-signing_credentials_ref points to the admin's signing identity<br>
+signing_identity points to the admin's signing identity<br>
 
-json_name: SigningCredentialsRef
-go_name: SigningCredentialsRef
-go_tags: json:"SigningCredentialsRef" validate:"required"</pre></td>
+json_name: SigningIdentity
+go_name: SigningIdentity
+go_tags: json:"SigningIdentity" validate:"required"</pre></td>
 </tr><tr>
-<td>tls_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>tls_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-tls_credentials_ref points to the admin's TLS client certificate<br>
+tls_identity points to the admin's TLS client identity<br>
 
-json_name: TlsCredentialsRef
-go_name: TlsCredentialsRef
-go_tags: json:"TlsCredentialsRef" validate:"required"</pre></td>
+json_name: TlsIdentity
+go_name: TlsIdentity
+go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2018,23 +2018,14 @@ json_name: OrgIssuerRef
 go_name: OrgIssuerRef
 go_tags: json:"OrgIssuerRef" validate:"required"</pre></td>
 </tr><tr>
-<td>storage_signing_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>signing_storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-storage_signing_ref is where to store the org identity (keypair + cert)<br>
+signing_storage is where to store the signing identity (key + certificate)<br>
 
-json_name: StorageSigningRef
-go_name: StorageSigningRef
-go_tags: json:"StorageSigningRef" validate:"required"</pre></td>
-</tr><tr>
-<td>storage_tls_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-storage_tls_ref is where to store the TLS identity (keypair + cert)<br>
-
-json_name: StorageTlsRef
-go_name: StorageTlsRef
-go_tags: json:"StorageTlsRef" validate:"required"</pre></td>
+json_name: SigningStorage
+go_name: SigningStorage
+go_tags: json:"SigningStorage" validate:"required"</pre></td>
 </tr><tr>
 <td>subject</td>
 <td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
@@ -2063,6 +2054,15 @@ tls_profile specifies the TLS signing profile ("tls" for server/client, "" for c
 json_name: TlsProfile
 go_name: TlsProfile
 go_tags: json:"TlsProfile"</pre></td>
+</tr><tr>
+<td>tls_storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+tls_storage is where to store the TLS identity (key + certificate)<br>
+
+json_name: TlsStorage
+go_name: TlsStorage
+go_tags: json:"TlsStorage" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2075,23 +2075,23 @@ go_tags: json:"TlsProfile"</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>signing_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>signing_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-signing_credentials_ref points to the org identity credentials in Vault<br>
+signing_identity points to the created signing identity<br>
 
-json_name: SigningCredentialsRef
-go_name: SigningCredentialsRef
-go_tags: json:"SigningCredentialsRef" validate:"required"</pre></td>
+json_name: SigningIdentity
+go_name: SigningIdentity
+go_tags: json:"SigningIdentity" validate:"required"</pre></td>
 </tr><tr>
-<td>tls_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>tls_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-tls_credentials_ref points to the TLS identity credentials in Vault<br>
+tls_identity points to the created TLS identity<br>
 
-json_name: TlsCredentialsRef
-go_name: TlsCredentialsRef
-go_tags: json:"TlsCredentialsRef" validate:"required"</pre></td>
+json_name: TlsIdentity
+go_name: TlsIdentity
+go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2333,14 +2333,14 @@ This is the first step in identity creation - registration returns an enrollment
 <th>Description</th>
 </tr>
 <tr>
-<td>admin_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>admin_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-admin_credentials_ref specifies which admin credentials to use for registration<br>
+admin_identity is the admin identity for CA authentication<br>
 
-json_name: AdminCredentialsRef
-go_name: AdminCredentialsRef
-go_tags: json:"AdminCredentialsRef" validate:"required"</pre></td>
+json_name: AdminIdentity
+go_name: AdminIdentity
+go_tags: json:"AdminIdentity" validate:"required"</pre></td>
 </tr><tr>
 <td>affiliation</td>
 <td>string</td>
@@ -2384,6 +2384,15 @@ identity_type specifies the type of identity (e.g., "admin", "peer", "orderer", 
 json_name: IdentityType
 go_name: IdentityType
 go_tags: json:"IdentityType"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier for the CA (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2437,23 +2446,11 @@ go_tags: json:"CaRef" validate:"required"</pre></td>
 <td>ca_tls_cert_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-ca_tls_cert_ref points to the CA's TLS certificate in Vault<br>
+ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS connection)<br>
 
 json_name: CaTlsCertRef
 go_name: CaTlsCertRef
 go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>chain_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-chain_ref is an optional location to store the CA chain separately.
-Required for intermediate CA signing certs (profile="ca") so Fabric CA
-can verify client certificates issued by the intermediate CA.
-The chain contains parent CA certs needed for x509 chain verification.<br>
-
-json_name: ChainRef
-go_name: ChainRef
-go_tags: json:"ChainRef,omitempty"</pre></td>
 </tr><tr>
 <td>enrollment_secret</td>
 <td>string</td>
@@ -2473,14 +2470,24 @@ json_name: IdentityName
 go_name: IdentityName
 go_tags: json:"IdentityName" validate:"required"</pre></td>
 </tr><tr>
-<td>key_ref</td>
+<td>issuer_cert_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-key_ref points to the private key to use for CSR generation<br>
+issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
+Used to fetch the issuer's chain for building the full certificate chain<br>
 
-json_name: KeyRef
-go_name: KeyRef
-go_tags: json:"KeyRef" validate:"required"</pre></td>
+json_name: IssuerCertRef
+go_name: IssuerCertRef
+go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier for the CA (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
 </tr><tr>
 <td>profile</td>
 <td>string</td>
@@ -2493,6 +2500,16 @@ Leave empty to use the default profile (digital signature only).<br>
 json_name: Profile
 go_name: Profile
 go_tags: json:"Profile,omitempty"</pre></td>
+</tr><tr>
+<td>storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+storage is the identity storage location
+key_ref is read for CSR generation, cert_ref is where to store the result<br>
+
+json_name: Storage
+go_name: Storage
+go_tags: json:"Storage" validate:"required"</pre></td>
 </tr><tr>
 <td>subject</td>
 <td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
@@ -2514,14 +2531,14 @@ go_tags: json:"Subject" validate:"required"</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>cert_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-cert_ref points to where the certificate was stored<br>
+identity points to the enrolled identity<br>
 
-json_name: CertRef
-go_name: CertRef
-go_tags: json:"CertRef" validate:"required"</pre></td>
+json_name: Identity
+go_name: Identity
+go_tags: json:"Identity" validate:"required"</pre></td>
 </tr>
 </table> 
 
@@ -2543,14 +2560,14 @@ Used to revoke bootstrap admin credentials after permanent admin is created
 <th>Description</th>
 </tr>
 <tr>
-<td>admin_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>admin_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-admin_credentials_ref specifies which admin credentials to use for revocation<br>
+admin_identity is the admin identity for CA authentication<br>
 
-json_name: AdminCredentialsRef
-go_name: AdminCredentialsRef
-go_tags: json:"AdminCredentialsRef" validate:"required"</pre></td>
+json_name: AdminIdentity
+go_name: AdminIdentity
+go_tags: json:"AdminIdentity" validate:"required"</pre></td>
 </tr><tr>
 <td>ca_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
@@ -2569,6 +2586,15 @@ identity_name is the name of the identity to revoke<br>
 json_name: IdentityName
 go_name: IdentityName
 go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier for the CA (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
 </tr><tr>
 <td>reason</td>
 <td>string</td>
@@ -2630,8 +2656,7 @@ go_tags: json:"BootstrapCredentialsRef" validate:"required"</pre></td>
 <td>ca_tls_cert_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-ca_tls_cert_ref points to the CA's TLS certificate in Vault
-This certificate is used to verify the CA server's TLS connection<br>
+ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS connection)<br>
 
 json_name: CaTlsCertRef
 go_name: CaTlsCertRef
@@ -2646,35 +2671,16 @@ json_name: CaUrl
 go_name: CaUrl
 go_tags: json:"CaUrl" validate:"required,url"</pre></td>
 </tr><tr>
-<td>cert_ref</td>
+<td>issuer_cert_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-cert_ref is where to store the enrolled certificate<br>
+issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
+Used to fetch the issuer's chain for building the full certificate chain.
+Optional - if nil, the CA's chain from enrollment response is used directly.<br>
 
-json_name: CertRef
-go_name: CertRef
-go_tags: json:"CertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>chain_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-chain_ref is an optional location to store the CA chain separately.
-Required for intermediate CA signing certs (profile="ca") so Fabric CA
-can verify client certificates issued by the intermediate CA.
-The chain contains parent CA certs needed for x509 chain verification.<br>
-
-json_name: ChainRef
-go_name: ChainRef
-go_tags: json:"ChainRef,omitempty"</pre></td>
-</tr><tr>
-<td>key_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-key_ref points to the private key in Vault to use for CSR generation<br>
-
-json_name: KeyRef
-go_name: KeyRef
-go_tags: json:"KeyRef" validate:"required"</pre></td>
+json_name: IssuerCertRef
+go_name: IssuerCertRef
+go_tags: json:"IssuerCertRef,omitempty"</pre></td>
 </tr><tr>
 <td>profile</td>
 <td>string</td>
@@ -2684,6 +2690,16 @@ profile specifies which CA signing profile to use<br>
 json_name: Profile
 go_name: Profile
 go_tags: json:"Profile,omitempty"</pre></td>
+</tr><tr>
+<td>storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+storage is the identity storage location
+key_ref is read for CSR generation, cert_ref is where to store the result<br>
+
+json_name: Storage
+go_name: Storage
+go_tags: json:"Storage" validate:"required"</pre></td>
 </tr><tr>
 <td>subject</td>
 <td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
@@ -2705,14 +2721,14 @@ go_tags: json:"Subject" validate:"required"</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>cert_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-cert_ref is where the certificate was stored<br>
+identity points to the enrolled identity<br>
 
-json_name: CertRef
-go_name: CertRef
-go_tags: json:"CertRef" validate:"required"</pre></td>
+json_name: Identity
+go_name: Identity
+go_tags: json:"Identity" validate:"required"</pre></td>
 </tr>
 </table>   
 
@@ -2770,7 +2786,9 @@ BootstrapCertificateAuthoritiesOutput indicates the result of certificate infras
 ### fabric.v1.BootstrapEnrollIdentityInput
 
 <pre>
-BootstrapEnrollIdentityInput specifies the parameters for bootstrap enrollment
+BootstrapEnrollIdentityInput specifies the parameters for bootstrap enrollment.
+Keys (private) and certs (public) are stored at separate Vault paths.
+Used during CA initialization to obtain the bootstrap admin's certificate.
 </pre>
 
 <table>
@@ -2792,8 +2810,7 @@ go_tags: json:"BootstrapCredentialsRef" validate:"required"</pre></td>
 <td>ca_tls_cert_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-ca_tls_cert_ref points to the CA's TLS certificate in Vault
-This certificate is used to verify the CA server's TLS connection<br>
+ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS connection)<br>
 
 json_name: CaTlsCertRef
 go_name: CaTlsCertRef
@@ -2808,35 +2825,16 @@ json_name: CaUrl
 go_name: CaUrl
 go_tags: json:"CaUrl" validate:"required,url"</pre></td>
 </tr><tr>
-<td>cert_ref</td>
+<td>issuer_cert_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-cert_ref is where to store the enrolled certificate<br>
+issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
+Used to fetch the issuer's chain for building the full certificate chain.
+Optional - if nil, the CA's chain from enrollment response is used directly.<br>
 
-json_name: CertRef
-go_name: CertRef
-go_tags: json:"CertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>chain_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-chain_ref is an optional location to store the CA chain separately.
-Required for intermediate CA signing certs (profile="ca") so Fabric CA
-can verify client certificates issued by the intermediate CA.
-The chain contains parent CA certs needed for x509 chain verification.<br>
-
-json_name: ChainRef
-go_name: ChainRef
-go_tags: json:"ChainRef,omitempty"</pre></td>
-</tr><tr>
-<td>key_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-key_ref points to the private key in Vault to use for CSR generation<br>
-
-json_name: KeyRef
-go_name: KeyRef
-go_tags: json:"KeyRef" validate:"required"</pre></td>
+json_name: IssuerCertRef
+go_name: IssuerCertRef
+go_tags: json:"IssuerCertRef,omitempty"</pre></td>
 </tr><tr>
 <td>profile</td>
 <td>string</td>
@@ -2846,6 +2844,16 @@ profile specifies which CA signing profile to use<br>
 json_name: Profile
 go_name: Profile
 go_tags: json:"Profile,omitempty"</pre></td>
+</tr><tr>
+<td>storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+storage is the identity storage location
+key_ref is read for CSR generation, cert_ref is where to store the result<br>
+
+json_name: Storage
+go_name: Storage
+go_tags: json:"Storage" validate:"required"</pre></td>
 </tr><tr>
 <td>subject</td>
 <td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
@@ -2874,14 +2882,14 @@ BootstrapEnrollIdentityOutput confirms the certificate was enrolled and stored
 <th>Description</th>
 </tr>
 <tr>
-<td>cert_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-cert_ref is where the certificate was stored<br>
+identity points to the enrolled identity<br>
 
-json_name: CertRef
-go_name: CertRef
-go_tags: json:"CertRef" validate:"required"</pre></td>
+json_name: Identity
+go_name: Identity
+go_tags: json:"Identity" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3159,23 +3167,23 @@ CreateAdminOutput indicates the result of admin creation
 <th>Description</th>
 </tr>
 <tr>
-<td>signing_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>signing_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-signing_credentials_ref points to the admin's signing identity<br>
+signing_identity points to the admin's signing identity<br>
 
-json_name: SigningCredentialsRef
-go_name: SigningCredentialsRef
-go_tags: json:"SigningCredentialsRef" validate:"required"</pre></td>
+json_name: SigningIdentity
+go_name: SigningIdentity
+go_tags: json:"SigningIdentity" validate:"required"</pre></td>
 </tr><tr>
-<td>tls_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>tls_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-tls_credentials_ref points to the admin's TLS client certificate<br>
+tls_identity points to the admin's TLS client identity<br>
 
-json_name: TlsCredentialsRef
-go_name: TlsCredentialsRef
-go_tags: json:"TlsCredentialsRef" validate:"required"</pre></td>
+json_name: TlsIdentity
+go_name: TlsIdentity
+go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3250,23 +3258,23 @@ CreateBootstrapAdminOutput indicates the result of bootstrap admin creation
 <th>Description</th>
 </tr>
 <tr>
-<td>signing_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>signing_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-signing_credentials_ref points to the bootstrap admin's signing identity<br>
+signing_identity points to the bootstrap admin's signing identity<br>
 
-json_name: SigningCredentialsRef
-go_name: SigningCredentialsRef
-go_tags: json:"SigningCredentialsRef" validate:"required"</pre></td>
+json_name: SigningIdentity
+go_name: SigningIdentity
+go_tags: json:"SigningIdentity" validate:"required"</pre></td>
 </tr><tr>
-<td>tls_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>tls_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-tls_credentials_ref points to the bootstrap admin's TLS client certificate<br>
+tls_identity points to the bootstrap admin's TLS client identity<br>
 
-json_name: TlsCredentialsRef
-go_name: TlsCredentialsRef
-go_tags: json:"TlsCredentialsRef" validate:"required"</pre></td>
+json_name: TlsIdentity
+go_name: TlsIdentity
+go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3339,7 +3347,8 @@ go_tags: json:"CredentialsRef" validate:"required"</pre></td>
 ### fabric.v1.CreateCertificateInput
 
 <pre>
-CreateCertificateInput specifies the parameters for creating a certificate
+CreateCertificateInput specifies the parameters for creating a certificate.
+Keys (private) and certs (public) are stored at separate Vault paths.
 </pre>
 
 <table>
@@ -3349,15 +3358,15 @@ CreateCertificateInput specifies the parameters for creating a certificate
 <th>Description</th>
 </tr>
 <tr>
-<td>admin_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>admin_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-admin_credentials_ref is the issuer's admin credentials (for registration)
+admin_identity is the issuer's admin identity for CA authentication
 Required unless self-signed<br>
 
-json_name: AdminCredentialsRef
-go_name: AdminCredentialsRef
-go_tags: json:"AdminCredentialsRef"</pre></td>
+json_name: AdminIdentity
+go_name: AdminIdentity
+go_tags: json:"AdminIdentity"</pre></td>
 </tr><tr>
 <td>attributes</td>
 <td><a href="#fabric-v1-createcertificateinput-attributesentry">fabric.v1.CreateCertificateInput.AttributesEntry</a></td>
@@ -3366,17 +3375,6 @@ attributes are additional CA attributes for the identity (e.g., hf.IntermediateC
 
 json_name: Attributes
 go_name: Attributes</pre></td>
-</tr><tr>
-<td>chain_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-chain_ref is an optional location to store the CA chain separately.
-Required for intermediate CA signing certs (profile="ca") so Fabric CA
-can verify client certificates issued by the intermediate CA.<br>
-
-json_name: ChainRef
-go_name: ChainRef
-go_tags: json:"ChainRef,omitempty"</pre></td>
 </tr><tr>
 <td>identity_type</td>
 <td>string</td>
@@ -3389,6 +3387,16 @@ The OU is critical for NodeOUs classification in the MSP.<br>
 json_name: IdentityType
 go_name: IdentityType
 go_tags: json:"IdentityType,omitempty"</pre></td>
+</tr><tr>
+<td>issuer_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
+Used to fetch the issuer's chain for building the full certificate chain<br>
+
+json_name: IssuerCertRef
+go_name: IssuerCertRef
+go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
 </tr><tr>
 <td>issuer_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
@@ -3427,14 +3435,14 @@ json_name: Purpose
 go_name: Purpose
 go_tags: json:"Purpose" validate:"required"</pre></td>
 </tr><tr>
-<td>storage_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-storage_ref is where to store keypair + certificate<br>
+storage is where to store the created identity (key + certificate)<br>
 
-json_name: StorageRef
-go_name: StorageRef
-go_tags: json:"StorageRef" validate:"required"</pre></td>
+json_name: Storage
+go_name: Storage
+go_tags: json:"Storage" validate:"required"</pre></td>
 </tr><tr>
 <td>subject</td>
 <td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
@@ -3489,14 +3497,14 @@ CreateCertificateOutput indicates the result of certificate creation
 <th>Description</th>
 </tr>
 <tr>
-<td>credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-credentials_ref points to the stored keypair + certificate<br>
+identity points to the created identity (key + certificate)<br>
 
-json_name: CredentialsRef
-go_name: CredentialsRef
-go_tags: json:"CredentialsRef" validate:"required"</pre></td>
+json_name: Identity
+go_name: Identity
+go_tags: json:"Identity" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3564,23 +3572,14 @@ json_name: OrgIssuerRef
 go_name: OrgIssuerRef
 go_tags: json:"OrgIssuerRef" validate:"required"</pre></td>
 </tr><tr>
-<td>storage_signing_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>signing_storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-storage_signing_ref is where to store the org identity (keypair + cert)<br>
+signing_storage is where to store the signing identity (key + certificate)<br>
 
-json_name: StorageSigningRef
-go_name: StorageSigningRef
-go_tags: json:"StorageSigningRef" validate:"required"</pre></td>
-</tr><tr>
-<td>storage_tls_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-storage_tls_ref is where to store the TLS identity (keypair + cert)<br>
-
-json_name: StorageTlsRef
-go_name: StorageTlsRef
-go_tags: json:"StorageTlsRef" validate:"required"</pre></td>
+json_name: SigningStorage
+go_name: SigningStorage
+go_tags: json:"SigningStorage" validate:"required"</pre></td>
 </tr><tr>
 <td>subject</td>
 <td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
@@ -3609,6 +3608,15 @@ tls_profile specifies the TLS signing profile ("tls" for server/client, "" for c
 json_name: TlsProfile
 go_name: TlsProfile
 go_tags: json:"TlsProfile"</pre></td>
+</tr><tr>
+<td>tls_storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+tls_storage is where to store the TLS identity (key + certificate)<br>
+
+json_name: TlsStorage
+go_name: TlsStorage
+go_tags: json:"TlsStorage" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3654,23 +3662,23 @@ CreateIdentityOutput indicates the result of identity creation
 <th>Description</th>
 </tr>
 <tr>
-<td>signing_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>signing_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-signing_credentials_ref points to the org identity credentials in Vault<br>
+signing_identity points to the created signing identity<br>
 
-json_name: SigningCredentialsRef
-go_name: SigningCredentialsRef
-go_tags: json:"SigningCredentialsRef" validate:"required"</pre></td>
+json_name: SigningIdentity
+go_name: SigningIdentity
+go_tags: json:"SigningIdentity" validate:"required"</pre></td>
 </tr><tr>
-<td>tls_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>tls_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-tls_credentials_ref points to the TLS identity credentials in Vault<br>
+tls_identity points to the created TLS identity<br>
 
-json_name: TlsCredentialsRef
-go_name: TlsCredentialsRef
-go_tags: json:"TlsCredentialsRef" validate:"required"</pre></td>
+json_name: TlsIdentity
+go_name: TlsIdentity
+go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3943,7 +3951,8 @@ DeployPeerOutput indicates the result of peer deployment
 ### fabric.v1.EnrollIdentityInput
 
 <pre>
-EnrollIdentityInput specifies the parameters for enrolling an identity with a CA
+EnrollIdentityInput specifies the parameters for enrolling an identity with a CA.
+Keys (private) and certs (public) are stored at separate Vault paths.
 </pre>
 
 <table>
@@ -3965,23 +3974,11 @@ go_tags: json:"CaRef" validate:"required"</pre></td>
 <td>ca_tls_cert_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-ca_tls_cert_ref points to the CA's TLS certificate in Vault<br>
+ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS connection)<br>
 
 json_name: CaTlsCertRef
 go_name: CaTlsCertRef
 go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>chain_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-chain_ref is an optional location to store the CA chain separately.
-Required for intermediate CA signing certs (profile="ca") so Fabric CA
-can verify client certificates issued by the intermediate CA.
-The chain contains parent CA certs needed for x509 chain verification.<br>
-
-json_name: ChainRef
-go_name: ChainRef
-go_tags: json:"ChainRef,omitempty"</pre></td>
 </tr><tr>
 <td>enrollment_secret</td>
 <td>string</td>
@@ -4001,14 +3998,24 @@ json_name: IdentityName
 go_name: IdentityName
 go_tags: json:"IdentityName" validate:"required"</pre></td>
 </tr><tr>
-<td>key_ref</td>
+<td>issuer_cert_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-key_ref points to the private key to use for CSR generation<br>
+issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
+Used to fetch the issuer's chain for building the full certificate chain<br>
 
-json_name: KeyRef
-go_name: KeyRef
-go_tags: json:"KeyRef" validate:"required"</pre></td>
+json_name: IssuerCertRef
+go_name: IssuerCertRef
+go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier for the CA (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
 </tr><tr>
 <td>profile</td>
 <td>string</td>
@@ -4021,6 +4028,16 @@ Leave empty to use the default profile (digital signature only).<br>
 json_name: Profile
 go_name: Profile
 go_tags: json:"Profile,omitempty"</pre></td>
+</tr><tr>
+<td>storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+storage is the identity storage location
+key_ref is read for CSR generation, cert_ref is where to store the result<br>
+
+json_name: Storage
+go_name: Storage
+go_tags: json:"Storage" validate:"required"</pre></td>
 </tr><tr>
 <td>subject</td>
 <td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
@@ -4049,14 +4066,54 @@ EnrollIdentityOutput contains the certificates returned by the CA
 <th>Description</th>
 </tr>
 <tr>
+<td>identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+identity points to the enrolled identity<br>
+
+json_name: Identity
+go_name: Identity
+go_tags: json:"Identity" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-identityref"></a>
+### fabric.v1.IdentityRef
+
+<pre>
+IdentityRef represents a complete identity (private key + certificate pair).
+Per cert-design.md, keys and certs are stored at separate Vault paths:
+  - keys/... contains {private_key, public_key}
+  - certs/... contains {certificate, chain}
+This message groups the two refs that together form a complete identity.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
 <td>cert_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-cert_ref points to where the certificate was stored<br>
+cert_ref points to the certificate (certs/ path)<br>
 
 json_name: CertRef
 go_name: CertRef
 go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>key_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+key_ref points to the private key (keys/ path)<br>
+
+json_name: KeyRef
+go_name: KeyRef
+go_tags: json:"KeyRef" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4213,14 +4270,14 @@ RegisterIdentityInput specifies the parameters for registering an identity with 
 <th>Description</th>
 </tr>
 <tr>
-<td>admin_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>admin_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-admin_credentials_ref specifies which admin credentials to use for registration<br>
+admin_identity is the admin identity for CA authentication<br>
 
-json_name: AdminCredentialsRef
-go_name: AdminCredentialsRef
-go_tags: json:"AdminCredentialsRef" validate:"required"</pre></td>
+json_name: AdminIdentity
+go_name: AdminIdentity
+go_tags: json:"AdminIdentity" validate:"required"</pre></td>
 </tr><tr>
 <td>affiliation</td>
 <td>string</td>
@@ -4264,6 +4321,15 @@ identity_type specifies the type of identity (e.g., "admin", "peer", "orderer", 
 json_name: IdentityType
 go_name: IdentityType
 go_tags: json:"IdentityType"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier for the CA (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4336,14 +4402,14 @@ RevokeIdentityInput specifies the parameters for revoking an identity from a CA
 <th>Description</th>
 </tr>
 <tr>
-<td>admin_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td>admin_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-admin_credentials_ref specifies which admin credentials to use for revocation<br>
+admin_identity is the admin identity for CA authentication<br>
 
-json_name: AdminCredentialsRef
-go_name: AdminCredentialsRef
-go_tags: json:"AdminCredentialsRef" validate:"required"</pre></td>
+json_name: AdminIdentity
+go_name: AdminIdentity
+go_tags: json:"AdminIdentity" validate:"required"</pre></td>
 </tr><tr>
 <td>ca_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
@@ -4362,6 +4428,15 @@ identity_name is the name of the identity to revoke<br>
 json_name: IdentityName
 go_name: IdentityName
 go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier for the CA (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
 </tr><tr>
 <td>reason</td>
 <td>string</td>

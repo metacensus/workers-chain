@@ -124,6 +124,25 @@ message CertificateAuthorityRef {
   ];
 }
 
+// IdentityRef represents a complete identity (private key + certificate pair).
+// Per cert-design.md, keys and certs are stored at separate Vault paths:
+//   - keys/... contains {private_key, public_key}
+//   - certs/... contains {certificate, chain}
+// This message groups the two refs that together form a complete identity.
+message IdentityRef {
+  // key_ref points to the private key (keys/ path)
+  secrets.v1.SecretRef key_ref = 1 [
+    json_name = "KeyRef",
+    (go.field).tags = 'json:"KeyRef" validate:"required"'
+  ];
+
+  // cert_ref points to the certificate (certs/ path)
+  secrets.v1.SecretRef cert_ref = 2 [
+    json_name = "CertRef",
+    (go.field).tags = 'json:"CertRef" validate:"required"'
+  ];
+}
+
 // CertificateSubject defines the subject fields for a certificate
 message CertificateSubject {
   // common_name is the CN for the certificate subject
@@ -463,7 +482,8 @@ message CreateCertificateDatabaseOutput {
 
 // ==================== CreateCertificate Workflow Messages ====================
 
-// CreateCertificateInput specifies the parameters for creating a certificate
+// CreateCertificateInput specifies the parameters for creating a certificate.
+// Keys (private) and certs (public) are stored at separate Vault paths.
 message CreateCertificateInput {
   // org is the owner identifier (operator or organization)
   string org = 1 [
@@ -490,17 +510,17 @@ message CreateCertificateInput {
     (go.field).tags = 'json:"Subject" validate:"required"'
   ];
 
-  // storage_ref is where to store keypair + certificate
-  secrets.v1.SecretRef storage_ref = 5 [
-    json_name = "StorageRef",
-    (go.field).tags = 'json:"StorageRef" validate:"required"'
+  // storage is where to store the created identity (key + certificate)
+  IdentityRef storage = 5 [
+    json_name = "Storage",
+    (go.field).tags = 'json:"Storage" validate:"required"'
   ];
 
-  // admin_credentials_ref is the issuer's admin credentials (for registration)
+  // admin_identity is the issuer's admin identity for CA authentication
   // Required unless self-signed
-  secrets.v1.SecretRef admin_credentials_ref = 6 [
-    json_name = "AdminCredentialsRef",
-    (go.field).tags = 'json:"AdminCredentialsRef"'
+  IdentityRef admin_identity = 6 [
+    json_name = "AdminIdentity",
+    (go.field).tags = 'json:"AdminIdentity"'
   ];
 
   // purpose is a human-readable label for the workflow ID (e.g., "tls-root-signing")
@@ -512,12 +532,11 @@ message CreateCertificateInput {
   // attributes are additional CA attributes for the identity (e.g., hf.IntermediateCA)
   map<string, string> attributes = 8 [json_name = "Attributes"];
 
-  // chain_ref is an optional location to store the CA chain separately.
-  // Required for intermediate CA signing certs (profile="ca") so Fabric CA
-  // can verify client certificates issued by the intermediate CA.
-  secrets.v1.SecretRef chain_ref = 9 [
-    json_name = "ChainRef",
-    (go.field).tags = 'json:"ChainRef,omitempty"'
+  // issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
+  // Used to fetch the issuer's chain for building the full certificate chain
+  secrets.v1.SecretRef issuer_cert_ref = 12 [
+    json_name = "IssuerCertRef",
+    (go.field).tags = 'json:"IssuerCertRef" validate:"required"'
   ];
 
   // identity_type specifies the Fabric CA identity type for registration.
@@ -532,10 +551,10 @@ message CreateCertificateInput {
 
 // CreateCertificateOutput indicates the result of certificate creation
 message CreateCertificateOutput {
-  // credentials_ref points to the stored keypair + certificate
-  secrets.v1.SecretRef credentials_ref = 1 [
-    json_name = "CredentialsRef",
-    (go.field).tags = 'json:"CredentialsRef" validate:"required"'
+  // identity points to the created identity (key + certificate)
+  IdentityRef identity = 1 [
+    json_name = "Identity",
+    (go.field).tags = 'json:"Identity" validate:"required"'
   ];
 }
 
@@ -571,16 +590,16 @@ message CreateBootstrapAdminInput {
 
 // CreateBootstrapAdminOutput indicates the result of bootstrap admin creation
 message CreateBootstrapAdminOutput {
-  // signing_credentials_ref points to the bootstrap admin's signing identity
-  secrets.v1.SecretRef signing_credentials_ref = 1 [
-    json_name = "SigningCredentialsRef",
-    (go.field).tags = 'json:"SigningCredentialsRef" validate:"required"'
+  // signing_identity points to the bootstrap admin's signing identity
+  IdentityRef signing_identity = 1 [
+    json_name = "SigningIdentity",
+    (go.field).tags = 'json:"SigningIdentity" validate:"required"'
   ];
 
-  // tls_credentials_ref points to the bootstrap admin's TLS client certificate
-  secrets.v1.SecretRef tls_credentials_ref = 2 [
-    json_name = "TlsCredentialsRef",
-    (go.field).tags = 'json:"TlsCredentialsRef" validate:"required"'
+  // tls_identity points to the bootstrap admin's TLS client identity
+  IdentityRef tls_identity = 2 [
+    json_name = "TlsIdentity",
+    (go.field).tags = 'json:"TlsIdentity" validate:"required"'
   ];
 }
 
@@ -622,16 +641,16 @@ message CreateAdminInput {
 
 // CreateAdminOutput indicates the result of admin creation
 message CreateAdminOutput {
-  // signing_credentials_ref points to the admin's signing identity
-  secrets.v1.SecretRef signing_credentials_ref = 1 [
-    json_name = "SigningCredentialsRef",
-    (go.field).tags = 'json:"SigningCredentialsRef" validate:"required"'
+  // signing_identity points to the admin's signing identity
+  IdentityRef signing_identity = 1 [
+    json_name = "SigningIdentity",
+    (go.field).tags = 'json:"SigningIdentity" validate:"required"'
   ];
 
-  // tls_credentials_ref points to the admin's TLS client certificate
-  secrets.v1.SecretRef tls_credentials_ref = 2 [
-    json_name = "TlsCredentialsRef",
-    (go.field).tags = 'json:"TlsCredentialsRef" validate:"required"'
+  // tls_identity points to the admin's TLS client identity
+  IdentityRef tls_identity = 2 [
+    json_name = "TlsIdentity",
+    (go.field).tags = 'json:"TlsIdentity" validate:"required"'
   ];
 }
 
@@ -671,16 +690,16 @@ message CreateIdentityInput {
     (go.field).tags = 'json:"TlsIssuerRef" validate:"required"'
   ];
 
-  // storage_signing_ref is where to store the org identity (keypair + cert)
-  secrets.v1.SecretRef storage_signing_ref = 6 [
-    json_name = "StorageSigningRef",
-    (go.field).tags = 'json:"StorageSigningRef" validate:"required"'
+  // signing_storage is where to store the signing identity (key + certificate)
+  IdentityRef signing_storage = 6 [
+    json_name = "SigningStorage",
+    (go.field).tags = 'json:"SigningStorage" validate:"required"'
   ];
 
-  // storage_tls_ref is where to store the TLS identity (keypair + cert)
-  secrets.v1.SecretRef storage_tls_ref = 7 [
-    json_name = "StorageTlsRef",
-    (go.field).tags = 'json:"StorageTlsRef" validate:"required"'
+  // tls_storage is where to store the TLS identity (key + certificate)
+  IdentityRef tls_storage = 7 [
+    json_name = "TlsStorage",
+    (go.field).tags = 'json:"TlsStorage" validate:"required"'
   ];
 
   // attributes are additional CA attributes for the identity
@@ -704,16 +723,16 @@ message CreateIdentityInput {
 
 // CreateIdentityOutput indicates the result of identity creation
 message CreateIdentityOutput {
-  // signing_credentials_ref points to the org identity credentials in Vault
-  secrets.v1.SecretRef signing_credentials_ref = 1 [
-    json_name = "SigningCredentialsRef",
-    (go.field).tags = 'json:"SigningCredentialsRef" validate:"required"'
+  // signing_identity points to the created signing identity
+  IdentityRef signing_identity = 1 [
+    json_name = "SigningIdentity",
+    (go.field).tags = 'json:"SigningIdentity" validate:"required"'
   ];
 
-  // tls_credentials_ref points to the TLS identity credentials in Vault
-  secrets.v1.SecretRef tls_credentials_ref = 2 [
-    json_name = "TlsCredentialsRef",
-    (go.field).tags = 'json:"TlsCredentialsRef" validate:"required"'
+  // tls_identity points to the created TLS identity
+  IdentityRef tls_identity = 2 [
+    json_name = "TlsIdentity",
+    (go.field).tags = 'json:"TlsIdentity" validate:"required"'
   ];
 }
 
@@ -721,6 +740,12 @@ message CreateIdentityOutput {
 
 // RegisterIdentityInput specifies the parameters for registering an identity with a CA
 message RegisterIdentityInput {
+  // org is the owner identifier for the CA (operator or organization)
+  string org = 7 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
   // ca_ref identifies which CA to register with
   CertificateAuthorityRef ca_ref = 1 [
     json_name = "CaRef",
@@ -745,10 +770,10 @@ message RegisterIdentityInput {
     (go.field).tags = 'json:"IdentityType"'
   ];
 
-  // admin_credentials_ref specifies which admin credentials to use for registration
-  secrets.v1.SecretRef admin_credentials_ref = 6 [
-    json_name = "AdminCredentialsRef",
-    (go.field).tags = 'json:"AdminCredentialsRef" validate:"required"'
+  // admin_identity is the admin identity for CA authentication
+  IdentityRef admin_identity = 6 [
+    json_name = "AdminIdentity",
+    (go.field).tags = 'json:"AdminIdentity" validate:"required"'
   ];
 }
 
@@ -763,8 +788,15 @@ message RegisterIdentityOutput {
 
 // ==================== EnrollIdentity Activity Messages ====================
 
-// EnrollIdentityInput specifies the parameters for enrolling an identity with a CA
+// EnrollIdentityInput specifies the parameters for enrolling an identity with a CA.
+// Keys (private) and certs (public) are stored at separate Vault paths.
 message EnrollIdentityInput {
+  // org is the owner identifier for the CA (operator or organization)
+  string org = 11 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
   // ca_ref identifies which CA to enroll with
   CertificateAuthorityRef ca_ref = 1 [
     json_name = "CaRef",
@@ -783,10 +815,11 @@ message EnrollIdentityInput {
     (go.field).tags = 'json:"EnrollmentSecret" validate:"required"'
   ];
 
-  // key_ref points to the private key to use for CSR generation
-  secrets.v1.SecretRef key_ref = 4 [
-    json_name = "KeyRef",
-    (go.field).tags = 'json:"KeyRef" validate:"required"'
+  // storage is the identity storage location
+  // key_ref is read for CSR generation, cert_ref is where to store the result
+  IdentityRef storage = 4 [
+    json_name = "Storage",
+    (go.field).tags = 'json:"Storage" validate:"required"'
   ];
 
   // subject specifies the certificate subject fields
@@ -795,10 +828,17 @@ message EnrollIdentityInput {
     (go.field).tags = 'json:"Subject" validate:"required"'
   ];
 
-  // ca_tls_cert_ref points to the CA's TLS certificate in Vault
+  // ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS connection)
   secrets.v1.SecretRef ca_tls_cert_ref = 6 [
     json_name = "CaTlsCertRef",
     (go.field).tags = 'json:"CaTlsCertRef" validate:"required"'
+  ];
+
+  // issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
+  // Used to fetch the issuer's chain for building the full certificate chain
+  secrets.v1.SecretRef issuer_cert_ref = 10 [
+    json_name = "IssuerCertRef",
+    (go.field).tags = 'json:"IssuerCertRef" validate:"required"'
   ];
 
   // profile specifies which CA signing profile to use for the certificate.
@@ -809,23 +849,14 @@ message EnrollIdentityInput {
     json_name = "Profile",
     (go.field).tags = 'json:"Profile,omitempty"'
   ];
-
-  // chain_ref is an optional location to store the CA chain separately.
-  // Required for intermediate CA signing certs (profile="ca") so Fabric CA
-  // can verify client certificates issued by the intermediate CA.
-  // The chain contains parent CA certs needed for x509 chain verification.
-  secrets.v1.SecretRef chain_ref = 8 [
-    json_name = "ChainRef",
-    (go.field).tags = 'json:"ChainRef,omitempty"'
-  ];
 }
 
 // EnrollIdentityOutput contains the certificates returned by the CA
 message EnrollIdentityOutput {
-  // cert_ref points to where the certificate was stored
-  secrets.v1.SecretRef cert_ref = 1 [
-    json_name = "CertRef",
-    (go.field).tags = 'json:"CertRef" validate:"required"'
+  // identity points to the enrolled identity
+  IdentityRef identity = 1 [
+    json_name = "Identity",
+    (go.field).tags = 'json:"Identity" validate:"required"'
   ];
 }
 
@@ -833,6 +864,12 @@ message EnrollIdentityOutput {
 
 // RevokeIdentityInput specifies the parameters for revoking an identity from a CA
 message RevokeIdentityInput {
+  // org is the owner identifier for the CA (operator or organization)
+  string org = 5 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
   // ca_ref identifies which CA to revoke from
   CertificateAuthorityRef ca_ref = 1 [
     json_name = "CaRef",
@@ -848,10 +885,10 @@ message RevokeIdentityInput {
   // reason is the reason for revocation (optional)
   string reason = 3 [json_name = "Reason"];
 
-  // admin_credentials_ref specifies which admin credentials to use for revocation
-  secrets.v1.SecretRef admin_credentials_ref = 4 [
-    json_name = "AdminCredentialsRef",
-    (go.field).tags = 'json:"AdminCredentialsRef" validate:"required"'
+  // admin_identity is the admin identity for CA authentication
+  IdentityRef admin_identity = 4 [
+    json_name = "AdminIdentity",
+    (go.field).tags = 'json:"AdminIdentity" validate:"required"'
   ];
 }
 
@@ -863,7 +900,9 @@ message RevokeIdentityOutput {
 
 // ==================== BootstrapEnrollIdentity Activity Messages ====================
 
-// BootstrapEnrollIdentityInput specifies the parameters for bootstrap enrollment
+// BootstrapEnrollIdentityInput specifies the parameters for bootstrap enrollment.
+// Keys (private) and certs (public) are stored at separate Vault paths.
+// Used during CA initialization to obtain the bootstrap admin's certificate.
 message BootstrapEnrollIdentityInput {
   // ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric-org1.svc.cluster.local:7054")
   string ca_url = 1 [
@@ -877,16 +916,11 @@ message BootstrapEnrollIdentityInput {
     (go.field).tags = 'json:"BootstrapCredentialsRef" validate:"required"'
   ];
 
-  // key_ref points to the private key in Vault to use for CSR generation
-  secrets.v1.SecretRef key_ref = 3 [
-    json_name = "KeyRef",
-    (go.field).tags = 'json:"KeyRef" validate:"required"'
-  ];
-
-  // cert_ref is where to store the enrolled certificate
-  secrets.v1.SecretRef cert_ref = 4 [
-    json_name = "CertRef",
-    (go.field).tags = 'json:"CertRef" validate:"required"'
+  // storage is the identity storage location
+  // key_ref is read for CSR generation, cert_ref is where to store the result
+  IdentityRef storage = 3 [
+    json_name = "Storage",
+    (go.field).tags = 'json:"Storage" validate:"required"'
   ];
 
   // subject specifies the certificate subject fields
@@ -895,11 +929,18 @@ message BootstrapEnrollIdentityInput {
     (go.field).tags = 'json:"Subject" validate:"required"'
   ];
 
-  // ca_tls_cert_ref points to the CA's TLS certificate in Vault
-  // This certificate is used to verify the CA server's TLS connection
+  // ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS connection)
   secrets.v1.SecretRef ca_tls_cert_ref = 6 [
     json_name = "CaTlsCertRef",
     (go.field).tags = 'json:"CaTlsCertRef" validate:"required"'
+  ];
+
+  // issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
+  // Used to fetch the issuer's chain for building the full certificate chain.
+  // Optional - if nil, the CA's chain from enrollment response is used directly.
+  secrets.v1.SecretRef issuer_cert_ref = 9 [
+    json_name = "IssuerCertRef",
+    (go.field).tags = 'json:"IssuerCertRef,omitempty"'
   ];
 
   // profile specifies which CA signing profile to use
@@ -907,23 +948,14 @@ message BootstrapEnrollIdentityInput {
     json_name = "Profile",
     (go.field).tags = 'json:"Profile,omitempty"'
   ];
-
-  // chain_ref is an optional location to store the CA chain separately.
-  // Required for intermediate CA signing certs (profile="ca") so Fabric CA
-  // can verify client certificates issued by the intermediate CA.
-  // The chain contains parent CA certs needed for x509 chain verification.
-  secrets.v1.SecretRef chain_ref = 8 [
-    json_name = "ChainRef",
-    (go.field).tags = 'json:"ChainRef,omitempty"'
-  ];
 }
 
 // BootstrapEnrollIdentityOutput confirms the certificate was enrolled and stored
 message BootstrapEnrollIdentityOutput {
-  // cert_ref is where the certificate was stored
-  secrets.v1.SecretRef cert_ref = 1 [
-    json_name = "CertRef",
-    (go.field).tags = 'json:"CertRef" validate:"required"'
+  // identity points to the enrolled identity
+  IdentityRef identity = 1 [
+    json_name = "Identity",
+    (go.field).tags = 'json:"Identity" validate:"required"'
   ];
 }
 

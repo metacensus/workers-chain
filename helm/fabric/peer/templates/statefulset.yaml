@@ -172,9 +172,15 @@ spec:
           cp /secrets/msp-signing-cert /msp/signcerts/cert.pem
           cp /secrets/msp-signing-key /msp/keystore/key.pem
           
-          # Copy MSP CA certificates - Root CA in cacerts, Int CA in intermediatecerts
+          # Extract intermediate CA cert from signing chain for MSP intermediatecerts/
+          # The chain format is: [leaf cert][intermediate CA cert][root CA cert]
+          # We need to extract just the intermediate CA cert (second cert in chain)
+          # Use awk to extract the second certificate block from the PEM chain
+          awk '/-----BEGIN CERTIFICATE-----/{n++} n==2{print; if(/-----END CERTIFICATE-----/) exit}' \
+            /secrets/msp-signing-chain > /msp/intermediatecerts/intermediate.pem
+          
+          # Copy MSP root CA certificate for cacerts/ (root CA only for trust store)
           cp /secrets/msp-root-ca-cert /msp/cacerts/ca.pem
-          cp /secrets/msp-int-ca-cert /msp/intermediatecerts/intermediate.pem
           
           # Create MSP config.yaml for NodeOUs classification
           # This enables identity classification based on OU field in certificates
@@ -198,11 +204,12 @@ spec:
             '    OrganizationalUnitIdentifier: "orderer"' \
             > /msp/config.yaml
           
-          # Copy TLS certificates
-          cp /secrets/tls-cert /tls/server.crt
+          # TLS certificates - use pre-built chain for server cert, root only for trust store
+          # server.crt = full chain (sent during mTLS handshake)
+          cp /secrets/tls-chain /tls/server.crt
           cp /secrets/tls-key /tls/server.key
-          # Build TLS CA chain (int + root) for proper mTLS verification
-          cat /secrets/tls-int-ca-cert /secrets/tls-root-ca-cert > /tls/ca.crt
+          # Trust store = root CA only (intermediate rotation without trust store updates)
+          cp /secrets/tls-root-ca-cert /tls/ca.crt
           
           # Set permissions
           chmod 644 /msp/signcerts/* /msp/cacerts/* /msp/intermediatecerts/* /msp/config.yaml /tls/*.crt

@@ -93,33 +93,39 @@ func (cs CertificateStoreConfig) AuthRoleName() string {
 	return cs.PolicyName()
 }
 
+// VaultKeysBasePath returns the base Vault path for the certificate store's secrets.
+// The certificate store only has credentials, which are private, so they live under keys/.
+// Example: "fabric/org1/keys/certstore"
+func (cs CertificateStoreConfig) VaultKeysBasePath() string {
+	return fmt.Sprintf("%s/keys/certstore", cs.VaultBasePath())
+}
+
 // VaultAdminRef returns a SecretRef for the certificate store admin identity.
-// Stores username, password for postgres admin.
-// Example path: "fabric/org1/certstore/admin"
+// Stores {username, password} for postgres admin.
+// Example path: "fabric/org1/keys/certstore/admin"
 func (cs CertificateStoreConfig) VaultAdminRef() *pb.SecretRef {
-	path := fmt.Sprintf("%s/certstore/admin", cs.VaultBasePath())
-	return secrets.NewVaultRef(path)
+	return secrets.NewVaultRef(cs.VaultKeysBasePath() + "/admin")
 }
 
 // VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
 // Used in Vault policy documents with wildcard for all certificate store secrets.
-// Example: "secret/data/fabric/org1/certstore/*"
+// Example: "secret/data/fabric/org1/keys/certstore/*"
 func (cs CertificateStoreConfig) VaultDataPath() string {
-	return fmt.Sprintf("%s/%s/certstore/*", vaultSecretDataPrefix, cs.VaultBasePath())
+	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, cs.VaultKeysBasePath())
 }
 
 // VaultMetadataPath returns the Vault KV v2 metadata path pattern for policy rules.
-// Example: "secret/metadata/fabric/org1/certstore/*"
+// Example: "secret/metadata/fabric/org1/keys/certstore/*"
 func (cs CertificateStoreConfig) VaultMetadataPath() string {
-	return fmt.Sprintf("%s/%s/certstore/*", vaultSecretMetadataPrefix, cs.VaultBasePath())
+	return fmt.Sprintf("%s/%s/*", vaultSecretMetadataPrefix, cs.VaultKeysBasePath())
 }
 
 // VaultPolicy creates a Vault policy document for the certificate store.
-// The policy grants read access to the certificate store's secrets (postgres credentials).
+// The policy grants read access to the certificate store's credentials (postgres admin).
 func (cs CertificateStoreConfig) VaultPolicy() *vaultpb.PolicyDocument {
 	return &vaultpb.PolicyDocument{
 		Rules: []*vaultpb.PolicyRule{
-			// KV v2 data path - read access to certificate store secrets
+			// Private: read access to certificate store credentials
 			{
 				Path: cs.VaultDataPath(),
 				Capabilities: []vaultpb.Capability{
@@ -127,7 +133,7 @@ func (cs CertificateStoreConfig) VaultPolicy() *vaultpb.PolicyDocument {
 					vaultpb.Capability_CAPABILITY_LIST,
 				},
 			},
-			// KV v2 metadata path - list and read metadata
+			// Private: metadata for credentials
 			{
 				Path: cs.VaultMetadataPath(),
 				Capabilities: []vaultpb.Capability{
@@ -223,7 +229,7 @@ func (ca CertificateAuthorityConfig) CAID() string {
 	return ca.caID
 }
 
-// ------------ Vault Properties: CA Server Certs ------------
+// ------------ Vault Properties: Base Paths ------------
 
 // PolicyName returns the Vault policy name.
 // Example: "fabric-org1-certificate-authority-tls-root"
@@ -236,104 +242,186 @@ func (ca CertificateAuthorityConfig) AuthRoleName() string {
 	return ca.PolicyName()
 }
 
-// VaultCABasePath returns the base Vault path for this CA's secrets.
-// Example: "fabric/org1/ca/tls/root"
-func (ca CertificateAuthorityConfig) VaultCABasePath() string {
-	return fmt.Sprintf("%s/ca/%s/%s", ca.VaultBasePath(), ca.certType, ca.caID)
+// VaultKeysBasePath returns the base Vault path for this CA's private keys.
+// Example: "fabric/org1/keys/ca/tls/root"
+func (ca CertificateAuthorityConfig) VaultKeysBasePath() string {
+	return fmt.Sprintf("%s/keys/ca/%s/%s", ca.VaultBasePath(), ca.certType, ca.caID)
 }
 
-// VaultSigningRef returns a SecretRef for the CA's signing keypair + certificate.
-// This is used for issuing other certificates (CA signing operations).
-// Example path: "fabric/org1/ca/tls/root/signing"
-func (ca CertificateAuthorityConfig) VaultSigningRef() *pb.SecretRef {
-	return secrets.NewVaultRef(ca.VaultCABasePath() + "/signing")
+// VaultCertsBasePath returns the base Vault path for this CA's certificates.
+// Example: "fabric/org1/certs/ca/tls/root"
+func (ca CertificateAuthorityConfig) VaultCertsBasePath() string {
+	return fmt.Sprintf("%s/certs/ca/%s/%s", ca.VaultBasePath(), ca.certType, ca.caID)
 }
 
-// VaultSigningChainRef returns a SecretRef for the CA's parent certificate chain.
-// This is used by intermediate CAs for x509 chain verification.
-// The chain file contains parent CA certs needed to verify client certs.
-// Root CAs don't have a parent chain (self-signed).
-// Example path: "fabric/org1/ca/tls/v1/signing-chain"
-func (ca CertificateAuthorityConfig) VaultSigningChainRef() *pb.SecretRef {
-	return secrets.NewVaultRef(ca.VaultCABasePath() + "/signing-chain")
+// ------------ Vault Properties: CA Server Keys (Private) ------------
+
+// VaultSigningKeyRef returns a SecretRef for the CA's signing private key.
+// Stores {private_key} for CA signing operations.
+// Example path: "fabric/org1/keys/ca/tls/root/signing"
+func (ca CertificateAuthorityConfig) VaultSigningKeyRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/signing")
 }
 
-// VaultTLSRef returns a SecretRef for the CA's TLS keypair + certificate.
-// This is used for the CA's HTTPS endpoint.
-// Example path: "fabric/org1/ca/tls/root/tls"
-func (ca CertificateAuthorityConfig) VaultTLSRef() *pb.SecretRef {
-	return secrets.NewVaultRef(ca.VaultCABasePath() + "/tls")
+// VaultTLSKeyRef returns a SecretRef for the CA's TLS private key.
+// Stores {private_key} for the CA's HTTPS endpoint.
+// Example path: "fabric/org1/keys/ca/tls/root/tls"
+func (ca CertificateAuthorityConfig) VaultTLSKeyRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/tls")
 }
 
-// ------------ Vault Properties: Database User ------------
+// ------------ Vault Properties: CA Server Certs (Public) ------------
+
+// VaultSigningCertRef returns a SecretRef for the CA's signing certificate.
+// Stores {certificate, chain} for CA signing operations.
+// Example path: "fabric/org1/certs/ca/tls/root/signing"
+func (ca CertificateAuthorityConfig) VaultSigningCertRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultCertsBasePath() + "/signing")
+}
+
+// VaultTLSCertRef returns a SecretRef for the CA's TLS certificate.
+// Stores {certificate, chain} for the CA's HTTPS endpoint.
+// Example path: "fabric/org1/certs/ca/tls/root/tls"
+func (ca CertificateAuthorityConfig) VaultTLSCertRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultCertsBasePath() + "/tls")
+}
+
+// ------------ Vault Properties: Database User (Private) ------------
 
 // VaultDatabaseUserRef returns a SecretRef for the CA's database user identity.
-// Stores username, password for database access to the certificate store.
+// Stores {username, password} for database access to the certificate store.
 // Each CA has its own database user for accessing the certificate store.
-// Example path: "fabric/org1/ca/tls/root/certstore/user"
+// Example path: "fabric/org1/keys/ca/tls/root/certstore"
 func (ca CertificateAuthorityConfig) VaultDatabaseUserRef() *pb.SecretRef {
-	return secrets.NewVaultRef(ca.VaultCABasePath() + "/certstore/user")
+	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/certstore")
 }
 
-// ------------ Vault Properties: Bootstrap Admin ------------
+// ------------ Vault Properties: Bootstrap Admin Keys (Private) ------------
 
 // VaultBootstrapAdminCredentialsRef returns a SecretRef for bootstrap admin username/password.
 // These credentials are used to initially authenticate with the CA.
-// Example path: "fabric/org1/ca/tls/root/bootstrap-admin/credentials"
+// Example path: "fabric/org1/keys/ca/tls/root/bootstrap-admin/credentials"
 func (ca CertificateAuthorityConfig) VaultBootstrapAdminCredentialsRef() *pb.SecretRef {
-	return secrets.NewVaultRef(ca.VaultCABasePath() + "/bootstrap-admin/credentials")
+	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/bootstrap-admin/credentials")
 }
 
-// VaultBootstrapAdminSigningRef returns a SecretRef for bootstrap admin's signing identity.
-// Example path: "fabric/org1/ca/tls/root/bootstrap-admin/signing"
-func (ca CertificateAuthorityConfig) VaultBootstrapAdminSigningRef() *pb.SecretRef {
-	return secrets.NewVaultRef(ca.VaultCABasePath() + "/bootstrap-admin/signing")
+// VaultBootstrapAdminSigningKeyRef returns a SecretRef for bootstrap admin's signing private key.
+// Stores {private_key} for the bootstrap admin's signing identity.
+// Example path: "fabric/org1/keys/ca/tls/root/bootstrap-admin/signing"
+func (ca CertificateAuthorityConfig) VaultBootstrapAdminSigningKeyRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/bootstrap-admin/signing")
 }
 
-// VaultBootstrapAdminTLSRef returns a SecretRef for bootstrap admin's TLS client certificate.
-// Example path: "fabric/org1/ca/tls/root/bootstrap-admin/tls"
-func (ca CertificateAuthorityConfig) VaultBootstrapAdminTLSRef() *pb.SecretRef {
-	return secrets.NewVaultRef(ca.VaultCABasePath() + "/bootstrap-admin/tls")
+// VaultBootstrapAdminTLSKeyRef returns a SecretRef for bootstrap admin's TLS private key.
+// Stores {private_key} for the bootstrap admin's TLS client certificate.
+// Example path: "fabric/org1/keys/ca/tls/root/bootstrap-admin/tls"
+func (ca CertificateAuthorityConfig) VaultBootstrapAdminTLSKeyRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/bootstrap-admin/tls")
 }
 
-// ------------ Vault Properties: Permanent Admin ------------
+// ------------ Vault Properties: Bootstrap Admin Certs (Public) ------------
 
-// VaultAdminSigningRef returns a SecretRef for the permanent admin's signing identity.
-// Example path: "fabric/org1/ca/tls/root/admin/signing"
-func (ca CertificateAuthorityConfig) VaultAdminSigningRef() *pb.SecretRef {
-	return secrets.NewVaultRef(ca.VaultCABasePath() + "/admin/signing")
+// VaultBootstrapAdminSigningCertRef returns a SecretRef for bootstrap admin's signing certificate.
+// Stores {certificate, chain} for the bootstrap admin's signing identity.
+// Example path: "fabric/org1/certs/ca/tls/root/bootstrap-admin/signing"
+func (ca CertificateAuthorityConfig) VaultBootstrapAdminSigningCertRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultCertsBasePath() + "/bootstrap-admin/signing")
 }
 
-// VaultAdminTLSRef returns a SecretRef for the permanent admin's TLS client certificate.
-// Example path: "fabric/org1/ca/tls/root/admin/tls"
-func (ca CertificateAuthorityConfig) VaultAdminTLSRef() *pb.SecretRef {
-	return secrets.NewVaultRef(ca.VaultCABasePath() + "/admin/tls")
+// VaultBootstrapAdminTLSCertRef returns a SecretRef for bootstrap admin's TLS certificate.
+// Stores {certificate, chain} for the bootstrap admin's TLS client certificate.
+// Example path: "fabric/org1/certs/ca/tls/root/bootstrap-admin/tls"
+func (ca CertificateAuthorityConfig) VaultBootstrapAdminTLSCertRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultCertsBasePath() + "/bootstrap-admin/tls")
+}
+
+// ------------ Vault Properties: Permanent Admin Keys (Private) ------------
+
+// VaultAdminSigningKeyRef returns a SecretRef for the permanent admin's signing private key.
+// Stores {private_key} for the permanent admin's signing identity.
+// Example path: "fabric/org1/keys/ca/tls/root/admin/signing"
+func (ca CertificateAuthorityConfig) VaultAdminSigningKeyRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/admin/signing")
+}
+
+// VaultAdminTLSKeyRef returns a SecretRef for the permanent admin's TLS private key.
+// Stores {private_key} for the permanent admin's TLS client certificate.
+// Example path: "fabric/org1/keys/ca/tls/root/admin/tls"
+func (ca CertificateAuthorityConfig) VaultAdminTLSKeyRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/admin/tls")
+}
+
+// ------------ Vault Properties: Permanent Admin Certs (Public) ------------
+
+// VaultAdminSigningCertRef returns a SecretRef for the permanent admin's signing certificate.
+// Stores {certificate, chain} for the permanent admin's signing identity.
+// Example path: "fabric/org1/certs/ca/tls/root/admin/signing"
+func (ca CertificateAuthorityConfig) VaultAdminSigningCertRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultCertsBasePath() + "/admin/signing")
+}
+
+// VaultAdminTLSCertRef returns a SecretRef for the permanent admin's TLS certificate.
+// Stores {certificate, chain} for the permanent admin's TLS client certificate.
+// Example path: "fabric/org1/certs/ca/tls/root/admin/tls"
+func (ca CertificateAuthorityConfig) VaultAdminTLSCertRef() *pb.SecretRef {
+	return secrets.NewVaultRef(ca.VaultCertsBasePath() + "/admin/tls")
 }
 
 // ------------ Vault Properties: Policy Paths ------------
 
-// VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
-// Used in Vault policy documents with wildcard for all CA secrets.
-// Example: "secret/data/fabric/org1/ca/tls/root/*"
-func (ca CertificateAuthorityConfig) VaultDataPath() string {
-	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, ca.VaultCABasePath())
+// VaultKeysDataPath returns the Vault KV v2 data path pattern for this CA's private keys.
+// Used in Vault policy documents with wildcard for all CA key secrets.
+// Example: "secret/data/fabric/org1/keys/ca/tls/root/*"
+func (ca CertificateAuthorityConfig) VaultKeysDataPath() string {
+	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, ca.VaultKeysBasePath())
 }
 
-// VaultMetadataPath returns the Vault KV v2 metadata path pattern for policy rules.
-// Example: "secret/metadata/fabric/org1/ca/tls/root/*"
-func (ca CertificateAuthorityConfig) VaultMetadataPath() string {
-	return fmt.Sprintf("%s/%s/*", vaultSecretMetadataPrefix, ca.VaultCABasePath())
+// VaultKeysMetadataPath returns the Vault KV v2 metadata path pattern for this CA's private keys.
+// Example: "secret/metadata/fabric/org1/keys/ca/tls/root/*"
+func (ca CertificateAuthorityConfig) VaultKeysMetadataPath() string {
+	return fmt.Sprintf("%s/%s/*", vaultSecretMetadataPrefix, ca.VaultKeysBasePath())
+}
+
+// VaultCertsDataPath returns the Vault KV v2 data path pattern for all certificates (public).
+// Used in Vault policy documents with wildcard for all certificate secrets.
+// Example: "secret/data/fabric/org1/certs/*"
+func (ca CertificateAuthorityConfig) VaultCertsDataPath() string {
+	return fmt.Sprintf("%s/%s/certs/*", vaultSecretDataPrefix, ca.VaultBasePath())
+}
+
+// VaultCertsMetadataPath returns the Vault KV v2 metadata path pattern for all certificates.
+// Example: "secret/metadata/fabric/org1/certs/*"
+func (ca CertificateAuthorityConfig) VaultCertsMetadataPath() string {
+	return fmt.Sprintf("%s/%s/certs/*", vaultSecretMetadataPrefix, ca.VaultBasePath())
 }
 
 // VaultPolicy creates a Vault policy document for the certificate authority.
-// The policy grants read/write access to the CA's secrets path.
-// Works for both root and intermediate CAs.
+// The policy grants:
+// - Read access to ALL certificates (certs/*) - certificates are public
+// - Read/write access to this CA's keys (keys/ca/{chain}/{id}/*) - private keys and credentials
+// CAs need write access to store generated certificates.
 func (ca CertificateAuthorityConfig) VaultPolicy() *vaultpb.PolicyDocument {
 	return &vaultpb.PolicyDocument{
 		Rules: []*vaultpb.PolicyRule{
-			// KV v2 data path - read/write access to CA secrets
+			// Public: read ALL certificates
 			{
-				Path: ca.VaultDataPath(),
+				Path: ca.VaultCertsDataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+					vaultpb.Capability_CAPABILITY_LIST,
+				},
+			},
+			// Public: metadata for certificates
+			{
+				Path: ca.VaultCertsMetadataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_LIST,
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+			// Private: read/write this CA's keys (signing key, TLS key, credentials)
+			{
+				Path: ca.VaultKeysDataPath(),
 				Capabilities: []vaultpb.Capability{
 					vaultpb.Capability_CAPABILITY_CREATE,
 					vaultpb.Capability_CAPABILITY_READ,
@@ -341,9 +429,9 @@ func (ca CertificateAuthorityConfig) VaultPolicy() *vaultpb.PolicyDocument {
 					vaultpb.Capability_CAPABILITY_LIST,
 				},
 			},
-			// KV v2 metadata path - list and read metadata
+			// Private: metadata for keys
 			{
-				Path: ca.VaultMetadataPath(),
+				Path: ca.VaultKeysMetadataPath(),
 				Capabilities: []vaultpb.Capability{
 					vaultpb.Capability_CAPABILITY_LIST,
 					vaultpb.Capability_CAPABILITY_READ,

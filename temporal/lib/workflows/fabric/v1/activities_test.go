@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
-	"github.com/metacensus/infra/temporal/lib/workers/config"
 )
 
 // TODO: Implement proper tests with mocked CA client
@@ -29,13 +28,10 @@ func TestActivities_RegisterIdentity(t *testing.T) {
 		// TODO: Add more test cases during implementation
 	}
 
-	// Create minimal test config
-	orgConfig := config.OrgConfig{OrgID: "test-org"}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO: Provide mocked VaultClient and ClientProvider
-			activities := NewActivities(nil, nil, orgConfig)
+			// TODO: Provide mocked SecretProvider and ClientProvider
+			activities := NewActivities(nil, nil)
 			ctx := context.Background()
 
 			got, err := activities.RegisterIdentity(ctx, tt.req)
@@ -68,13 +64,10 @@ func TestActivities_EnrollIdentity(t *testing.T) {
 		// TODO: Add more test cases during implementation
 	}
 
-	// Create minimal test config
-	orgConfig := config.OrgConfig{OrgID: "test-org"}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO: Provide mocked VaultClient and ClientProvider
-			activities := NewActivities(nil, nil, orgConfig)
+			// TODO: Provide mocked SecretProvider and ClientProvider
+			activities := NewActivities(nil, nil)
 			ctx := context.Background()
 
 			got, err := activities.EnrollIdentity(ctx, tt.req)
@@ -107,13 +100,10 @@ func TestActivities_RevokeIdentity(t *testing.T) {
 		// TODO: Add more test cases during implementation
 	}
 
-	// Create minimal test config
-	orgConfig := config.OrgConfig{OrgID: "test-org"}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO: Provide mocked VaultClient and ClientProvider
-			activities := NewActivities(nil, nil, orgConfig)
+			// TODO: Provide mocked SecretProvider and ClientProvider
+			activities := NewActivities(nil, nil)
 			ctx := context.Background()
 
 			got, err := activities.RevokeIdentity(ctx, tt.req)

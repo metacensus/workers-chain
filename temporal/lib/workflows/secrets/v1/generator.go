@@ -128,5 +128,9 @@ func GenerateSelfSignedCertificate(privateKeyPEM []byte, params *CertificatePara
 		Bytes: certBytes,
 	})
 
-	return &Certificate{Certificate: certPEM}, nil
+	// For self-signed certificates, chain equals the certificate itself
+	return &Certificate{
+		Certificate: certPEM,
+		Chain:       certPEM,
+	}, nil
 }

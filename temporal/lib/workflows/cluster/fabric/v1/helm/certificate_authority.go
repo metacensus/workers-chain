@@ -28,14 +28,18 @@ type CADatabaseConfig struct {
 	Name string
 }
 
-// CAVaultConfig represents Vault CSI driver configuration for certificate authority
+// CAVaultConfig represents Vault CSI driver configuration for certificate authority.
+// Keys (private) and certs (public) are stored at separate paths.
 type CAVaultConfig struct {
-	RoleName             string
-	SigningPath          string // Path to CA signing keypair + cert
-	SigningChainPath     string // Path to parent CA chain (intermediate CAs only)
-	TlsPath              string // Path to CA TLS keypair + cert
-	AdminCredentialsPath string // Path to bootstrap admin username/password
-	DbCredentialsPath    string // Path to database credentials
+	RoleName string
+	// Keys (private) - separate paths for private keys and credentials
+	SigningKeyPath       string // CA signing private key
+	TlsKeyPath           string // CA TLS private key
+	AdminCredentialsPath string // Bootstrap admin username/password (under keys/)
+	DbCredentialsPath    string // Database credentials (under keys/)
+	// Certs (public) - separate paths for certificates + chains
+	SigningCertPath string // CA signing cert + chain
+	TlsCertPath     string // CA TLS cert + chain
 }
 
 // CAConfig represents CA-specific configuration
@@ -57,13 +61,6 @@ func NewCertificateAuthorityValues(caConfig fabricconfig.CertificateAuthorityCon
 	// Get certificate store config for database connection
 	certStoreConfig := fabricconfig.NewCertificateStoreConfig(caConfig.OwnerConfig)
 
-	// Determine if this is an intermediate CA that needs a chain file
-	var signingChainPath string
-	if !caConfig.IsRoot() {
-		// Intermediate CAs need the parent chain for x509 verification
-		signingChainPath = "secret/data/" + caConfig.VaultSigningChainRef().GetRef().Fields["path"].GetStringValue()
-	}
-
 	return &CertificateAuthorityValues{
 		Org:      caConfig.OwnerID(),
 		CertType: caConfig.CertType(),
@@ -80,12 +77,15 @@ func NewCertificateAuthorityValues(caConfig fabricconfig.CertificateAuthorityCon
 			Name: caConfig.DatabaseName(),
 		},
 		Vault: CAVaultConfig{
-			RoleName:             caConfig.AuthRoleName(),
-			SigningPath:          "secret/data/" + caConfig.VaultSigningRef().GetRef().Fields["path"].GetStringValue(),
-			SigningChainPath:     signingChainPath, // Empty for root CAs, set for intermediates
-			TlsPath:              "secret/data/" + caConfig.VaultTLSRef().GetRef().Fields["path"].GetStringValue(),
+			RoleName: caConfig.AuthRoleName(),
+			// Keys (private)
+			SigningKeyPath:       "secret/data/" + caConfig.VaultSigningKeyRef().GetRef().Fields["path"].GetStringValue(),
+			TlsKeyPath:           "secret/data/" + caConfig.VaultTLSKeyRef().GetRef().Fields["path"].GetStringValue(),
 			AdminCredentialsPath: "secret/data/" + caConfig.VaultBootstrapAdminCredentialsRef().GetRef().Fields["path"].GetStringValue(),
 			DbCredentialsPath:    "secret/data/" + caConfig.VaultDatabaseUserRef().GetRef().Fields["path"].GetStringValue(),
+			// Certs (public) - contain {certificate, chain}
+			SigningCertPath: "secret/data/" + caConfig.VaultSigningCertRef().GetRef().Fields["path"].GetStringValue(),
+			TlsCertPath:     "secret/data/" + caConfig.VaultTLSCertRef().GetRef().Fields["path"].GetStringValue(),
 		},
 		Service: ServiceConfig{
 			Type: "ClusterIP",

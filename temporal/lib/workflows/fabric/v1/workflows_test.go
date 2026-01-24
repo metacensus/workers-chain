@@ -204,26 +204,38 @@ func TestNewCreateCertificateWorkflow(t *testing.T) {
 		{
 			name: "success - all required fields with tls issuer",
 			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				Org:        testOrg,
-				IssuerRef:  &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
-				StorageRef: secrets.NewVaultRef("test/storage"),
+				Org:       testOrg,
+				IssuerRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				Storage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
+					CertRef: secrets.NewVaultRef("test/certs/storage"),
+				},
+				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
 			}},
 			wantErr: false,
 		},
 		{
 			name: "success - all required fields with org issuer",
 			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				Org:        testOrg,
-				IssuerRef:  &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
-				StorageRef: secrets.NewVaultRef("test/storage"),
+				Org:       testOrg,
+				IssuerRef: &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+				Storage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
+					CertRef: secrets.NewVaultRef("test/certs/storage"),
+				},
+				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
 			}},
 			wantErr: false,
 		},
 		{
 			name: "error - missing org",
 			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				IssuerRef:  &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
-				StorageRef: secrets.NewVaultRef("test/storage"),
+				IssuerRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				Storage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
+					CertRef: secrets.NewVaultRef("test/certs/storage"),
+				},
+				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
 			}},
 			wantErr:   true,
 			errSubstr: "org is required",
@@ -231,29 +243,80 @@ func TestNewCreateCertificateWorkflow(t *testing.T) {
 		{
 			name: "error - nil issuer_ref",
 			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				Org:        testOrg,
-				IssuerRef:  nil,
-				StorageRef: secrets.NewVaultRef("test/storage"),
+				Org:       testOrg,
+				IssuerRef: nil,
+				Storage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
+					CertRef: secrets.NewVaultRef("test/certs/storage"),
+				},
+				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
 			}},
 			wantErr:   true,
 			errSubstr: "issuer_ref is required",
 		},
 		{
-			name: "error - nil storage_ref",
+			name: "error - nil storage",
 			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				Org:        testOrg,
-				IssuerRef:  &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
-				StorageRef: nil,
+				Org:           testOrg,
+				IssuerRef:     &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				Storage:       nil,
+				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
 			}},
 			wantErr:   true,
-			errSubstr: "storage_ref is required",
+			errSubstr: "storage is required",
+		},
+		{
+			name: "error - nil storage.key_ref",
+			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
+				Org:       testOrg,
+				IssuerRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				Storage: &pb.IdentityRef{
+					KeyRef:  nil,
+					CertRef: secrets.NewVaultRef("test/certs/storage"),
+				},
+				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
+			}},
+			wantErr:   true,
+			errSubstr: "storage.key_ref is required",
+		},
+		{
+			name: "error - nil storage.cert_ref",
+			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
+				Org:       testOrg,
+				IssuerRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				Storage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
+					CertRef: nil,
+				},
+				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
+			}},
+			wantErr:   true,
+			errSubstr: "storage.cert_ref is required",
+		},
+		{
+			name: "error - nil issuer_cert_ref",
+			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
+				Org:       testOrg,
+				IssuerRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				Storage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
+					CertRef: secrets.NewVaultRef("test/certs/storage"),
+				},
+				IssuerCertRef: nil,
+			}},
+			wantErr:   true,
+			errSubstr: "issuer_cert_ref is required",
 		},
 		{
 			name: "error - invalid cert type",
 			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				Org:        testOrg,
-				IssuerRef:  &pb.CertificateAuthorityRef{CertType: "invalid", Id: "v1"},
-				StorageRef: secrets.NewVaultRef("test/storage"),
+				Org:       testOrg,
+				IssuerRef: &pb.CertificateAuthorityRef{CertType: "invalid", Id: "v1"},
+				Storage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
+					CertRef: secrets.NewVaultRef("test/certs/storage"),
+				},
+				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
 			}},
 			wantErr:   true,
 			errSubstr: "issuer cert_type must be 'tls' or 'org'",
@@ -432,23 +495,35 @@ func TestNewCreateIdentityWorkflow(t *testing.T) {
 		{
 			name: "success - all required fields",
 			input: &pb.CreateIdentityWorkflowInput{Req: &pb.CreateIdentityInput{
-				Org:               testOrg,
-				IdentityName:      "test-identity",
-				OrgIssuerRef:      &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
-				TlsIssuerRef:      &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
-				StorageSigningRef: secrets.NewVaultRef("test/signing"),
-				StorageTlsRef:     secrets.NewVaultRef("test/tls"),
+				Org:          testOrg,
+				IdentityName: "test-identity",
+				OrgIssuerRef: &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+				TlsIssuerRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				SigningStorage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/signing"),
+					CertRef: secrets.NewVaultRef("test/certs/signing"),
+				},
+				TlsStorage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/tls"),
+					CertRef: secrets.NewVaultRef("test/certs/tls"),
+				},
 			}},
 			wantErr: false,
 		},
 		{
 			name: "error - missing org",
 			input: &pb.CreateIdentityWorkflowInput{Req: &pb.CreateIdentityInput{
-				IdentityName:      "test-identity",
-				OrgIssuerRef:      &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
-				TlsIssuerRef:      &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
-				StorageSigningRef: secrets.NewVaultRef("test/signing"),
-				StorageTlsRef:     secrets.NewVaultRef("test/tls"),
+				IdentityName: "test-identity",
+				OrgIssuerRef: &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+				TlsIssuerRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				SigningStorage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/signing"),
+					CertRef: secrets.NewVaultRef("test/certs/signing"),
+				},
+				TlsStorage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/tls"),
+					CertRef: secrets.NewVaultRef("test/certs/tls"),
+				},
 			}},
 			wantErr:   true,
 			errSubstr: "org is required",
@@ -456,12 +531,18 @@ func TestNewCreateIdentityWorkflow(t *testing.T) {
 		{
 			name: "error - missing identity name",
 			input: &pb.CreateIdentityWorkflowInput{Req: &pb.CreateIdentityInput{
-				Org:               testOrg,
-				IdentityName:      "",
-				OrgIssuerRef:      &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
-				TlsIssuerRef:      &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
-				StorageSigningRef: secrets.NewVaultRef("test/signing"),
-				StorageTlsRef:     secrets.NewVaultRef("test/tls"),
+				Org:          testOrg,
+				IdentityName: "",
+				OrgIssuerRef: &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+				TlsIssuerRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				SigningStorage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/signing"),
+					CertRef: secrets.NewVaultRef("test/certs/signing"),
+				},
+				TlsStorage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/tls"),
+					CertRef: secrets.NewVaultRef("test/certs/tls"),
+				},
 			}},
 			wantErr:   true,
 			errSubstr: "identity_name is required",
@@ -469,12 +550,18 @@ func TestNewCreateIdentityWorkflow(t *testing.T) {
 		{
 			name: "error - missing org_issuer_ref",
 			input: &pb.CreateIdentityWorkflowInput{Req: &pb.CreateIdentityInput{
-				Org:               testOrg,
-				IdentityName:      "test-identity",
-				OrgIssuerRef:      nil,
-				TlsIssuerRef:      &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
-				StorageSigningRef: secrets.NewVaultRef("test/signing"),
-				StorageTlsRef:     secrets.NewVaultRef("test/tls"),
+				Org:          testOrg,
+				IdentityName: "test-identity",
+				OrgIssuerRef: nil,
+				TlsIssuerRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				SigningStorage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/signing"),
+					CertRef: secrets.NewVaultRef("test/certs/signing"),
+				},
+				TlsStorage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/tls"),
+					CertRef: secrets.NewVaultRef("test/certs/tls"),
+				},
 			}},
 			wantErr:   true,
 			errSubstr: "org_issuer_ref is required",
@@ -482,41 +569,53 @@ func TestNewCreateIdentityWorkflow(t *testing.T) {
 		{
 			name: "error - missing tls_issuer_ref",
 			input: &pb.CreateIdentityWorkflowInput{Req: &pb.CreateIdentityInput{
-				Org:               testOrg,
-				IdentityName:      "test-identity",
-				OrgIssuerRef:      &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
-				TlsIssuerRef:      nil,
-				StorageSigningRef: secrets.NewVaultRef("test/signing"),
-				StorageTlsRef:     secrets.NewVaultRef("test/tls"),
+				Org:          testOrg,
+				IdentityName: "test-identity",
+				OrgIssuerRef: &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+				TlsIssuerRef: nil,
+				SigningStorage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/signing"),
+					CertRef: secrets.NewVaultRef("test/certs/signing"),
+				},
+				TlsStorage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/tls"),
+					CertRef: secrets.NewVaultRef("test/certs/tls"),
+				},
 			}},
 			wantErr:   true,
 			errSubstr: "tls_issuer_ref is required",
 		},
 		{
-			name: "error - missing storage_signing_ref",
+			name: "error - missing signing_storage",
 			input: &pb.CreateIdentityWorkflowInput{Req: &pb.CreateIdentityInput{
-				Org:               testOrg,
-				IdentityName:      "test-identity",
-				OrgIssuerRef:      &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
-				TlsIssuerRef:      &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
-				StorageSigningRef: nil,
-				StorageTlsRef:     secrets.NewVaultRef("test/tls"),
+				Org:            testOrg,
+				IdentityName:   "test-identity",
+				OrgIssuerRef:   &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+				TlsIssuerRef:   &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				SigningStorage: nil,
+				TlsStorage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/tls"),
+					CertRef: secrets.NewVaultRef("test/certs/tls"),
+				},
 			}},
 			wantErr:   true,
-			errSubstr: "storage_signing_ref is required",
+			errSubstr: "signing_storage is required",
 		},
 		{
-			name: "error - missing storage_tls_ref",
+			name: "error - missing tls_storage",
 			input: &pb.CreateIdentityWorkflowInput{Req: &pb.CreateIdentityInput{
-				Org:               testOrg,
-				IdentityName:      "test-identity",
-				OrgIssuerRef:      &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
-				TlsIssuerRef:      &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
-				StorageSigningRef: secrets.NewVaultRef("test/signing"),
-				StorageTlsRef:     nil,
+				Org:          testOrg,
+				IdentityName: "test-identity",
+				OrgIssuerRef: &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+				TlsIssuerRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				SigningStorage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/signing"),
+					CertRef: secrets.NewVaultRef("test/certs/signing"),
+				},
+				TlsStorage: nil,
 			}},
 			wantErr:   true,
-			errSubstr: "storage_tls_ref is required",
+			errSubstr: "tls_storage is required",
 		},
 	}
 
@@ -1104,7 +1203,7 @@ func TestCreateAdminWorkflow(t *testing.T) {
 							return nil, tt.signingCertErr
 						}
 						return &pb.CreateCertificateOutput{
-							CredentialsRef: input.StorageRef,
+							Identity: input.Storage,
 						}, nil
 					}
 					// Second call: TLS certificate
@@ -1112,7 +1211,7 @@ func TestCreateAdminWorkflow(t *testing.T) {
 						return nil, tt.tlsCertErr
 					}
 					return &pb.CreateCertificateOutput{
-						CredentialsRef: input.StorageRef,
+						Identity: input.Storage,
 					}, nil
 				})
 
@@ -1142,11 +1241,11 @@ func TestCreateAdminWorkflow(t *testing.T) {
 					if result == nil {
 						t.Fatal("result is nil")
 					}
-					if result.SigningCredentialsRef == nil {
-						t.Error("signing_credentials_ref is nil")
+					if result.SigningIdentity == nil {
+						t.Error("signing_identity is nil")
 					}
-					if result.TlsCredentialsRef == nil {
-						t.Error("tls_credentials_ref is nil")
+					if result.TlsIdentity == nil {
+						t.Error("tls_identity is nil")
 					}
 				}
 			} else {
@@ -1342,11 +1441,11 @@ func TestCreateBootstrapAdminWorkflow(t *testing.T) {
 					if result == nil {
 						t.Fatal("result is nil")
 					}
-					if result.SigningCredentialsRef == nil {
-						t.Error("signing_credentials_ref is nil")
+					if result.SigningIdentity == nil {
+						t.Error("signing_identity is nil")
 					}
-					if result.TlsCredentialsRef == nil {
-						t.Error("tls_credentials_ref is nil")
+					if result.TlsIdentity == nil {
+						t.Error("tls_identity is nil")
 					}
 				}
 			} else {
@@ -1420,7 +1519,7 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 							return nil, tt.signingCertErr
 						}
 						return &pb.CreateCertificateOutput{
-							CredentialsRef: input.StorageRef,
+							Identity: input.Storage,
 						}, nil
 					}
 					// Second call: TLS certificate
@@ -1428,7 +1527,7 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 						return nil, tt.tlsCertErr
 					}
 					return &pb.CreateCertificateOutput{
-						CredentialsRef: input.StorageRef,
+						Identity: input.Storage,
 					}, nil
 				})
 
@@ -1440,12 +1539,18 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 				}
 				return wf.Execute(ctx)
 			}, &pb.CreateIdentityInput{
-				Org:               tt.org,
-				IdentityName:      "test-peer",
-				OrgIssuerRef:      &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
-				TlsIssuerRef:      &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
-				StorageSigningRef: secrets.NewVaultRef("test/signing"),
-				StorageTlsRef:     secrets.NewVaultRef("test/tls"),
+				Org:          tt.org,
+				IdentityName: "test-peer",
+				OrgIssuerRef: &pb.CertificateAuthorityRef{CertType: "org", Id: "v1"},
+				TlsIssuerRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "v1"},
+				SigningStorage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/signing"),
+					CertRef: secrets.NewVaultRef("test/certs/signing"),
+				},
+				TlsStorage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/tls"),
+					CertRef: secrets.NewVaultRef("test/certs/tls"),
+				},
 				Subject: &pb.CertificateSubject{
 					CommonName:   "test-peer",
 					Organization: tt.org,
@@ -1464,11 +1569,11 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 					if result == nil {
 						t.Fatal("result is nil")
 					}
-					if result.SigningCredentialsRef == nil {
-						t.Error("signing_credentials_ref is nil")
+					if result.SigningIdentity == nil {
+						t.Error("signing_identity is nil")
 					}
-					if result.TlsCredentialsRef == nil {
-						t.Error("tls_credentials_ref is nil")
+					if result.TlsIdentity == nil {
+						t.Error("tls_identity is nil")
 					}
 				}
 			} else {
@@ -1815,9 +1920,13 @@ func TestCreateCertificateWorkflow(t *testing.T) {
 				}
 				return wf.Execute(ctx)
 			}, &pb.CreateCertificateInput{
-				Org:        tt.org,
-				IssuerRef:  &pb.CertificateAuthorityRef{CertType: tt.certType, Id: tt.caID},
-				StorageRef: secrets.NewVaultRef("test/storage"),
+				Org:       tt.org,
+				IssuerRef: &pb.CertificateAuthorityRef{CertType: tt.certType, Id: tt.caID},
+				Storage: &pb.IdentityRef{
+					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
+					CertRef: secrets.NewVaultRef("test/certs/storage"),
+				},
+				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
 				Subject: &pb.CertificateSubject{
 					CommonName:   "test-identity",
 					Organization: tt.org,
@@ -1835,8 +1944,8 @@ func TestCreateCertificateWorkflow(t *testing.T) {
 					if result == nil {
 						t.Fatal("result is nil")
 					}
-					if result.CredentialsRef == nil {
-						t.Error("credentials_ref is nil")
+					if result.Identity == nil {
+						t.Error("identity is nil")
 					}
 				}
 			} else {
@@ -2423,13 +2532,23 @@ func TestNewBootstrapCertificateAuthoritiesWorkflow(t *testing.T) {
 		{
 			name: "success - TLS CAs only",
 			input: &pb.BootstrapCertificateAuthoritiesWorkflowInput{Req: &pb.BootstrapCertificateAuthoritiesInput{
+				Org:                    testOrg,
 				CertificateAuthorities: testTLSCertificateAuthorities(),
 			}},
 			wantErr: false,
 		},
 		{
+			name: "error - missing org",
+			input: &pb.BootstrapCertificateAuthoritiesWorkflowInput{Req: &pb.BootstrapCertificateAuthoritiesInput{
+				CertificateAuthorities: testTLSCertificateAuthorities(),
+			}},
+			wantErr:   true,
+			errSubstr: "org is required",
+		},
+		{
 			name: "error - no certificate authorities",
 			input: &pb.BootstrapCertificateAuthoritiesWorkflowInput{Req: &pb.BootstrapCertificateAuthoritiesInput{
+				Org:                    testOrg,
 				CertificateAuthorities: []*pb.CertificateAuthoritySpec{},
 			}},
 			wantErr:   true,
@@ -2438,6 +2557,7 @@ func TestNewBootstrapCertificateAuthoritiesWorkflow(t *testing.T) {
 		{
 			name: "error - nil certificate authority spec",
 			input: &pb.BootstrapCertificateAuthoritiesWorkflowInput{Req: &pb.BootstrapCertificateAuthoritiesInput{
+				Org: testOrg,
 				CertificateAuthorities: []*pb.CertificateAuthoritySpec{
 					{Self: &pb.CertificateAuthorityRef{CertType: "tls", Id: "root"}},
 					nil,
@@ -2449,6 +2569,7 @@ func TestNewBootstrapCertificateAuthoritiesWorkflow(t *testing.T) {
 		{
 			name: "error - org CA not allowed",
 			input: &pb.BootstrapCertificateAuthoritiesWorkflowInput{Req: &pb.BootstrapCertificateAuthoritiesInput{
+				Org: testOrg,
 				CertificateAuthorities: []*pb.CertificateAuthoritySpec{
 					{Self: &pb.CertificateAuthorityRef{CertType: "tls", Id: "root"}},
 					{Self: &pb.CertificateAuthorityRef{CertType: "org", Id: "root"}},
@@ -2460,6 +2581,7 @@ func TestNewBootstrapCertificateAuthoritiesWorkflow(t *testing.T) {
 		{
 			name: "error - invalid cert type",
 			input: &pb.BootstrapCertificateAuthoritiesWorkflowInput{Req: &pb.BootstrapCertificateAuthoritiesInput{
+				Org: testOrg,
 				CertificateAuthorities: []*pb.CertificateAuthoritySpec{
 					{Self: &pb.CertificateAuthorityRef{CertType: "invalid", Id: "root"}},
 				},

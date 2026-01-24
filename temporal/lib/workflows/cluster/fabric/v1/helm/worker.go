@@ -4,6 +4,7 @@ import "github.com/metacensus/infra/temporal/lib/workers/config"
 
 // WorkerValues represents the Helm values for a fabric worker deployment
 type WorkerValues struct {
+	Operator       string
 	Org            string
 	Image          ImageConfig
 	Replicas       int
@@ -43,9 +44,10 @@ type ProbeConfig struct {
 }
 
 // NewWorkerValues creates WorkerValues with sensible defaults for a fabric worker
-func NewWorkerValues(orgCfg config.OrgConfig) *WorkerValues {
+func NewWorkerValues(operatorCfg config.OperatorConfig, orgCfg config.OrgConfig) *WorkerValues {
 	return &WorkerValues{
-		Org: orgCfg.OrgID,
+		Operator: operatorCfg.OwnerID(),
+		Org:      orgCfg.OrgID,
 		Image: ImageConfig{
 			Repository: "metacensus/fabric-worker",
 			Tag:        "latest",

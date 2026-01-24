@@ -263,13 +263,14 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 	var namespaceName string
 	var deploymentName string
 
+	operatorCfg := config.GetOperator()
 	orgCfg := config.OrgConfig{OrgID: w.input.Org}
 
 	switch {
 	case w.input.Component == componentWorker:
 		chartName = chartWorker
 		componentName = componentWorker
-		workerValues := helm.NewWorkerValues(orgCfg)
+		workerValues := helm.NewWorkerValues(*operatorCfg, orgCfg)
 		values = workerValues
 		namespaceName = orgCfg.KubernetesNamespace()
 		deploymentName = orgCfg.WorkerDeploymentName()
@@ -331,13 +332,11 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		componentName = componentPeer
 		// Create config objects to get consistent configuration values
 		peerConfig := fabricconfig.NewPeerConfig(orgCfg, peerID)
-		// Construct CA configs - currently all owned by the org, but TLS CAs
-		// will be owned by the operator after shared TLS CA migration
+		// Construct CA configs for root CA certificates (trust stores)
+		// Intermediate CA certs are now included in the chain built at enrollment time
 		orgRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "org", "root")
-		orgIntCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "org", "v1")
 		tlsRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "tls", "root")
-		tlsIntCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "tls", "v1")
-		peerValues := helm.NewPeerValues(peerConfig, orgRootCA, orgIntCA, tlsRootCA, tlsIntCA)
+		peerValues := helm.NewPeerValues(peerConfig, orgRootCA, tlsRootCA)
 		values = peerValues
 		namespaceName = peerConfig.KubernetesNamespace()
 		deploymentName = peerConfig.ComponentName() // Matches helm chart: {{ include "peer.name" . }}
@@ -350,13 +349,11 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		componentName = componentOrderer
 		// Create config objects to get consistent configuration values
 		ordererConfig := fabricconfig.NewOrdererConfig(orgCfg, ordererID)
-		// Construct CA configs - currently all owned by the org, but TLS CAs
-		// will be owned by the operator after shared TLS CA migration
+		// Construct CA configs for root CA certificates (trust stores)
+		// Intermediate CA certs are now included in the chain built at enrollment time
 		orgRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "org", "root")
-		orgIntCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "org", "v1")
 		tlsRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "tls", "root")
-		tlsIntCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "tls", "v1")
-		ordererValues := helm.NewOrdererValues(ordererConfig, orgRootCA, orgIntCA, tlsRootCA, tlsIntCA)
+		ordererValues := helm.NewOrdererValues(ordererConfig, orgRootCA, tlsRootCA)
 		values = ordererValues
 		namespaceName = ordererConfig.KubernetesNamespace()
 		deploymentName = ordererConfig.ComponentName() // Matches helm chart: {{ include "orderer.name" . }}

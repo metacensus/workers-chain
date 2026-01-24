@@ -35,20 +35,16 @@ type Activities struct {
 
 	// clientProvider manages cached Clients for Register/Revoke operations
 	clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig]
-
-	orgConfig config.OrgConfig
 }
 
 // NewActivities creates a new Activities instance
 func NewActivities(
 	secretProvider secrets.SecretProvider,
 	clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig],
-	orgConfig config.OrgConfig,
 ) *Activities {
 	return &Activities{
 		secretProvider: secretProvider,
 		clientProvider: clientProvider,
-		orgConfig:      orgConfig,
 	}
 }
 
@@ -112,10 +108,12 @@ func (a *Activities) RegisterIdentity(ctx context.Context, req *pb.RegisterIdent
 		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidActivityInput, certType)
 	}
 
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(a.orgConfig, certType, caID)
+	// Create owner config from input - enables activities to work for any owner
+	ownerConfig := config.NewOrgConfig(req.GetOrg())
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, certType, caID)
 
-	// Create config with explicit admin credentials (nil = use default permanent admin)
-	hydrator := certauthority.NewConfig(caConfig, req.GetAdminCredentialsRef())
+	// Create config with explicit admin identity (nil = use default permanent admin)
+	hydrator := certauthority.NewConfig(caConfig, req.GetAdminIdentity())
 
 	// Get the CA client - the clientProvider handles fetching secrets, hydrating config, and caching
 	client, err := a.clientProvider.GetClient(ctx, hydrator)
@@ -162,10 +160,16 @@ func convertAttributes(attrs map[string]string) []api.Attribute {
 	return result
 }
 
-// EnrollIdentity enrolls a registered identity and retrieves certificates
-// This is the second step in identity creation - enrollment uses the secret from registration
+// EnrollIdentity enrolls a registered identity and retrieves certificates.
+// This is the second step in identity creation - enrollment uses the secret from registration.
 // The pre-generated keypair is imported into the Fabric CA client's BCCSP so it uses our key
 // instead of generating its own, ensuring the certificate matches our stored private key.
+//
+// Keys and certs are stored at separate Vault paths:
+//   - key_ref (keys/ path): private key only
+//   - cert_ref (certs/ path): {certificate: leaf, chain: full chain}
+//
+// The chain is built at enrollment time: [leaf cert] + [issuer's chain].
 func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityInput) (*pb.EnrollIdentityOutput, error) {
 	caRef := req.GetCaRef()
 	if caRef == nil {
@@ -180,10 +184,18 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidActivityInput, certType)
 	}
 
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(a.orgConfig, certType, caID)
+	// Create owner config from input - enables activities to work for any owner
+	ownerConfig := config.NewOrgConfig(req.GetOrg())
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, certType, caID)
 
-	// Step 1: Fetch the pre-generated keypair from Vault
-	secret, err := a.secretProvider.FetchSecret(ctx, req.GetKeyRef())
+	// Get storage refs from identity
+	storage := req.GetStorage()
+	if storage == nil {
+		return nil, fmt.Errorf("%w: storage is required", ErrInvalidActivityInput)
+	}
+
+	// Step 1: Fetch the pre-generated keypair from Vault (keys/ path)
+	secret, err := a.secretProvider.FetchSecret(ctx, storage.GetKeyRef())
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to fetch secret: %w", ErrFetchSecret, err)
 	}
@@ -193,7 +205,7 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 		return nil, fmt.Errorf("%w: failed to parse key pair: %w", ErrFetchSecret, err)
 	}
 
-	// Step 2: Fetch TLS certificate if provided
+	// Step 2: Fetch CA's TLS certificate for mTLS connection
 	var tlsCertPEM []byte
 	if req.GetCaTlsCertRef() != nil {
 		certSecret, err := a.secretProvider.FetchSecret(ctx, req.GetCaTlsCertRef())
@@ -207,7 +219,20 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 		tlsCertPEM = cert.Certificate
 	}
 
-	// Step 3: Create a bootstrap client for enrollment using the enrollment secret
+	// Step 3: Fetch issuer's chain for building the full certificate chain
+	var issuerChain []byte
+	if req.GetIssuerCertRef() != nil {
+		issuerSecret, err := a.secretProvider.FetchSecret(ctx, req.GetIssuerCertRef())
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch issuer cert: %w", err)
+		}
+		// Get the chain from the issuer's cert path (certs/ path stores {certificate, chain})
+		if chainStr, ok := issuerSecret["chain"].(string); ok {
+			issuerChain = []byte(chainStr)
+		}
+	}
+
+	// Step 4: Create a bootstrap client for enrollment using the enrollment secret
 	bootstrapClient, err := certauthority.NewBootstrapClient(certauthority.BootstrapClientConfig{
 		URL:        caConfig.URL(),
 		Username:   identityName,              // Use identity name as username for enrollment
@@ -220,7 +245,7 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 	}
 	defer bootstrapClient.Close()
 
-	// Step 4: Enroll with our pre-generated key
+	// Step 5: Enroll with our pre-generated key
 	// This ensures the certificate matches our private key
 	subject := req.GetSubject()
 	csrInfo := &api.CSRInfo{
@@ -239,49 +264,33 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 		return nil, fmt.Errorf("%w: enrollment failed: %w", ErrEnrollIdentity, err)
 	}
 
-	// Step 5: Extract the certificate and optionally build full chain
-	// For CA signing certs (profile="ca"), only store the leaf cert - Fabric CA expects this
-	// For client certs (profile="" or "tls"), store the full chain for verification
+	// Step 6: Extract the certificate and build full chain
 	certPEM := enrollResp.Identity.GetECert().Cert()
-	caChain := enrollResp.CAInfo.CAChain
-	var certToStore []byte
-	if req.GetProfile() == "ca" {
-		// CA signing cert - just the leaf, no chain
-		certToStore = certPEM
+
+	// Build full chain: [leaf cert] + [issuer's chain]
+	// If no issuer chain is provided, use the CA chain from enrollment response
+	var fullChain []byte
+	if len(issuerChain) > 0 {
+		fullChain = buildCertificateChain(certPEM, issuerChain)
 	} else {
-		// Client cert - include full chain for verification
-		certToStore = buildCertificateChain(certPEM, caChain)
+		// Fallback to CA chain from enrollment response (for root CA bootstrap)
+		fullChain = buildCertificateChain(certPEM, enrollResp.CAInfo.CAChain)
 	}
 
-	// Step 6: Update the keypair secret with the certificate
-	// Store at the same location we fetched the key from
-	identityCreds := &secrets.IdentityCredentials{
-		PrivateKey:  keyPair.PrivateKey,
-		PublicKey:   keyPair.PublicKey,
-		Certificate: certToStore,
+	// Step 7: Store certificate + chain at cert_ref (certs/ path)
+	// Both the leaf certificate and full chain are stored for different use cases:
+	// - certificate: leaf cert only (for signcerts/)
+	// - chain: full chain (for mTLS server.crt)
+	certSecret := secrets.Secret{
+		"certificate": string(certPEM),
+		"chain":       string(fullChain),
 	}
-
-	identitySecret := secrets.FromIdentityCredentials(identityCreds)
-	if err := a.secretProvider.UpdateSecret(ctx, req.GetKeyRef(), identitySecret); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrStoreSecret, err)
-	}
-
-	// Step 7: Store CA chain separately if chain_ref is provided
-	// This is required for intermediate CAs so Fabric CA can verify client certs
-	// The chain MUST include the CA's own cert because Fabric CA's getCAChain()
-	// returns the chainfile content to build verification pools. The intermediate
-	// CA's cert must be in the pool to verify certs it issues.
-	if chainRef := req.GetChainRef(); chainRef != nil && len(caChain) > 0 {
-		// Build full chain: this CA's cert + parent chain
-		fullChain := buildCertificateChain(certPEM, caChain)
-		chainSecret := secrets.Secret{"chain": string(fullChain)}
-		if err := a.secretProvider.UpdateSecret(ctx, chainRef, chainSecret); err != nil {
-			return nil, fmt.Errorf("%w: failed to store CA chain: %w", ErrStoreSecret, err)
-		}
+	if err := a.secretProvider.UpdateSecret(ctx, storage.GetCertRef(), certSecret); err != nil {
+		return nil, fmt.Errorf("%w: failed to store certificate: %w", ErrStoreSecret, err)
 	}
 
 	return &pb.EnrollIdentityOutput{
-		CertRef: req.GetKeyRef(), // Return the same ref - it now contains key + cert chain
+		Identity: storage,
 	}, nil
 }
 
@@ -301,10 +310,12 @@ func (a *Activities) RevokeIdentity(ctx context.Context, req *pb.RevokeIdentityI
 		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidActivityInput, certType)
 	}
 
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(a.orgConfig, certType, caID)
+	// Create owner config from input - enables activities to work for any owner
+	ownerConfig := config.NewOrgConfig(req.GetOrg())
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, certType, caID)
 
-	// Create config with explicit admin credentials (nil = use default permanent admin)
-	hydrator := certauthority.NewConfig(caConfig, req.GetAdminCredentialsRef())
+	// Create config with explicit admin identity (nil = use default permanent admin)
+	hydrator := certauthority.NewConfig(caConfig, req.GetAdminIdentity())
 
 	// Get the CA client - the clientProvider handles fetching secrets, hydrating config, and caching
 	client, err := a.clientProvider.GetClient(ctx, hydrator)
@@ -333,9 +344,21 @@ func (a *Activities) RevokeIdentity(ctx context.Context, req *pb.RevokeIdentityI
 // This is used ONLY during CA initialization to obtain the bootstrap admin's certificate.
 // The pre-generated keypair is imported into the Fabric CA client's BCCSP so it uses our key
 // instead of generating its own, ensuring the certificate matches our stored private key.
+//
+// Keys and certs are stored at separate Vault paths:
+//   - storage.key_ref (keys/ path): private key only (already exists, not modified)
+//   - storage.cert_ref (certs/ path): {certificate: leaf, chain: full chain}
+//
+// The chain is built at enrollment time: [leaf cert] + [issuer's chain].
 func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.BootstrapEnrollIdentityInput) (*pb.BootstrapEnrollIdentityOutput, error) {
-	// Step 1: Fetch the pre-generated keypair from Vault
-	secret, err := a.secretProvider.FetchSecret(ctx, req.GetKeyRef())
+	// Get storage refs from identity
+	storage := req.GetStorage()
+	if storage == nil {
+		return nil, fmt.Errorf("%w: storage is required", ErrInvalidActivityInput)
+	}
+
+	// Step 1: Fetch the pre-generated keypair from Vault (keys/ path)
+	secret, err := a.secretProvider.FetchSecret(ctx, storage.GetKeyRef())
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to fetch secret: %w", ErrFetchSecret, err)
 	}
@@ -345,14 +368,27 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 		return nil, fmt.Errorf("%w: failed to parse key pair: %w", ErrFetchSecret, err)
 	}
 
-	// Step 2: Create bootstrap client
+	// Step 2: Fetch issuer's chain for building the full certificate chain (optional)
+	var issuerChain []byte
+	if req.GetIssuerCertRef() != nil {
+		issuerSecret, err := a.secretProvider.FetchSecret(ctx, req.GetIssuerCertRef())
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch issuer cert: %w", err)
+		}
+		// Get the chain from the issuer's cert path (certs/ path stores {certificate, chain})
+		if chainStr, ok := issuerSecret["chain"].(string); ok {
+			issuerChain = []byte(chainStr)
+		}
+	}
+
+	// Step 3: Create bootstrap client
 	bootstrapClient, err := a.getBootstrapClient(ctx, req.GetBootstrapCredentialsRef(), req.GetCaUrl(), req.GetCaTlsCertRef())
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrBootstrapEnrollIdentity, err)
 	}
 	defer bootstrapClient.Close()
 
-	// Step 3: Build CSR info from subject
+	// Step 4: Build CSR info from subject
 	subject := req.GetSubject()
 	csrInfo := &api.CSRInfo{
 		CN: subject.GetCommonName(),
@@ -363,56 +399,40 @@ func (a *Activities) BootstrapEnrollIdentity(ctx context.Context, req *pb.Bootst
 		csrInfo.Hosts = subject.GetDnsNames()
 	}
 
-	// Step 4: Enroll with our pre-generated key
+	// Step 5: Enroll with our pre-generated key
 	// This ensures the certificate matches our private key
 	enrollResp, err := bootstrapClient.EnrollWithKey(ctx, keyPair.PrivateKey, csrInfo, req.GetProfile())
 	if err != nil {
 		return nil, fmt.Errorf("%w: enrollment failed: %w", ErrBootstrapEnrollIdentity, err)
 	}
 
-	// Extract the certificate and optionally build full chain
-	// For CA signing certs (profile="ca"), only store the leaf cert - Fabric CA expects this
-	// For client certs (profile="" or "tls"), store the full chain for verification
+	// Step 6: Extract the certificate and build full chain
 	certPEM := enrollResp.Identity.GetECert().Cert()
-	caChain := enrollResp.CAInfo.CAChain
-	var certToStore []byte
-	if req.GetProfile() == "ca" {
-		// CA signing cert - just the leaf, no chain
-		certToStore = certPEM
+
+	// Build full chain: [leaf cert] + [issuer's chain]
+	// If no issuer chain is provided, use the CA chain from enrollment response
+	var fullChain []byte
+	if len(issuerChain) > 0 {
+		fullChain = buildCertificateChain(certPEM, issuerChain)
 	} else {
-		// Client cert - include full chain for verification
-		certToStore = buildCertificateChain(certPEM, caChain)
+		// Fallback to CA chain from enrollment response (for root CA bootstrap)
+		fullChain = buildCertificateChain(certPEM, enrollResp.CAInfo.CAChain)
 	}
 
-	// Step 5: Store our original keypair + the certificate
-	// They match because the CA signed a CSR generated with our key
-	identityCreds := &secrets.IdentityCredentials{
-		PrivateKey:  keyPair.PrivateKey,
-		PublicKey:   keyPair.PublicKey,
-		Certificate: certToStore,
+	// Step 7: Store certificate + chain at cert_ref (certs/ path)
+	// Both the leaf certificate and full chain are stored for different use cases:
+	// - certificate: leaf cert only (for signcerts/)
+	// - chain: full chain (for mTLS server.crt)
+	certSecret := secrets.Secret{
+		"certificate": string(certPEM),
+		"chain":       string(fullChain),
 	}
-
-	identitySecret := secrets.FromIdentityCredentials(identityCreds)
-	if err := a.secretProvider.UpdateSecret(ctx, req.GetCertRef(), identitySecret); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrStoreSecret, err)
-	}
-
-	// Step 6: Store CA chain separately if chain_ref is provided
-	// This is required for intermediate CAs so Fabric CA can verify client certs
-	// The chain MUST include the CA's own cert because Fabric CA's getCAChain()
-	// returns the chainfile content to build verification pools. The intermediate
-	// CA's cert must be in the pool to verify certs it issues.
-	if chainRef := req.GetChainRef(); chainRef != nil && len(caChain) > 0 {
-		// Build full chain: this CA's cert + parent chain
-		fullChain := buildCertificateChain(certPEM, caChain)
-		chainSecret := secrets.Secret{"chain": string(fullChain)}
-		if err := a.secretProvider.UpdateSecret(ctx, chainRef, chainSecret); err != nil {
-			return nil, fmt.Errorf("%w: failed to store CA chain: %w", ErrStoreSecret, err)
-		}
+	if err := a.secretProvider.UpdateSecret(ctx, storage.GetCertRef(), certSecret); err != nil {
+		return nil, fmt.Errorf("%w: failed to store certificate: %w", ErrStoreSecret, err)
 	}
 
 	return &pb.BootstrapEnrollIdentityOutput{
-		CertRef: req.GetCertRef(),
+		Identity: storage,
 	}, nil
 }
 

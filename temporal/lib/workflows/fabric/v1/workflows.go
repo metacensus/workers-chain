@@ -185,14 +185,9 @@ func (w *bootstrapCertificateAuthoritiesWorkflow) validate() error {
 	if len(cas) == 0 {
 		return fmt.Errorf("%w: at least one certificate authority is required", ErrInvalidInput)
 	}
-	// Validate that all CAs are TLS CAs
 	for i, caSpec := range cas {
 		if caSpec.GetSelf() == nil {
 			return fmt.Errorf("%w: certificate_authorities[%d].self is required", ErrInvalidInput, i)
-		}
-		certType := caSpec.GetSelf().GetCertType()
-		if certType != "tls" {
-			return fmt.Errorf("%w: certificate_authorities[%d] must have cert_type='tls', got '%s'", ErrInvalidInput, i, certType)
 		}
 	}
 	return nil
@@ -359,12 +354,21 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 	logger := workflow.GetLogger(ctx)
 	org := w.input.Req.GetOrg()
 	orgConfig := config.NewOrgConfig(org)
+	operatorConfig := config.GetOperator()
 	spec := w.input.Req.GetSpec()
 	caRef := spec.GetSelf()
 	certType := caRef.GetCertType()
 	caID := caRef.GetId()
 
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, certType, caID)
+	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
+	var ownerConfig config.OwnerConfig
+	if certType == "tls" {
+		ownerConfig = operatorConfig
+	} else {
+		ownerConfig = orgConfig
+	}
+
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, certType, caID)
 	logger.Info("Deploying certificate authority", "ca", caConfig.Description())
 
 	ao := workflow.ActivityOptions{
@@ -412,15 +416,15 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 		logger.Info("Creating self-signed signing certificate", "ca", caConfig.Description())
 
 		err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
-			SecretRef: caConfig.VaultSigningRef(),
+			SecretRef: caConfig.VaultSigningKeyRef(),
 		}).Get(ctx, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate signing key pair: %w", err)
 		}
 
 		err = workflow.ExecuteActivity(activityCtx, secretspb.CreateSelfSignedCertificateActivityName, &secretspb.CreateSelfSignedCertificateInput{
-			KeyRef:             caConfig.VaultSigningRef(),
-			CertRef:            caConfig.VaultSigningRef(),
+			KeyRef:             caConfig.VaultSigningKeyRef(),
+			CertRef:            caConfig.VaultSigningCertRef(),
 			CommonName:         caConfig.ComponentName(),
 			Organization:       org,
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
@@ -433,7 +437,14 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 		}
 	} else {
 		// Issued by parent CA - get config for the issuer to access its admin credentials
-		signingIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, signingIssuerRef.GetCertType(), signingIssuerRef.GetId())
+		// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
+		var signingIssuerOwner config.OwnerConfig
+		if signingIssuerRef.GetCertType() == "tls" {
+			signingIssuerOwner = operatorConfig
+		} else {
+			signingIssuerOwner = orgConfig
+		}
+		signingIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(signingIssuerOwner, signingIssuerRef.GetCertType(), signingIssuerRef.GetId())
 		logger.Info("Creating CA-signed signing certificate", "ca", caConfig.Description(), "issuer", signingIssuerConfig.Description())
 		_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
 			Org:       org,
@@ -444,15 +455,19 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 				Organization:       org,
 				OrganizationalUnit: caConfig.OrganizationalUnit(),
 			},
-			StorageRef:          caConfig.VaultSigningRef(),
-			AdminCredentialsRef: signingIssuerConfig.VaultAdminSigningRef(),
-			Purpose:             signingPurpose,
+			Storage: &pb.IdentityRef{
+				KeyRef:  caConfig.VaultSigningKeyRef(),
+				CertRef: caConfig.VaultSigningCertRef(),
+			},
+			AdminIdentity: &pb.IdentityRef{
+				KeyRef:  signingIssuerConfig.VaultAdminSigningKeyRef(),
+				CertRef: signingIssuerConfig.VaultAdminSigningCertRef(),
+			},
+			Purpose: signingPurpose,
 			Attributes: map[string]string{
 				"hf.IntermediateCA": "true",
 			},
-			// Store parent chain separately for x509 verification
-			// This enables intermediate CA to verify client certs it issues
-			ChainRef: caConfig.VaultSigningChainRef(),
+			IssuerCertRef: signingIssuerConfig.VaultSigningCertRef(),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("%w (signing): %w", ErrCreateCertificate, err)
@@ -469,15 +484,15 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 		logger.Info("Creating self-signed TLS certificate", "ca", caConfig.Description())
 
 		err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
-			SecretRef: caConfig.VaultTLSRef(),
+			SecretRef: caConfig.VaultTLSKeyRef(),
 		}).Get(ctx, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate TLS key pair: %w", err)
 		}
 
 		err = workflow.ExecuteActivity(activityCtx, secretspb.CreateSelfSignedCertificateActivityName, &secretspb.CreateSelfSignedCertificateInput{
-			KeyRef:             caConfig.VaultTLSRef(),
-			CertRef:            caConfig.VaultTLSRef(),
+			KeyRef:             caConfig.VaultTLSKeyRef(),
+			CertRef:            caConfig.VaultTLSCertRef(),
 			CommonName:         caConfig.ComponentName(),
 			Organization:       org,
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
@@ -492,7 +507,14 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 		// Issued by TLS CA - get config for the issuer to access its admin credentials
 		// Use computeTLSCommonName() to avoid registration collision when both signing and TLS certs
 		// come from the same CA (e.g., TLS Int CA)
-		tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, tlsIssuerRef.GetCertType(), tlsIssuerRef.GetId())
+		// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
+		var tlsIssuerOwner config.OwnerConfig
+		if tlsIssuerRef.GetCertType() == "tls" {
+			tlsIssuerOwner = operatorConfig
+		} else {
+			tlsIssuerOwner = orgConfig
+		}
+		tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(tlsIssuerOwner, tlsIssuerRef.GetCertType(), tlsIssuerRef.GetId())
 		tlsCommonName := computeTLSCommonName(caConfig.ComponentName(), signingIssuerRef, tlsIssuerRef)
 		logger.Info("Creating CA-signed TLS certificate", "ca", caConfig.Description(), "issuer", tlsIssuerConfig.Description())
 		_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
@@ -505,9 +527,16 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 				OrganizationalUnit: caConfig.OrganizationalUnit(),
 				DnsNames:           caConfig.TLSDNSNames(),
 			},
-			StorageRef:          caConfig.VaultTLSRef(),
-			AdminCredentialsRef: tlsIssuerConfig.VaultAdminSigningRef(),
-			Purpose:             tlsPurpose,
+			Storage: &pb.IdentityRef{
+				KeyRef:  caConfig.VaultTLSKeyRef(),
+				CertRef: caConfig.VaultTLSCertRef(),
+			},
+			AdminIdentity: &pb.IdentityRef{
+				KeyRef:  tlsIssuerConfig.VaultAdminSigningKeyRef(),
+				CertRef: tlsIssuerConfig.VaultAdminSigningCertRef(),
+			},
+			Purpose:       tlsPurpose,
+			IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("%w (tls): %w", ErrCreateCertificate, err)
@@ -616,11 +645,20 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 	logger := workflow.GetLogger(ctx)
 	org := w.input.Req.GetOrg()
 	orgConfig := config.NewOrgConfig(org)
+	operatorConfig := config.GetOperator()
 	caRef := w.input.Req.GetCaRef()
 	certType := caRef.GetCertType()
 	caID := caRef.GetId()
 
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, certType, caID)
+	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
+	var ownerConfig config.OwnerConfig
+	if certType == "tls" {
+		ownerConfig = operatorConfig
+	} else {
+		ownerConfig = orgConfig
+	}
+
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, certType, caID)
 	certStore := fabricconfig.NewCertificateStoreConfig(orgConfig)
 
 	// Wait for certificate store to be ready
@@ -729,8 +767,17 @@ func (w *createCertificateWorkflow) validate() error {
 	if req.GetIssuerRef() == nil {
 		return fmt.Errorf("%w: issuer_ref is required (use secrets.CreateSelfSignedCertificate for self-signed)", ErrInvalidInput)
 	}
-	if req.GetStorageRef() == nil {
-		return fmt.Errorf("%w: storage_ref is required", ErrInvalidInput)
+	if req.GetStorage() == nil {
+		return fmt.Errorf("%w: storage is required", ErrInvalidInput)
+	}
+	if req.GetStorage().GetKeyRef() == nil {
+		return fmt.Errorf("%w: storage.key_ref is required", ErrInvalidInput)
+	}
+	if req.GetStorage().GetCertRef() == nil {
+		return fmt.Errorf("%w: storage.cert_ref is required", ErrInvalidInput)
+	}
+	if req.GetIssuerCertRef() == nil {
+		return fmt.Errorf("%w: issuer_cert_ref is required", ErrInvalidInput)
 	}
 	certType := req.GetIssuerRef().GetCertType()
 	if certType != "tls" && certType != "org" {
@@ -743,11 +790,21 @@ func (w *createCertificateWorkflow) Execute(ctx workflow.Context) (*pb.CreateCer
 	req := w.input.Req
 	org := req.GetOrg()
 	orgConfig := config.NewOrgConfig(org)
+	operatorConfig := config.GetOperator()
 	issuerRef := req.GetIssuerRef()
 	certType := issuerRef.GetCertType()
 	caID := issuerRef.GetId()
+	storage := req.GetStorage()
 
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, certType, caID)
+	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
+	var ownerConfig config.OwnerConfig
+	if certType == "tls" {
+		ownerConfig = operatorConfig
+	} else {
+		ownerConfig = orgConfig
+	}
+
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, certType, caID)
 
 	ao := workflow.ActivityOptions{
 		StartToCloseTimeout: 5 * time.Minute,
@@ -760,9 +817,9 @@ func (w *createCertificateWorkflow) Execute(ctx workflow.Context) (*pb.CreateCer
 	}
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
-	// Step 1: Generate key pair
+	// Step 1: Generate key pair at storage.key_ref (keys/ path)
 	err := workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
-		SecretRef: req.GetStorageRef(),
+		SecretRef: storage.GetKeyRef(),
 	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate key pair: %w", err)
@@ -782,35 +839,38 @@ func (w *createCertificateWorkflow) Execute(ctx workflow.Context) (*pb.CreateCer
 
 	var registerOutput pb.RegisterIdentityOutput
 	err = workflow.ExecuteActivity(activityCtx, pb.RegisterIdentityActivityName, &pb.RegisterIdentityInput{
-		CaRef:               issuerRef,
-		IdentityName:        identityName,
-		Affiliation:         "",
-		Attributes:          req.GetAttributes(),
-		IdentityType:        identityType,
-		AdminCredentialsRef: req.GetAdminCredentialsRef(),
+		Org:           org,
+		CaRef:         issuerRef,
+		IdentityName:  identityName,
+		Affiliation:   "",
+		Attributes:    req.GetAttributes(),
+		IdentityType:  identityType,
+		AdminIdentity: req.GetAdminIdentity(),
 	}).Get(ctx, &registerOutput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to register identity: %w", err)
 	}
 
 	// Step 3: Enroll identity with CA
+	// Keys and certs are stored at separate paths via storage IdentityRef
 	var enrollOutput pb.EnrollIdentityOutput
 	err = workflow.ExecuteActivity(activityCtx, pb.EnrollIdentityActivityName, &pb.EnrollIdentityInput{
+		Org:              org,
 		CaRef:            issuerRef,
 		IdentityName:     identityName,
 		EnrollmentSecret: registerOutput.GetEnrollmentSecret(),
-		KeyRef:           req.GetStorageRef(),
+		Storage:          storage, // IdentityRef with key and cert refs
 		Subject:          subject,
-		CaTlsCertRef:     caConfig.VaultTLSRef(),
+		CaTlsCertRef:     caConfig.VaultTLSCertRef(), // CA's TLS cert for mTLS
+		IssuerCertRef:    req.GetIssuerCertRef(),     // Issuer's cert path for chain building
 		Profile:          req.GetProfile(),
-		ChainRef:         req.GetChainRef(), // Pass through for intermediate CA certs
 	}).Get(ctx, &enrollOutput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to enroll identity: %w", err)
 	}
 
 	return &pb.CreateCertificateOutput{
-		CredentialsRef: req.GetStorageRef(),
+		Identity: storage,
 	}, nil
 }
 
@@ -850,10 +910,19 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 	logger := workflow.GetLogger(ctx)
 	org := w.input.Req.GetOrg()
 	orgConfig := config.NewOrgConfig(org)
+	operatorConfig := config.GetOperator()
 	caRef := w.input.Req.GetCaRef()
 	certType := caRef.GetCertType()
 	caID := caRef.GetId()
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, certType, caID)
+
+	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
+	var ownerConfig config.OwnerConfig
+	if certType == "tls" {
+		ownerConfig = operatorConfig
+	} else {
+		ownerConfig = orgConfig
+	}
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, certType, caID)
 
 	// Wait for CA to be ready
 	logger.Info("Waiting for CA to be ready", "ca", caConfig.Description())
@@ -890,35 +959,40 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 	}
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
-	// Create keypair for signing identity
+	// Create keypair for signing identity (keys/ path)
 	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
-		SecretRef: caConfig.VaultBootstrapAdminSigningRef(),
+		SecretRef: caConfig.VaultBootstrapAdminSigningKeyRef(),
 	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate signing key pair: %w", err)
 	}
 
 	// Bootstrap enroll signing identity from this CA
+	// Storage IdentityRef holds both key and cert refs
+	signingStorage := &pb.IdentityRef{
+		KeyRef:  caConfig.VaultBootstrapAdminSigningKeyRef(),
+		CertRef: caConfig.VaultBootstrapAdminSigningCertRef(),
+	}
 	err = workflow.ExecuteActivity(activityCtx, pb.BootstrapEnrollIdentityActivityName, &pb.BootstrapEnrollIdentityInput{
 		CaUrl:                   caConfig.URL(),
 		BootstrapCredentialsRef: caConfig.VaultBootstrapAdminCredentialsRef(),
-		KeyRef:                  caConfig.VaultBootstrapAdminSigningRef(),
-		CertRef:                 caConfig.VaultBootstrapAdminSigningRef(),
+		Storage:                 signingStorage,
 		Subject: &pb.CertificateSubject{
 			CommonName:         caConfig.BootstrapAdminCommonName(),
 			Organization:       org,
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
 		},
-		CaTlsCertRef: caConfig.VaultTLSRef(),
-		Profile:      "", // Default profile for admin identity
+		CaTlsCertRef:  caConfig.VaultTLSCertRef(),
+		IssuerCertRef: caConfig.VaultSigningCertRef(), // CA's signing cert for chain building
+		Profile:       "",                             // Default profile for admin identity
 	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to bootstrap enroll signing identity: %w", err)
 	}
 
-	// Create keypair for TLS client cert
+	// Create keypair for TLS client cert (keys/ path)
 	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
-		SecretRef: caConfig.VaultBootstrapAdminTLSRef(),
+		SecretRef: caConfig.VaultBootstrapAdminTLSKeyRef(),
 	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate TLS key pair: %w", err)
@@ -933,7 +1007,14 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 		tlsIssuerConfig = caConfig
 		tlsIssuerRef = caRef // For collision detection
 	} else {
-		tlsIssuerConfig = fabricconfig.NewCertificateAuthorityConfig(orgConfig, tlsIssuerRef.GetCertType(), tlsIssuerRef.GetId())
+		// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
+		var tlsIssuerOwner config.OwnerConfig
+		if tlsIssuerRef.GetCertType() == "tls" {
+			tlsIssuerOwner = operatorConfig
+		} else {
+			tlsIssuerOwner = orgConfig
+		}
+		tlsIssuerConfig = fabricconfig.NewCertificateAuthorityConfig(tlsIssuerOwner, tlsIssuerRef.GetCertType(), tlsIssuerRef.GetId())
 	}
 
 	// Compute TLS common name - signing identity always comes from this CA (bootstrap enrollment)
@@ -944,18 +1025,22 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 		tlsIssuerRef,
 	)
 
+	tlsStorage := &pb.IdentityRef{
+		KeyRef:  caConfig.VaultBootstrapAdminTLSKeyRef(),
+		CertRef: caConfig.VaultBootstrapAdminTLSCertRef(),
+	}
 	err = workflow.ExecuteActivity(activityCtx, pb.BootstrapEnrollIdentityActivityName, &pb.BootstrapEnrollIdentityInput{
 		CaUrl:                   tlsIssuerConfig.URL(),
 		BootstrapCredentialsRef: tlsIssuerConfig.VaultBootstrapAdminCredentialsRef(),
-		KeyRef:                  caConfig.VaultBootstrapAdminTLSRef(),
-		CertRef:                 caConfig.VaultBootstrapAdminTLSRef(),
+		Storage:                 tlsStorage,
 		Subject: &pb.CertificateSubject{
 			CommonName:         tlsCommonName,
 			Organization:       org,
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
 		},
-		CaTlsCertRef: tlsIssuerConfig.VaultTLSRef(),
-		Profile:      "tls", // TLS profile for client cert
+		CaTlsCertRef:  tlsIssuerConfig.VaultTLSCertRef(),
+		IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(), // TLS issuer's signing cert for chain building
+		Profile:       "tls",                                 // TLS profile for client cert
 	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to bootstrap enroll TLS identity: %w", err)
@@ -964,8 +1049,8 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 	logger.Info("Bootstrap admin created", "ca", caConfig.Description())
 
 	return &pb.CreateBootstrapAdminOutput{
-		SigningCredentialsRef: caConfig.VaultBootstrapAdminSigningRef(),
-		TlsCredentialsRef:     caConfig.VaultBootstrapAdminTLSRef(),
+		SigningIdentity: signingStorage,
+		TlsIdentity:     tlsStorage,
 	}, nil
 }
 
@@ -1005,10 +1090,19 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 	logger := workflow.GetLogger(ctx)
 	org := w.input.Req.GetOrg()
 	orgConfig := config.NewOrgConfig(org)
+	operatorConfig := config.GetOperator()
 	caRef := w.input.Req.GetCaRef()
 	certType := caRef.GetCertType()
 	caID := caRef.GetId()
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, certType, caID)
+
+	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
+	var ownerConfig config.OwnerConfig
+	if certType == "tls" {
+		ownerConfig = operatorConfig
+	} else {
+		ownerConfig = orgConfig
+	}
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, certType, caID)
 
 	logger.Info("Creating permanent admin", "ca", caConfig.Description())
 
@@ -1018,19 +1112,36 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 	if signingIssuerRef == nil || signingIssuerRef.GetCertType() == "" {
 		signingIssuerRef = caRef // Default: signing from this CA itself
 	}
-	signingIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, signingIssuerRef.GetCertType(), signingIssuerRef.GetId())
+	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
+	var signingIssuerOwner config.OwnerConfig
+	if signingIssuerRef.GetCertType() == "tls" {
+		signingIssuerOwner = operatorConfig
+	} else {
+		signingIssuerOwner = orgConfig
+	}
+	signingIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(signingIssuerOwner, signingIssuerRef.GetCertType(), signingIssuerRef.GetId())
 	signingPurpose := fmt.Sprintf("%s-%s-admin-signing", certType, caID)
 
 	// Determine which credentials to use for registration with the signing issuer:
 	// - If signing issuer is this CA itself → use this CA's bootstrap admin
 	// - If signing issuer is a different CA → use that CA's permanent admin
-	var signingAdminCreds *secretspb.SecretRef
+	var signingAdminIdentity *pb.IdentityRef
 	if signingIssuerRef.GetCertType() == caRef.GetCertType() && signingIssuerRef.GetId() == caRef.GetId() {
-		signingAdminCreds = caConfig.VaultBootstrapAdminSigningRef()
+		signingAdminIdentity = &pb.IdentityRef{
+			KeyRef:  caConfig.VaultBootstrapAdminSigningKeyRef(),
+			CertRef: caConfig.VaultBootstrapAdminSigningCertRef(),
+		}
 	} else {
-		signingAdminCreds = signingIssuerConfig.VaultAdminSigningRef()
+		signingAdminIdentity = &pb.IdentityRef{
+			KeyRef:  signingIssuerConfig.VaultAdminSigningKeyRef(),
+			CertRef: signingIssuerConfig.VaultAdminSigningCertRef(),
+		}
 	}
 
+	signingStorage := &pb.IdentityRef{
+		KeyRef:  caConfig.VaultAdminSigningKeyRef(),
+		CertRef: caConfig.VaultAdminSigningCertRef(),
+	}
 	_, err := pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
 		Org:       org,
 		IssuerRef: signingIssuerRef,
@@ -1040,9 +1151,10 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 			Organization:       org,
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
 		},
-		StorageRef:          caConfig.VaultAdminSigningRef(),
-		AdminCredentialsRef: signingAdminCreds,
-		Purpose:             signingPurpose,
+		Storage:       signingStorage,
+		AdminIdentity: signingAdminIdentity,
+		Purpose:       signingPurpose,
+		IssuerCertRef: signingIssuerConfig.VaultSigningCertRef(),
 		Attributes: map[string]string{
 			"hf.Registrar.Roles":         "*",
 			"hf.Registrar.DelegateRoles": "*",
@@ -1062,7 +1174,14 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 	if tlsIssuerRef == nil || tlsIssuerRef.GetCertType() == "" {
 		tlsIssuerRef = caRef // Default: TLS from this CA itself
 	}
-	tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, tlsIssuerRef.GetCertType(), tlsIssuerRef.GetId())
+	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
+	var tlsIssuerOwner config.OwnerConfig
+	if tlsIssuerRef.GetCertType() == "tls" {
+		tlsIssuerOwner = operatorConfig
+	} else {
+		tlsIssuerOwner = orgConfig
+	}
+	tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(tlsIssuerOwner, tlsIssuerRef.GetCertType(), tlsIssuerRef.GetId())
 	tlsPurpose := fmt.Sprintf("%s-%s-admin-tls", certType, caID)
 
 	// Compute TLS common name - add "-tls" suffix if same CA issues both to avoid collision
@@ -1071,13 +1190,23 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 	// Determine which credentials to use for registration with the TLS issuer:
 	// - If TLS issuer is this CA itself → use this CA's bootstrap admin
 	// - If TLS issuer is a different CA → use that CA's permanent admin
-	var tlsAdminCreds *secretspb.SecretRef
+	var tlsAdminIdentity *pb.IdentityRef
 	if tlsIssuerRef.GetCertType() == caRef.GetCertType() && tlsIssuerRef.GetId() == caRef.GetId() {
-		tlsAdminCreds = caConfig.VaultBootstrapAdminSigningRef()
+		tlsAdminIdentity = &pb.IdentityRef{
+			KeyRef:  caConfig.VaultBootstrapAdminSigningKeyRef(),
+			CertRef: caConfig.VaultBootstrapAdminSigningCertRef(),
+		}
 	} else {
-		tlsAdminCreds = tlsIssuerConfig.VaultAdminSigningRef()
+		tlsAdminIdentity = &pb.IdentityRef{
+			KeyRef:  tlsIssuerConfig.VaultAdminSigningKeyRef(),
+			CertRef: tlsIssuerConfig.VaultAdminSigningCertRef(),
+		}
 	}
 
+	tlsStorage := &pb.IdentityRef{
+		KeyRef:  caConfig.VaultAdminTLSKeyRef(),
+		CertRef: caConfig.VaultAdminTLSCertRef(),
+	}
 	_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
 		Org:       org,
 		IssuerRef: tlsIssuerRef,
@@ -1087,9 +1216,10 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 			Organization:       org,
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
 		},
-		StorageRef:          caConfig.VaultAdminTLSRef(),
-		AdminCredentialsRef: tlsAdminCreds,
-		Purpose:             tlsPurpose,
+		Storage:       tlsStorage,
+		AdminIdentity: tlsAdminIdentity,
+		Purpose:       tlsPurpose,
+		IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create admin TLS identity: %w", err)
@@ -1098,8 +1228,8 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 	logger.Info("Permanent admin created", "ca", caConfig.Description())
 
 	return &pb.CreateAdminOutput{
-		SigningCredentialsRef: caConfig.VaultAdminSigningRef(),
-		TlsCredentialsRef:     caConfig.VaultAdminTLSRef(),
+		SigningIdentity: signingStorage,
+		TlsIdentity:     tlsStorage,
 	}, nil
 }
 
@@ -1139,11 +1269,23 @@ func (w *createIdentityWorkflow) validate() error {
 	if req.GetTlsIssuerRef() == nil {
 		return fmt.Errorf("%w: tls_issuer_ref is required", ErrInvalidInput)
 	}
-	if req.GetStorageSigningRef() == nil {
-		return fmt.Errorf("%w: storage_signing_ref is required", ErrInvalidInput)
+	if req.GetSigningStorage() == nil {
+		return fmt.Errorf("%w: signing_storage is required", ErrInvalidInput)
 	}
-	if req.GetStorageTlsRef() == nil {
-		return fmt.Errorf("%w: storage_tls_ref is required", ErrInvalidInput)
+	if req.GetSigningStorage().GetKeyRef() == nil {
+		return fmt.Errorf("%w: signing_storage.key_ref is required", ErrInvalidInput)
+	}
+	if req.GetSigningStorage().GetCertRef() == nil {
+		return fmt.Errorf("%w: signing_storage.cert_ref is required", ErrInvalidInput)
+	}
+	if req.GetTlsStorage() == nil {
+		return fmt.Errorf("%w: tls_storage is required", ErrInvalidInput)
+	}
+	if req.GetTlsStorage().GetKeyRef() == nil {
+		return fmt.Errorf("%w: tls_storage.key_ref is required", ErrInvalidInput)
+	}
+	if req.GetTlsStorage().GetCertRef() == nil {
+		return fmt.Errorf("%w: tls_storage.cert_ref is required", ErrInvalidInput)
 	}
 	return nil
 }
@@ -1152,26 +1294,47 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 	req := w.input.Req
 	org := req.GetOrg()
 	orgConfig := config.NewOrgConfig(org)
+	operatorConfig := config.GetOperator()
 	identityName := req.GetIdentityName()
 	orgIssuer := req.GetOrgIssuerRef()
 	tlsIssuer := req.GetTlsIssuerRef()
+	signingStorage := req.GetSigningStorage()
+	tlsStorage := req.GetTlsStorage()
 
 	// Get issuer configs to access their admin credentials
-	orgIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, orgIssuer.GetCertType(), orgIssuer.GetId())
-	tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(orgConfig, tlsIssuer.GetCertType(), tlsIssuer.GetId())
+	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
+	var orgIssuerOwner config.OwnerConfig
+	if orgIssuer.GetCertType() == "tls" {
+		orgIssuerOwner = operatorConfig
+	} else {
+		orgIssuerOwner = orgConfig
+	}
+	orgIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(orgIssuerOwner, orgIssuer.GetCertType(), orgIssuer.GetId())
+
+	var tlsIssuerOwner config.OwnerConfig
+	if tlsIssuer.GetCertType() == "tls" {
+		tlsIssuerOwner = operatorConfig
+	} else {
+		tlsIssuerOwner = orgConfig
+	}
+	tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(tlsIssuerOwner, tlsIssuer.GetCertType(), tlsIssuer.GetId())
 
 	// Create org identity cert (uses identity_type for proper OU classification)
 	signingPurpose := fmt.Sprintf("identity-%s-signing", identityName)
 	_, err := pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
-		Org:                 org,
-		IssuerRef:           orgIssuer,
-		Profile:             "", // Default profile
-		Subject:             req.GetSubject(),
-		StorageRef:          req.GetStorageSigningRef(),
-		AdminCredentialsRef: orgIssuerConfig.VaultAdminSigningRef(),
-		Purpose:             signingPurpose,
-		Attributes:          req.GetAttributes(),
-		IdentityType:        req.GetIdentityType(), // Pass through for NodeOUs classification
+		Org:       org,
+		IssuerRef: orgIssuer,
+		Profile:   "", // Default profile
+		Subject:   req.GetSubject(),
+		Storage:   signingStorage,
+		AdminIdentity: &pb.IdentityRef{
+			KeyRef:  orgIssuerConfig.VaultAdminSigningKeyRef(),
+			CertRef: orgIssuerConfig.VaultAdminSigningCertRef(),
+		},
+		Purpose:       signingPurpose,
+		IssuerCertRef: orgIssuerConfig.VaultSigningCertRef(),
+		Attributes:    req.GetAttributes(),
+		IdentityType:  req.GetIdentityType(), // Pass through for NodeOUs classification
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create signing identity: %w", err)
@@ -1190,17 +1353,21 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 			OrganizationalUnit: req.GetSubject().GetOrganizationalUnit(),
 			DnsNames:           req.GetSubject().GetDnsNames(),
 		},
-		StorageRef:          req.GetStorageTlsRef(),
-		AdminCredentialsRef: tlsIssuerConfig.VaultAdminSigningRef(),
-		Purpose:             tlsPurpose,
+		Storage: tlsStorage,
+		AdminIdentity: &pb.IdentityRef{
+			KeyRef:  tlsIssuerConfig.VaultAdminSigningKeyRef(),
+			CertRef: tlsIssuerConfig.VaultAdminSigningCertRef(),
+		},
+		Purpose:       tlsPurpose,
+		IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create TLS identity: %w", err)
 	}
 
 	return &pb.CreateIdentityOutput{
-		SigningCredentialsRef: req.GetStorageSigningRef(),
-		TlsCredentialsRef:     req.GetStorageTlsRef(),
+		SigningIdentity: signingStorage,
+		TlsIdentity:     tlsStorage,
 	}, nil
 }
 
@@ -1391,12 +1558,18 @@ func (w *deployPeerWorkflow) Execute(ctx workflow.Context) (*pb.DeployPeerOutput
 			OrganizationalUnit: peerConfig.OrganizationalUnit(),
 			DnsNames:           peerConfig.TLSDNSNames(),
 		},
-		OrgIssuerRef:      spec.GetOrgIssuer(),
-		TlsIssuerRef:      spec.GetTlsIssuer(),
-		StorageSigningRef: peerConfig.VaultSigningRef(),
-		StorageTlsRef:     peerConfig.VaultTLSRef(),
-		TlsProfile:        "tls",
-		IdentityType:      "peer", // Critical: sets OU=peer in certificate for NodeOUs
+		OrgIssuerRef: spec.GetOrgIssuer(),
+		TlsIssuerRef: spec.GetTlsIssuer(),
+		SigningStorage: &pb.IdentityRef{
+			KeyRef:  peerConfig.VaultSigningKeyRef(),
+			CertRef: peerConfig.VaultSigningCertRef(),
+		},
+		TlsStorage: &pb.IdentityRef{
+			KeyRef:  peerConfig.VaultTLSKeyRef(),
+			CertRef: peerConfig.VaultTLSCertRef(),
+		},
+		TlsProfile:   "tls",
+		IdentityType: "peer", // Critical: sets OU=peer in certificate for NodeOUs
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to create peer identity: %w", ErrDeployPeer, err)
@@ -1493,12 +1666,18 @@ func (w *deployOrdererWorkflow) Execute(ctx workflow.Context) (*pb.DeployOrderer
 			OrganizationalUnit: ordererConfig.OrganizationalUnit(),
 			DnsNames:           ordererConfig.TLSDNSNames(),
 		},
-		OrgIssuerRef:      spec.GetOrgIssuer(),
-		TlsIssuerRef:      spec.GetTlsIssuer(),
-		StorageSigningRef: ordererConfig.VaultSigningRef(),
-		StorageTlsRef:     ordererConfig.VaultTLSRef(),
-		TlsProfile:        "tls",
-		IdentityType:      "orderer", // Critical: sets OU=orderer in certificate for NodeOUs
+		OrgIssuerRef: spec.GetOrgIssuer(),
+		TlsIssuerRef: spec.GetTlsIssuer(),
+		SigningStorage: &pb.IdentityRef{
+			KeyRef:  ordererConfig.VaultSigningKeyRef(),
+			CertRef: ordererConfig.VaultSigningCertRef(),
+		},
+		TlsStorage: &pb.IdentityRef{
+			KeyRef:  ordererConfig.VaultTLSKeyRef(),
+			CertRef: ordererConfig.VaultTLSCertRef(),
+		},
+		TlsProfile:   "tls",
+		IdentityType: "orderer", // Critical: sets OU=orderer in certificate for NodeOUs
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to create orderer identity: %w", ErrDeployOrderer, err)

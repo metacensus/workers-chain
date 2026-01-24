@@ -24,14 +24,12 @@ var Module = fx.Module("fabric",
 		config.GetWorker,
 		config.GetKubernetes,
 		config.GetOrg,
+		config.GetOperator,
 	),
 
-	// Provide fabric-specific configs derived from OrgConfig
-	fx.Provide(func(orgConfig *config.OrgConfig) config.OrgConfig {
-		return *orgConfig
-	}),
-	fx.Provide(func(orgConfig config.OrgConfig) fabricconfig.CertificateStoreConfig {
-		return fabricconfig.NewCertificateStoreConfig(orgConfig)
+	// Provide fabric-specific config (derived from environment config)
+	fx.Provide(func(orgCfg *config.OrgConfig) fabricconfig.CertificateStoreConfig {
+		return fabricconfig.NewCertificateStoreConfig(*orgCfg)
 	}),
 
 	// Provide temporal worker

@@ -74,49 +74,48 @@ func (c CouchDbConfig) AuthRoleName() string {
 	return c.PolicyName()
 }
 
-// VaultCouchDbBasePath returns the base Vault path for this CouchDB's secrets.
-// Example: "fabric/org1/couchdb/peer0"
-func (c CouchDbConfig) VaultCouchDbBasePath() string {
-	return fmt.Sprintf("%s/couchdb/%s", c.VaultBasePath(), c.peerID)
+// VaultKeysBasePath returns the base Vault path for this CouchDB's secrets (under keys/).
+// CouchDB only has credentials, which are private, so they live under keys/peer/{id}/couchdb.
+// Example: "fabric/org1/keys/peer/peer0/couchdb"
+func (c CouchDbConfig) VaultKeysBasePath() string {
+	return fmt.Sprintf("%s/keys/peer/%s/couchdb", c.VaultBasePath(), c.peerID)
 }
 
 // VaultAdminRef returns a SecretRef for the CouchDB admin credentials.
-// Stores username, password for CouchDB admin.
-// Example path: "fabric/org1/couchdb/peer0/admin"
+// Stores {username, password} for CouchDB admin.
+// Example path: "fabric/org1/keys/peer/peer0/couchdb"
 func (c CouchDbConfig) VaultAdminRef() *pb.SecretRef {
-	return secrets.NewVaultRef(c.VaultCouchDbBasePath() + "/admin")
+	return secrets.NewVaultRef(c.VaultKeysBasePath())
 }
 
 // VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
-// Example: "secret/data/fabric/org1/couchdb/peer0/*"
+// Example: "secret/data/fabric/org1/keys/peer/peer0/couchdb"
 func (c CouchDbConfig) VaultDataPath() string {
-	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, c.VaultCouchDbBasePath())
+	return fmt.Sprintf("%s/%s", vaultSecretDataPrefix, c.VaultKeysBasePath())
 }
 
 // VaultMetadataPath returns the Vault KV v2 metadata path pattern for policy rules.
-// Example: "secret/metadata/fabric/org1/couchdb/peer0/*"
+// Example: "secret/metadata/fabric/org1/keys/peer/peer0/couchdb"
 func (c CouchDbConfig) VaultMetadataPath() string {
-	return fmt.Sprintf("%s/%s/*", vaultSecretMetadataPrefix, c.VaultCouchDbBasePath())
+	return fmt.Sprintf("%s/%s", vaultSecretMetadataPrefix, c.VaultKeysBasePath())
 }
 
 // VaultPolicy creates a Vault policy document for the CouchDB instance.
-// The policy grants read access to the CouchDB's secrets (admin credentials).
+// The policy grants read access to the CouchDB's credentials (admin credentials).
 func (c CouchDbConfig) VaultPolicy() *vaultpb.PolicyDocument {
 	return &vaultpb.PolicyDocument{
 		Rules: []*vaultpb.PolicyRule{
-			// KV v2 data path - read access to CouchDB secrets
+			// Private: read access to CouchDB credentials
 			{
 				Path: c.VaultDataPath(),
 				Capabilities: []vaultpb.Capability{
 					vaultpb.Capability_CAPABILITY_READ,
-					vaultpb.Capability_CAPABILITY_LIST,
 				},
 			},
-			// KV v2 metadata path - list and read metadata
+			// Private: metadata for credentials
 			{
 				Path: c.VaultMetadataPath(),
 				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_LIST,
 					vaultpb.Capability_CAPABILITY_READ,
 				},
 			},
@@ -224,7 +223,7 @@ func (p PeerConfig) GossipExternalEndpoint() string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local:7051", p.ComponentName(), p.KubernetesNamespace())
 }
 
-// ------------ Vault Properties ------------
+// ------------ Vault Properties: Base Paths ------------
 
 // PolicyName returns the Vault policy name.
 // Example: "fabric-org1-peer0"
@@ -237,104 +236,105 @@ func (p PeerConfig) AuthRoleName() string {
 	return p.PolicyName()
 }
 
-// VaultPeerBasePath returns the base Vault path for this peer's secrets.
-// Example: "fabric/org1/peer/peer0"
-func (p PeerConfig) VaultPeerBasePath() string {
-	return fmt.Sprintf("%s/peer/%s", p.VaultBasePath(), p.peerID)
+// VaultKeysBasePath returns the base Vault path for this peer's private keys.
+// Example: "fabric/org1/keys/peer/peer0"
+func (p PeerConfig) VaultKeysBasePath() string {
+	return fmt.Sprintf("%s/keys/peer/%s", p.VaultBasePath(), p.peerID)
 }
 
-// VaultSigningRef returns a SecretRef for the peer's signing identity (org cert).
-// Example path: "fabric/org1/peer/peer0/signing"
-func (p PeerConfig) VaultSigningRef() *pb.SecretRef {
-	return secrets.NewVaultRef(p.VaultPeerBasePath() + "/signing")
+// VaultCertsBasePath returns the base Vault path for this peer's certificates.
+// Example: "fabric/org1/certs/peer/peer0"
+func (p PeerConfig) VaultCertsBasePath() string {
+	return fmt.Sprintf("%s/certs/peer/%s", p.VaultBasePath(), p.peerID)
 }
 
-// VaultTLSRef returns a SecretRef for the peer's TLS identity.
-// Example path: "fabric/org1/peer/peer0/tls"
-func (p PeerConfig) VaultTLSRef() *pb.SecretRef {
-	return secrets.NewVaultRef(p.VaultPeerBasePath() + "/tls")
+// ------------ Vault Properties: Keys (Private) ------------
+
+// VaultSigningKeyRef returns a SecretRef for the peer's signing private key.
+// Stores {private_key} for the peer's signing identity.
+// Example path: "fabric/org1/keys/peer/peer0/signing"
+func (p PeerConfig) VaultSigningKeyRef() *pb.SecretRef {
+	return secrets.NewVaultRef(p.VaultKeysBasePath() + "/signing")
 }
 
-// VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
-// Example: "secret/data/fabric/org1/peer/peer0/*"
-func (p PeerConfig) VaultDataPath() string {
-	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, p.VaultPeerBasePath())
+// VaultTLSKeyRef returns a SecretRef for the peer's TLS private key.
+// Stores {private_key} for the peer's TLS identity.
+// Example path: "fabric/org1/keys/peer/peer0/tls"
+func (p PeerConfig) VaultTLSKeyRef() *pb.SecretRef {
+	return secrets.NewVaultRef(p.VaultKeysBasePath() + "/tls")
 }
 
-// VaultMetadataPath returns the Vault KV v2 metadata path pattern for policy rules.
-// Example: "secret/metadata/fabric/org1/peer/peer0/*"
-func (p PeerConfig) VaultMetadataPath() string {
-	return fmt.Sprintf("%s/%s/*", vaultSecretMetadataPrefix, p.VaultPeerBasePath())
+// VaultCouchDBRef returns a SecretRef for the peer's CouchDB credentials.
+// Stores {username, password} for CouchDB access.
+// Example path: "fabric/org1/keys/peer/peer0/couchdb"
+func (p PeerConfig) VaultCouchDBRef() *pb.SecretRef {
+	return secrets.NewVaultRef(p.VaultKeysBasePath() + "/couchdb")
+}
+
+// ------------ Vault Properties: Certs (Public) ------------
+
+// VaultSigningCertRef returns a SecretRef for the peer's signing certificate.
+// Stores {certificate, chain} for the peer's signing identity.
+// Example path: "fabric/org1/certs/peer/peer0/signing"
+func (p PeerConfig) VaultSigningCertRef() *pb.SecretRef {
+	return secrets.NewVaultRef(p.VaultCertsBasePath() + "/signing")
+}
+
+// VaultTLSCertRef returns a SecretRef for the peer's TLS certificate.
+// Stores {certificate, chain} for the peer's TLS identity.
+// Example path: "fabric/org1/certs/peer/peer0/tls"
+func (p PeerConfig) VaultTLSCertRef() *pb.SecretRef {
+	return secrets.NewVaultRef(p.VaultCertsBasePath() + "/tls")
+}
+
+// ------------ Vault Properties: Policy Paths ------------
+
+// VaultKeysDataPath returns the Vault KV v2 data path pattern for this peer's private keys.
+// Example: "secret/data/fabric/org1/keys/peer/peer0/*"
+func (p PeerConfig) VaultKeysDataPath() string {
+	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, p.VaultKeysBasePath())
+}
+
+// VaultCertsDataPath returns the Vault KV v2 data path pattern for all certificates (public).
+// Example: "secret/data/fabric/org1/certs/*"
+func (p PeerConfig) VaultCertsDataPath() string {
+	return fmt.Sprintf("%s/%s/certs/*", vaultSecretDataPrefix, p.VaultBasePath())
+}
+
+// VaultCertsMetadataPath returns the Vault KV v2 metadata path pattern for all certificates.
+// Example: "secret/metadata/fabric/org1/certs/*"
+func (p PeerConfig) VaultCertsMetadataPath() string {
+	return fmt.Sprintf("%s/%s/certs/*", vaultSecretMetadataPrefix, p.VaultBasePath())
 }
 
 // VaultPolicy creates a Vault policy document for the peer.
-// The policy grants read access to:
-// - The peer's own secrets (identity and TLS certs)
-// - The Org Root CA signing cert (for MSP cacerts)
-// - The Org Int CA signing cert (for MSP intermediatecerts)
-// - The TLS Root CA signing cert (for TLS CA chain)
-// - The TLS Int CA signing cert (for TLS CA chain)
-// - CouchDB credentials (for state database access)
+// The policy grants:
+// - Read access to ALL certificates (certs/*) - certificates are public
+// - Read access to peer's own keys (keys/peer/{id}/*) - private keys and CouchDB credentials
 func (p PeerConfig) VaultPolicy() *vaultpb.PolicyDocument {
-	// Build paths for CA certificates the peer needs to read
-	orgRootCASigningPath := fmt.Sprintf("%s/%s/ca/org/root/signing", vaultSecretDataPrefix, p.VaultBasePath())
-	orgIntCASigningPath := fmt.Sprintf("%s/%s/ca/org/v1/signing", vaultSecretDataPrefix, p.VaultBasePath())
-	tlsRootCASigningPath := fmt.Sprintf("%s/%s/ca/tls/root/signing", vaultSecretDataPrefix, p.VaultBasePath())
-	tlsIntCASigningPath := fmt.Sprintf("%s/%s/ca/tls/v1/signing", vaultSecretDataPrefix, p.VaultBasePath())
-	couchDbPath := fmt.Sprintf("%s/%s/couchdb/%s/*", vaultSecretDataPrefix, p.VaultBasePath(), p.peerID)
-
 	return &vaultpb.PolicyDocument{
 		Rules: []*vaultpb.PolicyRule{
-			// KV v2 data path - read access to peer's own secrets
+			// Public: read ALL certificates (includes CA certs for trust stores)
 			{
-				Path: p.VaultDataPath(),
+				Path: p.VaultCertsDataPath(),
 				Capabilities: []vaultpb.Capability{
 					vaultpb.Capability_CAPABILITY_READ,
 					vaultpb.Capability_CAPABILITY_LIST,
 				},
 			},
-			// KV v2 metadata path - list and read metadata for peer secrets
+			// Public: metadata for certificates
 			{
-				Path: p.VaultMetadataPath(),
+				Path: p.VaultCertsMetadataPath(),
 				Capabilities: []vaultpb.Capability{
 					vaultpb.Capability_CAPABILITY_LIST,
 					vaultpb.Capability_CAPABILITY_READ,
 				},
 			},
-			// Org Root CA signing cert - for MSP cacerts directory
+			// Private: read only this peer's keys (signing key, TLS key, CouchDB credentials)
 			{
-				Path: orgRootCASigningPath,
+				Path: p.VaultKeysDataPath(),
 				Capabilities: []vaultpb.Capability{
 					vaultpb.Capability_CAPABILITY_READ,
-				},
-			},
-			// Org Int CA signing cert - for MSP intermediatecerts directory
-			{
-				Path: orgIntCASigningPath,
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_READ,
-				},
-			},
-			// TLS Root CA signing cert - for TLS CA chain
-			{
-				Path: tlsRootCASigningPath,
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_READ,
-				},
-			},
-			// TLS Int CA signing cert - for TLS CA chain
-			{
-				Path: tlsIntCASigningPath,
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_READ,
-				},
-			},
-			// CouchDB credentials - for state database access
-			{
-				Path: couchDbPath,
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_READ,
-					vaultpb.Capability_CAPABILITY_LIST,
 				},
 			},
 		},
@@ -447,7 +447,7 @@ func (o OrdererConfig) ClusterAddress() string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local:%d", o.ComponentName(), o.KubernetesNamespace(), o.Port())
 }
 
-// ------------ Vault Properties ------------
+// ------------ Vault Properties: Base Paths ------------
 
 // PolicyName returns the Vault policy name.
 // Example: "fabric-org1-orderer0"
@@ -460,92 +460,96 @@ func (o OrdererConfig) AuthRoleName() string {
 	return o.PolicyName()
 }
 
-// VaultOrdererBasePath returns the base Vault path for this orderer's secrets.
-// Example: "fabric/org1/orderer/orderer0"
-func (o OrdererConfig) VaultOrdererBasePath() string {
-	return fmt.Sprintf("%s/orderer/%s", o.VaultBasePath(), o.ordererID)
+// VaultKeysBasePath returns the base Vault path for this orderer's private keys.
+// Example: "fabric/org1/keys/orderer/orderer0"
+func (o OrdererConfig) VaultKeysBasePath() string {
+	return fmt.Sprintf("%s/keys/orderer/%s", o.VaultBasePath(), o.ordererID)
 }
 
-// VaultSigningRef returns a SecretRef for the orderer's signing identity (org cert).
-// Example path: "fabric/org1/orderer/orderer0/signing"
-func (o OrdererConfig) VaultSigningRef() *pb.SecretRef {
-	return secrets.NewVaultRef(o.VaultOrdererBasePath() + "/signing")
+// VaultCertsBasePath returns the base Vault path for this orderer's certificates.
+// Example: "fabric/org1/certs/orderer/orderer0"
+func (o OrdererConfig) VaultCertsBasePath() string {
+	return fmt.Sprintf("%s/certs/orderer/%s", o.VaultBasePath(), o.ordererID)
 }
 
-// VaultTLSRef returns a SecretRef for the orderer's TLS identity.
-// Example path: "fabric/org1/orderer/orderer0/tls"
-func (o OrdererConfig) VaultTLSRef() *pb.SecretRef {
-	return secrets.NewVaultRef(o.VaultOrdererBasePath() + "/tls")
+// ------------ Vault Properties: Keys (Private) ------------
+
+// VaultSigningKeyRef returns a SecretRef for the orderer's signing private key.
+// Stores {private_key} for the orderer's signing identity.
+// Example path: "fabric/org1/keys/orderer/orderer0/signing"
+func (o OrdererConfig) VaultSigningKeyRef() *pb.SecretRef {
+	return secrets.NewVaultRef(o.VaultKeysBasePath() + "/signing")
 }
 
-// VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
-// Example: "secret/data/fabric/org1/orderer/orderer0/*"
-func (o OrdererConfig) VaultDataPath() string {
-	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, o.VaultOrdererBasePath())
+// VaultTLSKeyRef returns a SecretRef for the orderer's TLS private key.
+// Stores {private_key} for the orderer's TLS identity.
+// Example path: "fabric/org1/keys/orderer/orderer0/tls"
+func (o OrdererConfig) VaultTLSKeyRef() *pb.SecretRef {
+	return secrets.NewVaultRef(o.VaultKeysBasePath() + "/tls")
 }
 
-// VaultMetadataPath returns the Vault KV v2 metadata path pattern for policy rules.
-// Example: "secret/metadata/fabric/org1/orderer/orderer0/*"
-func (o OrdererConfig) VaultMetadataPath() string {
-	return fmt.Sprintf("%s/%s/*", vaultSecretMetadataPrefix, o.VaultOrdererBasePath())
+// ------------ Vault Properties: Certs (Public) ------------
+
+// VaultSigningCertRef returns a SecretRef for the orderer's signing certificate.
+// Stores {certificate, chain} for the orderer's signing identity.
+// Example path: "fabric/org1/certs/orderer/orderer0/signing"
+func (o OrdererConfig) VaultSigningCertRef() *pb.SecretRef {
+	return secrets.NewVaultRef(o.VaultCertsBasePath() + "/signing")
+}
+
+// VaultTLSCertRef returns a SecretRef for the orderer's TLS certificate.
+// Stores {certificate, chain} for the orderer's TLS identity.
+// Example path: "fabric/org1/certs/orderer/orderer0/tls"
+func (o OrdererConfig) VaultTLSCertRef() *pb.SecretRef {
+	return secrets.NewVaultRef(o.VaultCertsBasePath() + "/tls")
+}
+
+// ------------ Vault Properties: Policy Paths ------------
+
+// VaultKeysDataPath returns the Vault KV v2 data path pattern for this orderer's private keys.
+// Example: "secret/data/fabric/org1/keys/orderer/orderer0/*"
+func (o OrdererConfig) VaultKeysDataPath() string {
+	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, o.VaultKeysBasePath())
+}
+
+// VaultCertsDataPath returns the Vault KV v2 data path pattern for all certificates (public).
+// Example: "secret/data/fabric/org1/certs/*"
+func (o OrdererConfig) VaultCertsDataPath() string {
+	return fmt.Sprintf("%s/%s/certs/*", vaultSecretDataPrefix, o.VaultBasePath())
+}
+
+// VaultCertsMetadataPath returns the Vault KV v2 metadata path pattern for all certificates.
+// Example: "secret/metadata/fabric/org1/certs/*"
+func (o OrdererConfig) VaultCertsMetadataPath() string {
+	return fmt.Sprintf("%s/%s/certs/*", vaultSecretMetadataPrefix, o.VaultBasePath())
 }
 
 // VaultPolicy creates a Vault policy document for the orderer.
-// The policy grants read access to:
-// - The orderer's own secrets (identity and TLS certs)
-// - The Org Root CA signing cert (for MSP cacerts)
-// - The Org Int CA signing cert (for MSP intermediatecerts)
-// - The TLS Root CA signing cert (for TLS CA chain)
-// - The TLS Int CA signing cert (for TLS CA chain)
+// The policy grants:
+// - Read access to ALL certificates (certs/*) - certificates are public
+// - Read access to orderer's own keys (keys/orderer/{id}/*) - private keys only
 func (o OrdererConfig) VaultPolicy() *vaultpb.PolicyDocument {
-	// Build paths for CA certificates the orderer needs to read
-	orgRootCASigningPath := fmt.Sprintf("%s/%s/ca/org/root/signing", vaultSecretDataPrefix, o.VaultBasePath())
-	orgIntCASigningPath := fmt.Sprintf("%s/%s/ca/org/v1/signing", vaultSecretDataPrefix, o.VaultBasePath())
-	tlsRootCASigningPath := fmt.Sprintf("%s/%s/ca/tls/root/signing", vaultSecretDataPrefix, o.VaultBasePath())
-	tlsIntCASigningPath := fmt.Sprintf("%s/%s/ca/tls/v1/signing", vaultSecretDataPrefix, o.VaultBasePath())
-
 	return &vaultpb.PolicyDocument{
 		Rules: []*vaultpb.PolicyRule{
-			// KV v2 data path - read access to orderer's own secrets
+			// Public: read ALL certificates (includes CA certs for trust stores)
 			{
-				Path: o.VaultDataPath(),
+				Path: o.VaultCertsDataPath(),
 				Capabilities: []vaultpb.Capability{
 					vaultpb.Capability_CAPABILITY_READ,
 					vaultpb.Capability_CAPABILITY_LIST,
 				},
 			},
-			// KV v2 metadata path - list and read metadata for orderer secrets
+			// Public: metadata for certificates
 			{
-				Path: o.VaultMetadataPath(),
+				Path: o.VaultCertsMetadataPath(),
 				Capabilities: []vaultpb.Capability{
 					vaultpb.Capability_CAPABILITY_LIST,
 					vaultpb.Capability_CAPABILITY_READ,
 				},
 			},
-			// Org Root CA signing cert - for MSP cacerts directory
+			// Private: read only this orderer's keys (signing key, TLS key)
 			{
-				Path: orgRootCASigningPath,
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_READ,
-				},
-			},
-			// Org Int CA signing cert - for MSP intermediatecerts directory
-			{
-				Path: orgIntCASigningPath,
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_READ,
-				},
-			},
-			// TLS Root CA signing cert - for TLS CA chain
-			{
-				Path: tlsRootCASigningPath,
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_READ,
-				},
-			},
-			// TLS Int CA signing cert - for TLS CA chain
-			{
-				Path: tlsIntCASigningPath,
+				Path: o.VaultKeysDataPath(),
 				Capabilities: []vaultpb.Capability{
 					vaultpb.Capability_CAPABILITY_READ,
 				},

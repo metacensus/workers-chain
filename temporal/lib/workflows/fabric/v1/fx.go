@@ -3,7 +3,6 @@ package fabric
 import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1temporal"
-	"github.com/metacensus/infra/temporal/lib/workers/config"
 	"github.com/metacensus/infra/temporal/lib/workflows/common"
 	"github.com/metacensus/infra/temporal/lib/workflows/fabric/v1/certauthority"
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
@@ -44,17 +43,16 @@ var Module = fx.Options(
 		)
 	}),
 
-	// Provide Activities with CA client providers and config
+	// Provide Activities with CA client providers
 	// Activities get:
 	// - secretProvider: for fetching/storing secrets with type safety
 	// - clientProvider: for cached Client access (Register/Revoke operations)
-	// - orgConfig: for building CA-specific configurations (activities run on fabric worker which has ORG_ID)
+	// Activities receive owner (org) from their inputs, enabling them to work for any owner
 	fx.Provide(func(
 		secretProvider secrets.SecretProvider,
 		clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig],
-		orgConfig config.OrgConfig,
 	) *Activities {
-		return NewActivities(secretProvider, clientProvider, orgConfig)
+		return NewActivities(secretProvider, clientProvider)
 	}),
 )
 
