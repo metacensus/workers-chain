@@ -223,7 +223,7 @@ func (w *deployOrgRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context
 	tlsPurpose := fmt.Sprintf("org-root-tls")
 	tlsCommonName := computeTLSCommonName(caConfig.ComponentName(), nil, tlsIssuerRef)
 
-	NexusFabricCreateCertificate(ctx, &pb.CreateCertificateInput{
+	_, err = NexusFabricCreateCertificate(ctx, &pb.CreateCertificateInput{
 		Org:       org,
 		IssuerRef: tlsIssuerRef,
 		Profile:   "tls",

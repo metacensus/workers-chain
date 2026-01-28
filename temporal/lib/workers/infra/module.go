@@ -61,6 +61,7 @@ var Module = fx.Module("infra",
 		clusterfabric.RegisterWorkflows,
 		fabric.RegisterActivities,
 		fabric.RegisterWorkflows,
+		fabric.RegisterNexusService,
 		postgres.RegisterActivities,
 	),
 )
