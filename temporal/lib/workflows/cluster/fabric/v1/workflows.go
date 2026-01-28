@@ -6,6 +6,7 @@ import (
 	"time"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
+	fabricv1 "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	helmpb "github.com/metacensus/infra/temporal/gen/workflows/helm/v1"
 	kubepb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
@@ -292,16 +293,15 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		}
 		certType := parts[2] // "tls" or "org"
 		caID := parts[3]     // "root", "v1", "v2", etc.
-
-		// Validate cert type
-		if certType != "tls" && certType != "org" {
-			return nil, fmt.Errorf("invalid cert type: %s (must be 'tls' or 'org')", certType)
+		caRef := &fabricv1.CertificateAuthorityRef{
+			CertType: certType,
+			Id:       caID,
 		}
 
 		chartName = chartCertificateAuthority
 		componentName = componentCertificateAuthority
 		// Create config objects to get consistent configuration values
-		caConfig := fabricconfig.NewCertificateAuthorityConfig(orgCfg, certType, caID)
+		caConfig := fabricconfig.NewCertificateAuthorityConfig(orgCfg, caRef)
 		caValues := helm.NewCertificateAuthorityValues(caConfig)
 		values = caValues
 		namespaceName = caConfig.KubernetesNamespace()
@@ -334,8 +334,9 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		peerConfig := fabricconfig.NewPeerConfig(orgCfg, peerID)
 		// Construct CA configs for root CA certificates (trust stores)
 		// Intermediate CA certs are now included in the chain built at enrollment time
-		orgRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "org", "root")
-		tlsRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "tls", "root")
+
+		orgRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, &fabricv1.CertificateAuthorityRef{CertType: "org", Id: "root"})
+		tlsRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, &fabricv1.CertificateAuthorityRef{CertType: "tls", Id: "root"})
 		peerValues := helm.NewPeerValues(peerConfig, orgRootCA, tlsRootCA)
 		values = peerValues
 		namespaceName = peerConfig.KubernetesNamespace()
@@ -351,8 +352,8 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		ordererConfig := fabricconfig.NewOrdererConfig(orgCfg, ordererID)
 		// Construct CA configs for root CA certificates (trust stores)
 		// Intermediate CA certs are now included in the chain built at enrollment time
-		orgRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "org", "root")
-		tlsRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, "tls", "root")
+		orgRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, &fabricv1.CertificateAuthorityRef{CertType: "org", Id: "root"})
+		tlsRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, &fabricv1.CertificateAuthorityRef{CertType: "tls", Id: "root"})
 		ordererValues := helm.NewOrdererValues(ordererConfig, orgRootCA, tlsRootCA)
 		values = ordererValues
 		namespaceName = ordererConfig.KubernetesNamespace()

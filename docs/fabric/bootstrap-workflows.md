@@ -143,7 +143,11 @@ Workflow: cell.v1.InitFabric ✅ (Runs in infra namespace)
 ├─ Workflow: cluster.fabric.v1.CreateServiceAccount ✅
 ├─ Workflow: secrets.v1.CreateAccess ✅
 ├─ Activity: temporal.v1.CreateNexusEndpoint ✅ (creates fabric-IssueTlsCertificate endpoint)
-└─ Workflow: fabric.v1.BootstrapCertificateAuthorities ✅
+│
+└─ Workflow: fabric.v1.BootstrapTlsCertificateAuthorities ✅
+   ├─ Workflow: fabric.v1.DeployCertificateStore ✅
+   ├─ Workflow: fabric.v1.DeployTlsRootCertificateAuthority ✅
+   └─ Workflow: fabric.v1.DeployTlsIntermediateCertificateAuthority ✅
 ```
 
 ```
@@ -163,17 +167,11 @@ Workflow: cell.v1.InitFabricShard ✅ (Runs in infra namespace)
 
 ```
 Workflow: fabric.v1.BootstrapShard 🟡 (Runs in fabric-<org> namespace)
-│  Input: OrgFabricDeployment (required - specifies all CAs, peers, orderers)
 │
-├─ Workflow: fabric.v1.DeployCertificateStore ✅
-│
-├─ Workflow: fabric.v1.DeployTlsRootCertificateAuthority ✅ (operator-owned, self-signed)
-│
-├─ Workflow: fabric.v1.DeployTlsIntermediateCertificateAuthority ✅ (operator-owned, issued by TLS Root via direct calls)
-│
-├─ Workflow: fabric.v1.DeployOrgRootCertificateAuthority ✅ (org-owned, self-signed signing, TLS via Nexus)
-│
-├─ Workflow: fabric.v1.DeployOrgIntermediateCertificateAuthority ✅ (org-owned, signing from Org Root, TLS via Nexus)
+├─ Workflow: fabric.v1.BootstrapOrgCertificateAuthorities ✅
+│  ├─ Workflow: fabric.v1.DeployCertificateStore ✅
+│  ├─ Workflow: fabric.v1.DeployOrgRootCertificateAuthority ✅
+│  └─ Workflow: fabric.v1.DeployOrgIntermediateCertificateAuthority ✅
 │
 ├─ for each PeerSpec in deployment.peers
 │ ├─ Workflow: fabric.v1.DeployCouchDb ✅
@@ -218,6 +216,23 @@ Workflow: fabric.v1.DeployChainCode 🟡
 │ └─ Workflow: fabric.v1.CreateIdentity ✅
 │
 └─ Workflow: cluster.fabric.v1.CreateDeployment ✅
+```
+
+
+## Fabric Certificate Authority Bootstrap Workflows
+
+```
+Workflow: fabric.v1.BootstrapTlsCertificateAuthorities ✅
+├─ Workflow: fabric.v1.DeployCertificateStore ✅
+├─ Workflow: fabric.v1.DeployTlsRootCertificateAuthority ✅
+└─ Workflow: fabric.v1.DeployTlsIntermediateCertificateAuthority ✅
+```
+
+```
+Workflow: fabric.v1.BootstrapOrgCertificateAuthorities ✅
+├─ Workflow: fabric.v1.DeployCertificateStore ✅
+├─ Workflow: fabric.v1.DeployOrgRootCertificateAuthority ✅
+└─ Workflow: fabric.v1.DeployOrgIntermediateCertificateAuthority ✅
 ```
 
 

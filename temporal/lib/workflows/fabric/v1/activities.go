@@ -99,18 +99,11 @@ func (a *Activities) RegisterIdentity(ctx context.Context, req *pb.RegisterIdent
 	if caRef == nil {
 		return nil, fmt.Errorf("%w: ca_ref is required", ErrInvalidActivityInput)
 	}
-
-	certType := caRef.GetCertType()
-	caID := caRef.GetId()
 	identityName := req.GetIdentityName()
-
-	if certType != "tls" && certType != "org" {
-		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidActivityInput, certType)
-	}
 
 	// Create owner config from input - enables activities to work for any owner
 	ownerConfig := config.NewOrgConfig(req.GetOrg())
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, certType, caID)
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, caRef)
 
 	// Create config with explicit admin identity (nil = use default permanent admin)
 	hydrator := certauthority.NewConfig(caConfig, req.GetAdminIdentity())
@@ -176,17 +169,11 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 		return nil, fmt.Errorf("%w: ca_ref is required", ErrInvalidActivityInput)
 	}
 
-	certType := caRef.GetCertType()
-	caID := caRef.GetId()
 	identityName := req.GetIdentityName()
-
-	if certType != "tls" && certType != "org" {
-		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidActivityInput, certType)
-	}
 
 	// Create owner config from input - enables activities to work for any owner
 	ownerConfig := config.NewOrgConfig(req.GetOrg())
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, certType, caID)
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, caRef)
 
 	// Get storage refs from identity
 	storage := req.GetStorage()
@@ -301,18 +288,11 @@ func (a *Activities) RevokeIdentity(ctx context.Context, req *pb.RevokeIdentityI
 	if caRef == nil {
 		return nil, fmt.Errorf("%w: ca_ref is required", ErrInvalidActivityInput)
 	}
-
-	certType := caRef.GetCertType()
-	caID := caRef.GetId()
 	identityName := req.GetIdentityName()
-
-	if certType != "tls" && certType != "org" {
-		return nil, fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidActivityInput, certType)
-	}
 
 	// Create owner config from input - enables activities to work for any owner
 	ownerConfig := config.NewOrgConfig(req.GetOrg())
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, certType, caID)
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, caRef)
 
 	// Create config with explicit admin identity (nil = use default permanent admin)
 	hydrator := certauthority.NewConfig(caConfig, req.GetAdminIdentity())

@@ -27,7 +27,8 @@ const (
 	fabricSecretBase = "fabric"
 
 	// Nexus endpoint name for secrets.CreateAccess
-	secretsCreateAccessNexusEndpoint = "secrets-CreateAccess"
+	SecretsCreateAccessNexusEndpoint     = "secrets-CreateAccess"
+	FabricCreateCertificateNexusEndpoint = "fabric-CreateCertificate"
 )
 
 // Sentinel errors for workflows
@@ -36,12 +37,12 @@ var (
 	ErrCreateSecretsNexusEndpoint = errors.New("create secrets nexus endpoint")
 
 	// InitFabric errors
-	ErrNoCertificateAuthorities          = errors.New("no certificate authorities specified")
-	ErrBootstrapCertificateAuthorities   = errors.New("bootstrap certificate authorities")
-	ErrCreateOperatorKubernetesNamespace = errors.New("create operator kubernetes namespace")
-	ErrCreateOperatorServiceAccount      = errors.New("create operator service account")
-	ErrCreateOperatorVaultAccess         = errors.New("create operator vault access")
-	ErrCreateTLSCANexusEndpoint          = errors.New("create TLS CA nexus endpoint")
+	ErrNoCertificateAuthorities           = errors.New("no certificate authorities specified")
+	ErrBootstrapTlsCertificateAuthorities = errors.New("bootstrap TLS certificate authorities")
+	ErrCreateOperatorKubernetesNamespace  = errors.New("create operator kubernetes namespace")
+	ErrCreateOperatorServiceAccount       = errors.New("create operator service account")
+	ErrCreateOperatorVaultAccess          = errors.New("create operator vault access")
+	ErrCreateTLSCANexusEndpoint           = errors.New("create TLS CA nexus endpoint")
 
 	// InitFabricShard errors
 	ErrOrgRequired               = errors.New("org is required")
@@ -91,7 +92,7 @@ func (w *bootstrapInfraWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapInf
 	// Register Nexus endpoint for secrets.v1.CreateAccess service
 	temporalCfg := config.GetTemporal()
 	if _, err := temporalpb.CreateNexusEndpoint(ctx, &temporalpb.CreateNexusEndpointInput{
-		Name:      secretsCreateAccessNexusEndpoint,
+		Name:      SecretsCreateAccessNexusEndpoint,
 		Namespace: temporalCfg.Namespace,
 		TaskQueue: temporalCfg.TaskQueue,
 	}); err != nil {
@@ -196,7 +197,7 @@ func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput
 	// Register Nexus endpoint for operator TLS CA certificate issuance
 	temporalCfg := config.GetTemporal()
 	if _, err := temporalpb.CreateNexusEndpoint(ctx, &temporalpb.CreateNexusEndpointInput{
-		Name:      "fabric-IssueTlsCertificate",
+		Name:      FabricCreateCertificateNexusEndpoint,
 		Namespace: temporalCfg.Namespace,
 		TaskQueue: "infra",
 	}); err != nil {
@@ -205,11 +206,24 @@ func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput
 
 	// Deploy certificate store and TLS CA chain
 	// Pass operator ID as the "org" since this is operator-owned infrastructure
-	if _, err := fabricpb.BootstrapCertificateAuthoritiesChild(ctx, &fabricpb.BootstrapCertificateAuthoritiesInput{
-		Org:                    operatorCfg.OwnerID(),
-		CertificateAuthorities: w.input.Req.GetCertificateAuthorities(),
+	// Extract validity durations from the CA specs
+	var tlsRootValidity, tlsIntValidity *durationpb.Duration
+	for _, caSpec := range w.input.Req.GetCertificateAuthorities() {
+		if caSpec.GetSelf().GetCertType() == "tls" {
+			if caSpec.GetSelf().GetId() == "root" {
+				tlsRootValidity = caSpec.GetValidityDuration()
+			} else if caSpec.GetSelf().GetId() == "int" {
+				tlsIntValidity = caSpec.GetValidityDuration()
+			}
+		}
+	}
+
+	if _, err := fabricpb.BootstrapTlsCertificateAuthoritiesChild(ctx, &fabricpb.BootstrapTlsCertificateAuthoritiesInput{
+		Org:                     operatorCfg.OwnerID(),
+		TlsRootValidity:         tlsRootValidity,
+		TlsIntermediateValidity: tlsIntValidity,
 	}); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrBootstrapCertificateAuthorities, err)
+		return nil, fmt.Errorf("%w: %w", ErrBootstrapTlsCertificateAuthorities, err)
 	}
 
 	return &pb.InitFabricOutput{}, nil
