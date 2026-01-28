@@ -102,7 +102,14 @@ func (a *Activities) RegisterIdentity(ctx context.Context, req *pb.RegisterIdent
 	identityName := req.GetIdentityName()
 
 	// Create owner config from input - enables activities to work for any owner
-	ownerConfig := config.NewOrgConfig(req.GetOrg())
+	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
+	var ownerConfig config.OwnerConfig
+	certType := caRef.GetCertType()
+	if certType == "tls" {
+		ownerConfig = config.GetOperator()
+	} else {
+		ownerConfig = config.NewOrgConfig(req.GetOrg())
+	}
 	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, caRef)
 
 	// Create config with explicit admin identity (nil = use default permanent admin)
@@ -172,7 +179,14 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 	identityName := req.GetIdentityName()
 
 	// Create owner config from input - enables activities to work for any owner
-	ownerConfig := config.NewOrgConfig(req.GetOrg())
+	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
+	var ownerConfig config.OwnerConfig
+	certType := caRef.GetCertType()
+	if certType == "tls" {
+		ownerConfig = config.GetOperator()
+	} else {
+		ownerConfig = config.NewOrgConfig(req.GetOrg())
+	}
 	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, caRef)
 
 	// Get storage refs from identity
