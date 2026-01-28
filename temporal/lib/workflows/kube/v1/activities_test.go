@@ -1,8 +1,11 @@
 package kube_test
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"testing"
+	"time"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
 	kube "github.com/metacensus/infra/temporal/lib/workflows/kube/v1"
@@ -112,6 +115,21 @@ func TestCreateActivity(t *testing.T) {
 			clientErr: errClientAlreadyExists,
 			expectErr: true,
 		},
+		{
+			name: "success - status check fails after create",
+			resources: map[string]*pb.Resource{
+				"service-1": {
+					ManifestYaml: validServiceManifestYAML(),
+				},
+			},
+			expectErr:   false,
+			expectCount: 1,
+		},
+		{
+			name:      "success - empty resource list",
+			resources: map[string]*pb.Resource{},
+			expectErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -123,18 +141,28 @@ func TestCreateActivity(t *testing.T) {
 
 			// Set up specific expectations based on scenario
 			if !tt.expectErr {
-				// Success cases: CreateResource and GetResourceStatus called
-				mockClient.On("CreateResource", mock.Anything, mock.Anything, mock.Anything).
-					Return(tt.clientErr).
-					Times(len(tt.resources))
-				mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
-					Return(&kube.ResourceStatus{
-						Ready:           true,
-						Message:         "created",
-						DesiredReplicas: 1,
-						ReadyReplicas:   1,
-					}, nil).
-					Times(len(tt.resources))
+				if len(tt.resources) > 0 {
+					// Success cases: CreateResource and GetResourceStatus called
+					mockClient.On("CreateResource", mock.Anything, mock.Anything, mock.Anything).
+						Return(tt.clientErr).
+						Times(len(tt.resources))
+					// For "status check fails after create" test case, GetResourceStatus fails
+					if tt.name == "success - status check fails after create" {
+						mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+							Return(nil, errClientForbidden).
+							Times(len(tt.resources))
+					} else {
+						mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+							Return(&kube.ResourceStatus{
+								Ready:           true,
+								Message:         "created",
+								DesiredReplicas: 1,
+								ReadyReplicas:   1,
+							}, nil).
+							Times(len(tt.resources))
+					}
+				}
+				// For empty resource list, no client calls
 			} else if tt.clientErr != nil {
 				// Error with client error: CreateResource called once and fails
 				mockClient.On("CreateResource", mock.Anything, mock.Anything, mock.Anything).
@@ -161,11 +189,31 @@ func TestCreateActivity(t *testing.T) {
 				if err := res.Get(&result); err != nil {
 					t.Fatalf("failed to get activity result: %v", err)
 				}
-				if result.Summary.Created != tt.expectCount {
-					t.Errorf("created count: got %d, want %d", result.Summary.Created, tt.expectCount)
+				if tt.name != "success - empty resource list" {
+					if result.Summary.Created != tt.expectCount {
+						t.Errorf("created count: got %d, want %d", result.Summary.Created, tt.expectCount)
+					}
+				} else {
+					if result.Summary.Created != 0 {
+						t.Errorf("created count: got %d, want 0", result.Summary.Created)
+					}
 				}
 				if result.Summary.Total != int32(len(tt.resources)) {
 					t.Errorf("total count: got %d, want %d", result.Summary.Total, int32(len(tt.resources)))
+				}
+				// Verify StatusUnknown is set when status check fails
+				if tt.name == "success - status check fails after create" {
+					if len(result.Results) != 1 {
+						t.Fatalf("expected 1 result, got %d", len(result.Results))
+					}
+					for _, res := range result.Results {
+						if res.ResourceStatus == nil {
+							t.Fatal("expected ResourceStatus to be set")
+						}
+						if res.ResourceStatus.Status != kube.StatusUnknown {
+							t.Errorf("expected StatusUnknown, got %s", res.ResourceStatus.Status)
+						}
+					}
 				}
 			}
 		})
@@ -222,6 +270,21 @@ func TestUpdateActivity(t *testing.T) {
 			clientErr: errClientNotFound,
 			expectErr: true,
 		},
+		{
+			name: "success - status check fails after update",
+			resources: map[string]*pb.Resource{
+				"service-1": {
+					ManifestYaml: validServiceManifestYAML(),
+				},
+			},
+			expectErr:   false,
+			expectCount: 1,
+		},
+		{
+			name:      "success - empty resource list",
+			resources: map[string]*pb.Resource{},
+			expectErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -233,18 +296,28 @@ func TestUpdateActivity(t *testing.T) {
 
 			// Set up specific expectations based on scenario
 			if !tt.expectErr {
-				// Success cases: UpdateResource and GetResourceStatus called
-				mockClient.On("UpdateResource", mock.Anything, mock.Anything, mock.Anything).
-					Return(tt.clientErr).
-					Times(len(tt.resources))
-				mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
-					Return(&kube.ResourceStatus{
-						Ready:           true,
-						Message:         "updated",
-						DesiredReplicas: 1,
-						ReadyReplicas:   1,
-					}, nil).
-					Times(len(tt.resources))
+				if len(tt.resources) > 0 {
+					// Success cases: UpdateResource and GetResourceStatus called
+					mockClient.On("UpdateResource", mock.Anything, mock.Anything, mock.Anything).
+						Return(tt.clientErr).
+						Times(len(tt.resources))
+					// For "status check fails after update" test case, GetResourceStatus fails
+					if tt.name == "success - status check fails after update" {
+						mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+							Return(nil, errClientForbidden).
+							Times(len(tt.resources))
+					} else {
+						mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+							Return(&kube.ResourceStatus{
+								Ready:           true,
+								Message:         "updated",
+								DesiredReplicas: 1,
+								ReadyReplicas:   1,
+							}, nil).
+							Times(len(tt.resources))
+					}
+				}
+				// For empty resource list, no client calls
 			} else if tt.clientErr != nil {
 				// Error with client error: UpdateResource called once and fails
 				mockClient.On("UpdateResource", mock.Anything, mock.Anything, mock.Anything).
@@ -271,11 +344,31 @@ func TestUpdateActivity(t *testing.T) {
 				if err := res.Get(&result); err != nil {
 					t.Fatalf("failed to get activity result: %v", err)
 				}
-				if result.Summary.Updated != tt.expectCount {
-					t.Errorf("updated count: got %d, want %d", result.Summary.Updated, tt.expectCount)
+				if tt.name != "success - empty resource list" {
+					if result.Summary.Updated != tt.expectCount {
+						t.Errorf("updated count: got %d, want %d", result.Summary.Updated, tt.expectCount)
+					}
+				} else {
+					if result.Summary.Updated != 0 {
+						t.Errorf("updated count: got %d, want 0", result.Summary.Updated)
+					}
 				}
 				if result.Summary.Total != int32(len(tt.resources)) {
 					t.Errorf("total count: got %d, want %d", result.Summary.Total, int32(len(tt.resources)))
+				}
+				// Verify StatusUnknown is set when status check fails
+				if tt.name == "success - status check fails after update" {
+					if len(result.Results) != 1 {
+						t.Fatalf("expected 1 result, got %d", len(result.Results))
+					}
+					for _, res := range result.Results {
+						if res.ResourceStatus == nil {
+							t.Fatal("expected ResourceStatus to be set")
+						}
+						if res.ResourceStatus.Status != kube.StatusUnknown {
+							t.Errorf("expected StatusUnknown, got %s", res.ResourceStatus.Status)
+						}
+					}
 				}
 			}
 		})
@@ -333,6 +426,21 @@ func TestApplyActivity(t *testing.T) {
 			updateErr: errClientForbidden, // Not NotFound, so create won't be tried
 			expectErr: true,
 		},
+		{
+			name: "success - status check fails after apply",
+			resources: map[string]*pb.Resource{
+				"service-1": {
+					ManifestYaml: validServiceManifestYAML(),
+				},
+			},
+			expectErr:     false,
+			expectApplied: 1,
+		},
+		{
+			name:      "success - empty resource list",
+			resources: map[string]*pb.Resource{},
+			expectErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -345,18 +453,28 @@ func TestApplyActivity(t *testing.T) {
 			// Set up specific expectations based on scenario
 			// Note: ApplyActivity uses the ApplyResource method, not UpdateResource/CreateResource
 			if !tt.expectErr {
-				// Success cases: ApplyResource and GetResourceStatus called
-				mockClient.On("ApplyResource", mock.Anything, mock.Anything, mock.Anything).
-					Return(nil).
-					Times(len(tt.resources))
-				mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
-					Return(&kube.ResourceStatus{
-						Ready:           true,
-						Message:         "applied",
-						DesiredReplicas: 1,
-						ReadyReplicas:   1,
-					}, nil).
-					Times(len(tt.resources))
+				if len(tt.resources) > 0 {
+					// Success cases: ApplyResource and GetResourceStatus called
+					mockClient.On("ApplyResource", mock.Anything, mock.Anything, mock.Anything).
+						Return(nil).
+						Times(len(tt.resources))
+					// For "status check fails after apply" test case, GetResourceStatus fails
+					if tt.name == "success - status check fails after apply" {
+						mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+							Return(nil, errClientForbidden).
+							Times(len(tt.resources))
+					} else {
+						mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+							Return(&kube.ResourceStatus{
+								Ready:           true,
+								Message:         "applied",
+								DesiredReplicas: 1,
+								ReadyReplicas:   1,
+							}, nil).
+							Times(len(tt.resources))
+					}
+				}
+				// For empty resource list, no client calls
 			} else if tt.createErr == nil && tt.updateErr != nil {
 				// Error case: ApplyResource fails
 				mockClient.On("ApplyResource", mock.Anything, mock.Anything, mock.Anything).
@@ -383,8 +501,28 @@ func TestApplyActivity(t *testing.T) {
 				if err := res.Get(&result); err != nil {
 					t.Fatalf("failed to get activity result: %v", err)
 				}
-				if result.Summary.Applied != tt.expectApplied {
-					t.Errorf("applied count: got %d, want %d", result.Summary.Applied, tt.expectApplied)
+				if tt.name != "success - empty resource list" {
+					if result.Summary.Applied != tt.expectApplied {
+						t.Errorf("applied count: got %d, want %d", result.Summary.Applied, tt.expectApplied)
+					}
+				} else {
+					if result.Summary.Applied != 0 {
+						t.Errorf("applied count: got %d, want 0", result.Summary.Applied)
+					}
+				}
+				// Verify StatusUnknown is set when status check fails
+				if tt.name == "success - status check fails after apply" {
+					if len(result.Results) != 1 {
+						t.Fatalf("expected 1 result, got %d", len(result.Results))
+					}
+					for _, res := range result.Results {
+						if res.ResourceStatus == nil {
+							t.Fatal("expected ResourceStatus to be set")
+						}
+						if res.ResourceStatus.Status != kube.StatusUnknown {
+							t.Errorf("expected StatusUnknown, got %s", res.ResourceStatus.Status)
+						}
+					}
 				}
 			}
 		})
@@ -441,6 +579,11 @@ func TestDeleteActivity(t *testing.T) {
 			clientErr: errClientForbidden,
 			expectErr: true,
 		},
+		{
+			name:      "success - empty resource list",
+			resources: map[string]*pb.Resource{},
+			expectErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -452,10 +595,13 @@ func TestDeleteActivity(t *testing.T) {
 
 			// Set up specific expectations based on scenario
 			if !tt.expectErr {
-				// Success cases: DeleteResource called
-				mockClient.On("DeleteResource", mock.Anything, mock.Anything).
-					Return(tt.clientErr).
-					Times(len(tt.resources))
+				if len(tt.resources) > 0 {
+					// Success cases: DeleteResource called
+					mockClient.On("DeleteResource", mock.Anything, mock.Anything).
+						Return(tt.clientErr).
+						Times(len(tt.resources))
+				}
+				// For empty resource list, no client calls
 			} else if tt.clientErr != nil {
 				// Error with client error: DeleteResource called once and fails
 				mockClient.On("DeleteResource", mock.Anything, mock.Anything).
@@ -482,8 +628,14 @@ func TestDeleteActivity(t *testing.T) {
 				if err := res.Get(&result); err != nil {
 					t.Fatalf("failed to get activity result: %v", err)
 				}
-				if result.Summary.Deleted != tt.expectCount {
-					t.Errorf("deleted count: got %d, want %d", result.Summary.Deleted, tt.expectCount)
+				if tt.name != "success - empty resource list" {
+					if result.Summary.Deleted != tt.expectCount {
+						t.Errorf("deleted count: got %d, want %d", result.Summary.Deleted, tt.expectCount)
+					}
+				} else {
+					if result.Summary.Deleted != 0 {
+						t.Errorf("deleted count: got %d, want 0", result.Summary.Deleted)
+					}
 				}
 				if result.Summary.Total != int32(len(tt.resources)) {
 					t.Errorf("total count: got %d, want %d", result.Summary.Total, int32(len(tt.resources)))
@@ -624,6 +776,27 @@ func TestGetStatusActivity(t *testing.T) {
 			expectErr:        true,
 			expectReadyCount: 0,
 		},
+		{
+			name: "error - degraded status (partial replicas)",
+			resources: map[string]*pb.ResourceIdentifier{
+				"deployment-1": {
+					ApiVersion: "apps/v1",
+					Kind:       "Deployment",
+					Name:       "test-deployment",
+					Namespace:  "default",
+				},
+			},
+			statusResults: map[string]*kube.ResourceStatus{
+				"deployment-1": {
+					Ready:           false,
+					Message:         "1/2 replicas ready",
+					DesiredReplicas: 2,
+					ReadyReplicas:   1,
+				},
+			},
+			expectErr:        true, // Activity fails if resources not ready
+			expectReadyCount: 0,
+		},
 	}
 
 	for _, tt := range tests {
@@ -678,6 +851,852 @@ func TestGetStatusActivity(t *testing.T) {
 				}
 				if len(result.ResourcesReady) != tt.expectReadyCount {
 					t.Errorf("ready count: got %d, want %d", len(result.ResourcesReady), tt.expectReadyCount)
+				}
+			}
+		})
+	}
+}
+
+func TestExecPodActivity(t *testing.T) {
+	tests := []struct {
+		name           string
+		input          *pb.ExecPodInput
+		execErr        error
+		execStdout     []byte
+		execStderr     []byte
+		execExitCode   int32
+		expectErr      bool
+		expectExitCode int32
+	}{
+		{
+			name: "success - command executes",
+			input: &pb.ExecPodInput{
+				Namespace: "default",
+				PodName:   "test-pod",
+				Container: "test-container",
+				Command:   []string{"echo", "hello"},
+			},
+			execStdout:     []byte("hello\n"),
+			execStderr:     []byte(""),
+			execExitCode:   0,
+			expectErr:      false,
+			expectExitCode: 0,
+		},
+		{
+			name: "success - command with stderr",
+			input: &pb.ExecPodInput{
+				Namespace: "default",
+				PodName:   "test-pod",
+				Container: "test-container",
+				Command:   []string{"sh", "-c", "echo hello >&2"},
+			},
+			execStdout:     []byte(""),
+			execStderr:     []byte("hello\n"),
+			execExitCode:   0,
+			expectErr:      false,
+			expectExitCode: 0,
+		},
+		{
+			name: "success - command with stdin",
+			input: &pb.ExecPodInput{
+				Namespace: "default",
+				PodName:   "test-pod",
+				Container: "test-container",
+				Command:   []string{"cat"},
+				Stdin:     []byte("input data"),
+			},
+			execStdout:     []byte("input data"),
+			execStderr:     []byte(""),
+			execExitCode:   0,
+			expectErr:      false,
+			expectExitCode: 0,
+		},
+		{
+			name: "error - pod not found",
+			input: &pb.ExecPodInput{
+				Namespace: "default",
+				PodName:   "nonexistent-pod",
+				Container: "test-container",
+				Command:   []string{"echo", "hello"},
+			},
+			execErr:        errClientNotFound,
+			expectErr:      true,
+			expectExitCode: 0,
+		},
+		{
+			name: "error - container not found",
+			input: &pb.ExecPodInput{
+				Namespace: "default",
+				PodName:   "test-pod",
+				Container: "nonexistent-container",
+				Command:   []string{"echo", "hello"},
+			},
+			execErr:        fmt.Errorf("container nonexistent-container not found in pod default/test-pod"),
+			expectErr:      true,
+			expectExitCode: 0,
+		},
+		{
+			name: "error - command fails",
+			input: &pb.ExecPodInput{
+				Namespace: "default",
+				PodName:   "test-pod",
+				Container: "test-container",
+				Command:   []string{"false"},
+			},
+			execStdout:     []byte(""),
+			execStderr:     []byte(""),
+			execExitCode:   1,
+			execErr:        fmt.Errorf("command execution failed"),
+			expectErr:      true,
+			expectExitCode: 1,
+		},
+		{
+			name: "error - missing namespace",
+			input: &pb.ExecPodInput{
+				Namespace: "",
+				PodName:   "test-pod",
+				Container: "test-container",
+				Command:   []string{"echo", "hello"},
+			},
+			expectErr: true,
+		},
+		{
+			name: "error - missing pod name",
+			input: &pb.ExecPodInput{
+				Namespace: "default",
+				PodName:   "",
+				Container: "test-container",
+				Command:   []string{"echo", "hello"},
+			},
+			expectErr: true,
+		},
+		{
+			name: "error - missing container",
+			input: &pb.ExecPodInput{
+				Namespace: "default",
+				PodName:   "test-pod",
+				Container: "",
+				Command:   []string{"echo", "hello"},
+			},
+			expectErr: true,
+		},
+		{
+			name: "error - missing command",
+			input: &pb.ExecPodInput{
+				Namespace: "default",
+				PodName:   "test-pod",
+				Container: "test-container",
+				Command:   []string{},
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestActivityEnvironment()
+
+			mockClient := kubemocks.NewMockKubeClient(t)
+
+			// Set up mock expectations
+			if !tt.expectErr || tt.execErr == nil {
+				// Success case or command execution error (but pod/container found)
+				mockClient.On("ExecPod", mock.Anything, tt.input.GetNamespace(), tt.input.GetPodName(), tt.input.GetContainer(), tt.input.GetCommand(), tt.input.GetStdin()).
+					Return(tt.execStdout, tt.execStderr, tt.execExitCode, tt.execErr).
+					Once()
+			} else {
+				// Pod/container not found errors
+				mockClient.On("ExecPod", mock.Anything, tt.input.GetNamespace(), tt.input.GetPodName(), tt.input.GetContainer(), tt.input.GetCommand(), tt.input.GetStdin()).
+					Return(tt.execStdout, tt.execStderr, tt.execExitCode, tt.execErr).
+					Once()
+			}
+
+			activities := kube.NewActivities(mockClient)
+			env.RegisterActivity(activities.ExecPod)
+
+			res, err := env.ExecuteActivity(activities.ExecPod, tt.input)
+
+			if tt.expectErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				// For command execution errors, we still get output
+				if tt.execErr != nil && tt.execExitCode != 0 {
+					var result *pb.ExecPodOutput
+					if err := res.Get(&result); err == nil {
+						if result.ExitCode != tt.expectExitCode {
+							t.Errorf("exit code: got %d, want %d", result.ExitCode, tt.expectExitCode)
+						}
+					}
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				var result *pb.ExecPodOutput
+				if err := res.Get(&result); err != nil {
+					t.Fatalf("failed to get activity result: %v", err)
+				}
+				if string(result.Stdout) != string(tt.execStdout) {
+					t.Errorf("stdout: got %q, want %q", string(result.Stdout), string(tt.execStdout))
+				}
+				if string(result.Stderr) != string(tt.execStderr) {
+					t.Errorf("stderr: got %q, want %q", string(result.Stderr), string(tt.execStderr))
+				}
+				if result.ExitCode != tt.expectExitCode {
+					t.Errorf("exit code: got %d, want %d", result.ExitCode, tt.expectExitCode)
+				}
+			}
+		})
+	}
+}
+
+func TestPollResourcesReady(t *testing.T) {
+	resources := []*pb.ResourceIdentifier{
+		{
+			ApiVersion: "v1",
+			Kind:       "Service",
+			Name:       "test-service-1",
+			Namespace:  "default",
+		},
+		{
+			ApiVersion: "apps/v1",
+			Kind:       "Deployment",
+			Name:       "test-deployment-1",
+			Namespace:  "default",
+		},
+	}
+
+	tests := []struct {
+		name        string
+		resources   []*pb.ResourceIdentifier
+		timeout     time.Duration
+		statusCalls []struct {
+			statuses []*kube.ResourceStatus
+			err      error
+		}
+		cancelContext bool
+		expectErr     bool
+		expectTimeout bool
+	}{
+		{
+			name:      "success - all resources ready immediately",
+			resources: resources,
+			timeout:   5 * time.Second,
+			statusCalls: []struct {
+				statuses []*kube.ResourceStatus
+				err      error
+			}{
+				{
+					statuses: []*kube.ResourceStatus{
+						{Ready: true, Message: "ready"},
+						{Ready: true, Message: "ready"},
+					},
+					err: nil,
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:      "success - resources become ready after polling",
+			resources: resources,
+			timeout:   5 * time.Second,
+			statusCalls: []struct {
+				statuses []*kube.ResourceStatus
+				err      error
+			}{
+				{
+					statuses: []*kube.ResourceStatus{
+						{Ready: false, Message: "pending"},
+						{Ready: false, Message: "pending"},
+					},
+					err: nil,
+				},
+				{
+					statuses: []*kube.ResourceStatus{
+						{Ready: true, Message: "ready"},
+						{Ready: true, Message: "ready"},
+					},
+					err: nil,
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:      "error - timeout waiting for resources",
+			resources: resources,
+			timeout:   100 * time.Millisecond,
+			statusCalls: []struct {
+				statuses []*kube.ResourceStatus
+				err      error
+			}{
+				{
+					statuses: []*kube.ResourceStatus{
+						{Ready: false, Message: "pending"},
+						{Ready: false, Message: "pending"},
+					},
+					err: nil,
+				},
+			},
+			expectErr:     true,
+			expectTimeout: true,
+		},
+		{
+			name:          "error - context cancelled",
+			resources:     resources,
+			timeout:       5 * time.Second,
+			cancelContext: true,
+			expectErr:     true,
+		},
+		{
+			name:      "error - client error during polling",
+			resources: resources,
+			timeout:   5 * time.Second,
+			statusCalls: []struct {
+				statuses []*kube.ResourceStatus
+				err      error
+			}{
+				{
+					statuses: nil,
+					err:      errClientForbidden,
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name:      "success - mixed ready states become all ready",
+			resources: resources,
+			timeout:   5 * time.Second,
+			statusCalls: []struct {
+				statuses []*kube.ResourceStatus
+				err      error
+			}{
+				{
+					statuses: []*kube.ResourceStatus{
+						{Ready: false, Message: "pending"},
+						{Ready: true, Message: "ready"},
+					},
+					err: nil,
+				},
+				{
+					statuses: []*kube.ResourceStatus{
+						{Ready: true, Message: "ready"},
+						{Ready: true, Message: "ready"},
+					},
+					err: nil,
+				},
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestActivityEnvironment()
+
+			mockClient := kubemocks.NewMockKubeClient(t)
+
+			// Set up mock expectations for status calls
+			callCount := 0
+			for _, statusCall := range tt.statusCalls {
+				for i, status := range statusCall.statuses {
+					if i < len(tt.resources) {
+						resourceID := tt.resources[i]
+						if statusCall.err != nil {
+							mockClient.On("GetResourceStatus", mock.Anything, mock.MatchedBy(func(id *pb.ResourceIdentifier) bool {
+								return id.Name == resourceID.Name && id.Kind == resourceID.Kind
+							})).Return(nil, statusCall.err).Once()
+							// Break after first error
+							break
+						} else {
+							mockClient.On("GetResourceStatus", mock.Anything, mock.MatchedBy(func(id *pb.ResourceIdentifier) bool {
+								return id.Name == resourceID.Name && id.Kind == resourceID.Kind
+							})).Return(status, nil).Once()
+						}
+					}
+				}
+				callCount++
+			}
+
+			// For timeout test, we need multiple calls that keep returning not ready
+			if tt.expectTimeout {
+				// Set up enough calls to exceed timeout
+				for i := 0; i < 10; i++ {
+					for _, resourceID := range tt.resources {
+						mockClient.On("GetResourceStatus", mock.Anything, mock.MatchedBy(func(id *pb.ResourceIdentifier) bool {
+							return id.Name == resourceID.Name && id.Kind == resourceID.Kind
+						})).Return(&kube.ResourceStatus{Ready: false, Message: "pending"}, nil).Once()
+					}
+				}
+			}
+
+			activities := kube.NewActivities(mockClient)
+			env.RegisterActivity(activities.PollResourcesReady)
+
+			ctx := context.Background()
+			if tt.cancelContext {
+				cancelCtx, cancel := context.WithCancel(ctx)
+				cancel() // Cancel immediately
+				ctx = cancelCtx
+			}
+
+			res, err := env.ExecuteActivity(activities.PollResourcesReady, ctx, tt.resources, tt.timeout)
+			if err == nil {
+				err = res.Get(nil)
+			}
+
+			if tt.expectErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tt.expectTimeout {
+					if err.Error() == "" || err.Error()[:6] != "timeout" {
+						t.Errorf("expected timeout error, got: %v", err)
+					}
+				}
+				if tt.cancelContext {
+					if err != context.Canceled {
+						t.Errorf("expected context.Canceled, got: %v", err)
+					}
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestPollResourcesDeleted(t *testing.T) {
+	resources := []*pb.ResourceIdentifier{
+		{
+			ApiVersion: "v1",
+			Kind:       "Service",
+			Name:       "test-service-1",
+			Namespace:  "default",
+		},
+		{
+			ApiVersion: "apps/v1",
+			Kind:       "Deployment",
+			Name:       "test-deployment-1",
+			Namespace:  "default",
+		},
+	}
+
+	tests := []struct {
+		name        string
+		resources   []*pb.ResourceIdentifier
+		timeout     time.Duration
+		statusCalls []struct {
+			statuses []*kube.ResourceStatus
+			err      error
+		}
+		cancelContext bool
+		expectErr     bool
+		expectTimeout bool
+	}{
+		{
+			name:      "success - all resources deleted immediately",
+			resources: resources,
+			timeout:   5 * time.Second,
+			statusCalls: []struct {
+				statuses []*kube.ResourceStatus
+				err      error
+			}{
+				{
+					statuses: nil,
+					err:      errClientNotFound, // First resource deleted
+				},
+				{
+					statuses: nil,
+					err:      errClientNotFound, // Second resource deleted
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:      "success - resources deleted after polling",
+			resources: resources,
+			timeout:   5 * time.Second,
+			statusCalls: []struct {
+				statuses []*kube.ResourceStatus
+				err      error
+			}{
+				{
+					statuses: []*kube.ResourceStatus{
+						{Ready: true, Message: "exists"},
+						{Ready: true, Message: "exists"},
+					},
+					err: nil,
+				},
+				{
+					statuses: nil,
+					err:      errClientNotFound, // First resource deleted
+				},
+				{
+					statuses: nil,
+					err:      errClientNotFound, // Second resource deleted
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:      "error - timeout waiting for deletion",
+			resources: resources,
+			timeout:   100 * time.Millisecond,
+			statusCalls: []struct {
+				statuses []*kube.ResourceStatus
+				err      error
+			}{
+				{
+					statuses: []*kube.ResourceStatus{
+						{Ready: true, Message: "exists"},
+						{Ready: true, Message: "exists"},
+					},
+					err: nil,
+				},
+			},
+			expectErr:     true,
+			expectTimeout: true,
+		},
+		{
+			name:          "error - context cancelled",
+			resources:     resources,
+			timeout:       5 * time.Second,
+			cancelContext: true,
+			expectErr:     true,
+		},
+		{
+			name:      "error - non-not-found error during polling",
+			resources: resources,
+			timeout:   5 * time.Second,
+			statusCalls: []struct {
+				statuses []*kube.ResourceStatus
+				err      error
+			}{
+				{
+					statuses: []*kube.ResourceStatus{
+						{Ready: true, Message: "exists"},
+					},
+					err: nil,
+				},
+				{
+					statuses: nil,
+					err:      errClientForbidden, // Non-not-found error
+				},
+			},
+			expectErr: false, // Non-not-found errors are treated as "resource still exists", polling continues
+		},
+		{
+			name:      "success - mixed deletion states",
+			resources: resources,
+			timeout:   5 * time.Second,
+			statusCalls: []struct {
+				statuses []*kube.ResourceStatus
+				err      error
+			}{
+				{
+					statuses: nil,
+					err:      errClientNotFound, // First resource deleted immediately
+				},
+				{
+					statuses: []*kube.ResourceStatus{
+						{Ready: true, Message: "exists"},
+					},
+					err: nil, // Second resource still exists
+				},
+				{
+					statuses: nil,
+					err:      errClientNotFound, // Second resource deleted
+				},
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestActivityEnvironment()
+
+			mockClient := kubemocks.NewMockKubeClient(t)
+
+			// Set up mock expectations for status calls
+			callIndex := 0
+			for _, statusCall := range tt.statusCalls {
+				if statusCall.err != nil {
+					// Error case - need to match which resource
+					if callIndex < len(tt.resources) {
+						resourceID := tt.resources[callIndex]
+						if statusCall.err == errClientNotFound {
+							// Not found means deleted - continue to next resource
+							mockClient.On("GetResourceStatus", mock.Anything, mock.MatchedBy(func(id *pb.ResourceIdentifier) bool {
+								return id.Name == resourceID.Name && id.Kind == resourceID.Kind
+							})).Return(nil, statusCall.err).Once()
+							callIndex++
+						} else {
+							// Other errors - resource still exists, continue polling
+							mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).Return(nil, statusCall.err).Once()
+						}
+					}
+				} else {
+					// Status returned - resource exists
+					for i, status := range statusCall.statuses {
+						if i < len(tt.resources) {
+							resourceID := tt.resources[i]
+							mockClient.On("GetResourceStatus", mock.Anything, mock.MatchedBy(func(id *pb.ResourceIdentifier) bool {
+								return id.Name == resourceID.Name && id.Kind == resourceID.Kind
+							})).Return(status, nil).Once()
+						}
+					}
+				}
+			}
+
+			// For timeout test, we need multiple calls that keep returning status (exists)
+			if tt.expectTimeout {
+				// Set up enough calls to exceed timeout
+				for i := 0; i < 10; i++ {
+					for _, resourceID := range tt.resources {
+						mockClient.On("GetResourceStatus", mock.Anything, mock.MatchedBy(func(id *pb.ResourceIdentifier) bool {
+							return id.Name == resourceID.Name && id.Kind == resourceID.Kind
+						})).Return(&kube.ResourceStatus{Ready: true, Message: "exists"}, nil).Once()
+					}
+				}
+			}
+
+			activities := kube.NewActivities(mockClient)
+			env.RegisterActivity(activities.PollResourcesDeleted)
+
+			ctx := context.Background()
+			if tt.cancelContext {
+				cancelCtx, cancel := context.WithCancel(ctx)
+				cancel() // Cancel immediately
+				ctx = cancelCtx
+			}
+
+			res, err := env.ExecuteActivity(activities.PollResourcesDeleted, ctx, tt.resources, tt.timeout)
+			if err == nil {
+				err = res.Get(nil)
+			}
+
+			if tt.expectErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tt.expectTimeout {
+					if err.Error() == "" || err.Error()[:6] != "timeout" {
+						t.Errorf("expected timeout error, got: %v", err)
+					}
+				}
+				if tt.cancelContext {
+					if err != context.Canceled {
+						t.Errorf("expected context.Canceled, got: %v", err)
+					}
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestPollResourceReady(t *testing.T) {
+	resource := &pb.ResourceIdentifier{
+		ApiVersion: "v1",
+		Kind:       "Service",
+		Name:       "test-service",
+		Namespace:  "default",
+	}
+
+	tests := []struct {
+		name        string
+		resource    *pb.ResourceIdentifier
+		timeout     time.Duration
+		statusCalls []struct {
+			status *kube.ResourceStatus
+			err    error
+		}
+		expectErr     bool
+		expectTimeout bool
+	}{
+		{
+			name:     "success - single resource ready",
+			resource: resource,
+			timeout:  5 * time.Second,
+			statusCalls: []struct {
+				status *kube.ResourceStatus
+				err    error
+			}{
+				{
+					status: &kube.ResourceStatus{Ready: true, Message: "ready"},
+					err:    nil,
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:     "error - single resource timeout",
+			resource: resource,
+			timeout:  100 * time.Millisecond,
+			statusCalls: []struct {
+				status *kube.ResourceStatus
+				err    error
+			}{
+				{
+					status: &kube.ResourceStatus{Ready: false, Message: "pending"},
+					err:    nil,
+				},
+			},
+			expectErr:     true,
+			expectTimeout: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestActivityEnvironment()
+
+			mockClient := kubemocks.NewMockKubeClient(t)
+
+			// Set up mock expectations
+			if tt.expectTimeout {
+				// For timeout, set up multiple calls
+				for i := 0; i < 10; i++ {
+					mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+						Return(&kube.ResourceStatus{Ready: false, Message: "pending"}, nil).Once()
+				}
+			} else {
+				for _, statusCall := range tt.statusCalls {
+					mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+						Return(statusCall.status, statusCall.err).Once()
+				}
+			}
+
+			activities := kube.NewActivities(mockClient)
+			env.RegisterActivity(activities.PollResourceReady)
+
+			res, err := env.ExecuteActivity(activities.PollResourceReady, context.Background(), tt.resource, tt.timeout)
+			if err == nil {
+				err = res.Get(nil)
+			}
+
+			if tt.expectErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tt.expectTimeout {
+					if err.Error() == "" || err.Error()[:6] != "timeout" {
+						t.Errorf("expected timeout error, got: %v", err)
+					}
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestPollResourceDeleted(t *testing.T) {
+	resource := &pb.ResourceIdentifier{
+		ApiVersion: "v1",
+		Kind:       "Service",
+		Name:       "test-service",
+		Namespace:  "default",
+	}
+
+	tests := []struct {
+		name        string
+		resource    *pb.ResourceIdentifier
+		timeout     time.Duration
+		statusCalls []struct {
+			status *kube.ResourceStatus
+			err    error
+		}
+		expectErr     bool
+		expectTimeout bool
+	}{
+		{
+			name:     "success - single resource deleted",
+			resource: resource,
+			timeout:  5 * time.Second,
+			statusCalls: []struct {
+				status *kube.ResourceStatus
+				err    error
+			}{
+				{
+					status: nil,
+					err:    errClientNotFound,
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:     "error - single resource timeout",
+			resource: resource,
+			timeout:  100 * time.Millisecond,
+			statusCalls: []struct {
+				status *kube.ResourceStatus
+				err    error
+			}{
+				{
+					status: &kube.ResourceStatus{Ready: true, Message: "exists"},
+					err:    nil,
+				},
+			},
+			expectErr:     true,
+			expectTimeout: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestActivityEnvironment()
+
+			mockClient := kubemocks.NewMockKubeClient(t)
+
+			// Set up mock expectations
+			if tt.expectTimeout {
+				// For timeout, set up multiple calls
+				for i := 0; i < 10; i++ {
+					mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+						Return(&kube.ResourceStatus{Ready: true, Message: "exists"}, nil).Once()
+				}
+			} else {
+				for _, statusCall := range tt.statusCalls {
+					mockClient.On("GetResourceStatus", mock.Anything, mock.Anything).
+						Return(statusCall.status, statusCall.err).Once()
+				}
+			}
+
+			activities := kube.NewActivities(mockClient)
+			env.RegisterActivity(activities.PollResourceDeleted)
+
+			res, err := env.ExecuteActivity(activities.PollResourceDeleted, context.Background(), tt.resource, tt.timeout)
+			if err == nil {
+				err = res.Get(nil)
+			}
+
+			if tt.expectErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tt.expectTimeout {
+					if err.Error() == "" || err.Error()[:6] != "timeout" {
+						t.Errorf("expected timeout error, got: %v", err)
+					}
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
 				}
 			}
 		})

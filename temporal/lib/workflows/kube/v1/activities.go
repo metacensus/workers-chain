@@ -376,9 +376,9 @@ func (a *Activities) getResourceStatus(ctx context.Context, id *pb.ResourceIdent
 	return pbStatus, nil
 }
 
-// pollResourcesReady waits for resources to reach ready state
+// PollResourcesReady waits for resources to reach ready state
 // Polls status up to timeout duration
-func (a *Activities) pollResourcesReady(ctx context.Context, resources []*pb.ResourceIdentifier, timeout time.Duration) error {
+func (a *Activities) PollResourcesReady(ctx context.Context, resources []*pb.ResourceIdentifier, timeout time.Duration) error {
 	logger := activity.GetLogger(ctx)
 	pollingInterval := 1 * time.Second
 	deadline := time.Now().Add(timeout)
@@ -419,9 +419,9 @@ func (a *Activities) pollResourcesReady(ctx context.Context, resources []*pb.Res
 	}
 }
 
-// pollResourcesDeleted waits for resources to be deleted
+// PollResourcesDeleted waits for resources to be deleted
 // Polls until resources no longer exist or timeout
-func (a *Activities) pollResourcesDeleted(ctx context.Context, resources []*pb.ResourceIdentifier, timeout time.Duration) error {
+func (a *Activities) PollResourcesDeleted(ctx context.Context, resources []*pb.ResourceIdentifier, timeout time.Duration) error {
 	logger := activity.GetLogger(ctx)
 	pollingInterval := 1 * time.Second
 	deadline := time.Now().Add(timeout)
@@ -469,8 +469,69 @@ func (a *Activities) pollResourceReady(ctx context.Context, resourceID *pb.Resou
 	return a.pollResourcesReady(ctx, []*pb.ResourceIdentifier{resourceID}, timeout)
 }
 
-// pollResourceDeleted adapts batch polling to single-resource interface
+// PollResourceDeleted adapts batch polling to single-resource interface
 // Used when polling for individual resource deletion
-func (a *Activities) pollResourceDeleted(ctx context.Context, resourceID *pb.ResourceIdentifier, timeout time.Duration) error {
-	return a.pollResourcesDeleted(ctx, []*pb.ResourceIdentifier{resourceID}, timeout)
+func (a *Activities) PollResourceDeleted(ctx context.Context, resourceID *pb.ResourceIdentifier, timeout time.Duration) error {
+	return a.PollResourcesDeleted(ctx, []*pb.ResourceIdentifier{resourceID}, timeout)
+}
+
+// ExecPod executes a command in a pod container
+func (a *Activities) ExecPod(ctx context.Context, req *pb.ExecPodInput) (*pb.ExecPodOutput, error) {
+	logger := activity.GetLogger(ctx)
+
+	// Validate input
+	if req.GetNamespace() == "" {
+		return nil, fmt.Errorf("namespace is required")
+	}
+	if req.GetPodName() == "" {
+		return nil, fmt.Errorf("pod_name is required")
+	}
+	if req.GetContainer() == "" {
+		return nil, fmt.Errorf("container is required")
+	}
+	if len(req.GetCommand()) == 0 {
+		return nil, fmt.Errorf("command is required")
+	}
+
+	logger.Info("Executing command in pod",
+		"namespace", req.GetNamespace(),
+		"pod", req.GetPodName(),
+		"container", req.GetContainer(),
+		"command", req.GetCommand())
+
+	// Execute command
+	stdout, stderr, exitCode, err := a.client.ExecPod(
+		ctx,
+		req.GetNamespace(),
+		req.GetPodName(),
+		req.GetContainer(),
+		req.GetCommand(),
+		req.GetStdin(),
+	)
+
+	output := &pb.ExecPodOutput{
+		Stdout:   stdout,
+		Stderr:   stderr,
+		ExitCode: exitCode,
+	}
+
+	if err != nil {
+		output.ErrorMessage = err.Error()
+		logger.Warn("Command execution failed",
+			"namespace", req.GetNamespace(),
+			"pod", req.GetPodName(),
+			"container", req.GetContainer(),
+			"exit_code", exitCode,
+			"error", err)
+		// Return the output even on error so caller can see stdout/stderr
+		return output, err
+	}
+
+	logger.Info("Command executed successfully",
+		"namespace", req.GetNamespace(),
+		"pod", req.GetPodName(),
+		"container", req.GetContainer(),
+		"exit_code", exitCode)
+
+	return output, nil
 }
