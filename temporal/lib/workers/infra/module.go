@@ -6,6 +6,7 @@ import (
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	cell "github.com/metacensus/infra/temporal/lib/workflows/cell/v1"
 	clusterfabric "github.com/metacensus/infra/temporal/lib/workflows/cluster/fabric/v1"
+	certauth "github.com/metacensus/infra/temporal/lib/workflows/fabric/certauth/v1"
 	fabric "github.com/metacensus/infra/temporal/lib/workflows/fabric/v1"
 	helm "github.com/metacensus/infra/temporal/lib/workflows/helm/v1"
 	kube "github.com/metacensus/infra/temporal/lib/workflows/kube/v1"
@@ -44,6 +45,7 @@ var Module = fx.Module("infra",
 	temporal.Module,
 	cell.Module,
 	clusterfabric.Module,
+	certauth.Module,
 	fabric.Module,
 	postgres.Module,
 
@@ -59,7 +61,8 @@ var Module = fx.Module("infra",
 		temporal.RegisterWorkflows,
 		cell.RegisterWorkflows,
 		clusterfabric.RegisterWorkflows,
-		fabric.RegisterActivities,
+		certauth.RegisterActivities,
+		certauth.RegisterWorkflows,
 		fabric.RegisterWorkflows,
 		fabric.RegisterNexusService,
 		postgres.RegisterActivities,

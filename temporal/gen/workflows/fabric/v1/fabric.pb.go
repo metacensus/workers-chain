@@ -167,79 +167,6 @@ func (x *CertificateAuthoritySpec) GetValidityDuration() *durationpb.Duration {
 	return nil
 }
 
-// CertificateSubject defines the subject fields for a certificate
-type CertificateSubject struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// common_name is the CN for the certificate subject
-	CommonName string `protobuf:"bytes,1,opt,name=common_name,json=CommonName,proto3" json:"CommonName" validate:"required"`
-	// organization is the O for the certificate subject
-	Organization string `protobuf:"bytes,2,opt,name=organization,json=Organization,proto3" json:"Organization"`
-	// organizational_unit is the OU for the certificate subject
-	OrganizationalUnit string `protobuf:"bytes,3,opt,name=organizational_unit,json=OrganizationalUnit,proto3" json:"OrganizationalUnit"`
-	// dns_names are Subject Alternative Names for TLS certificates
-	DnsNames      []string `protobuf:"bytes,4,rep,name=dns_names,json=DnsNames,proto3" json:"DnsNames,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CertificateSubject) Reset() {
-	*x = CertificateSubject{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CertificateSubject) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CertificateSubject) ProtoMessage() {}
-
-func (x *CertificateSubject) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CertificateSubject.ProtoReflect.Descriptor instead.
-func (*CertificateSubject) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *CertificateSubject) GetCommonName() string {
-	if x != nil {
-		return x.CommonName
-	}
-	return ""
-}
-
-func (x *CertificateSubject) GetOrganization() string {
-	if x != nil {
-		return x.Organization
-	}
-	return ""
-}
-
-func (x *CertificateSubject) GetOrganizationalUnit() string {
-	if x != nil {
-		return x.OrganizationalUnit
-	}
-	return ""
-}
-
-func (x *CertificateSubject) GetDnsNames() []string {
-	if x != nil {
-		return x.DnsNames
-	}
-	return nil
-}
-
 // PeerSpec defines a peer to deploy
 type PeerSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -255,7 +182,7 @@ type PeerSpec struct {
 
 func (x *PeerSpec) Reset() {
 	*x = PeerSpec{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[3]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -267,7 +194,7 @@ func (x *PeerSpec) String() string {
 func (*PeerSpec) ProtoMessage() {}
 
 func (x *PeerSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[3]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -280,7 +207,7 @@ func (x *PeerSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeerSpec.ProtoReflect.Descriptor instead.
 func (*PeerSpec) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{3}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *PeerSpec) GetId() string {
@@ -319,7 +246,7 @@ type OrdererSpec struct {
 
 func (x *OrdererSpec) Reset() {
 	*x = OrdererSpec{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[4]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -331,7 +258,7 @@ func (x *OrdererSpec) String() string {
 func (*OrdererSpec) ProtoMessage() {}
 
 func (x *OrdererSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[4]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -344,7 +271,7 @@ func (x *OrdererSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrdererSpec.ProtoReflect.Descriptor instead.
 func (*OrdererSpec) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{4}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *OrdererSpec) GetId() string {
@@ -382,7 +309,7 @@ type CertificateAuthorityRef struct {
 
 func (x *CertificateAuthorityRef) Reset() {
 	*x = CertificateAuthorityRef{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[5]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -394,7 +321,7 @@ func (x *CertificateAuthorityRef) String() string {
 func (*CertificateAuthorityRef) ProtoMessage() {}
 
 func (x *CertificateAuthorityRef) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[5]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -407,7 +334,7 @@ func (x *CertificateAuthorityRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CertificateAuthorityRef.ProtoReflect.Descriptor instead.
 func (*CertificateAuthorityRef) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{5}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CertificateAuthorityRef) GetCertType() string {
@@ -442,7 +369,7 @@ type IdentityRef struct {
 
 func (x *IdentityRef) Reset() {
 	*x = IdentityRef{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[6]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -454,7 +381,7 @@ func (x *IdentityRef) String() string {
 func (*IdentityRef) ProtoMessage() {}
 
 func (x *IdentityRef) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[6]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -467,7 +394,7 @@ func (x *IdentityRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IdentityRef.ProtoReflect.Descriptor instead.
 func (*IdentityRef) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{6}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *IdentityRef) GetKeyRef() *v1.SecretRef {
@@ -498,13 +425,7 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x0esigning_issuer\x18\x02 \x01(\v2\".fabric.v1.CertificateAuthorityRefB%ʵ\x03!\xa2\x01\x1ejson:\"SigningIssuer,omitempty\"R\rSigningIssuer\x12d\n" +
 	"\n" +
 	"tls_issuer\x18\x03 \x01(\v2\".fabric.v1.CertificateAuthorityRefB!ʵ\x03\x1d\xa2\x01\x1ajson:\"TlsIssuer,omitempty\"R\tTlsIssuer\x12p\n" +
-	"\x11validity_duration\x18\x04 \x01(\v2\x19.google.protobuf.DurationB(ʵ\x03$\xa2\x01!json:\"ValidityDuration,omitempty\"R\x10ValidityDuration\"\xb5\x02\n" +
-	"\x12CertificateSubject\x12M\n" +
-	"\vcommon_name\x18\x01 \x01(\tB,ʵ\x03(\xa2\x01%json:\"CommonName\" validate:\"required\"R\n" +
-	"CommonName\x12>\n" +
-	"\forganization\x18\x02 \x01(\tB\x1aʵ\x03\x16\xa2\x01\x13json:\"Organization\"R\fOrganization\x12Q\n" +
-	"\x13organizational_unit\x18\x03 \x01(\tB ʵ\x03\x1c\xa2\x01\x19json:\"OrganizationalUnit\"R\x12OrganizationalUnit\x12=\n" +
-	"\tdns_names\x18\x04 \x03(\tB ʵ\x03\x1c\xa2\x01\x19json:\"DnsNames,omitempty\"R\bDnsNames\"\xa0\x02\n" +
+	"\x11validity_duration\x18\x04 \x01(\v2\x19.google.protobuf.DurationB(ʵ\x03$\xa2\x01!json:\"ValidityDuration,omitempty\"R\x10ValidityDuration\"\xa0\x02\n" +
 	"\bPeerSpec\x124\n" +
 	"\x02id\x18\x01 \x01(\tB$ʵ\x03 \xa2\x01\x1djson:\"Id\" validate:\"required\"R\x02Id\x12n\n" +
 	"\n" +
@@ -538,32 +459,31 @@ func file_fabric_v1_fabric_proto_rawDescGZIP() []byte {
 	return file_fabric_v1_fabric_proto_rawDescData
 }
 
-var file_fabric_v1_fabric_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_fabric_v1_fabric_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_fabric_v1_fabric_proto_goTypes = []any{
 	(*OrgFabricDeployment)(nil),      // 0: fabric.v1.OrgFabricDeployment
 	(*CertificateAuthoritySpec)(nil), // 1: fabric.v1.CertificateAuthoritySpec
-	(*CertificateSubject)(nil),       // 2: fabric.v1.CertificateSubject
-	(*PeerSpec)(nil),                 // 3: fabric.v1.PeerSpec
-	(*OrdererSpec)(nil),              // 4: fabric.v1.OrdererSpec
-	(*CertificateAuthorityRef)(nil),  // 5: fabric.v1.CertificateAuthorityRef
-	(*IdentityRef)(nil),              // 6: fabric.v1.IdentityRef
-	(*durationpb.Duration)(nil),      // 7: google.protobuf.Duration
-	(*v1.SecretRef)(nil),             // 8: secrets.v1.SecretRef
+	(*PeerSpec)(nil),                 // 2: fabric.v1.PeerSpec
+	(*OrdererSpec)(nil),              // 3: fabric.v1.OrdererSpec
+	(*CertificateAuthorityRef)(nil),  // 4: fabric.v1.CertificateAuthorityRef
+	(*IdentityRef)(nil),              // 5: fabric.v1.IdentityRef
+	(*durationpb.Duration)(nil),      // 6: google.protobuf.Duration
+	(*v1.SecretRef)(nil),             // 7: secrets.v1.SecretRef
 }
 var file_fabric_v1_fabric_proto_depIdxs = []int32{
 	1,  // 0: fabric.v1.OrgFabricDeployment.certificate_authorities:type_name -> fabric.v1.CertificateAuthoritySpec
-	3,  // 1: fabric.v1.OrgFabricDeployment.peers:type_name -> fabric.v1.PeerSpec
-	4,  // 2: fabric.v1.OrgFabricDeployment.orderers:type_name -> fabric.v1.OrdererSpec
-	5,  // 3: fabric.v1.CertificateAuthoritySpec.self:type_name -> fabric.v1.CertificateAuthorityRef
-	5,  // 4: fabric.v1.CertificateAuthoritySpec.signing_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	5,  // 5: fabric.v1.CertificateAuthoritySpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	7,  // 6: fabric.v1.CertificateAuthoritySpec.validity_duration:type_name -> google.protobuf.Duration
-	5,  // 7: fabric.v1.PeerSpec.org_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	5,  // 8: fabric.v1.PeerSpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	5,  // 9: fabric.v1.OrdererSpec.org_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	5,  // 10: fabric.v1.OrdererSpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	8,  // 11: fabric.v1.IdentityRef.key_ref:type_name -> secrets.v1.SecretRef
-	8,  // 12: fabric.v1.IdentityRef.cert_ref:type_name -> secrets.v1.SecretRef
+	2,  // 1: fabric.v1.OrgFabricDeployment.peers:type_name -> fabric.v1.PeerSpec
+	3,  // 2: fabric.v1.OrgFabricDeployment.orderers:type_name -> fabric.v1.OrdererSpec
+	4,  // 3: fabric.v1.CertificateAuthoritySpec.self:type_name -> fabric.v1.CertificateAuthorityRef
+	4,  // 4: fabric.v1.CertificateAuthoritySpec.signing_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	4,  // 5: fabric.v1.CertificateAuthoritySpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	6,  // 6: fabric.v1.CertificateAuthoritySpec.validity_duration:type_name -> google.protobuf.Duration
+	4,  // 7: fabric.v1.PeerSpec.org_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	4,  // 8: fabric.v1.PeerSpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	4,  // 9: fabric.v1.OrdererSpec.org_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	4,  // 10: fabric.v1.OrdererSpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	7,  // 11: fabric.v1.IdentityRef.key_ref:type_name -> secrets.v1.SecretRef
+	7,  // 12: fabric.v1.IdentityRef.cert_ref:type_name -> secrets.v1.SecretRef
 	13, // [13:13] is the sub-list for method output_type
 	13, // [13:13] is the sub-list for method input_type
 	13, // [13:13] is the sub-list for extension type_name
@@ -582,7 +502,7 @@ func file_fabric_v1_fabric_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_fabric_v1_fabric_proto_rawDesc), len(file_fabric_v1_fabric_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -5,12 +5,12 @@ import (
 	"time"
 
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
+	certauthpb "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
-	fabricv1nexustemporal "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1nexustemporal"
 	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
-	cellv1 "github.com/metacensus/infra/temporal/lib/workflows/cell/v1"
+	"github.com/metacensus/infra/temporal/lib/workflows/fabric/certauth/v1"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -223,11 +223,11 @@ func (w *deployOrgRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context
 	tlsPurpose := fmt.Sprintf("org-root-tls")
 	tlsCommonName := computeTLSCommonName(caConfig.ComponentName(), nil, tlsIssuerRef)
 
-	_, err = NexusFabricCreateCertificate(ctx, &pb.CreateCertificateInput{
+	_, err = certauth.NexusCreateCertificate(ctx, &certauthpb.CreateCertificateInput{
 		Org:       org,
 		IssuerRef: tlsIssuerRef,
 		Profile:   "tls",
-		Subject: &pb.CertificateSubject{
+		Subject: &certauthpb.CertificateSubject{
 			CommonName:         tlsCommonName,
 			Organization:       org,
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
@@ -260,7 +260,7 @@ func (w *deployOrgRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context
 		return nil, fmt.Errorf("failed to deploy CA: %w", err)
 	}
 
-	_, err = pb.CreateBootstrapAdminChild(ctx, &pb.CreateBootstrapAdminInput{
+	_, err = certauthpb.CreateBootstrapAdminChild(ctx, &certauthpb.CreateBootstrapAdminInput{
 		Org:              org,
 		CaRef:            caRef,
 		TlsIssuer:        tlsIssuerRef, // Admin TLS from TLS Int (not self)
@@ -270,7 +270,7 @@ func (w *deployOrgRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context
 		return nil, fmt.Errorf("%w: %w", ErrCreateBootstrapAdmin, err)
 	}
 
-	_, err = pb.CreateAdminChild(ctx, &pb.CreateAdminInput{
+	_, err = certauthpb.CreateAdminChild(ctx, &certauthpb.CreateAdminInput{
 		Org:              org,
 		CaRef:            caRef,
 		SigningIssuer:    caRef,        // Admin signing from self
@@ -353,11 +353,11 @@ func (w *deployOrgIntermediateCertificateAuthorityWorkflow) Execute(ctx workflow
 	}
 
 	signingPurpose := fmt.Sprintf("org-int-signing")
-	_, err = pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
+	_, err = certauthpb.CreateCertificateChild(ctx, &certauthpb.CreateCertificateInput{
 		Org:       org,
 		IssuerRef: signingIssuerRef,
 		Profile:   "ca",
-		Subject: &pb.CertificateSubject{
+		Subject: &certauthpb.CertificateSubject{
 			CommonName:         caConfig.ComponentName(),
 			Organization:       org,
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
@@ -383,12 +383,11 @@ func (w *deployOrgIntermediateCertificateAuthorityWorkflow) Execute(ctx workflow
 	tlsPurpose := fmt.Sprintf("org-int-tls")
 	tlsCommonName := computeTLSCommonName(caConfig.ComponentName(), signingIssuerRef, tlsIssuerRef)
 
-	fabricNexusClient := fabricv1nexustemporal.NewFabricNexusClient(cellv1.FabricCreateCertificateNexusEndpoint)
-	_, err = fabricNexusClient.CreateCertificate(ctx, &pb.CreateCertificateInput{
+	_, err = certauth.NexusCreateCertificate(ctx, &certauthpb.CreateCertificateInput{
 		Org:       org,
 		IssuerRef: tlsIssuerRef,
 		Profile:   "tls",
-		Subject: &pb.CertificateSubject{
+		Subject: &certauthpb.CertificateSubject{
 			CommonName:         tlsCommonName,
 			Organization:       org,
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
@@ -400,8 +399,6 @@ func (w *deployOrgIntermediateCertificateAuthorityWorkflow) Execute(ctx workflow
 		},
 		Purpose:       tlsPurpose,
 		IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
-	}, workflow.NexusOperationOptions{
-		ScheduleToCloseTimeout: 5 * time.Minute,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w (tls): %w", ErrCreateCertificate, err)
@@ -423,7 +420,7 @@ func (w *deployOrgIntermediateCertificateAuthorityWorkflow) Execute(ctx workflow
 		return nil, fmt.Errorf("failed to deploy CA: %w", err)
 	}
 
-	_, err = pb.CreateBootstrapAdminChild(ctx, &pb.CreateBootstrapAdminInput{
+	_, err = certauthpb.CreateBootstrapAdminChild(ctx, &certauthpb.CreateBootstrapAdminInput{
 		Org:              org,
 		CaRef:            caRef,
 		TlsIssuer:        tlsIssuerRef, // Admin TLS from TLS Int (not self)
@@ -433,7 +430,7 @@ func (w *deployOrgIntermediateCertificateAuthorityWorkflow) Execute(ctx workflow
 		return nil, fmt.Errorf("%w: %w", ErrCreateBootstrapAdmin, err)
 	}
 
-	_, err = pb.CreateAdminChild(ctx, &pb.CreateAdminInput{
+	_, err = certauthpb.CreateAdminChild(ctx, &certauthpb.CreateAdminInput{
 		Org:              org,
 		CaRef:            caRef,
 		SigningIssuer:    caRef,        // Admin signing from self

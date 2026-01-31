@@ -1,4 +1,4 @@
-package certauthority
+package certauth
 
 import (
 	"fmt"

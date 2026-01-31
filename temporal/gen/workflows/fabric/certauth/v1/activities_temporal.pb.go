@@ -4,8 +4,8 @@
 //	protoc-gen-go_temporal dev (latest)
 //	protoc (unknown)
 //
-// source: fabric/v1/activities.proto
-package fabricv1
+// source: fabric/certauth/v1/activities.proto
+package certauthv1
 
 import (
 	"context"
@@ -17,10 +17,10 @@ import (
 	"time"
 )
 
-// FabricActivitiesTaskQueue is the default task-queue for a fabric.v1.FabricActivities worker
-var FabricActivitiesTaskQueue = "infra"
+// IdentityTaskQueue is the default task-queue for a fabric.certauth.v1.Identity worker
+var IdentityTaskQueue = "infra"
 
-// fabric.v1.FabricActivities activity names
+// fabric.certauth.v1.Identity activity names
 const (
 	BootstrapEnrollIdentityActivityName = "fabric.v1.BootstrapEnrollIdentity"
 	EnrollIdentityActivityName          = "fabric.v1.EnrollIdentity"
@@ -28,8 +28,8 @@ const (
 	RevokeIdentityActivityName          = "fabric.v1.RevokeIdentity"
 )
 
-// FabricActivitiesActivities describes available worker activities
-type FabricActivitiesActivities interface {
+// IdentityActivities describes available worker activities
+type IdentityActivities interface {
 	// BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
 	// This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
 	// The activity generates a CSR internally and submits it to the CA
@@ -48,8 +48,8 @@ type FabricActivitiesActivities interface {
 	RevokeIdentity(ctx context.Context, req *RevokeIdentityInput) (*RevokeIdentityOutput, error)
 }
 
-// RegisterFabricActivitiesActivities registers activities with a worker
-func RegisterFabricActivitiesActivities(r worker.ActivityRegistry, activities FabricActivitiesActivities) {
+// RegisterIdentityActivities registers activities with a worker
+func RegisterIdentityActivities(r worker.ActivityRegistry, activities IdentityActivities) {
 	RegisterBootstrapEnrollIdentityActivity(r, activities.BootstrapEnrollIdentity)
 	RegisterEnrollIdentityActivity(r, activities.EnrollIdentity)
 	RegisterRegisterIdentityActivity(r, activities.RegisterIdentity)
@@ -194,7 +194,7 @@ func (o *BootstrapEnrollIdentityActivityOptions) Build(ctx workflow.Context) (wo
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
 	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = FabricActivitiesTaskQueue
+		opts.TaskQueue = IdentityTaskQueue
 	}
 	if v := o.waitForCancellation; v != nil {
 		opts.WaitForCancellation = *v
@@ -458,7 +458,7 @@ func (o *EnrollIdentityActivityOptions) Build(ctx workflow.Context) (workflow.Co
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
 	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = FabricActivitiesTaskQueue
+		opts.TaskQueue = IdentityTaskQueue
 	}
 	if v := o.waitForCancellation; v != nil {
 		opts.WaitForCancellation = *v
@@ -722,7 +722,7 @@ func (o *RegisterIdentityActivityOptions) Build(ctx workflow.Context) (workflow.
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
 	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = FabricActivitiesTaskQueue
+		opts.TaskQueue = IdentityTaskQueue
 	}
 	if v := o.waitForCancellation; v != nil {
 		opts.WaitForCancellation = *v
@@ -986,7 +986,7 @@ func (o *RevokeIdentityActivityOptions) Build(ctx workflow.Context) (workflow.Co
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
 	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = FabricActivitiesTaskQueue
+		opts.TaskQueue = IdentityTaskQueue
 	}
 	if v := o.waitForCancellation; v != nil {
 		opts.WaitForCancellation = *v

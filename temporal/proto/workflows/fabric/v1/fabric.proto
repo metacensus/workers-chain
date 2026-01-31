@@ -60,33 +60,6 @@ message CertificateAuthoritySpec {
     ];
   }
   
-// CertificateSubject defines the subject fields for a certificate
-message CertificateSubject {
-    // common_name is the CN for the certificate subject
-    string common_name = 1 [
-      json_name = "CommonName",
-      (go.field).tags = 'json:"CommonName" validate:"required"'
-    ];
-  
-    // organization is the O for the certificate subject
-    string organization = 2 [
-      json_name = "Organization",
-      (go.field).tags = 'json:"Organization"'
-    ];
-  
-    // organizational_unit is the OU for the certificate subject
-    string organizational_unit = 3 [
-      json_name = "OrganizationalUnit",
-      (go.field).tags = 'json:"OrganizationalUnit"'
-    ];
-  
-    // dns_names are Subject Alternative Names for TLS certificates
-    repeated string dns_names = 4 [
-      json_name = "DnsNames",
-      (go.field).tags = 'json:"DnsNames,omitempty"'
-    ];
-  }
-
 // PeerSpec defines a peer to deploy
 message PeerSpec {
   // id identifies this peer (e.g., "peer0", "peer1")

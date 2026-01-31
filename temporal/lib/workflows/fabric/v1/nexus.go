@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	fabricpb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
-	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1nexustemporal"
 	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	"github.com/metacensus/infra/temporal/gen/workflows/secrets/v1/secretsv1nexustemporal"
 	vaultv1 "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
@@ -34,17 +32,6 @@ func NexusSecretsCreateAccess(ctx workflow.Context, caConfig Accessor) (*secrets
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateAccess, err)
-	}
-	return output, nil
-}
-
-func NexusFabricCreateCertificate(ctx workflow.Context, input *fabricpb.CreateCertificateInput) (*fabricpb.CreateCertificateOutput, error) {
-	fabricNexusClient := fabricv1nexustemporal.NewFabricNexusClient(cellv1.FabricCreateCertificateNexusEndpoint)
-	output, err := fabricNexusClient.CreateCertificate(ctx, input, workflow.NexusOperationOptions{
-		ScheduleToCloseTimeout: 5 * time.Minute,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCreateCertificate, err)
 	}
 	return output, nil
 }

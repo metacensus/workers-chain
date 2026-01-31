@@ -3,9 +3,6 @@ package fabric
 import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1temporal"
-	"github.com/metacensus/infra/temporal/lib/workflows/common"
-	"github.com/metacensus/infra/temporal/lib/workflows/fabric/v1/certauthority"
-	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/fx"
 )
@@ -31,39 +28,11 @@ var Module = fx.Options(
 	fx.Provide(func() pb.FabricWorkflows {
 		return NewWorkflows()
 	}),
-
-	// Provide Client multi-client provider
-	// Clients are cached because they have stable keypair/cert auth from secrets.
-	// Uses MultiClientProvider because there are many CAs (tls-root, org-root, etc.)
-	// and the specific CA is only known at activity call time.
-	fx.Provide(func(secretProvider secrets.SecretProvider) *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig] {
-		return common.NewMultiClientProvider(
-			secretProvider,
-			certauthority.NewClient,
-		)
-	}),
-
-	// Provide Activities with CA client providers
-	// Activities get:
-	// - secretProvider: for fetching/storing secrets with type safety
-	// - clientProvider: for cached Client access (Register/Revoke operations)
-	// Activities receive owner (org) from their inputs, enabling them to work for any owner
-	fx.Provide(func(
-		secretProvider secrets.SecretProvider,
-		clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig],
-	) *Activities {
-		return NewActivities(secretProvider, clientProvider)
-	}),
 )
 
 // RegisterWorkflows registers fabric workflows with the worker
 func RegisterWorkflows(w worker.Worker, workflows pb.FabricWorkflows) {
 	pb.RegisterFabricWorkflows(w, workflows)
-}
-
-// RegisterActivities registers fabric activities with the worker
-func RegisterActivities(w worker.Worker, activities *Activities) {
-	pb.RegisterFabricActivitiesActivities(w, activities)
 }
 
 // RegisterNexusService registers the fabric Nexus service handler with the worker

@@ -1,4 +1,4 @@
-package fabric
+package certauth
 
 import (
 	"context"
@@ -6,12 +6,11 @@ import (
 	"fmt"
 
 	"github.com/hyperledger/fabric-ca/api"
-	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
+	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1"
 	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	"github.com/metacensus/infra/temporal/lib/workflows/common"
-	"github.com/metacensus/infra/temporal/lib/workflows/fabric/v1/certauthority"
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 )
 
@@ -34,13 +33,13 @@ type Activities struct {
 	secretProvider secrets.SecretProvider
 
 	// clientProvider manages cached Clients for Register/Revoke operations
-	clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig]
+	clientProvider *common.MultiClientProvider[Client, ClientConfig]
 }
 
 // NewActivities creates a new Activities instance
 func NewActivities(
 	secretProvider secrets.SecretProvider,
-	clientProvider *common.MultiClientProvider[certauthority.Client, certauthority.ClientConfig],
+	clientProvider *common.MultiClientProvider[Client, ClientConfig],
 ) *Activities {
 	return &Activities{
 		secretProvider: secretProvider,
@@ -51,7 +50,7 @@ func NewActivities(
 // getBootstrapClient creates a new BootstrapClient for the specified CA.
 // BootstrapClients use username/password auth and only support Enroll.
 // These are NOT cached - each call creates a fresh client.
-func (a *Activities) getBootstrapClient(ctx context.Context, credentialsRef *secretspb.SecretRef, caURL string, tlsCertRef *secretspb.SecretRef) (certauthority.BootstrapClient, error) {
+func (a *Activities) getBootstrapClient(ctx context.Context, credentialsRef *secretspb.SecretRef, caURL string, tlsCertRef *secretspb.SecretRef) (BootstrapClient, error) {
 	// Fetch credentials from secret provider
 	secret, err := a.secretProvider.FetchSecret(ctx, credentialsRef)
 	if err != nil {
@@ -78,7 +77,7 @@ func (a *Activities) getBootstrapClient(ctx context.Context, credentialsRef *sec
 	}
 
 	// Create the client
-	client, err := certauthority.NewBootstrapClient(certauthority.BootstrapClientConfig{
+	client, err := NewBootstrapClient(BootstrapClientConfig{
 		URL:        caURL,
 		Username:   creds.Username,
 		Password:   creds.Password,
@@ -113,7 +112,7 @@ func (a *Activities) RegisterIdentity(ctx context.Context, req *pb.RegisterIdent
 	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, caRef)
 
 	// Create config with explicit admin identity (nil = use default permanent admin)
-	hydrator := certauthority.NewConfig(caConfig, req.GetAdminIdentity())
+	hydrator := NewConfig(caConfig, req.GetAdminIdentity())
 
 	// Get the CA client - the clientProvider handles fetching secrets, hydrating config, and caching
 	client, err := a.clientProvider.GetClient(ctx, hydrator)
@@ -234,7 +233,7 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 	}
 
 	// Step 4: Create a bootstrap client for enrollment using the enrollment secret
-	bootstrapClient, err := certauthority.NewBootstrapClient(certauthority.BootstrapClientConfig{
+	bootstrapClient, err := NewBootstrapClient(BootstrapClientConfig{
 		URL:        caConfig.URL(),
 		Username:   identityName,              // Use identity name as username for enrollment
 		Password:   req.GetEnrollmentSecret(), // Use enrollment secret as password
@@ -309,7 +308,7 @@ func (a *Activities) RevokeIdentity(ctx context.Context, req *pb.RevokeIdentityI
 	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, caRef)
 
 	// Create config with explicit admin identity (nil = use default permanent admin)
-	hydrator := certauthority.NewConfig(caConfig, req.GetAdminIdentity())
+	hydrator := NewConfig(caConfig, req.GetAdminIdentity())
 
 	// Get the CA client - the clientProvider handles fetching secrets, hydrating config, and caching
 	client, err := a.clientProvider.GetClient(ctx, hydrator)

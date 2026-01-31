@@ -6,6 +6,7 @@ import (
 	"time"
 
 	clusterpb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
+	certauthpb "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1"
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	kubepb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
 	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
@@ -133,138 +134,6 @@ func (w *bootstrapShardWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapSha
 	// TODO: Deploy chaincode, hook into channels
 
 	return &pb.BootstrapShardOutput{}, nil
-}
-
-func (w *Workflows) CreateIdentity(ctx workflow.Context, input *pb.CreateIdentityWorkflowInput) (pb.CreateIdentityWorkflow, error) {
-	return newCreateIdentityWorkflow(input)
-}
-
-type createIdentityWorkflow struct {
-	input *pb.CreateIdentityWorkflowInput
-}
-
-// newCreateIdentityWorkflow creates and validates a new createIdentityWorkflow
-func newCreateIdentityWorkflow(input *pb.CreateIdentityWorkflowInput) (*createIdentityWorkflow, error) {
-	w := &createIdentityWorkflow{input: input}
-	if err := w.validate(); err != nil {
-		return nil, err
-	}
-	return w, nil
-}
-
-// validate checks that the workflow input is valid
-func (w *createIdentityWorkflow) validate() error {
-	req := w.input.Req
-	if req.GetOrg() == "" {
-		return fmt.Errorf("%w: org is required", ErrInvalidInput)
-	}
-	if req.GetIdentityName() == "" {
-		return fmt.Errorf("%w: identity_name is required", ErrInvalidInput)
-	}
-	if req.GetOrgIssuerRef() == nil {
-		return fmt.Errorf("%w: org_issuer_ref is required", ErrInvalidInput)
-	}
-	if req.GetTlsIssuerRef() == nil {
-		return fmt.Errorf("%w: tls_issuer_ref is required", ErrInvalidInput)
-	}
-	if req.GetSigningStorage() == nil {
-		return fmt.Errorf("%w: signing_storage is required", ErrInvalidInput)
-	}
-	if req.GetSigningStorage().GetKeyRef() == nil {
-		return fmt.Errorf("%w: signing_storage.key_ref is required", ErrInvalidInput)
-	}
-	if req.GetSigningStorage().GetCertRef() == nil {
-		return fmt.Errorf("%w: signing_storage.cert_ref is required", ErrInvalidInput)
-	}
-	if req.GetTlsStorage() == nil {
-		return fmt.Errorf("%w: tls_storage is required", ErrInvalidInput)
-	}
-	if req.GetTlsStorage().GetKeyRef() == nil {
-		return fmt.Errorf("%w: tls_storage.key_ref is required", ErrInvalidInput)
-	}
-	if req.GetTlsStorage().GetCertRef() == nil {
-		return fmt.Errorf("%w: tls_storage.cert_ref is required", ErrInvalidInput)
-	}
-	return nil
-}
-
-func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdentityOutput, error) {
-	req := w.input.Req
-	org := req.GetOrg()
-	orgConfig := config.NewOrgConfig(org)
-	operatorConfig := config.GetOperator()
-	identityName := req.GetIdentityName()
-	orgIssuer := req.GetOrgIssuerRef()
-	tlsIssuer := req.GetTlsIssuerRef()
-	signingStorage := req.GetSigningStorage()
-	tlsStorage := req.GetTlsStorage()
-
-	// Get issuer configs to access their admin credentials
-	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
-	var orgIssuerOwner config.OwnerConfig
-	if orgIssuer.GetCertType() == "tls" {
-		orgIssuerOwner = operatorConfig
-	} else {
-		orgIssuerOwner = orgConfig
-	}
-	orgIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(orgIssuerOwner, orgIssuer)
-
-	var tlsIssuerOwner config.OwnerConfig
-	if tlsIssuer.GetCertType() == "tls" {
-		tlsIssuerOwner = operatorConfig
-	} else {
-		tlsIssuerOwner = orgConfig
-	}
-	tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(tlsIssuerOwner, tlsIssuer)
-
-	// Create org identity cert (uses identity_type for proper OU classification)
-	signingPurpose := fmt.Sprintf("identity-%s-signing", identityName)
-	_, err := pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
-		Org:       org,
-		IssuerRef: orgIssuer,
-		Profile:   "", // Default profile
-		Subject:   req.GetSubject(),
-		Storage:   signingStorage,
-		AdminIdentity: &pb.IdentityRef{
-			KeyRef:  orgIssuerConfig.VaultAdminSigningKeyRef(),
-			CertRef: orgIssuerConfig.VaultAdminSigningCertRef(),
-		},
-		Purpose:       signingPurpose,
-		IssuerCertRef: orgIssuerConfig.VaultSigningCertRef(),
-		Attributes:    req.GetAttributes(),
-		IdentityType:  req.GetIdentityType(), // Pass through for NodeOUs classification
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create signing identity: %w", err)
-	}
-
-	// Create TLS client cert
-	// TLS certs don't need identity_type since NodeOUs only applies to org/signing certs
-	tlsPurpose := fmt.Sprintf("identity-%s-tls", identityName)
-
-	_, err = NexusFabricCreateCertificate(ctx, &pb.CreateCertificateInput{
-		Org:       org,
-		IssuerRef: tlsIssuer,
-		Profile:   req.GetTlsProfile(),
-		Subject: &pb.CertificateSubject{
-			CommonName:         req.GetSubject().GetCommonName(),
-			Organization:       req.GetSubject().GetOrganization(),
-			OrganizationalUnit: req.GetSubject().GetOrganizationalUnit(),
-			DnsNames:           req.GetSubject().GetDnsNames(),
-		},
-		Storage:       tlsStorage,
-		Purpose:       tlsPurpose,
-		IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create TLS identity: %w", err)
-	}
-
-	return &pb.CreateIdentityOutput{
-		SigningIdentity: signingStorage,
-		TlsIdentity:     tlsStorage,
-	}, nil
 }
 
 func (w *Workflows) DeployCouchDb(ctx workflow.Context, input *pb.DeployCouchDbWorkflowInput) (pb.DeployCouchDbWorkflow, error) {
@@ -404,10 +273,10 @@ func (w *deployPeerWorkflow) Execute(ctx workflow.Context) (*pb.DeployPeerOutput
 
 	// The CreateIdentity workflow handles both org and TLS certificates
 	// IdentityType "peer" ensures the certificate gets OU=peer for NodeOUs classification
-	_, err = pb.CreateIdentityChild(ctx, &pb.CreateIdentityInput{
+	_, err = certauthpb.CreateIdentityChild(ctx, &certauthpb.CreateIdentityInput{
 		Org:          org,
 		IdentityName: peerConfig.IdentityName(),
-		Subject: &pb.CertificateSubject{
+		Subject: &certauthpb.CertificateSubject{
 			CommonName:         peerConfig.CommonName(),
 			Organization:       org,
 			OrganizationalUnit: peerConfig.OrganizationalUnit(),
@@ -490,10 +359,10 @@ func (w *deployOrdererWorkflow) Execute(ctx workflow.Context) (*pb.DeployOrderer
 
 	// The CreateIdentity workflow handles both org and TLS certificates
 	// IdentityType "orderer" ensures the certificate gets OU=orderer for NodeOUs classification
-	_, err = pb.CreateIdentityChild(ctx, &pb.CreateIdentityInput{
+	_, err = certauthpb.CreateIdentityChild(ctx, &certauthpb.CreateIdentityInput{
 		Org:          org,
 		IdentityName: ordererConfig.IdentityName(),
-		Subject: &pb.CertificateSubject{
+		Subject: &certauthpb.CertificateSubject{
 			CommonName:         ordererConfig.CommonName(),
 			Organization:       org,
 			OrganizationalUnit: ordererConfig.OrganizationalUnit(),

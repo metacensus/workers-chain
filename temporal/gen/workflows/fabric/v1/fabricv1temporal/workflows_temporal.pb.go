@@ -66,54 +66,6 @@ func (h *FabricNexusHandler) BootstrapTlsCertificateAuthorities(name string) nex
 	})
 }
 
-// CreateAdmin creates the permanent admin identity for a CA
-// Uses the bootstrap admin to register/enroll a new permanent admin.
-// Creates both signing and TLS client certs for the permanent admin.
-func (h *FabricNexusHandler) CreateAdmin(name string) nexus.Operation[*v1.CreateAdminInput, *v1.CreateAdminOutput] {
-	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.CreateAdminInput, *v1.CreateAdminOutput]{
-		Handler: func(ctx context.Context, input *v1.CreateAdminInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.CreateAdminOutput], error) {
-			o, err := v1.NewCreateAdminOptions().Build(input.ProtoReflect())
-			if err != nil {
-				return nil, err
-			}
-			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateAdminOutput](ctx, opts, o, v1.CreateAdminWorkflowName, input)
-		},
-		Name: name,
-	})
-}
-
-// CreateBootstrapAdmin creates the bootstrap admin identity for a CA
-// This is called after CA deployment to enroll using bootstrap credentials.
-// Creates both signing and TLS client certs for the bootstrap admin.
-func (h *FabricNexusHandler) CreateBootstrapAdmin(name string) nexus.Operation[*v1.CreateBootstrapAdminInput, *v1.CreateBootstrapAdminOutput] {
-	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.CreateBootstrapAdminInput, *v1.CreateBootstrapAdminOutput]{
-		Handler: func(ctx context.Context, input *v1.CreateBootstrapAdminInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.CreateBootstrapAdminOutput], error) {
-			o, err := v1.NewCreateBootstrapAdminOptions().Build(input.ProtoReflect())
-			if err != nil {
-				return nil, err
-			}
-			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateBootstrapAdminOutput](ctx, opts, o, v1.CreateBootstrapAdminWorkflowName, input)
-		},
-		Name: name,
-	})
-}
-
-// CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-// This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-// Used for CA signing certs, TLS certs, and any other certificate needs.
-func (h *FabricNexusHandler) CreateCertificate(name string) nexus.Operation[*v1.CreateCertificateInput, *v1.CreateCertificateOutput] {
-	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.CreateCertificateInput, *v1.CreateCertificateOutput]{
-		Handler: func(ctx context.Context, input *v1.CreateCertificateInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.CreateCertificateOutput], error) {
-			o, err := v1.NewCreateCertificateOptions().Build(input.ProtoReflect())
-			if err != nil {
-				return nil, err
-			}
-			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateCertificateOutput](ctx, opts, o, v1.CreateCertificateWorkflowName, input)
-		},
-		Name: name,
-	})
-}
-
 // CreateCertificateDatabase creates a dedicated database and user for a certificate authority
 // in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
 // isolated database to store issued certificates and revocation information.
@@ -125,22 +77,6 @@ func (h *FabricNexusHandler) CreateCertificateDatabase(name string) nexus.Operat
 				return nil, err
 			}
 			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateCertificateDatabaseOutput](ctx, opts, o, v1.CreateCertificateDatabaseWorkflowName, input)
-		},
-		Name: name,
-	})
-}
-
-// CreateIdentity creates a full Fabric identity with both org and TLS certificates
-// Used for creating peer, orderer, admin, and client identities.
-// This is the production workflow for identity creation (not bootstrap).
-func (h *FabricNexusHandler) CreateIdentity(name string) nexus.Operation[*v1.CreateIdentityInput, *v1.CreateIdentityOutput] {
-	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.CreateIdentityInput, *v1.CreateIdentityOutput]{
-		Handler: func(ctx context.Context, input *v1.CreateIdentityInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.CreateIdentityOutput], error) {
-			o, err := v1.NewCreateIdentityOptions().Build(input.ProtoReflect())
-			if err != nil {
-				return nil, err
-			}
-			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateIdentityOutput](ctx, opts, o, v1.CreateIdentityWorkflowName, input)
 		},
 		Name: name,
 	})

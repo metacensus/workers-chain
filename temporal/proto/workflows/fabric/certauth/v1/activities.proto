@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package fabric.v1;
+package fabric.certauth.v1;
 
 import "google/protobuf/duration.proto";
 import "nexus/v1/options.proto";
@@ -8,13 +8,14 @@ import "patch/go.proto";
 import "secrets/v1/secrets.proto";
 import "temporal/v1/temporal.proto";
 import "fabric/v1/fabric.proto";
+import "fabric/certauth/v1/shared.proto";
 
-option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1";
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1;certauthv1";
   
-  // FabricActivities service defines activities for Fabric CA operations
+  // Identity service defines activities for Fabric CA operations
   // These activities interact with Fabric CA for identity management
   // Activities are NOT exposed via Nexus (only workflows can be called cross-namespace)
-  service FabricActivities {
+  service Identity {
     // Service-wide Temporal settings
     option (temporal.v1.service) = {task_queue: "infra"};
   
@@ -67,7 +68,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v
     ];
   
     // ca_ref identifies which CA to register with
-    CertificateAuthorityRef ca_ref = 1 [
+    fabric.v1.CertificateAuthorityRef ca_ref = 1 [
       json_name = "CaRef",
       (go.field).tags = 'json:"CaRef" validate:"required"'
     ];
@@ -91,7 +92,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v
     ];
   
     // admin_identity is the admin identity for CA authentication
-    IdentityRef admin_identity = 6 [
+    fabric.v1.IdentityRef admin_identity = 6 [
       json_name = "AdminIdentity",
       (go.field).tags = 'json:"AdminIdentity" validate:"required"'
     ];
@@ -118,7 +119,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v
     ];
   
     // ca_ref identifies which CA to enroll with
-    CertificateAuthorityRef ca_ref = 1 [
+    fabric.v1.CertificateAuthorityRef ca_ref = 1 [
       json_name = "CaRef",
       (go.field).tags = 'json:"CaRef" validate:"required"'
     ];
@@ -137,7 +138,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v
   
     // storage is the identity storage location
     // key_ref is read for CSR generation, cert_ref is where to store the result
-    IdentityRef storage = 4 [
+    fabric.v1.IdentityRef storage = 4 [
       json_name = "Storage",
       (go.field).tags = 'json:"Storage" validate:"required"'
     ];
@@ -174,7 +175,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v
   // EnrollIdentityOutput contains the certificates returned by the CA
   message EnrollIdentityOutput {
     // identity points to the enrolled identity
-    IdentityRef identity = 1 [
+    fabric.v1.IdentityRef identity = 1 [
       json_name = "Identity",
       (go.field).tags = 'json:"Identity" validate:"required"'
     ];
@@ -191,7 +192,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v
     ];
   
     // ca_ref identifies which CA to revoke from
-    CertificateAuthorityRef ca_ref = 1 [
+    fabric.v1.CertificateAuthorityRef ca_ref = 1 [
       json_name = "CaRef",
       (go.field).tags = 'json:"CaRef" validate:"required"'
     ];
@@ -206,7 +207,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v
     string reason = 3 [json_name = "Reason"];
   
     // admin_identity is the admin identity for CA authentication
-    IdentityRef admin_identity = 4 [
+    fabric.v1.IdentityRef admin_identity = 4 [
       json_name = "AdminIdentity",
       (go.field).tags = 'json:"AdminIdentity" validate:"required"'
     ];
@@ -238,7 +239,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v
   
     // storage is the identity storage location
     // key_ref is read for CSR generation, cert_ref is where to store the result
-    IdentityRef storage = 3 [
+    fabric.v1.IdentityRef storage = 3 [
       json_name = "Storage",
       (go.field).tags = 'json:"Storage" validate:"required"'
     ];
@@ -273,7 +274,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v
   // BootstrapEnrollIdentityOutput confirms the certificate was enrolled and stored
   message BootstrapEnrollIdentityOutput {
     // identity points to the enrolled identity
-    IdentityRef identity = 1 [
+    fabric.v1.IdentityRef identity = 1 [
       json_name = "Identity",
       (go.field).tags = 'json:"Identity" validate:"required"'
     ];

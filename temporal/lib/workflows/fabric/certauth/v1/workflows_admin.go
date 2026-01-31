@@ -1,10 +1,11 @@
-package fabric
+package certauth
 
 import (
 	"fmt"
 	"time"
 
-	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
+	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1"
+	fabricpb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	kubepb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
 	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
@@ -12,6 +13,21 @@ import (
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
+
+// computeTLSCommonName returns the CN for a TLS certificate, adding "-tls" suffix
+// when both signing and TLS certs come from the same CA to avoid registration collision.
+func computeTLSCommonName(baseName string, signingIssuerRef, tlsIssuerRef *fabricpb.CertificateAuthorityRef) string {
+	// Self-signed cases: no collision (not registering with a CA)
+	if signingIssuerRef == nil || tlsIssuerRef == nil {
+		return baseName
+	}
+	// Same CA issues both - need different identity name
+	if signingIssuerRef.GetCertType() == tlsIssuerRef.GetCertType() &&
+		signingIssuerRef.GetId() == tlsIssuerRef.GetId() {
+		return baseName + "-tls"
+	}
+	return baseName
+}
 
 func (w *Workflows) CreateBootstrapAdmin(ctx workflow.Context, input *pb.CreateBootstrapAdminWorkflowInput) (pb.CreateBootstrapAdminWorkflow, error) {
 	return newCreateBootstrapAdminWorkflow(input)
@@ -99,7 +115,7 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 
 	// Bootstrap enroll signing identity from this CA
 	// Storage IdentityRef holds both key and cert refs
-	signingStorage := &pb.IdentityRef{
+	signingStorage := &fabricpb.IdentityRef{
 		KeyRef:  caConfig.VaultBootstrapAdminSigningKeyRef(),
 		CertRef: caConfig.VaultBootstrapAdminSigningCertRef(),
 	}
@@ -146,7 +162,7 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 		tlsIssuerRef,
 	)
 
-	tlsStorage := &pb.IdentityRef{
+	tlsStorage := &fabricpb.IdentityRef{
 		KeyRef:  caConfig.VaultBootstrapAdminTLSKeyRef(),
 		CertRef: caConfig.VaultBootstrapAdminTLSCertRef(),
 	}
@@ -237,20 +253,20 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 	// Determine which credentials to use for registration with the signing issuer:
 	// - If signing issuer is this CA itself → use this CA's bootstrap admin
 	// - If signing issuer is a different CA → use that CA's permanent admin
-	var signingAdminIdentity *pb.IdentityRef
+	var signingAdminIdentity *fabricpb.IdentityRef
 	if signingIssuerRef.GetCertType() == caRef.GetCertType() && signingIssuerRef.GetId() == caRef.GetId() {
-		signingAdminIdentity = &pb.IdentityRef{
+		signingAdminIdentity = &fabricpb.IdentityRef{
 			KeyRef:  caConfig.VaultBootstrapAdminSigningKeyRef(),
 			CertRef: caConfig.VaultBootstrapAdminSigningCertRef(),
 		}
 	} else {
-		signingAdminIdentity = &pb.IdentityRef{
+		signingAdminIdentity = &fabricpb.IdentityRef{
 			KeyRef:  signingIssuerConfig.VaultAdminSigningKeyRef(),
 			CertRef: signingIssuerConfig.VaultAdminSigningCertRef(),
 		}
 	}
 
-	signingStorage := &pb.IdentityRef{
+	signingStorage := &fabricpb.IdentityRef{
 		KeyRef:  caConfig.VaultAdminSigningKeyRef(),
 		CertRef: caConfig.VaultAdminSigningCertRef(),
 	}
@@ -302,20 +318,20 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 	// Determine which credentials to use for registration with the TLS issuer:
 	// - If TLS issuer is this CA itself → use this CA's bootstrap admin
 	// - If TLS issuer is a different CA → use that CA's permanent admin
-	var tlsAdminIdentity *pb.IdentityRef
+	var tlsAdminIdentity *fabricpb.IdentityRef
 	if tlsIssuerRef.GetCertType() == caRef.GetCertType() && tlsIssuerRef.GetId() == caRef.GetId() {
-		tlsAdminIdentity = &pb.IdentityRef{
+		tlsAdminIdentity = &fabricpb.IdentityRef{
 			KeyRef:  caConfig.VaultBootstrapAdminSigningKeyRef(),
 			CertRef: caConfig.VaultBootstrapAdminSigningCertRef(),
 		}
 	} else {
-		tlsAdminIdentity = &pb.IdentityRef{
+		tlsAdminIdentity = &fabricpb.IdentityRef{
 			KeyRef:  tlsIssuerConfig.VaultAdminSigningKeyRef(),
 			CertRef: tlsIssuerConfig.VaultAdminSigningCertRef(),
 		}
 	}
 
-	tlsStorage := &pb.IdentityRef{
+	tlsStorage := &fabricpb.IdentityRef{
 		KeyRef:  caConfig.VaultAdminTLSKeyRef(),
 		CertRef: caConfig.VaultAdminTLSCertRef(),
 	}
@@ -328,7 +344,7 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 
 	if needsNexusForTls {
 		// Cross-namespace: Org CA admin getting TLS from operator TLS CA - use Nexus
-		NexusFabricCreateCertificate(ctx, &pb.CreateCertificateInput{
+		NexusCreateCertificate(ctx, &pb.CreateCertificateInput{
 			Org:       org,
 			IssuerRef: tlsIssuerRef,
 			Profile:   "tls",

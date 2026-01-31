@@ -1,10 +1,11 @@
-package fabric
+package certauth_test
 
 import (
 	"context"
 	"testing"
 
-	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
+	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1"
+	"github.com/metacensus/infra/temporal/lib/workflows/fabric/certauth/v1"
 )
 
 // TODO: Implement proper tests with mocked CA client
@@ -31,7 +32,7 @@ func TestActivities_RegisterIdentity(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// TODO: Provide mocked SecretProvider and ClientProvider
-			activities := NewActivities(nil, nil)
+			activities := certauth.NewActivities(nil, nil)
 			ctx := context.Background()
 
 			got, err := activities.RegisterIdentity(ctx, tt.req)
@@ -67,7 +68,7 @@ func TestActivities_EnrollIdentity(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// TODO: Provide mocked SecretProvider and ClientProvider
-			activities := NewActivities(nil, nil)
+			activities := certauth.NewActivities(nil, nil)
 			ctx := context.Background()
 
 			got, err := activities.EnrollIdentity(ctx, tt.req)
@@ -103,7 +104,7 @@ func TestActivities_RevokeIdentity(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// TODO: Provide mocked SecretProvider and ClientProvider
-			activities := NewActivities(nil, nil)
+			activities := certauth.NewActivities(nil, nil)
 			ctx := context.Background()
 
 			got, err := activities.RevokeIdentity(ctx, tt.req)

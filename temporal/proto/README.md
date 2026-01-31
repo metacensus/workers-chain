@@ -39,14 +39,43 @@
     - [cluster.fabric.v1.CreateNamespaceOutput](#cluster-fabric-v1-createnamespaceoutput)
     - [cluster.fabric.v1.CreateServiceAccountInput](#cluster-fabric-v1-createserviceaccountinput)
     - [cluster.fabric.v1.CreateServiceAccountOutput](#cluster-fabric-v1-createserviceaccountoutput)
-- [fabric.v1](#fabric-v1)
+- [fabric.certauth.v1](#fabric-certauth-v1)
   - Services
-    - [fabric.v1.FabricActivities](#fabric-v1-fabricactivities)
-      - [Activities](#fabric-v1-fabricactivities-activities)
+    - [fabric.certauth.v1.Identity](#fabric-certauth-v1-identity)
+      - [Activities](#fabric-certauth-v1-identity-activities)
         - [fabric.v1.RegisterIdentity](#fabric-v1-registeridentity-activity)
         - [fabric.v1.EnrollIdentity](#fabric-v1-enrollidentity-activity)
         - [fabric.v1.RevokeIdentity](#fabric-v1-revokeidentity-activity)
         - [fabric.v1.BootstrapEnrollIdentity](#fabric-v1-bootstrapenrollidentity-activity)
+    - [fabric.certauth.v1.CertificateAuthority](#fabric-certauth-v1-certificateauthority)
+      - [Workflows](#fabric-certauth-v1-certificateauthority-workflows)
+        - [fabric.v1.CreateCertificate](#fabric-v1-createcertificate-workflow)
+        - [fabric.v1.CreateBootstrapAdmin](#fabric-v1-createbootstrapadmin-workflow)
+        - [fabric.v1.CreateAdmin](#fabric-v1-createadmin-workflow)
+        - [fabric.v1.CreateIdentity](#fabric-v1-createidentity-workflow)
+  - Messages
+    - [fabric.certauth.v1.BootstrapEnrollIdentityInput](#fabric-certauth-v1-bootstrapenrollidentityinput)
+    - [fabric.certauth.v1.BootstrapEnrollIdentityOutput](#fabric-certauth-v1-bootstrapenrollidentityoutput)
+    - [fabric.certauth.v1.CertificateSubject](#fabric-certauth-v1-certificatesubject)
+    - [fabric.certauth.v1.CreateAdminInput](#fabric-certauth-v1-createadmininput)
+    - [fabric.certauth.v1.CreateAdminOutput](#fabric-certauth-v1-createadminoutput)
+    - [fabric.certauth.v1.CreateBootstrapAdminInput](#fabric-certauth-v1-createbootstrapadmininput)
+    - [fabric.certauth.v1.CreateBootstrapAdminOutput](#fabric-certauth-v1-createbootstrapadminoutput)
+    - [fabric.certauth.v1.CreateCertificateInput](#fabric-certauth-v1-createcertificateinput)
+    - [fabric.certauth.v1.CreateCertificateInput.AttributesEntry](#fabric-certauth-v1-createcertificateinput-attributesentry)
+    - [fabric.certauth.v1.CreateCertificateOutput](#fabric-certauth-v1-createcertificateoutput)
+    - [fabric.certauth.v1.CreateIdentityInput](#fabric-certauth-v1-createidentityinput)
+    - [fabric.certauth.v1.CreateIdentityInput.AttributesEntry](#fabric-certauth-v1-createidentityinput-attributesentry)
+    - [fabric.certauth.v1.CreateIdentityOutput](#fabric-certauth-v1-createidentityoutput)
+    - [fabric.certauth.v1.EnrollIdentityInput](#fabric-certauth-v1-enrollidentityinput)
+    - [fabric.certauth.v1.EnrollIdentityOutput](#fabric-certauth-v1-enrollidentityoutput)
+    - [fabric.certauth.v1.RegisterIdentityInput](#fabric-certauth-v1-registeridentityinput)
+    - [fabric.certauth.v1.RegisterIdentityInput.AttributesEntry](#fabric-certauth-v1-registeridentityinput-attributesentry)
+    - [fabric.certauth.v1.RegisterIdentityOutput](#fabric-certauth-v1-registeridentityoutput)
+    - [fabric.certauth.v1.RevokeIdentityInput](#fabric-certauth-v1-revokeidentityinput)
+    - [fabric.certauth.v1.RevokeIdentityOutput](#fabric-certauth-v1-revokeidentityoutput)
+- [fabric.v1](#fabric-v1)
+  - Services
     - [fabric.v1.Fabric](#fabric-v1-fabric)
       - [Workflows](#fabric-v1-fabric-workflows)
         - [fabric.v1.BootstrapShard](#fabric-v1-bootstrapshard-workflow)
@@ -58,17 +87,11 @@
         - [fabric.v1.DeployOrgRootCertificateAuthority](#fabric-v1-deployorgrootcertificateauthority-workflow)
         - [fabric.v1.DeployOrgIntermediateCertificateAuthority](#fabric-v1-deployorgintermediatecertificateauthority-workflow)
         - [fabric.v1.CreateCertificateDatabase](#fabric-v1-createcertificatedatabase-workflow)
-        - [fabric.v1.CreateCertificate](#fabric-v1-createcertificate-workflow)
-        - [fabric.v1.CreateBootstrapAdmin](#fabric-v1-createbootstrapadmin-workflow)
-        - [fabric.v1.CreateAdmin](#fabric-v1-createadmin-workflow)
-        - [fabric.v1.CreateIdentity](#fabric-v1-createidentity-workflow)
         - [fabric.v1.DeployCouchDb](#fabric-v1-deploycouchdb-workflow)
         - [fabric.v1.DeployPeer](#fabric-v1-deploypeer-workflow)
         - [fabric.v1.DeployOrderer](#fabric-v1-deployorderer-workflow)
         - [fabric.v1.DeployChainCode](#fabric-v1-deploychaincode-workflow)
   - Messages
-    - [fabric.v1.BootstrapEnrollIdentityInput](#fabric-v1-bootstrapenrollidentityinput)
-    - [fabric.v1.BootstrapEnrollIdentityOutput](#fabric-v1-bootstrapenrollidentityoutput)
     - [fabric.v1.BootstrapOrgCertificateAuthoritiesInput](#fabric-v1-bootstraporgcertificateauthoritiesinput)
     - [fabric.v1.BootstrapOrgCertificateAuthoritiesOutput](#fabric-v1-bootstraporgcertificateauthoritiesoutput)
     - [fabric.v1.BootstrapShardInput](#fabric-v1-bootstrapshardinput)
@@ -77,19 +100,8 @@
     - [fabric.v1.BootstrapTlsCertificateAuthoritiesOutput](#fabric-v1-bootstraptlscertificateauthoritiesoutput)
     - [fabric.v1.CertificateAuthorityRef](#fabric-v1-certificateauthorityref)
     - [fabric.v1.CertificateAuthoritySpec](#fabric-v1-certificateauthorityspec)
-    - [fabric.v1.CertificateSubject](#fabric-v1-certificatesubject)
-    - [fabric.v1.CreateAdminInput](#fabric-v1-createadmininput)
-    - [fabric.v1.CreateAdminOutput](#fabric-v1-createadminoutput)
-    - [fabric.v1.CreateBootstrapAdminInput](#fabric-v1-createbootstrapadmininput)
-    - [fabric.v1.CreateBootstrapAdminOutput](#fabric-v1-createbootstrapadminoutput)
     - [fabric.v1.CreateCertificateDatabaseInput](#fabric-v1-createcertificatedatabaseinput)
     - [fabric.v1.CreateCertificateDatabaseOutput](#fabric-v1-createcertificatedatabaseoutput)
-    - [fabric.v1.CreateCertificateInput](#fabric-v1-createcertificateinput)
-    - [fabric.v1.CreateCertificateInput.AttributesEntry](#fabric-v1-createcertificateinput-attributesentry)
-    - [fabric.v1.CreateCertificateOutput](#fabric-v1-createcertificateoutput)
-    - [fabric.v1.CreateIdentityInput](#fabric-v1-createidentityinput)
-    - [fabric.v1.CreateIdentityInput.AttributesEntry](#fabric-v1-createidentityinput-attributesentry)
-    - [fabric.v1.CreateIdentityOutput](#fabric-v1-createidentityoutput)
     - [fabric.v1.DeployCertificateStoreInput](#fabric-v1-deploycertificatestoreinput)
     - [fabric.v1.DeployCertificateStoreOutput](#fabric-v1-deploycertificatestoreoutput)
     - [fabric.v1.DeployChainCodeInput](#fabric-v1-deploychaincodeinput)
@@ -108,17 +120,10 @@
     - [fabric.v1.DeployTlsIntermediateCertificateAuthorityOutput](#fabric-v1-deploytlsintermediatecertificateauthorityoutput)
     - [fabric.v1.DeployTlsRootCertificateAuthorityInput](#fabric-v1-deploytlsrootcertificateauthorityinput)
     - [fabric.v1.DeployTlsRootCertificateAuthorityOutput](#fabric-v1-deploytlsrootcertificateauthorityoutput)
-    - [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
-    - [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
     - [fabric.v1.IdentityRef](#fabric-v1-identityref)
     - [fabric.v1.OrdererSpec](#fabric-v1-ordererspec)
     - [fabric.v1.OrgFabricDeployment](#fabric-v1-orgfabricdeployment)
     - [fabric.v1.PeerSpec](#fabric-v1-peerspec)
-    - [fabric.v1.RegisterIdentityInput](#fabric-v1-registeridentityinput)
-    - [fabric.v1.RegisterIdentityInput.AttributesEntry](#fabric-v1-registeridentityinput-attributesentry)
-    - [fabric.v1.RegisterIdentityOutput](#fabric-v1-registeridentityoutput)
-    - [fabric.v1.RevokeIdentityInput](#fabric-v1-revokeidentityinput)
-    - [fabric.v1.RevokeIdentityOutput](#fabric-v1-revokeidentityoutput)
 - [helm.v1](#helm-v1)
   - Services
     - [helm.v1.Helm](#helm-v1-helm)
@@ -1334,22 +1339,22 @@ go_tags: json:"Org" validate:"required"</pre></td>
 
 
 
-<a name="fabric-v1"></a>
-# fabric.v1
+<a name="fabric-certauth-v1"></a>
+# fabric.certauth.v1
 
-<a name="fabric-v1-services"></a>
+<a name="fabric-certauth-v1-services"></a>
 ## Services
 
-<a name="fabric-v1-fabricactivities"></a>
-## fabric.v1.FabricActivities
+<a name="fabric-certauth-v1-identity"></a>
+## fabric.certauth.v1.Identity
 
 <pre>
-FabricActivities service defines activities for Fabric CA operations
+Identity service defines activities for Fabric CA operations
 These activities interact with Fabric CA for identity management
 Activities are NOT exposed via Nexus (only workflows can be called cross-namespace)
 </pre>   
 
-<a name="fabric-v1-fabricactivities-activities"></a>
+<a name="fabric-certauth-v1-identity-activities"></a>
 ### Activities
 
 ---
@@ -1361,7 +1366,7 @@ RegisterIdentity registers a new identity with a Fabric CA
 This is the first step in identity creation - registration returns an enrollment secret
 </pre>
 
-**Input:** [fabric.v1.RegisterIdentityInput](#fabric-v1-registeridentityinput)
+**Input:** [fabric.certauth.v1.RegisterIdentityInput](#fabric-certauth-v1-registeridentityinput)
 
 <table>
 <tr>
@@ -1388,7 +1393,7 @@ json_name: Affiliation
 go_name: Affiliation</pre></td>
 </tr><tr>
 <td>attributes</td>
-<td><a href="#fabric-v1-registeridentityinput-attributesentry">fabric.v1.RegisterIdentityInput.AttributesEntry</a></td>
+<td><a href="#fabric-certauth-v1-registeridentityinput-attributesentry">fabric.certauth.v1.RegisterIdentityInput.AttributesEntry</a></td>
 <td><pre>
 attributes are additional attributes for the identity<br>
 
@@ -1433,7 +1438,7 @@ go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
-**Output:** [fabric.v1.RegisterIdentityOutput](#fabric-v1-registeridentityoutput)
+**Output:** [fabric.certauth.v1.RegisterIdentityOutput](#fabric-certauth-v1-registeridentityoutput)
 
 <table>
 <tr>
@@ -1462,7 +1467,7 @@ EnrollIdentity enrolls a registered identity and retrieves certificates
 This is the second step in identity creation - enrollment uses the secret from registration
 </pre>
 
-**Input:** [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
+**Input:** [fabric.certauth.v1.EnrollIdentityInput](#fabric-certauth-v1-enrollidentityinput)
 
 <table>
 <tr>
@@ -1549,7 +1554,7 @@ go_name: Storage
 go_tags: json:"Storage" validate:"required"</pre></td>
 </tr><tr>
 <td>subject</td>
-<td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
+<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
 <td><pre>
 subject specifies the certificate subject fields<br>
 
@@ -1559,7 +1564,7 @@ go_tags: json:"Subject" validate:"required"</pre></td>
 </tr>
 </table>
 
-**Output:** [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
+**Output:** [fabric.certauth.v1.EnrollIdentityOutput](#fabric-certauth-v1-enrollidentityoutput)
 
 <table>
 <tr>
@@ -1588,7 +1593,7 @@ RevokeIdentity revokes an identity from a Fabric CA
 Used to revoke bootstrap admin credentials after permanent admin is created
 </pre>
 
-**Input:** [fabric.v1.RevokeIdentityInput](#fabric-v1-revokeidentityinput)
+**Input:** [fabric.certauth.v1.RevokeIdentityInput](#fabric-certauth-v1-revokeidentityinput)
 
 <table>
 <tr>
@@ -1643,7 +1648,7 @@ go_name: Reason</pre></td>
 </tr>
 </table>
 
-**Output:** [fabric.v1.RevokeIdentityOutput](#fabric-v1-revokeidentityoutput)
+**Output:** [fabric.certauth.v1.RevokeIdentityOutput](#fabric-certauth-v1-revokeidentityoutput)
 
 <table>
 <tr>
@@ -1672,7 +1677,7 @@ This is used ONLY during CA initialization to obtain the bootstrap admin's certi
 The activity generates a CSR internally and submits it to the CA
 </pre>
 
-**Input:** [fabric.v1.BootstrapEnrollIdentityInput](#fabric-v1-bootstrapenrollidentityinput)
+**Input:** [fabric.certauth.v1.BootstrapEnrollIdentityInput](#fabric-certauth-v1-bootstrapenrollidentityinput)
 
 <table>
 <tr>
@@ -1739,7 +1744,7 @@ go_name: Storage
 go_tags: json:"Storage" validate:"required"</pre></td>
 </tr><tr>
 <td>subject</td>
-<td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
+<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
 <td><pre>
 subject specifies the certificate subject fields<br>
 
@@ -1749,7 +1754,7 @@ go_tags: json:"Subject" validate:"required"</pre></td>
 </tr>
 </table>
 
-**Output:** [fabric.v1.BootstrapEnrollIdentityOutput](#fabric-v1-bootstrapenrollidentityoutput)
+**Output:** [fabric.certauth.v1.BootstrapEnrollIdentityOutput](#fabric-certauth-v1-bootstrapenrollidentityoutput)
 
 <table>
 <tr>
@@ -1768,6 +1773,1572 @@ go_name: Identity
 go_tags: json:"Identity" validate:"required"</pre></td>
 </tr>
 </table>   
+
+<a name="fabric-certauth-v1-certificateauthority"></a>
+## fabric.certauth.v1.CertificateAuthority
+
+<pre>
+CertificateAuthority service defines workflows for manipulating a Fabric certificate authority
+These workflows run on the fabric worker in the org-specific Temporal namespace
+</pre>
+
+<a name="fabric-certauth-v1-certificateauthority-workflows"></a>
+### Workflows
+
+---
+<a name="fabric-v1-createcertificate-workflow"></a>
+### fabric.v1.CreateCertificate
+
+<pre>
+CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
+This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
+Used for CA signing certs, TLS certs, and any other certificate needs.
+</pre>
+
+**Input:** [fabric.certauth.v1.CreateCertificateInput](#fabric-certauth-v1-createcertificateinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>admin_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+admin_identity is the issuer's admin identity for CA authentication
+Required unless self-signed<br>
+
+json_name: AdminIdentity
+go_name: AdminIdentity
+go_tags: json:"AdminIdentity"</pre></td>
+</tr><tr>
+<td>attributes</td>
+<td><a href="#fabric-certauth-v1-createcertificateinput-attributesentry">fabric.certauth.v1.CreateCertificateInput.AttributesEntry</a></td>
+<td><pre>
+attributes are additional CA attributes for the identity (e.g., hf.IntermediateCA)<br>
+
+json_name: Attributes
+go_name: Attributes</pre></td>
+</tr><tr>
+<td>identity_type</td>
+<td>string</td>
+<td><pre>
+identity_type specifies the Fabric CA identity type for registration.
+This determines the OU field in the issued certificate.
+Valid values: "peer", "orderer", "admin", "client" (default: "client")
+The OU is critical for NodeOUs classification in the MSP.<br>
+
+json_name: IdentityType
+go_name: IdentityType
+go_tags: json:"IdentityType,omitempty"</pre></td>
+</tr><tr>
+<td>issuer_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
+Used to fetch the issuer's chain for building the full certificate chain<br>
+
+json_name: IssuerCertRef
+go_name: IssuerCertRef
+go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>issuer_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+issuer_ref identifies which CA signs this certificate.
+If nil/empty, creates a self-signed certificate.<br>
+
+json_name: IssuerRef
+go_name: IssuerRef
+go_tags: json:"IssuerRef"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
+</tr><tr>
+<td>profile</td>
+<td>string</td>
+<td><pre>
+profile determines key usages ("ca", "tls", or "" for default identity)<br>
+
+json_name: Profile
+go_name: Profile
+go_tags: json:"Profile"</pre></td>
+</tr><tr>
+<td>purpose</td>
+<td>string</td>
+<td><pre>
+purpose is a human-readable label for the workflow ID (e.g., "tls-root-signing")<br>
+
+json_name: Purpose
+go_name: Purpose
+go_tags: json:"Purpose" validate:"required"</pre></td>
+</tr><tr>
+<td>storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+storage is where to store the created identity (key + certificate)<br>
+
+json_name: Storage
+go_name: Storage
+go_tags: json:"Storage" validate:"required"</pre></td>
+</tr><tr>
+<td>subject</td>
+<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
+<td><pre>
+subject specifies the certificate subject fields<br>
+
+json_name: Subject
+go_name: Subject
+go_tags: json:"Subject" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.certauth.v1.CreateCertificateOutput](#fabric-certauth-v1-createcertificateoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+identity points to the created identity (key + certificate)<br>
+
+json_name: Identity
+go_name: Identity
+go_tags: json:"Identity" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/create-certificate/${! Purpose }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-createbootstrapadmin-workflow"></a>
+### fabric.v1.CreateBootstrapAdmin
+
+<pre>
+CreateBootstrapAdmin creates the bootstrap admin identity for a CA
+This is called after CA deployment to enroll using bootstrap credentials.
+Creates both signing and TLS client certs for the bootstrap admin.
+</pre>
+
+**Input:** [fabric.certauth.v1.CreateBootstrapAdminInput](#fabric-certauth-v1-createbootstrapadmininput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+ca_ref identifies which CA to create the bootstrap admin for<br>
+
+json_name: CaRef
+go_name: CaRef
+go_tags: json:"CaRef" validate:"required"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+tls_issuer identifies who issues the bootstrap admin's TLS certificate.
+If nil/empty, uses the CA itself (TLS Root CA case).<br>
+
+json_name: TlsIssuer
+go_name: TlsIssuer
+go_tags: json:"TlsIssuer,omitempty"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration specifies how long the bootstrap admin certificates are valid.<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration,omitempty"</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.certauth.v1.CreateBootstrapAdminOutput](#fabric-certauth-v1-createbootstrapadminoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>signing_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+signing_identity points to the bootstrap admin's signing identity<br>
+
+json_name: SigningIdentity
+go_name: SigningIdentity
+go_tags: json:"SigningIdentity" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+tls_identity points to the bootstrap admin's TLS client identity<br>
+
+json_name: TlsIdentity
+go_name: TlsIdentity
+go_tags: json:"TlsIdentity" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-createadmin-workflow"></a>
+### fabric.v1.CreateAdmin
+
+<pre>
+CreateAdmin creates the permanent admin identity for a CA
+Uses the bootstrap admin to register/enroll a new permanent admin.
+Creates both signing and TLS client certs for the permanent admin.
+</pre>
+
+**Input:** [fabric.certauth.v1.CreateAdminInput](#fabric-certauth-v1-createadmininput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+ca_ref identifies which CA to create the admin for<br>
+
+json_name: CaRef
+go_name: CaRef
+go_tags: json:"CaRef" validate:"required"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
+</tr><tr>
+<td>signing_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+signing_issuer identifies who issues the admin's signing certificate.
+Per Fabric CA constraints, this should be the CA itself (admin must be in CA's database).<br>
+
+json_name: SigningIssuer
+go_name: SigningIssuer
+go_tags: json:"SigningIssuer,omitempty"</pre></td>
+</tr><tr>
+<td>tls_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+tls_issuer identifies who issues the admin's TLS certificate.<br>
+
+json_name: TlsIssuer
+go_name: TlsIssuer
+go_tags: json:"TlsIssuer,omitempty"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration specifies how long the admin certificates are valid.<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration,omitempty"</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.certauth.v1.CreateAdminOutput](#fabric-certauth-v1-createadminoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>signing_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+signing_identity points to the admin's signing identity<br>
+
+json_name: SigningIdentity
+go_name: SigningIdentity
+go_tags: json:"SigningIdentity" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+tls_identity points to the admin's TLS client identity<br>
+
+json_name: TlsIdentity
+go_name: TlsIdentity
+go_tags: json:"TlsIdentity" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-createidentity-workflow"></a>
+### fabric.v1.CreateIdentity
+
+<pre>
+CreateIdentity creates a full Fabric identity with both org and TLS certificates
+Used for creating peer, orderer, admin, and client identities.
+This is the production workflow for identity creation (not bootstrap).
+</pre>
+
+**Input:** [fabric.certauth.v1.CreateIdentityInput](#fabric-certauth-v1-createidentityinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>attributes</td>
+<td><a href="#fabric-certauth-v1-createidentityinput-attributesentry">fabric.certauth.v1.CreateIdentityInput.AttributesEntry</a></td>
+<td><pre>
+attributes are additional CA attributes for the identity<br>
+
+json_name: Attributes
+go_name: Attributes</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the unique name for this identity (e.g., "peer0", "orderer0", "admin")<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_type</td>
+<td>string</td>
+<td><pre>
+identity_type specifies the Fabric CA identity type for registration.
+This determines the OU field in the issued certificate.
+Valid values: "peer", "orderer", "admin", "client" (default: "client")
+The OU is critical for NodeOUs classification in the MSP.<br>
+
+json_name: IdentityType
+go_name: IdentityType
+go_tags: json:"IdentityType,omitempty"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
+</tr><tr>
+<td>org_issuer_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+org_issuer_ref identifies which Org CA issues the identity certificate
+Typically the Org Intermediate CA (org/v1)<br>
+
+json_name: OrgIssuerRef
+go_name: OrgIssuerRef
+go_tags: json:"OrgIssuerRef" validate:"required"</pre></td>
+</tr><tr>
+<td>signing_storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+signing_storage is where to store the signing identity (key + certificate)<br>
+
+json_name: SigningStorage
+go_name: SigningStorage
+go_tags: json:"SigningStorage" validate:"required"</pre></td>
+</tr><tr>
+<td>subject</td>
+<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
+<td><pre>
+subject specifies the certificate subject fields<br>
+
+json_name: Subject
+go_name: Subject
+go_tags: json:"Subject" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_issuer_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+tls_issuer_ref identifies which TLS CA issues the TLS certificate
+Typically the TLS Intermediate CA (tls/v1)<br>
+
+json_name: TlsIssuerRef
+go_name: TlsIssuerRef
+go_tags: json:"TlsIssuerRef" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_profile</td>
+<td>string</td>
+<td><pre>
+tls_profile specifies the TLS signing profile ("tls" for server/client, "" for client-only)<br>
+
+json_name: TlsProfile
+go_name: TlsProfile
+go_tags: json:"TlsProfile"</pre></td>
+</tr><tr>
+<td>tls_storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+tls_storage is where to store the TLS identity (key + certificate)<br>
+
+json_name: TlsStorage
+go_name: TlsStorage
+go_tags: json:"TlsStorage" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.certauth.v1.CreateIdentityOutput](#fabric-certauth-v1-createidentityoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>signing_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+signing_identity points to the created signing identity<br>
+
+json_name: SigningIdentity
+go_name: SigningIdentity
+go_tags: json:"SigningIdentity" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+tls_identity points to the created TLS identity<br>
+
+json_name: TlsIdentity
+go_name: TlsIdentity
+go_tags: json:"TlsIdentity" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/create-identity/${! IdentityName }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>     
+
+<a name="fabric-certauth-v1-messages"></a>
+## Messages
+
+<a name="fabric-certauth-v1-bootstrapenrollidentityinput"></a>
+### fabric.certauth.v1.BootstrapEnrollIdentityInput
+
+<pre>
+BootstrapEnrollIdentityInput specifies the parameters for bootstrap enrollment.
+Keys (private) and certs (public) are stored at separate Vault paths.
+Used during CA initialization to obtain the bootstrap admin's certificate.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>bootstrap_credentials_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+bootstrap_credentials_ref points to the bootstrap admin username/password in Vault<br>
+
+json_name: BootstrapCredentialsRef
+go_name: BootstrapCredentialsRef
+go_tags: json:"BootstrapCredentialsRef" validate:"required"</pre></td>
+</tr><tr>
+<td>ca_tls_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS connection)<br>
+
+json_name: CaTlsCertRef
+go_name: CaTlsCertRef
+go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>ca_url</td>
+<td>string</td>
+<td><pre>
+ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric-org1.svc.cluster.local:7054")<br>
+
+json_name: CaUrl
+go_name: CaUrl
+go_tags: json:"CaUrl" validate:"required,url"</pre></td>
+</tr><tr>
+<td>issuer_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
+Used to fetch the issuer's chain for building the full certificate chain.
+Optional - if nil, the CA's chain from enrollment response is used directly.<br>
+
+json_name: IssuerCertRef
+go_name: IssuerCertRef
+go_tags: json:"IssuerCertRef,omitempty"</pre></td>
+</tr><tr>
+<td>profile</td>
+<td>string</td>
+<td><pre>
+profile specifies which CA signing profile to use<br>
+
+json_name: Profile
+go_name: Profile
+go_tags: json:"Profile,omitempty"</pre></td>
+</tr><tr>
+<td>storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+storage is the identity storage location
+key_ref is read for CSR generation, cert_ref is where to store the result<br>
+
+json_name: Storage
+go_name: Storage
+go_tags: json:"Storage" validate:"required"</pre></td>
+</tr><tr>
+<td>subject</td>
+<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
+<td><pre>
+subject specifies the certificate subject fields<br>
+
+json_name: Subject
+go_name: Subject
+go_tags: json:"Subject" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-bootstrapenrollidentityoutput"></a>
+### fabric.certauth.v1.BootstrapEnrollIdentityOutput
+
+<pre>
+BootstrapEnrollIdentityOutput confirms the certificate was enrolled and stored
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+identity points to the enrolled identity<br>
+
+json_name: Identity
+go_name: Identity
+go_tags: json:"Identity" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-certificatesubject"></a>
+### fabric.certauth.v1.CertificateSubject
+
+<pre>
+CertificateSubject defines the subject fields for a certificate
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the CN for the certificate subject<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>dns_names</td>
+<td>string</td>
+<td><pre>
+dns_names are Subject Alternative Names for TLS certificates<br>
+
+json_name: DnsNames
+go_name: DnsNames
+go_tags: json:"DnsNames,omitempty"</pre></td>
+</tr><tr>
+<td>organization</td>
+<td>string</td>
+<td><pre>
+organization is the O for the certificate subject<br>
+
+json_name: Organization
+go_name: Organization
+go_tags: json:"Organization"</pre></td>
+</tr><tr>
+<td>organizational_unit</td>
+<td>string</td>
+<td><pre>
+organizational_unit is the OU for the certificate subject<br>
+
+json_name: OrganizationalUnit
+go_name: OrganizationalUnit
+go_tags: json:"OrganizationalUnit"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-createadmininput"></a>
+### fabric.certauth.v1.CreateAdminInput
+
+<pre>
+CreateAdminInput specifies the parameters for creating a permanent admin
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+ca_ref identifies which CA to create the admin for<br>
+
+json_name: CaRef
+go_name: CaRef
+go_tags: json:"CaRef" validate:"required"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
+</tr><tr>
+<td>signing_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+signing_issuer identifies who issues the admin's signing certificate.
+Per Fabric CA constraints, this should be the CA itself (admin must be in CA's database).<br>
+
+json_name: SigningIssuer
+go_name: SigningIssuer
+go_tags: json:"SigningIssuer,omitempty"</pre></td>
+</tr><tr>
+<td>tls_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+tls_issuer identifies who issues the admin's TLS certificate.<br>
+
+json_name: TlsIssuer
+go_name: TlsIssuer
+go_tags: json:"TlsIssuer,omitempty"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration specifies how long the admin certificates are valid.<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration,omitempty"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-createadminoutput"></a>
+### fabric.certauth.v1.CreateAdminOutput
+
+<pre>
+CreateAdminOutput indicates the result of admin creation
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>signing_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+signing_identity points to the admin's signing identity<br>
+
+json_name: SigningIdentity
+go_name: SigningIdentity
+go_tags: json:"SigningIdentity" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+tls_identity points to the admin's TLS client identity<br>
+
+json_name: TlsIdentity
+go_name: TlsIdentity
+go_tags: json:"TlsIdentity" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-createbootstrapadmininput"></a>
+### fabric.certauth.v1.CreateBootstrapAdminInput
+
+<pre>
+CreateBootstrapAdminInput specifies the parameters for creating a bootstrap admin
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+ca_ref identifies which CA to create the bootstrap admin for<br>
+
+json_name: CaRef
+go_name: CaRef
+go_tags: json:"CaRef" validate:"required"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_issuer</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+tls_issuer identifies who issues the bootstrap admin's TLS certificate.
+If nil/empty, uses the CA itself (TLS Root CA case).<br>
+
+json_name: TlsIssuer
+go_name: TlsIssuer
+go_tags: json:"TlsIssuer,omitempty"</pre></td>
+</tr><tr>
+<td>validity_duration</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+validity_duration specifies how long the bootstrap admin certificates are valid.<br>
+
+json_name: ValidityDuration
+go_name: ValidityDuration
+go_tags: json:"ValidityDuration,omitempty"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-createbootstrapadminoutput"></a>
+### fabric.certauth.v1.CreateBootstrapAdminOutput
+
+<pre>
+CreateBootstrapAdminOutput indicates the result of bootstrap admin creation
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>signing_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+signing_identity points to the bootstrap admin's signing identity<br>
+
+json_name: SigningIdentity
+go_name: SigningIdentity
+go_tags: json:"SigningIdentity" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+tls_identity points to the bootstrap admin's TLS client identity<br>
+
+json_name: TlsIdentity
+go_name: TlsIdentity
+go_tags: json:"TlsIdentity" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-createcertificateinput"></a>
+### fabric.certauth.v1.CreateCertificateInput
+
+<pre>
+CreateCertificateInput specifies the parameters for creating a certificate.
+Keys (private) and certs (public) are stored at separate Vault paths.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>admin_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+admin_identity is the issuer's admin identity for CA authentication
+Required unless self-signed<br>
+
+json_name: AdminIdentity
+go_name: AdminIdentity
+go_tags: json:"AdminIdentity"</pre></td>
+</tr><tr>
+<td>attributes</td>
+<td><a href="#fabric-certauth-v1-createcertificateinput-attributesentry">fabric.certauth.v1.CreateCertificateInput.AttributesEntry</a></td>
+<td><pre>
+attributes are additional CA attributes for the identity (e.g., hf.IntermediateCA)<br>
+
+json_name: Attributes
+go_name: Attributes</pre></td>
+</tr><tr>
+<td>identity_type</td>
+<td>string</td>
+<td><pre>
+identity_type specifies the Fabric CA identity type for registration.
+This determines the OU field in the issued certificate.
+Valid values: "peer", "orderer", "admin", "client" (default: "client")
+The OU is critical for NodeOUs classification in the MSP.<br>
+
+json_name: IdentityType
+go_name: IdentityType
+go_tags: json:"IdentityType,omitempty"</pre></td>
+</tr><tr>
+<td>issuer_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
+Used to fetch the issuer's chain for building the full certificate chain<br>
+
+json_name: IssuerCertRef
+go_name: IssuerCertRef
+go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>issuer_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+issuer_ref identifies which CA signs this certificate.
+If nil/empty, creates a self-signed certificate.<br>
+
+json_name: IssuerRef
+go_name: IssuerRef
+go_tags: json:"IssuerRef"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
+</tr><tr>
+<td>profile</td>
+<td>string</td>
+<td><pre>
+profile determines key usages ("ca", "tls", or "" for default identity)<br>
+
+json_name: Profile
+go_name: Profile
+go_tags: json:"Profile"</pre></td>
+</tr><tr>
+<td>purpose</td>
+<td>string</td>
+<td><pre>
+purpose is a human-readable label for the workflow ID (e.g., "tls-root-signing")<br>
+
+json_name: Purpose
+go_name: Purpose
+go_tags: json:"Purpose" validate:"required"</pre></td>
+</tr><tr>
+<td>storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+storage is where to store the created identity (key + certificate)<br>
+
+json_name: Storage
+go_name: Storage
+go_tags: json:"Storage" validate:"required"</pre></td>
+</tr><tr>
+<td>subject</td>
+<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
+<td><pre>
+subject specifies the certificate subject fields<br>
+
+json_name: Subject
+go_name: Subject
+go_tags: json:"Subject" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-createcertificateinput-attributesentry"></a>
+### fabric.certauth.v1.CreateCertificateInput.AttributesEntry
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>key</td>
+<td>string</td>
+<td><pre>
+json_name: key
+go_name: Key</pre></td>
+</tr><tr>
+<td>value</td>
+<td>string</td>
+<td><pre>
+json_name: value
+go_name: Value</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-createcertificateoutput"></a>
+### fabric.certauth.v1.CreateCertificateOutput
+
+<pre>
+CreateCertificateOutput indicates the result of certificate creation
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+identity points to the created identity (key + certificate)<br>
+
+json_name: Identity
+go_name: Identity
+go_tags: json:"Identity" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-createidentityinput"></a>
+### fabric.certauth.v1.CreateIdentityInput
+
+<pre>
+CreateIdentityInput specifies the parameters for creating a Fabric identity
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>attributes</td>
+<td><a href="#fabric-certauth-v1-createidentityinput-attributesentry">fabric.certauth.v1.CreateIdentityInput.AttributesEntry</a></td>
+<td><pre>
+attributes are additional CA attributes for the identity<br>
+
+json_name: Attributes
+go_name: Attributes</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the unique name for this identity (e.g., "peer0", "orderer0", "admin")<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_type</td>
+<td>string</td>
+<td><pre>
+identity_type specifies the Fabric CA identity type for registration.
+This determines the OU field in the issued certificate.
+Valid values: "peer", "orderer", "admin", "client" (default: "client")
+The OU is critical for NodeOUs classification in the MSP.<br>
+
+json_name: IdentityType
+go_name: IdentityType
+go_tags: json:"IdentityType,omitempty"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
+</tr><tr>
+<td>org_issuer_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+org_issuer_ref identifies which Org CA issues the identity certificate
+Typically the Org Intermediate CA (org/v1)<br>
+
+json_name: OrgIssuerRef
+go_name: OrgIssuerRef
+go_tags: json:"OrgIssuerRef" validate:"required"</pre></td>
+</tr><tr>
+<td>signing_storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+signing_storage is where to store the signing identity (key + certificate)<br>
+
+json_name: SigningStorage
+go_name: SigningStorage
+go_tags: json:"SigningStorage" validate:"required"</pre></td>
+</tr><tr>
+<td>subject</td>
+<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
+<td><pre>
+subject specifies the certificate subject fields<br>
+
+json_name: Subject
+go_name: Subject
+go_tags: json:"Subject" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_issuer_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+tls_issuer_ref identifies which TLS CA issues the TLS certificate
+Typically the TLS Intermediate CA (tls/v1)<br>
+
+json_name: TlsIssuerRef
+go_name: TlsIssuerRef
+go_tags: json:"TlsIssuerRef" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_profile</td>
+<td>string</td>
+<td><pre>
+tls_profile specifies the TLS signing profile ("tls" for server/client, "" for client-only)<br>
+
+json_name: TlsProfile
+go_name: TlsProfile
+go_tags: json:"TlsProfile"</pre></td>
+</tr><tr>
+<td>tls_storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+tls_storage is where to store the TLS identity (key + certificate)<br>
+
+json_name: TlsStorage
+go_name: TlsStorage
+go_tags: json:"TlsStorage" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-createidentityinput-attributesentry"></a>
+### fabric.certauth.v1.CreateIdentityInput.AttributesEntry
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>key</td>
+<td>string</td>
+<td><pre>
+json_name: key
+go_name: Key</pre></td>
+</tr><tr>
+<td>value</td>
+<td>string</td>
+<td><pre>
+json_name: value
+go_name: Value</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-createidentityoutput"></a>
+### fabric.certauth.v1.CreateIdentityOutput
+
+<pre>
+CreateIdentityOutput indicates the result of identity creation
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>signing_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+signing_identity points to the created signing identity<br>
+
+json_name: SigningIdentity
+go_name: SigningIdentity
+go_tags: json:"SigningIdentity" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+tls_identity points to the created TLS identity<br>
+
+json_name: TlsIdentity
+go_name: TlsIdentity
+go_tags: json:"TlsIdentity" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-enrollidentityinput"></a>
+### fabric.certauth.v1.EnrollIdentityInput
+
+<pre>
+EnrollIdentityInput specifies the parameters for enrolling an identity with a CA.
+Keys (private) and certs (public) are stored at separate Vault paths.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>ca_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+ca_ref identifies which CA to enroll with<br>
+
+json_name: CaRef
+go_name: CaRef
+go_tags: json:"CaRef" validate:"required"</pre></td>
+</tr><tr>
+<td>ca_tls_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS connection)<br>
+
+json_name: CaTlsCertRef
+go_name: CaTlsCertRef
+go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>enrollment_secret</td>
+<td>string</td>
+<td><pre>
+enrollment_secret is the secret obtained from registration<br>
+
+json_name: EnrollmentSecret
+go_name: EnrollmentSecret
+go_tags: json:"EnrollmentSecret" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the name of the identity to enroll<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>issuer_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
+Used to fetch the issuer's chain for building the full certificate chain<br>
+
+json_name: IssuerCertRef
+go_name: IssuerCertRef
+go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier for the CA (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
+</tr><tr>
+<td>profile</td>
+<td>string</td>
+<td><pre>
+profile specifies which CA signing profile to use for the certificate.
+Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
+Use "tls" for TLS certificates (grants server auth, client auth key usages).
+Leave empty to use the default profile (digital signature only).<br>
+
+json_name: Profile
+go_name: Profile
+go_tags: json:"Profile,omitempty"</pre></td>
+</tr><tr>
+<td>storage</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+storage is the identity storage location
+key_ref is read for CSR generation, cert_ref is where to store the result<br>
+
+json_name: Storage
+go_name: Storage
+go_tags: json:"Storage" validate:"required"</pre></td>
+</tr><tr>
+<td>subject</td>
+<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
+<td><pre>
+subject specifies the certificate subject fields<br>
+
+json_name: Subject
+go_name: Subject
+go_tags: json:"Subject" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-enrollidentityoutput"></a>
+### fabric.certauth.v1.EnrollIdentityOutput
+
+<pre>
+EnrollIdentityOutput contains the certificates returned by the CA
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+identity points to the enrolled identity<br>
+
+json_name: Identity
+go_name: Identity
+go_tags: json:"Identity" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-registeridentityinput"></a>
+### fabric.certauth.v1.RegisterIdentityInput
+
+<pre>
+RegisterIdentityInput specifies the parameters for registering an identity with a CA
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>admin_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+admin_identity is the admin identity for CA authentication<br>
+
+json_name: AdminIdentity
+go_name: AdminIdentity
+go_tags: json:"AdminIdentity" validate:"required"</pre></td>
+</tr><tr>
+<td>affiliation</td>
+<td>string</td>
+<td><pre>
+affiliation is the affiliation for the identity in the CA<br>
+
+json_name: Affiliation
+go_name: Affiliation</pre></td>
+</tr><tr>
+<td>attributes</td>
+<td><a href="#fabric-certauth-v1-registeridentityinput-attributesentry">fabric.certauth.v1.RegisterIdentityInput.AttributesEntry</a></td>
+<td><pre>
+attributes are additional attributes for the identity<br>
+
+json_name: Attributes
+go_name: Attributes</pre></td>
+</tr><tr>
+<td>ca_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+ca_ref identifies which CA to register with<br>
+
+json_name: CaRef
+go_name: CaRef
+go_tags: json:"CaRef" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the unique name for this identity<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_type</td>
+<td>string</td>
+<td><pre>
+identity_type specifies the type of identity (e.g., "admin", "peer", "orderer", "client")<br>
+
+json_name: IdentityType
+go_name: IdentityType
+go_tags: json:"IdentityType"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier for the CA (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-registeridentityinput-attributesentry"></a>
+### fabric.certauth.v1.RegisterIdentityInput.AttributesEntry
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>key</td>
+<td>string</td>
+<td><pre>
+json_name: key
+go_name: Key</pre></td>
+</tr><tr>
+<td>value</td>
+<td>string</td>
+<td><pre>
+json_name: value
+go_name: Value</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-registeridentityoutput"></a>
+### fabric.certauth.v1.RegisterIdentityOutput
+
+<pre>
+RegisterIdentityOutput contains the enrollment secret returned by the CA
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>enrollment_secret</td>
+<td>string</td>
+<td><pre>
+enrollment_secret is the secret used to enroll the identity<br>
+
+json_name: EnrollmentSecret
+go_name: EnrollmentSecret
+go_tags: json:"EnrollmentSecret" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-revokeidentityinput"></a>
+### fabric.certauth.v1.RevokeIdentityInput
+
+<pre>
+RevokeIdentityInput specifies the parameters for revoking an identity from a CA
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>admin_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+admin_identity is the admin identity for CA authentication<br>
+
+json_name: AdminIdentity
+go_name: AdminIdentity
+go_tags: json:"AdminIdentity" validate:"required"</pre></td>
+</tr><tr>
+<td>ca_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+ca_ref identifies which CA to revoke from<br>
+
+json_name: CaRef
+go_name: CaRef
+go_tags: json:"CaRef" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the name of the identity to revoke<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier for the CA (operator or organization)<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
+</tr><tr>
+<td>reason</td>
+<td>string</td>
+<td><pre>
+reason is the reason for revocation (optional)<br>
+
+json_name: Reason
+go_name: Reason</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-revokeidentityoutput"></a>
+### fabric.certauth.v1.RevokeIdentityOutput
+
+<pre>
+RevokeIdentityOutput indicates the result of identity revocation
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>revoked</td>
+<td>bool</td>
+<td><pre>
+revoked indicates if the identity was successfully revoked<br>
+
+json_name: Revoked
+go_name: Revoked</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1"></a>
+# fabric.v1
+
+<a name="fabric-v1-services"></a>
+## Services
 
 <a name="fabric-v1-fabric"></a>
 ## fabric.v1.Fabric
@@ -2282,501 +3853,6 @@ go_tags: json:"CredentialsRef" validate:"required"</pre></td>
 </table>
 
 ---
-<a name="fabric-v1-createcertificate-workflow"></a>
-### fabric.v1.CreateCertificate
-
-<pre>
-CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-Used for CA signing certs, TLS certs, and any other certificate needs.
-</pre>
-
-**Input:** [fabric.v1.CreateCertificateInput](#fabric-v1-createcertificateinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>admin_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-admin_identity is the issuer's admin identity for CA authentication
-Required unless self-signed<br>
-
-json_name: AdminIdentity
-go_name: AdminIdentity
-go_tags: json:"AdminIdentity"</pre></td>
-</tr><tr>
-<td>attributes</td>
-<td><a href="#fabric-v1-createcertificateinput-attributesentry">fabric.v1.CreateCertificateInput.AttributesEntry</a></td>
-<td><pre>
-attributes are additional CA attributes for the identity (e.g., hf.IntermediateCA)<br>
-
-json_name: Attributes
-go_name: Attributes</pre></td>
-</tr><tr>
-<td>identity_type</td>
-<td>string</td>
-<td><pre>
-identity_type specifies the Fabric CA identity type for registration.
-This determines the OU field in the issued certificate.
-Valid values: "peer", "orderer", "admin", "client" (default: "client")
-The OU is critical for NodeOUs classification in the MSP.<br>
-
-json_name: IdentityType
-go_name: IdentityType
-go_tags: json:"IdentityType,omitempty"</pre></td>
-</tr><tr>
-<td>issuer_cert_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
-Used to fetch the issuer's chain for building the full certificate chain<br>
-
-json_name: IssuerCertRef
-go_name: IssuerCertRef
-go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>issuer_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-issuer_ref identifies which CA signs this certificate.
-If nil/empty, creates a self-signed certificate.<br>
-
-json_name: IssuerRef
-go_name: IssuerRef
-go_tags: json:"IssuerRef"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>profile</td>
-<td>string</td>
-<td><pre>
-profile determines key usages ("ca", "tls", or "" for default identity)<br>
-
-json_name: Profile
-go_name: Profile
-go_tags: json:"Profile"</pre></td>
-</tr><tr>
-<td>purpose</td>
-<td>string</td>
-<td><pre>
-purpose is a human-readable label for the workflow ID (e.g., "tls-root-signing")<br>
-
-json_name: Purpose
-go_name: Purpose
-go_tags: json:"Purpose" validate:"required"</pre></td>
-</tr><tr>
-<td>storage</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-storage is where to store the created identity (key + certificate)<br>
-
-json_name: Storage
-go_name: Storage
-go_tags: json:"Storage" validate:"required"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the certificate subject fields<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Output:** [fabric.v1.CreateCertificateOutput](#fabric-v1-createcertificateoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-identity points to the created identity (key + certificate)<br>
-
-json_name: Identity
-go_name: Identity
-go_tags: json:"Identity" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/create-certificate/${! Purpose }</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-</table>
-
----
-<a name="fabric-v1-createbootstrapadmin-workflow"></a>
-### fabric.v1.CreateBootstrapAdmin
-
-<pre>
-CreateBootstrapAdmin creates the bootstrap admin identity for a CA
-This is called after CA deployment to enroll using bootstrap credentials.
-Creates both signing and TLS client certs for the bootstrap admin.
-</pre>
-
-**Input:** [fabric.v1.CreateBootstrapAdminInput](#fabric-v1-createbootstrapadmininput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-ca_ref identifies which CA to create the bootstrap admin for<br>
-
-json_name: CaRef
-go_name: CaRef
-go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_issuer</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-tls_issuer identifies who issues the bootstrap admin's TLS certificate.
-If nil/empty, uses the CA itself (TLS Root CA case).<br>
-
-json_name: TlsIssuer
-go_name: TlsIssuer
-go_tags: json:"TlsIssuer,omitempty"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration specifies how long the bootstrap admin certificates are valid.<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration,omitempty"</pre></td>
-</tr>
-</table>
-
-**Output:** [fabric.v1.CreateBootstrapAdminOutput](#fabric-v1-createbootstrapadminoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>signing_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-signing_identity points to the bootstrap admin's signing identity<br>
-
-json_name: SigningIdentity
-go_name: SigningIdentity
-go_tags: json:"SigningIdentity" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-tls_identity points to the bootstrap admin's TLS client identity<br>
-
-json_name: TlsIdentity
-go_name: TlsIdentity
-go_tags: json:"TlsIdentity" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-</table>
-
----
-<a name="fabric-v1-createadmin-workflow"></a>
-### fabric.v1.CreateAdmin
-
-<pre>
-CreateAdmin creates the permanent admin identity for a CA
-Uses the bootstrap admin to register/enroll a new permanent admin.
-Creates both signing and TLS client certs for the permanent admin.
-</pre>
-
-**Input:** [fabric.v1.CreateAdminInput](#fabric-v1-createadmininput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-ca_ref identifies which CA to create the admin for<br>
-
-json_name: CaRef
-go_name: CaRef
-go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>signing_issuer</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-signing_issuer identifies who issues the admin's signing certificate.
-Per Fabric CA constraints, this should be the CA itself (admin must be in CA's database).<br>
-
-json_name: SigningIssuer
-go_name: SigningIssuer
-go_tags: json:"SigningIssuer,omitempty"</pre></td>
-</tr><tr>
-<td>tls_issuer</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-tls_issuer identifies who issues the admin's TLS certificate.<br>
-
-json_name: TlsIssuer
-go_name: TlsIssuer
-go_tags: json:"TlsIssuer,omitempty"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration specifies how long the admin certificates are valid.<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration,omitempty"</pre></td>
-</tr>
-</table>
-
-**Output:** [fabric.v1.CreateAdminOutput](#fabric-v1-createadminoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>signing_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-signing_identity points to the admin's signing identity<br>
-
-json_name: SigningIdentity
-go_name: SigningIdentity
-go_tags: json:"SigningIdentity" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-tls_identity points to the admin's TLS client identity<br>
-
-json_name: TlsIdentity
-go_name: TlsIdentity
-go_tags: json:"TlsIdentity" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-</table>
-
----
-<a name="fabric-v1-createidentity-workflow"></a>
-### fabric.v1.CreateIdentity
-
-<pre>
-CreateIdentity creates a full Fabric identity with both org and TLS certificates
-Used for creating peer, orderer, admin, and client identities.
-This is the production workflow for identity creation (not bootstrap).
-</pre>
-
-**Input:** [fabric.v1.CreateIdentityInput](#fabric-v1-createidentityinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>attributes</td>
-<td><a href="#fabric-v1-createidentityinput-attributesentry">fabric.v1.CreateIdentityInput.AttributesEntry</a></td>
-<td><pre>
-attributes are additional CA attributes for the identity<br>
-
-json_name: Attributes
-go_name: Attributes</pre></td>
-</tr><tr>
-<td>identity_name</td>
-<td>string</td>
-<td><pre>
-identity_name is the unique name for this identity (e.g., "peer0", "orderer0", "admin")<br>
-
-json_name: IdentityName
-go_name: IdentityName
-go_tags: json:"IdentityName" validate:"required"</pre></td>
-</tr><tr>
-<td>identity_type</td>
-<td>string</td>
-<td><pre>
-identity_type specifies the Fabric CA identity type for registration.
-This determines the OU field in the issued certificate.
-Valid values: "peer", "orderer", "admin", "client" (default: "client")
-The OU is critical for NodeOUs classification in the MSP.<br>
-
-json_name: IdentityType
-go_name: IdentityType
-go_tags: json:"IdentityType,omitempty"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>org_issuer_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-org_issuer_ref identifies which Org CA issues the identity certificate
-Typically the Org Intermediate CA (org/v1)<br>
-
-json_name: OrgIssuerRef
-go_name: OrgIssuerRef
-go_tags: json:"OrgIssuerRef" validate:"required"</pre></td>
-</tr><tr>
-<td>signing_storage</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-signing_storage is where to store the signing identity (key + certificate)<br>
-
-json_name: SigningStorage
-go_name: SigningStorage
-go_tags: json:"SigningStorage" validate:"required"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the certificate subject fields<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_issuer_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-tls_issuer_ref identifies which TLS CA issues the TLS certificate
-Typically the TLS Intermediate CA (tls/v1)<br>
-
-json_name: TlsIssuerRef
-go_name: TlsIssuerRef
-go_tags: json:"TlsIssuerRef" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_profile</td>
-<td>string</td>
-<td><pre>
-tls_profile specifies the TLS signing profile ("tls" for server/client, "" for client-only)<br>
-
-json_name: TlsProfile
-go_name: TlsProfile
-go_tags: json:"TlsProfile"</pre></td>
-</tr><tr>
-<td>tls_storage</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-tls_storage is where to store the TLS identity (key + certificate)<br>
-
-json_name: TlsStorage
-go_name: TlsStorage
-go_tags: json:"TlsStorage" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Output:** [fabric.v1.CreateIdentityOutput](#fabric-v1-createidentityoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>signing_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-signing_identity points to the created signing identity<br>
-
-json_name: SigningIdentity
-go_name: SigningIdentity
-go_tags: json:"SigningIdentity" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-tls_identity points to the created TLS identity<br>
-
-json_name: TlsIdentity
-go_name: TlsIdentity
-go_tags: json:"TlsIdentity" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/create-identity/${! IdentityName }</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-</table>
-
----
 <a name="fabric-v1-deploycouchdb-workflow"></a>
 ### fabric.v1.DeployCouchDb
 
@@ -2978,119 +4054,6 @@ go_tags: json:"Org" validate:"required"</pre></td>
 
 <a name="fabric-v1-messages"></a>
 ## Messages
-
-<a name="fabric-v1-bootstrapenrollidentityinput"></a>
-### fabric.v1.BootstrapEnrollIdentityInput
-
-<pre>
-BootstrapEnrollIdentityInput specifies the parameters for bootstrap enrollment.
-Keys (private) and certs (public) are stored at separate Vault paths.
-Used during CA initialization to obtain the bootstrap admin's certificate.
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>bootstrap_credentials_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-bootstrap_credentials_ref points to the bootstrap admin username/password in Vault<br>
-
-json_name: BootstrapCredentialsRef
-go_name: BootstrapCredentialsRef
-go_tags: json:"BootstrapCredentialsRef" validate:"required"</pre></td>
-</tr><tr>
-<td>ca_tls_cert_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS connection)<br>
-
-json_name: CaTlsCertRef
-go_name: CaTlsCertRef
-go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>ca_url</td>
-<td>string</td>
-<td><pre>
-ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric-org1.svc.cluster.local:7054")<br>
-
-json_name: CaUrl
-go_name: CaUrl
-go_tags: json:"CaUrl" validate:"required,url"</pre></td>
-</tr><tr>
-<td>issuer_cert_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
-Used to fetch the issuer's chain for building the full certificate chain.
-Optional - if nil, the CA's chain from enrollment response is used directly.<br>
-
-json_name: IssuerCertRef
-go_name: IssuerCertRef
-go_tags: json:"IssuerCertRef,omitempty"</pre></td>
-</tr><tr>
-<td>profile</td>
-<td>string</td>
-<td><pre>
-profile specifies which CA signing profile to use<br>
-
-json_name: Profile
-go_name: Profile
-go_tags: json:"Profile,omitempty"</pre></td>
-</tr><tr>
-<td>storage</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-storage is the identity storage location
-key_ref is read for CSR generation, cert_ref is where to store the result<br>
-
-json_name: Storage
-go_name: Storage
-go_tags: json:"Storage" validate:"required"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the certificate subject fields<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-bootstrapenrollidentityoutput"></a>
-### fabric.v1.BootstrapEnrollIdentityOutput
-
-<pre>
-BootstrapEnrollIdentityOutput confirms the certificate was enrolled and stored
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-identity points to the enrolled identity<br>
-
-json_name: Identity
-go_name: Identity
-go_tags: json:"Identity" validate:"required"</pre></td>
-</tr>
-</table>
-
-
 
 <a name="fabric-v1-bootstraporgcertificateauthoritiesinput"></a>
 ### fabric.v1.BootstrapOrgCertificateAuthoritiesInput
@@ -3342,251 +4305,6 @@ go_tags: json:"ValidityDuration,omitempty"</pre></td>
 
 
 
-<a name="fabric-v1-certificatesubject"></a>
-### fabric.v1.CertificateSubject
-
-<pre>
-CertificateSubject defines the subject fields for a certificate
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>common_name</td>
-<td>string</td>
-<td><pre>
-common_name is the CN for the certificate subject<br>
-
-json_name: CommonName
-go_name: CommonName
-go_tags: json:"CommonName" validate:"required"</pre></td>
-</tr><tr>
-<td>dns_names</td>
-<td>string</td>
-<td><pre>
-dns_names are Subject Alternative Names for TLS certificates<br>
-
-json_name: DnsNames
-go_name: DnsNames
-go_tags: json:"DnsNames,omitempty"</pre></td>
-</tr><tr>
-<td>organization</td>
-<td>string</td>
-<td><pre>
-organization is the O for the certificate subject<br>
-
-json_name: Organization
-go_name: Organization
-go_tags: json:"Organization"</pre></td>
-</tr><tr>
-<td>organizational_unit</td>
-<td>string</td>
-<td><pre>
-organizational_unit is the OU for the certificate subject<br>
-
-json_name: OrganizationalUnit
-go_name: OrganizationalUnit
-go_tags: json:"OrganizationalUnit"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-createadmininput"></a>
-### fabric.v1.CreateAdminInput
-
-<pre>
-CreateAdminInput specifies the parameters for creating a permanent admin
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-ca_ref identifies which CA to create the admin for<br>
-
-json_name: CaRef
-go_name: CaRef
-go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>signing_issuer</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-signing_issuer identifies who issues the admin's signing certificate.
-Per Fabric CA constraints, this should be the CA itself (admin must be in CA's database).<br>
-
-json_name: SigningIssuer
-go_name: SigningIssuer
-go_tags: json:"SigningIssuer,omitempty"</pre></td>
-</tr><tr>
-<td>tls_issuer</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-tls_issuer identifies who issues the admin's TLS certificate.<br>
-
-json_name: TlsIssuer
-go_name: TlsIssuer
-go_tags: json:"TlsIssuer,omitempty"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration specifies how long the admin certificates are valid.<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration,omitempty"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-createadminoutput"></a>
-### fabric.v1.CreateAdminOutput
-
-<pre>
-CreateAdminOutput indicates the result of admin creation
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>signing_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-signing_identity points to the admin's signing identity<br>
-
-json_name: SigningIdentity
-go_name: SigningIdentity
-go_tags: json:"SigningIdentity" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-tls_identity points to the admin's TLS client identity<br>
-
-json_name: TlsIdentity
-go_name: TlsIdentity
-go_tags: json:"TlsIdentity" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-createbootstrapadmininput"></a>
-### fabric.v1.CreateBootstrapAdminInput
-
-<pre>
-CreateBootstrapAdminInput specifies the parameters for creating a bootstrap admin
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-ca_ref identifies which CA to create the bootstrap admin for<br>
-
-json_name: CaRef
-go_name: CaRef
-go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_issuer</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-tls_issuer identifies who issues the bootstrap admin's TLS certificate.
-If nil/empty, uses the CA itself (TLS Root CA case).<br>
-
-json_name: TlsIssuer
-go_name: TlsIssuer
-go_tags: json:"TlsIssuer,omitempty"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration specifies how long the bootstrap admin certificates are valid.<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration,omitempty"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-createbootstrapadminoutput"></a>
-### fabric.v1.CreateBootstrapAdminOutput
-
-<pre>
-CreateBootstrapAdminOutput indicates the result of bootstrap admin creation
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>signing_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-signing_identity points to the bootstrap admin's signing identity<br>
-
-json_name: SigningIdentity
-go_name: SigningIdentity
-go_tags: json:"SigningIdentity" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-tls_identity points to the bootstrap admin's TLS client identity<br>
-
-json_name: TlsIdentity
-go_name: TlsIdentity
-go_tags: json:"TlsIdentity" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
 <a name="fabric-v1-createcertificatedatabaseinput"></a>
 ### fabric.v1.CreateCertificateDatabaseInput
 
@@ -3645,347 +4363,6 @@ credentials_ref is the Vault reference to retrieve the username and password<br>
 json_name: CredentialsRef
 go_name: CredentialsRef
 go_tags: json:"CredentialsRef" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-createcertificateinput"></a>
-### fabric.v1.CreateCertificateInput
-
-<pre>
-CreateCertificateInput specifies the parameters for creating a certificate.
-Keys (private) and certs (public) are stored at separate Vault paths.
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>admin_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-admin_identity is the issuer's admin identity for CA authentication
-Required unless self-signed<br>
-
-json_name: AdminIdentity
-go_name: AdminIdentity
-go_tags: json:"AdminIdentity"</pre></td>
-</tr><tr>
-<td>attributes</td>
-<td><a href="#fabric-v1-createcertificateinput-attributesentry">fabric.v1.CreateCertificateInput.AttributesEntry</a></td>
-<td><pre>
-attributes are additional CA attributes for the identity (e.g., hf.IntermediateCA)<br>
-
-json_name: Attributes
-go_name: Attributes</pre></td>
-</tr><tr>
-<td>identity_type</td>
-<td>string</td>
-<td><pre>
-identity_type specifies the Fabric CA identity type for registration.
-This determines the OU field in the issued certificate.
-Valid values: "peer", "orderer", "admin", "client" (default: "client")
-The OU is critical for NodeOUs classification in the MSP.<br>
-
-json_name: IdentityType
-go_name: IdentityType
-go_tags: json:"IdentityType,omitempty"</pre></td>
-</tr><tr>
-<td>issuer_cert_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
-Used to fetch the issuer's chain for building the full certificate chain<br>
-
-json_name: IssuerCertRef
-go_name: IssuerCertRef
-go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>issuer_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-issuer_ref identifies which CA signs this certificate.
-If nil/empty, creates a self-signed certificate.<br>
-
-json_name: IssuerRef
-go_name: IssuerRef
-go_tags: json:"IssuerRef"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>profile</td>
-<td>string</td>
-<td><pre>
-profile determines key usages ("ca", "tls", or "" for default identity)<br>
-
-json_name: Profile
-go_name: Profile
-go_tags: json:"Profile"</pre></td>
-</tr><tr>
-<td>purpose</td>
-<td>string</td>
-<td><pre>
-purpose is a human-readable label for the workflow ID (e.g., "tls-root-signing")<br>
-
-json_name: Purpose
-go_name: Purpose
-go_tags: json:"Purpose" validate:"required"</pre></td>
-</tr><tr>
-<td>storage</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-storage is where to store the created identity (key + certificate)<br>
-
-json_name: Storage
-go_name: Storage
-go_tags: json:"Storage" validate:"required"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the certificate subject fields<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-createcertificateinput-attributesentry"></a>
-### fabric.v1.CreateCertificateInput.AttributesEntry
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>key</td>
-<td>string</td>
-<td><pre>
-json_name: key
-go_name: Key</pre></td>
-</tr><tr>
-<td>value</td>
-<td>string</td>
-<td><pre>
-json_name: value
-go_name: Value</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-createcertificateoutput"></a>
-### fabric.v1.CreateCertificateOutput
-
-<pre>
-CreateCertificateOutput indicates the result of certificate creation
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-identity points to the created identity (key + certificate)<br>
-
-json_name: Identity
-go_name: Identity
-go_tags: json:"Identity" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-createidentityinput"></a>
-### fabric.v1.CreateIdentityInput
-
-<pre>
-CreateIdentityInput specifies the parameters for creating a Fabric identity
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>attributes</td>
-<td><a href="#fabric-v1-createidentityinput-attributesentry">fabric.v1.CreateIdentityInput.AttributesEntry</a></td>
-<td><pre>
-attributes are additional CA attributes for the identity<br>
-
-json_name: Attributes
-go_name: Attributes</pre></td>
-</tr><tr>
-<td>identity_name</td>
-<td>string</td>
-<td><pre>
-identity_name is the unique name for this identity (e.g., "peer0", "orderer0", "admin")<br>
-
-json_name: IdentityName
-go_name: IdentityName
-go_tags: json:"IdentityName" validate:"required"</pre></td>
-</tr><tr>
-<td>identity_type</td>
-<td>string</td>
-<td><pre>
-identity_type specifies the Fabric CA identity type for registration.
-This determines the OU field in the issued certificate.
-Valid values: "peer", "orderer", "admin", "client" (default: "client")
-The OU is critical for NodeOUs classification in the MSP.<br>
-
-json_name: IdentityType
-go_name: IdentityType
-go_tags: json:"IdentityType,omitempty"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>org_issuer_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-org_issuer_ref identifies which Org CA issues the identity certificate
-Typically the Org Intermediate CA (org/v1)<br>
-
-json_name: OrgIssuerRef
-go_name: OrgIssuerRef
-go_tags: json:"OrgIssuerRef" validate:"required"</pre></td>
-</tr><tr>
-<td>signing_storage</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-signing_storage is where to store the signing identity (key + certificate)<br>
-
-json_name: SigningStorage
-go_name: SigningStorage
-go_tags: json:"SigningStorage" validate:"required"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the certificate subject fields<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_issuer_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-tls_issuer_ref identifies which TLS CA issues the TLS certificate
-Typically the TLS Intermediate CA (tls/v1)<br>
-
-json_name: TlsIssuerRef
-go_name: TlsIssuerRef
-go_tags: json:"TlsIssuerRef" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_profile</td>
-<td>string</td>
-<td><pre>
-tls_profile specifies the TLS signing profile ("tls" for server/client, "" for client-only)<br>
-
-json_name: TlsProfile
-go_name: TlsProfile
-go_tags: json:"TlsProfile"</pre></td>
-</tr><tr>
-<td>tls_storage</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-tls_storage is where to store the TLS identity (key + certificate)<br>
-
-json_name: TlsStorage
-go_name: TlsStorage
-go_tags: json:"TlsStorage" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-createidentityinput-attributesentry"></a>
-### fabric.v1.CreateIdentityInput.AttributesEntry
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>key</td>
-<td>string</td>
-<td><pre>
-json_name: key
-go_name: Key</pre></td>
-</tr><tr>
-<td>value</td>
-<td>string</td>
-<td><pre>
-json_name: value
-go_name: Value</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-createidentityoutput"></a>
-### fabric.v1.CreateIdentityOutput
-
-<pre>
-CreateIdentityOutput indicates the result of identity creation
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>signing_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-signing_identity points to the created signing identity<br>
-
-json_name: SigningIdentity
-go_name: SigningIdentity
-go_tags: json:"SigningIdentity" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-tls_identity points to the created TLS identity<br>
-
-json_name: TlsIdentity
-go_name: TlsIdentity
-go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4406,138 +4783,6 @@ DeployTlsRootCertificateAuthorityOutput indicates the result of TLS Root CA depl
 
 
 
-<a name="fabric-v1-enrollidentityinput"></a>
-### fabric.v1.EnrollIdentityInput
-
-<pre>
-EnrollIdentityInput specifies the parameters for enrolling an identity with a CA.
-Keys (private) and certs (public) are stored at separate Vault paths.
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-ca_ref identifies which CA to enroll with<br>
-
-json_name: CaRef
-go_name: CaRef
-go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>ca_tls_cert_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS connection)<br>
-
-json_name: CaTlsCertRef
-go_name: CaTlsCertRef
-go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>enrollment_secret</td>
-<td>string</td>
-<td><pre>
-enrollment_secret is the secret obtained from registration<br>
-
-json_name: EnrollmentSecret
-go_name: EnrollmentSecret
-go_tags: json:"EnrollmentSecret" validate:"required"</pre></td>
-</tr><tr>
-<td>identity_name</td>
-<td>string</td>
-<td><pre>
-identity_name is the name of the identity to enroll<br>
-
-json_name: IdentityName
-go_name: IdentityName
-go_tags: json:"IdentityName" validate:"required"</pre></td>
-</tr><tr>
-<td>issuer_cert_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
-Used to fetch the issuer's chain for building the full certificate chain<br>
-
-json_name: IssuerCertRef
-go_name: IssuerCertRef
-go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier for the CA (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>profile</td>
-<td>string</td>
-<td><pre>
-profile specifies which CA signing profile to use for the certificate.
-Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
-Use "tls" for TLS certificates (grants server auth, client auth key usages).
-Leave empty to use the default profile (digital signature only).<br>
-
-json_name: Profile
-go_name: Profile
-go_tags: json:"Profile,omitempty"</pre></td>
-</tr><tr>
-<td>storage</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-storage is the identity storage location
-key_ref is read for CSR generation, cert_ref is where to store the result<br>
-
-json_name: Storage
-go_name: Storage
-go_tags: json:"Storage" validate:"required"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-v1-certificatesubject">fabric.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the certificate subject fields<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-enrollidentityoutput"></a>
-### fabric.v1.EnrollIdentityOutput
-
-<pre>
-EnrollIdentityOutput contains the certificates returned by the CA
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-identity points to the enrolled identity<br>
-
-json_name: Identity
-go_name: Identity
-go_tags: json:"Identity" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
 <a name="fabric-v1-identityref"></a>
 ### fabric.v1.IdentityRef
 
@@ -4710,226 +4955,6 @@ tls_issuer identifies which CA issues the peer's TLS certificate<br>
 json_name: TlsIssuer
 go_name: TlsIssuer
 go_tags: json:"TlsIssuer" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-registeridentityinput"></a>
-### fabric.v1.RegisterIdentityInput
-
-<pre>
-RegisterIdentityInput specifies the parameters for registering an identity with a CA
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>admin_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-admin_identity is the admin identity for CA authentication<br>
-
-json_name: AdminIdentity
-go_name: AdminIdentity
-go_tags: json:"AdminIdentity" validate:"required"</pre></td>
-</tr><tr>
-<td>affiliation</td>
-<td>string</td>
-<td><pre>
-affiliation is the affiliation for the identity in the CA<br>
-
-json_name: Affiliation
-go_name: Affiliation</pre></td>
-</tr><tr>
-<td>attributes</td>
-<td><a href="#fabric-v1-registeridentityinput-attributesentry">fabric.v1.RegisterIdentityInput.AttributesEntry</a></td>
-<td><pre>
-attributes are additional attributes for the identity<br>
-
-json_name: Attributes
-go_name: Attributes</pre></td>
-</tr><tr>
-<td>ca_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-ca_ref identifies which CA to register with<br>
-
-json_name: CaRef
-go_name: CaRef
-go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>identity_name</td>
-<td>string</td>
-<td><pre>
-identity_name is the unique name for this identity<br>
-
-json_name: IdentityName
-go_name: IdentityName
-go_tags: json:"IdentityName" validate:"required"</pre></td>
-</tr><tr>
-<td>identity_type</td>
-<td>string</td>
-<td><pre>
-identity_type specifies the type of identity (e.g., "admin", "peer", "orderer", "client")<br>
-
-json_name: IdentityType
-go_name: IdentityType
-go_tags: json:"IdentityType"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier for the CA (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-registeridentityinput-attributesentry"></a>
-### fabric.v1.RegisterIdentityInput.AttributesEntry
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>key</td>
-<td>string</td>
-<td><pre>
-json_name: key
-go_name: Key</pre></td>
-</tr><tr>
-<td>value</td>
-<td>string</td>
-<td><pre>
-json_name: value
-go_name: Value</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-registeridentityoutput"></a>
-### fabric.v1.RegisterIdentityOutput
-
-<pre>
-RegisterIdentityOutput contains the enrollment secret returned by the CA
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>enrollment_secret</td>
-<td>string</td>
-<td><pre>
-enrollment_secret is the secret used to enroll the identity<br>
-
-json_name: EnrollmentSecret
-go_name: EnrollmentSecret
-go_tags: json:"EnrollmentSecret" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-revokeidentityinput"></a>
-### fabric.v1.RevokeIdentityInput
-
-<pre>
-RevokeIdentityInput specifies the parameters for revoking an identity from a CA
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>admin_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-admin_identity is the admin identity for CA authentication<br>
-
-json_name: AdminIdentity
-go_name: AdminIdentity
-go_tags: json:"AdminIdentity" validate:"required"</pre></td>
-</tr><tr>
-<td>ca_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-ca_ref identifies which CA to revoke from<br>
-
-json_name: CaRef
-go_name: CaRef
-go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>identity_name</td>
-<td>string</td>
-<td><pre>
-identity_name is the name of the identity to revoke<br>
-
-json_name: IdentityName
-go_name: IdentityName
-go_tags: json:"IdentityName" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier for the CA (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>reason</td>
-<td>string</td>
-<td><pre>
-reason is the reason for revocation (optional)<br>
-
-json_name: Reason
-go_name: Reason</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-revokeidentityoutput"></a>
-### fabric.v1.RevokeIdentityOutput
-
-<pre>
-RevokeIdentityOutput indicates the result of identity revocation
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>revoked</td>
-<td>bool</td>
-<td><pre>
-revoked indicates if the identity was successfully revoked<br>
-
-json_name: Revoked
-go_name: Revoked</pre></td>
 </tr>
 </table>
 
