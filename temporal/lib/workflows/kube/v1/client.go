@@ -49,6 +49,9 @@ type KubeClient interface {
 	// GetResourceStatus queries the current status of a resource
 	// Returns error if resource doesn't exist or can't determine status
 	GetResourceStatus(ctx context.Context, id *pb.ResourceIdentifier) (*ResourceStatus, error)
+
+	// ExecPod executes a command in a pod container
+	ExecPod(ctx context.Context, namespace, podName, container string, command []string, stdin []byte) (stdout, stderr []byte, exitCode int32, err error)
 }
 
 // kubeClient implements KubeClient using client-go

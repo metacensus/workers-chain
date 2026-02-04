@@ -376,9 +376,9 @@ func (a *Activities) getResourceStatus(ctx context.Context, id *pb.ResourceIdent
 	return pbStatus, nil
 }
 
-// PollResourcesReady waits for resources to reach ready state
+// pollResourcesReady waits for resources to reach ready state
 // Polls status up to timeout duration
-func (a *Activities) PollResourcesReady(ctx context.Context, resources []*pb.ResourceIdentifier, timeout time.Duration) error {
+func (a *Activities) pollResourcesReady(ctx context.Context, resources []*pb.ResourceIdentifier, timeout time.Duration) error {
 	logger := activity.GetLogger(ctx)
 	pollingInterval := 1 * time.Second
 	deadline := time.Now().Add(timeout)
@@ -419,9 +419,9 @@ func (a *Activities) PollResourcesReady(ctx context.Context, resources []*pb.Res
 	}
 }
 
-// PollResourcesDeleted waits for resources to be deleted
+// pollResourcesDeleted waits for resources to be deleted
 // Polls until resources no longer exist or timeout
-func (a *Activities) PollResourcesDeleted(ctx context.Context, resources []*pb.ResourceIdentifier, timeout time.Duration) error {
+func (a *Activities) pollResourcesDeleted(ctx context.Context, resources []*pb.ResourceIdentifier, timeout time.Duration) error {
 	logger := activity.GetLogger(ctx)
 	pollingInterval := 1 * time.Second
 	deadline := time.Now().Add(timeout)
@@ -469,10 +469,10 @@ func (a *Activities) pollResourceReady(ctx context.Context, resourceID *pb.Resou
 	return a.pollResourcesReady(ctx, []*pb.ResourceIdentifier{resourceID}, timeout)
 }
 
-// PollResourceDeleted adapts batch polling to single-resource interface
+// pollResourceDeleted adapts batch polling to single-resource interface
 // Used when polling for individual resource deletion
-func (a *Activities) PollResourceDeleted(ctx context.Context, resourceID *pb.ResourceIdentifier, timeout time.Duration) error {
-	return a.PollResourcesDeleted(ctx, []*pb.ResourceIdentifier{resourceID}, timeout)
+func (a *Activities) pollResourceDeleted(ctx context.Context, resourceID *pb.ResourceIdentifier, timeout time.Duration) error {
+	return a.pollResourcesDeleted(ctx, []*pb.ResourceIdentifier{resourceID}, timeout)
 }
 
 // ExecPod executes a command in a pod container
