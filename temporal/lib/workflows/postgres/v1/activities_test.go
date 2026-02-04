@@ -216,11 +216,11 @@ func TestCreateUserActivity(t *testing.T) {
 			input: &pb.CreateUserInput{
 				CredentialsRef: secrets.NewVaultRef("fabric/org1/db/user"),
 			},
-		setupSecretMock: func(m *secretsmocks.MockSecretProvider) {
-			m.EXPECT().
-				FetchSecret(mock.Anything, mock.Anything).
-				Return(secrets.Secret{"username": "testuser", "password": "testpass"}, nil)
-		},
+			setupSecretMock: func(m *secretsmocks.MockSecretProvider) {
+				m.EXPECT().
+					FetchSecret(mock.Anything, mock.Anything).
+					Return(secrets.Secret{"username": "testuser", "password": "testpass"}, nil)
+			},
 			setupPostgresMock: func(m *postgresmocks.MockPostgresClient) {
 				rows := &mockRows{hasNext: false}
 				m.EXPECT().
@@ -238,11 +238,11 @@ func TestCreateUserActivity(t *testing.T) {
 			input: &pb.CreateUserInput{
 				CredentialsRef: secrets.NewVaultRef("fabric/org1/db/user"),
 			},
-		setupSecretMock: func(m *secretsmocks.MockSecretProvider) {
-			m.EXPECT().
-				FetchSecret(mock.Anything, mock.Anything).
-				Return(secrets.Secret{"username": "existinguser", "password": "testpass"}, nil)
-		},
+			setupSecretMock: func(m *secretsmocks.MockSecretProvider) {
+				m.EXPECT().
+					FetchSecret(mock.Anything, mock.Anything).
+					Return(secrets.Secret{"username": "existinguser", "password": "testpass"}, nil)
+			},
 			setupPostgresMock: func(m *postgresmocks.MockPostgresClient) {
 				rows := &mockRows{hasNext: true}
 				m.EXPECT().
@@ -262,11 +262,11 @@ func TestCreateUserActivity(t *testing.T) {
 			input: &pb.CreateUserInput{
 				CredentialsRef: secrets.NewVaultRef("fabric/org1/db/user"),
 			},
-		setupSecretMock: func(m *secretsmocks.MockSecretProvider) {
-			m.EXPECT().
-				FetchSecret(mock.Anything, mock.Anything).
-				Return(nil, errors.New("vault error"))
-		},
+			setupSecretMock: func(m *secretsmocks.MockSecretProvider) {
+				m.EXPECT().
+					FetchSecret(mock.Anything, mock.Anything).
+					Return(nil, errors.New("vault error"))
+			},
 			expectErr: true,
 		},
 	}

@@ -31,14 +31,14 @@ type PeerMspConfig struct {
 
 // PeerVaultConfig represents Vault paths for peer certificates
 type PeerVaultConfig struct {
-	RoleName              string
-	MspSigningPath        string
-	MspRootCaCertPath     string // Org Root CA cert for cacerts/
-	MspIntCaCertPath      string // Org Int CA cert for intermediatecerts/
-	TlsPath               string
-	TlsRootCaCertPath     string // TLS Root CA cert
-	TlsIntCaCertPath      string // TLS Int CA cert
-	CouchdbPath           string
+	RoleName          string
+	MspSigningPath    string
+	MspRootCaCertPath string // Org Root CA cert for cacerts/
+	MspIntCaCertPath  string // Org Int CA cert for intermediatecerts/
+	TlsPath           string
+	TlsRootCaCertPath string // TLS Root CA cert
+	TlsIntCaCertPath  string // TLS Int CA cert
+	CouchdbPath       string
 }
 
 // PeerServiceConfig represents service port configuration for a peer
@@ -154,4 +154,3 @@ func NewPeerValues(peerConfig fabricconfig.PeerConfig) *PeerValues {
 		CommonLabels: DefaultCommonLabels(),
 	}
 }
-

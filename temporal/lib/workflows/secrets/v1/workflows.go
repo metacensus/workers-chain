@@ -91,4 +91,3 @@ func (w *createAccessWorkflow) Execute(ctx workflow.Context) (*pb.CreateAccessOu
 		AuthRoleName: authRoleOutput.GetName(),
 	}, nil
 }
-
