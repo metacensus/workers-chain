@@ -111,4 +111,3 @@ func NewOrdererValues(ordererConfig fabricconfig.OrdererConfig) *OrdererValues {
 		CommonLabels: DefaultCommonLabels(),
 	}
 }
-

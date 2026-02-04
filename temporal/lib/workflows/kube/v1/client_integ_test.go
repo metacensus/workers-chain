@@ -110,7 +110,7 @@ func TestKubeClient_RealCluster(t *testing.T) {
 	// Update server URL to use mapped port
 	for _, cluster := range kubeconfig.Clusters {
 		cluster.Server = fmt.Sprintf("https://127.0.0.1:%s", mappedPort.Port())
-		cluster.InsecureSkipTLSVerify = true // For test purposes
+		cluster.InsecureSkipTLSVerify = true   // For test purposes
 		cluster.CertificateAuthorityData = nil // Must clear CA data when using InsecureSkipTLSVerify
 	}
 

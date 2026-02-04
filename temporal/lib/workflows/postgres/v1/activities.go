@@ -90,7 +90,7 @@ func (a *Activities) CreateUser(ctx context.Context, req *pb.CreateUserInput) (*
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrFetchCredentials, err)
 	}
-	
+
 	creds, err := secret.Credentials()
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrFetchCredentials, err)

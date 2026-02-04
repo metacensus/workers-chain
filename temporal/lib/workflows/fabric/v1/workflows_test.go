@@ -835,12 +835,12 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 					return nil, err
 				}
 				return wf.Execute(ctx)
-		}, &pb.CreateCertificateDatabaseInput{
-			CaRef: &pb.CertificateAuthorityRef{
-				CertType: tt.certType,
-				Id:       tt.caID,
-			},
-		})
+			}, &pb.CreateCertificateDatabaseInput{
+				CaRef: &pb.CertificateAuthorityRef{
+					CertType: tt.certType,
+					Id:       tt.caID,
+				},
+			})
 
 			var result *pb.CreateCertificateDatabaseOutput
 			err := env.GetWorkflowResult(&result)
@@ -1219,12 +1219,12 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 	// This test covers execution/orchestration with mocked child workflows.
 
 	tests := []struct {
-		name                      string
-		org                       string
-		signingCertErr            error // First CreateCertificate call (signing)
-		tlsCertErr                error // Second CreateCertificate call (TLS)
-		expectedErr               error
-		validateOutput            bool
+		name           string
+		org            string
+		signingCertErr error // First CreateCertificate call (signing)
+		tlsCertErr     error // Second CreateCertificate call (TLS)
+		expectedErr    error
+		validateOutput bool
 	}{
 		{
 			name:           "success - identity created with signing and TLS certs",
@@ -1339,10 +1339,10 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 
 func TestDeployCertificateAuthorityWorkflow(t *testing.T) {
 	tests := []struct {
-		name                                  string
-		org                                   string
-		certType                              string
-		caID                                  string
+		name                         string
+		org                          string
+		certType                     string
+		caID                         string
 		createAccessErr              error
 		createCertificateDatabaseErr error
 		createCertificateErr         error
@@ -1456,12 +1456,12 @@ func TestDeployCertificateAuthorityWorkflow(t *testing.T) {
 				tt.createCertificateDatabaseErr,
 			)
 
-		// Mock CreateCertificate child workflow (for signing and TLS certificates)
-		mockChildWorkflow[pb.CreateCertificateOutput](
-			env,
-			pb.CreateCertificateWorkflowName,
-			tt.createCertificateErr,
-		)
+			// Mock CreateCertificate child workflow (for signing and TLS certificates)
+			mockChildWorkflow[pb.CreateCertificateOutput](
+				env,
+				pb.CreateCertificateWorkflowName,
+				tt.createCertificateErr,
+			)
 
 			// Mock CreatePassword activity
 			env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
@@ -1474,33 +1474,33 @@ func TestDeployCertificateAuthorityWorkflow(t *testing.T) {
 				tt.createDeploymentErr,
 			)
 
-		// Mock CreateBootstrapAdmin child workflow
-		mockChildWorkflow[pb.CreateBootstrapAdminOutput](
-			env,
-			pb.CreateBootstrapAdminWorkflowName,
-			tt.createBootstrapAdminErr,
-		)
+			// Mock CreateBootstrapAdmin child workflow
+			mockChildWorkflow[pb.CreateBootstrapAdminOutput](
+				env,
+				pb.CreateBootstrapAdminWorkflowName,
+				tt.createBootstrapAdminErr,
+			)
 
-		// Mock CreateAdmin child workflow (always succeeds in these tests)
-		mockChildWorkflow[pb.CreateAdminOutput](
-			env,
-			pb.CreateAdminWorkflowName,
-			nil,
-		)
+			// Mock CreateAdmin child workflow (always succeeds in these tests)
+			mockChildWorkflow[pb.CreateAdminOutput](
+				env,
+				pb.CreateAdminWorkflowName,
+				nil,
+			)
 
-		// Execute workflow
+			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployCertificateAuthorityInput) (*pb.DeployCertificateAuthorityOutput, error) {
 				wf, err := workflows.DeployCertificateAuthority(ctx, &pb.DeployCertificateAuthorityWorkflowInput{Req: input})
 				if err != nil {
 					return nil, err
 				}
 				return wf.Execute(ctx)
-		}, &pb.DeployCertificateAuthorityInput{
-			CaRef: &pb.CertificateAuthorityRef{
-				CertType: tt.certType,
-				Id:       tt.caID,
-			},
-		})
+			}, &pb.DeployCertificateAuthorityInput{
+				CaRef: &pb.CertificateAuthorityRef{
+					CertType: tt.certType,
+					Id:       tt.caID,
+				},
+			})
 
 			// Verify results
 			if tt.expectedErr == nil {

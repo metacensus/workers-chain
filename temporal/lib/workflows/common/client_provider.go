@@ -156,7 +156,7 @@ func createClient[ClientT any, ClientConfigT any](
 	// Fetch all secrets specified by the hydrator
 	secretRefs := hydrator.GetSecretRefs()
 	fetchedSecrets := make(map[string]secrets.Secret)
-	
+
 	for name, ref := range secretRefs {
 		secret, err := secretProvider.FetchSecret(ctx, ref)
 		if err != nil {
