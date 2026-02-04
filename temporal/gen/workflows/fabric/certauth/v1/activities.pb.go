@@ -672,12 +672,12 @@ const file_fabric_certauth_v1_activities_proto_rawDesc = "" +
 	"\x0fissuer_cert_ref\x18\t \x01(\v2\x15.secrets.v1.SecretRefB%ʵ\x03!\xa2\x01\x1ejson:\"IssuerCertRef,omitempty\"R\rIssuerCertRef\x129\n" +
 	"\aprofile\x18\a \x01(\tB\x1fʵ\x03\x1b\xa2\x01\x18json:\"Profile,omitempty\"R\aProfile\"\x7f\n" +
 	"\x1dBootstrapEnrollIdentityOutput\x12^\n" +
-	"\bidentity\x18\x01 \x01(\v2\x16.fabric.v1.IdentityRefB*ʵ\x03&\xa2\x01#json:\"Identity\" validate:\"required\"R\bIdentity2\xeb\x04\n" +
-	"\bIdentity\x12\x8f\x01\n" +
-	"\x10RegisterIdentity\x12).fabric.certauth.v1.RegisterIdentityInput\x1a*.fabric.certauth.v1.RegisterIdentityOutput\"$\x92\xc4\x03 \x12\x02\b<:\x1afabric.v1.RegisterIdentity\x12\x87\x01\n" +
-	"\x0eEnrollIdentity\x12'.fabric.certauth.v1.EnrollIdentityInput\x1a(.fabric.certauth.v1.EnrollIdentityOutput\"\"\x92\xc4\x03\x1e\x12\x02\b<:\x18fabric.v1.EnrollIdentity\x12\x87\x01\n" +
-	"\x0eRevokeIdentity\x12'.fabric.certauth.v1.RevokeIdentityInput\x1a(.fabric.certauth.v1.RevokeIdentityOutput\"\"\x92\xc4\x03\x1e\x12\x02\b<:\x18fabric.v1.RevokeIdentity\x12\xab\x01\n" +
-	"\x17BootstrapEnrollIdentity\x120.fabric.certauth.v1.BootstrapEnrollIdentityInput\x1a1.fabric.certauth.v1.BootstrapEnrollIdentityOutput\"+\x92\xc4\x03'\x12\x02\b<:!fabric.v1.BootstrapEnrollIdentity\x1a\v\x8a\xc4\x03\a\n" +
+	"\bidentity\x18\x01 \x01(\v2\x16.fabric.v1.IdentityRefB*ʵ\x03&\xa2\x01#json:\"Identity\" validate:\"required\"R\bIdentity2\x8f\x05\n" +
+	"\bIdentity\x12\x98\x01\n" +
+	"\x10RegisterIdentity\x12).fabric.certauth.v1.RegisterIdentityInput\x1a*.fabric.certauth.v1.RegisterIdentityOutput\"-\x92\xc4\x03)\x12\x02\b<:#fabric.certauth.v1.RegisterIdentity\x12\x90\x01\n" +
+	"\x0eEnrollIdentity\x12'.fabric.certauth.v1.EnrollIdentityInput\x1a(.fabric.certauth.v1.EnrollIdentityOutput\"+\x92\xc4\x03'\x12\x02\b<:!fabric.certauth.v1.EnrollIdentity\x12\x90\x01\n" +
+	"\x0eRevokeIdentity\x12'.fabric.certauth.v1.RevokeIdentityInput\x1a(.fabric.certauth.v1.RevokeIdentityOutput\"+\x92\xc4\x03'\x12\x02\b<:!fabric.certauth.v1.RevokeIdentity\x12\xb4\x01\n" +
+	"\x17BootstrapEnrollIdentity\x120.fabric.certauth.v1.BootstrapEnrollIdentityInput\x1a1.fabric.certauth.v1.BootstrapEnrollIdentityOutput\"4\x92\xc4\x030\x12\x02\b<:*fabric.certauth.v1.BootstrapEnrollIdentity\x1a\v\x8a\xc4\x03\a\n" +
 	"\x05infraB\xe5\x01\n" +
 	"\x16com.fabric.certauth.v1B\x0fActivitiesProtoP\x01ZPgithub.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1;certauthv1\xa2\x02\x03FCX\xaa\x02\x12Fabric.Certauth.V1\xca\x02\x12Fabric\\Certauth\\V1\xe2\x02\x1eFabric\\Certauth\\V1\\GPBMetadata\xea\x02\x14Fabric::Certauth::V1b\x06proto3"
 

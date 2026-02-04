@@ -27,7 +27,7 @@ service CertificateAuthority {
     // Used for CA signing certs, TLS certs, and any other certificate needs.
     rpc CreateCertificate(CreateCertificateInput) returns (CreateCertificateOutput) {
       option (temporal.v1.workflow) = {
-        name: "fabric.v1.CreateCertificate"
+        name: "fabric.certauth.v1.CreateCertificate"
         id: 'fabric/create-certificate/${! Purpose }'
         id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       };
@@ -38,7 +38,7 @@ service CertificateAuthority {
     // Creates both signing and TLS client certs for the bootstrap admin.
     rpc CreateBootstrapAdmin(CreateBootstrapAdminInput) returns (CreateBootstrapAdminOutput) {
       option (temporal.v1.workflow) = {
-        name: "fabric.v1.CreateBootstrapAdmin"
+        name: "fabric.certauth.v1.CreateBootstrapAdmin"
         id: 'fabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }'
         id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       };
@@ -49,7 +49,7 @@ service CertificateAuthority {
     // Creates both signing and TLS client certs for the permanent admin.
     rpc CreateAdmin(CreateAdminInput) returns (CreateAdminOutput) {
       option (temporal.v1.workflow) = {
-        name: "fabric.v1.CreateAdmin"
+        name: "fabric.certauth.v1.CreateAdmin"
         id: 'fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }'
         id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       };
@@ -60,7 +60,7 @@ service CertificateAuthority {
     // This is the production workflow for identity creation (not bootstrap).
     rpc CreateIdentity(CreateIdentityInput) returns (CreateIdentityOutput) {
       option (temporal.v1.workflow) = {
-        name: "fabric.v1.CreateIdentity"
+        name: "fabric.certauth.v1.CreateIdentity"
         id: 'fabric/create-identity/${! IdentityName }'
         id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       };

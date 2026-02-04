@@ -22,10 +22,10 @@ var IdentityTaskQueue = "infra"
 
 // fabric.certauth.v1.Identity activity names
 const (
-	BootstrapEnrollIdentityActivityName = "fabric.v1.BootstrapEnrollIdentity"
-	EnrollIdentityActivityName          = "fabric.v1.EnrollIdentity"
-	RegisterIdentityActivityName        = "fabric.v1.RegisterIdentity"
-	RevokeIdentityActivityName          = "fabric.v1.RevokeIdentity"
+	BootstrapEnrollIdentityActivityName = "fabric.certauth.v1.BootstrapEnrollIdentity"
+	EnrollIdentityActivityName          = "fabric.certauth.v1.EnrollIdentity"
+	RegisterIdentityActivityName        = "fabric.certauth.v1.RegisterIdentity"
+	RevokeIdentityActivityName          = "fabric.certauth.v1.RevokeIdentity"
 )
 
 // IdentityActivities describes available worker activities
@@ -56,14 +56,14 @@ func RegisterIdentityActivities(r worker.ActivityRegistry, activities IdentityAc
 	RegisterRevokeIdentityActivity(r, activities.RevokeIdentity)
 }
 
-// RegisterBootstrapEnrollIdentityActivity registers a fabric.v1.BootstrapEnrollIdentity activity
+// RegisterBootstrapEnrollIdentityActivity registers a fabric.certauth.v1.BootstrapEnrollIdentity activity
 func RegisterBootstrapEnrollIdentityActivity(r worker.ActivityRegistry, fn func(context.Context, *BootstrapEnrollIdentityInput) (*BootstrapEnrollIdentityOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: BootstrapEnrollIdentityActivityName,
 	})
 }
 
-// BootstrapEnrollIdentityFuture describes a(n) fabric.v1.BootstrapEnrollIdentity activity execution
+// BootstrapEnrollIdentityFuture describes a(n) fabric.certauth.v1.BootstrapEnrollIdentity activity execution
 type BootstrapEnrollIdentityFuture struct {
 	Future workflow.Future
 }
@@ -153,7 +153,7 @@ func BootstrapEnrollIdentityLocalAsync(ctx workflow.Context, req *BootstrapEnrol
 	return future
 }
 
-// BootstrapEnrollIdentityActivityOptions provides configuration for a(n) fabric.v1.BootstrapEnrollIdentity activity
+// BootstrapEnrollIdentityActivityOptions provides configuration for a(n) fabric.certauth.v1.BootstrapEnrollIdentity activity
 type BootstrapEnrollIdentityActivityOptions struct {
 	options                workflow.ActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -256,7 +256,7 @@ func (o *BootstrapEnrollIdentityActivityOptions) WithWaitForCancellation(wait bo
 	return o
 }
 
-// BootstrapEnrollIdentityLocalActivityOptions provides configuration for a(n) fabric.v1.BootstrapEnrollIdentity activity
+// BootstrapEnrollIdentityLocalActivityOptions provides configuration for a(n) fabric.certauth.v1.BootstrapEnrollIdentity activity
 type BootstrapEnrollIdentityLocalActivityOptions struct {
 	options                workflow.LocalActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -288,7 +288,7 @@ func (o *BootstrapEnrollIdentityLocalActivityOptions) Build(ctx workflow.Context
 	return workflow.WithLocalActivityOptions(ctx, opts), nil
 }
 
-// Local specifies a custom fabric.v1.BootstrapEnrollIdentity implementation
+// Local specifies a custom fabric.certauth.v1.BootstrapEnrollIdentity implementation
 func (o *BootstrapEnrollIdentityLocalActivityOptions) Local(fn func(context.Context, *BootstrapEnrollIdentityInput) (*BootstrapEnrollIdentityOutput, error)) *BootstrapEnrollIdentityLocalActivityOptions {
 	o.fn = fn
 	return o
@@ -324,14 +324,14 @@ func (o *BootstrapEnrollIdentityLocalActivityOptions) WithStartToCloseTimeout(d 
 	return o
 }
 
-// RegisterEnrollIdentityActivity registers a fabric.v1.EnrollIdentity activity
+// RegisterEnrollIdentityActivity registers a fabric.certauth.v1.EnrollIdentity activity
 func RegisterEnrollIdentityActivity(r worker.ActivityRegistry, fn func(context.Context, *EnrollIdentityInput) (*EnrollIdentityOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: EnrollIdentityActivityName,
 	})
 }
 
-// EnrollIdentityFuture describes a(n) fabric.v1.EnrollIdentity activity execution
+// EnrollIdentityFuture describes a(n) fabric.certauth.v1.EnrollIdentity activity execution
 type EnrollIdentityFuture struct {
 	Future workflow.Future
 }
@@ -417,7 +417,7 @@ func EnrollIdentityLocalAsync(ctx workflow.Context, req *EnrollIdentityInput, op
 	return future
 }
 
-// EnrollIdentityActivityOptions provides configuration for a(n) fabric.v1.EnrollIdentity activity
+// EnrollIdentityActivityOptions provides configuration for a(n) fabric.certauth.v1.EnrollIdentity activity
 type EnrollIdentityActivityOptions struct {
 	options                workflow.ActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -520,7 +520,7 @@ func (o *EnrollIdentityActivityOptions) WithWaitForCancellation(wait bool) *Enro
 	return o
 }
 
-// EnrollIdentityLocalActivityOptions provides configuration for a(n) fabric.v1.EnrollIdentity activity
+// EnrollIdentityLocalActivityOptions provides configuration for a(n) fabric.certauth.v1.EnrollIdentity activity
 type EnrollIdentityLocalActivityOptions struct {
 	options                workflow.LocalActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -552,7 +552,7 @@ func (o *EnrollIdentityLocalActivityOptions) Build(ctx workflow.Context) (workfl
 	return workflow.WithLocalActivityOptions(ctx, opts), nil
 }
 
-// Local specifies a custom fabric.v1.EnrollIdentity implementation
+// Local specifies a custom fabric.certauth.v1.EnrollIdentity implementation
 func (o *EnrollIdentityLocalActivityOptions) Local(fn func(context.Context, *EnrollIdentityInput) (*EnrollIdentityOutput, error)) *EnrollIdentityLocalActivityOptions {
 	o.fn = fn
 	return o
@@ -588,14 +588,14 @@ func (o *EnrollIdentityLocalActivityOptions) WithStartToCloseTimeout(d time.Dura
 	return o
 }
 
-// RegisterRegisterIdentityActivity registers a fabric.v1.RegisterIdentity activity
+// RegisterRegisterIdentityActivity registers a fabric.certauth.v1.RegisterIdentity activity
 func RegisterRegisterIdentityActivity(r worker.ActivityRegistry, fn func(context.Context, *RegisterIdentityInput) (*RegisterIdentityOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: RegisterIdentityActivityName,
 	})
 }
 
-// RegisterIdentityFuture describes a(n) fabric.v1.RegisterIdentity activity execution
+// RegisterIdentityFuture describes a(n) fabric.certauth.v1.RegisterIdentity activity execution
 type RegisterIdentityFuture struct {
 	Future workflow.Future
 }
@@ -681,7 +681,7 @@ func RegisterIdentityLocalAsync(ctx workflow.Context, req *RegisterIdentityInput
 	return future
 }
 
-// RegisterIdentityActivityOptions provides configuration for a(n) fabric.v1.RegisterIdentity activity
+// RegisterIdentityActivityOptions provides configuration for a(n) fabric.certauth.v1.RegisterIdentity activity
 type RegisterIdentityActivityOptions struct {
 	options                workflow.ActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -784,7 +784,7 @@ func (o *RegisterIdentityActivityOptions) WithWaitForCancellation(wait bool) *Re
 	return o
 }
 
-// RegisterIdentityLocalActivityOptions provides configuration for a(n) fabric.v1.RegisterIdentity activity
+// RegisterIdentityLocalActivityOptions provides configuration for a(n) fabric.certauth.v1.RegisterIdentity activity
 type RegisterIdentityLocalActivityOptions struct {
 	options                workflow.LocalActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -816,7 +816,7 @@ func (o *RegisterIdentityLocalActivityOptions) Build(ctx workflow.Context) (work
 	return workflow.WithLocalActivityOptions(ctx, opts), nil
 }
 
-// Local specifies a custom fabric.v1.RegisterIdentity implementation
+// Local specifies a custom fabric.certauth.v1.RegisterIdentity implementation
 func (o *RegisterIdentityLocalActivityOptions) Local(fn func(context.Context, *RegisterIdentityInput) (*RegisterIdentityOutput, error)) *RegisterIdentityLocalActivityOptions {
 	o.fn = fn
 	return o
@@ -852,14 +852,14 @@ func (o *RegisterIdentityLocalActivityOptions) WithStartToCloseTimeout(d time.Du
 	return o
 }
 
-// RegisterRevokeIdentityActivity registers a fabric.v1.RevokeIdentity activity
+// RegisterRevokeIdentityActivity registers a fabric.certauth.v1.RevokeIdentity activity
 func RegisterRevokeIdentityActivity(r worker.ActivityRegistry, fn func(context.Context, *RevokeIdentityInput) (*RevokeIdentityOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
 		Name: RevokeIdentityActivityName,
 	})
 }
 
-// RevokeIdentityFuture describes a(n) fabric.v1.RevokeIdentity activity execution
+// RevokeIdentityFuture describes a(n) fabric.certauth.v1.RevokeIdentity activity execution
 type RevokeIdentityFuture struct {
 	Future workflow.Future
 }
@@ -945,7 +945,7 @@ func RevokeIdentityLocalAsync(ctx workflow.Context, req *RevokeIdentityInput, op
 	return future
 }
 
-// RevokeIdentityActivityOptions provides configuration for a(n) fabric.v1.RevokeIdentity activity
+// RevokeIdentityActivityOptions provides configuration for a(n) fabric.certauth.v1.RevokeIdentity activity
 type RevokeIdentityActivityOptions struct {
 	options                workflow.ActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -1048,7 +1048,7 @@ func (o *RevokeIdentityActivityOptions) WithWaitForCancellation(wait bool) *Revo
 	return o
 }
 
-// RevokeIdentityLocalActivityOptions provides configuration for a(n) fabric.v1.RevokeIdentity activity
+// RevokeIdentityLocalActivityOptions provides configuration for a(n) fabric.certauth.v1.RevokeIdentity activity
 type RevokeIdentityLocalActivityOptions struct {
 	options                workflow.LocalActivityOptions
 	retryPolicy            *temporal.RetryPolicy
@@ -1080,7 +1080,7 @@ func (o *RevokeIdentityLocalActivityOptions) Build(ctx workflow.Context) (workfl
 	return workflow.WithLocalActivityOptions(ctx, opts), nil
 }
 
-// Local specifies a custom fabric.v1.RevokeIdentity implementation
+// Local specifies a custom fabric.certauth.v1.RevokeIdentity implementation
 func (o *RevokeIdentityLocalActivityOptions) Local(fn func(context.Context, *RevokeIdentityInput) (*RevokeIdentityOutput, error)) *RevokeIdentityLocalActivityOptions {
 	o.fn = fn
 	return o

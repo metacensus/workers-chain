@@ -32,10 +32,10 @@ var CertificateAuthorityTaskQueue = "infra"
 
 // fabric.certauth.v1.CertificateAuthority workflow names
 const (
-	CreateAdminWorkflowName          = "fabric.v1.CreateAdmin"
-	CreateBootstrapAdminWorkflowName = "fabric.v1.CreateBootstrapAdmin"
-	CreateCertificateWorkflowName    = "fabric.v1.CreateCertificate"
-	CreateIdentityWorkflowName       = "fabric.v1.CreateIdentity"
+	CreateAdminWorkflowName          = "fabric.certauth.v1.CreateAdmin"
+	CreateBootstrapAdminWorkflowName = "fabric.certauth.v1.CreateBootstrapAdmin"
+	CreateCertificateWorkflowName    = "fabric.certauth.v1.CreateCertificate"
+	CreateIdentityWorkflowName       = "fabric.certauth.v1.CreateIdentity"
 )
 
 // fabric.certauth.v1.CertificateAuthority workflow id expressions
@@ -53,10 +53,10 @@ type CertificateAuthorityClient interface {
 	// Creates both signing and TLS client certs for the permanent admin.
 	CreateAdmin(ctx context.Context, req *CreateAdminInput, opts ...*CreateAdminOptions) (*CreateAdminOutput, error)
 
-	// CreateAdminAsync starts a(n) fabric.v1.CreateAdmin workflow and returns a handle to the workflow run
+	// CreateAdminAsync starts a(n) fabric.certauth.v1.CreateAdmin workflow and returns a handle to the workflow run
 	CreateAdminAsync(ctx context.Context, req *CreateAdminInput, opts ...*CreateAdminOptions) (CreateAdminRun, error)
 
-	// GetCreateAdmin retrieves a handle to an existing fabric.v1.CreateAdmin workflow execution
+	// GetCreateAdmin retrieves a handle to an existing fabric.certauth.v1.CreateAdmin workflow execution
 	GetCreateAdmin(ctx context.Context, workflowID string, runID string) CreateAdminRun
 
 	// CreateBootstrapAdmin creates the bootstrap admin identity for a CA
@@ -64,10 +64,10 @@ type CertificateAuthorityClient interface {
 	// Creates both signing and TLS client certs for the bootstrap admin.
 	CreateBootstrapAdmin(ctx context.Context, req *CreateBootstrapAdminInput, opts ...*CreateBootstrapAdminOptions) (*CreateBootstrapAdminOutput, error)
 
-	// CreateBootstrapAdminAsync starts a(n) fabric.v1.CreateBootstrapAdmin workflow and returns a handle to the workflow run
+	// CreateBootstrapAdminAsync starts a(n) fabric.certauth.v1.CreateBootstrapAdmin workflow and returns a handle to the workflow run
 	CreateBootstrapAdminAsync(ctx context.Context, req *CreateBootstrapAdminInput, opts ...*CreateBootstrapAdminOptions) (CreateBootstrapAdminRun, error)
 
-	// GetCreateBootstrapAdmin retrieves a handle to an existing fabric.v1.CreateBootstrapAdmin workflow execution
+	// GetCreateBootstrapAdmin retrieves a handle to an existing fabric.certauth.v1.CreateBootstrapAdmin workflow execution
 	GetCreateBootstrapAdmin(ctx context.Context, workflowID string, runID string) CreateBootstrapAdminRun
 
 	// CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
@@ -75,10 +75,10 @@ type CertificateAuthorityClient interface {
 	// Used for CA signing certs, TLS certs, and any other certificate needs.
 	CreateCertificate(ctx context.Context, req *CreateCertificateInput, opts ...*CreateCertificateOptions) (*CreateCertificateOutput, error)
 
-	// CreateCertificateAsync starts a(n) fabric.v1.CreateCertificate workflow and returns a handle to the workflow run
+	// CreateCertificateAsync starts a(n) fabric.certauth.v1.CreateCertificate workflow and returns a handle to the workflow run
 	CreateCertificateAsync(ctx context.Context, req *CreateCertificateInput, opts ...*CreateCertificateOptions) (CreateCertificateRun, error)
 
-	// GetCreateCertificate retrieves a handle to an existing fabric.v1.CreateCertificate workflow execution
+	// GetCreateCertificate retrieves a handle to an existing fabric.certauth.v1.CreateCertificate workflow execution
 	GetCreateCertificate(ctx context.Context, workflowID string, runID string) CreateCertificateRun
 
 	// CreateIdentity creates a full Fabric identity with both org and TLS certificates
@@ -86,10 +86,10 @@ type CertificateAuthorityClient interface {
 	// This is the production workflow for identity creation (not bootstrap).
 	CreateIdentity(ctx context.Context, req *CreateIdentityInput, opts ...*CreateIdentityOptions) (*CreateIdentityOutput, error)
 
-	// CreateIdentityAsync starts a(n) fabric.v1.CreateIdentity workflow and returns a handle to the workflow run
+	// CreateIdentityAsync starts a(n) fabric.certauth.v1.CreateIdentity workflow and returns a handle to the workflow run
 	CreateIdentityAsync(ctx context.Context, req *CreateIdentityInput, opts ...*CreateIdentityOptions) (CreateIdentityRun, error)
 
-	// GetCreateIdentity retrieves a handle to an existing fabric.v1.CreateIdentity workflow execution
+	// GetCreateIdentity retrieves a handle to an existing fabric.certauth.v1.CreateIdentity workflow execution
 	GetCreateIdentity(ctx context.Context, workflowID string, runID string) CreateIdentityRun
 
 	// CancelWorkflow requests cancellation of an existing workflow execution
@@ -202,7 +202,7 @@ func (c *certificateAuthorityClient) CreateAdminAsync(ctx context.Context, req *
 	}, nil
 }
 
-// GetCreateAdmin fetches an existing fabric.v1.CreateAdmin execution
+// GetCreateAdmin fetches an existing fabric.certauth.v1.CreateAdmin execution
 func (c *certificateAuthorityClient) GetCreateAdmin(ctx context.Context, workflowID string, runID string) CreateAdminRun {
 	return &createAdminRun{
 		client: c,
@@ -248,7 +248,7 @@ func (c *certificateAuthorityClient) CreateBootstrapAdminAsync(ctx context.Conte
 	}, nil
 }
 
-// GetCreateBootstrapAdmin fetches an existing fabric.v1.CreateBootstrapAdmin execution
+// GetCreateBootstrapAdmin fetches an existing fabric.certauth.v1.CreateBootstrapAdmin execution
 func (c *certificateAuthorityClient) GetCreateBootstrapAdmin(ctx context.Context, workflowID string, runID string) CreateBootstrapAdminRun {
 	return &createBootstrapAdminRun{
 		client: c,
@@ -294,7 +294,7 @@ func (c *certificateAuthorityClient) CreateCertificateAsync(ctx context.Context,
 	}, nil
 }
 
-// GetCreateCertificate fetches an existing fabric.v1.CreateCertificate execution
+// GetCreateCertificate fetches an existing fabric.certauth.v1.CreateCertificate execution
 func (c *certificateAuthorityClient) GetCreateCertificate(ctx context.Context, workflowID string, runID string) CreateCertificateRun {
 	return &createCertificateRun{
 		client: c,
@@ -340,7 +340,7 @@ func (c *certificateAuthorityClient) CreateIdentityAsync(ctx context.Context, re
 	}, nil
 }
 
-// GetCreateIdentity fetches an existing fabric.v1.CreateIdentity execution
+// GetCreateIdentity fetches an existing fabric.certauth.v1.CreateIdentity execution
 func (c *certificateAuthorityClient) GetCreateIdentity(ctx context.Context, workflowID string, runID string) CreateIdentityRun {
 	return &createIdentityRun{
 		client: c,
@@ -358,7 +358,7 @@ func (c *certificateAuthorityClient) TerminateWorkflow(ctx context.Context, work
 	return c.client.TerminateWorkflow(ctx, workflowID, runID, reason, details...)
 }
 
-// CreateAdminOptions provides configuration for a fabric.v1.CreateAdmin workflow operation
+// CreateAdminOptions provides configuration for a fabric.certauth.v1.CreateAdmin workflow operation
 type CreateAdminOptions struct {
 	options                  client.StartWorkflowOptions
 	executionTimeout         *time.Duration
@@ -480,7 +480,7 @@ func (o *CreateAdminOptions) WithWorkflowIdConflictPolicy(policy enumsv1.Workflo
 	return o
 }
 
-// CreateAdminRun describes a(n) fabric.v1.CreateAdmin workflow run
+// CreateAdminRun describes a(n) fabric.certauth.v1.CreateAdmin workflow run
 type CreateAdminRun interface {
 	// ID returns the workflow ID
 	ID() string
@@ -541,7 +541,7 @@ func (r *createAdminRun) Terminate(ctx context.Context, reason string, details .
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-// CreateBootstrapAdminOptions provides configuration for a fabric.v1.CreateBootstrapAdmin workflow operation
+// CreateBootstrapAdminOptions provides configuration for a fabric.certauth.v1.CreateBootstrapAdmin workflow operation
 type CreateBootstrapAdminOptions struct {
 	options                  client.StartWorkflowOptions
 	executionTimeout         *time.Duration
@@ -663,7 +663,7 @@ func (o *CreateBootstrapAdminOptions) WithWorkflowIdConflictPolicy(policy enumsv
 	return o
 }
 
-// CreateBootstrapAdminRun describes a(n) fabric.v1.CreateBootstrapAdmin workflow run
+// CreateBootstrapAdminRun describes a(n) fabric.certauth.v1.CreateBootstrapAdmin workflow run
 type CreateBootstrapAdminRun interface {
 	// ID returns the workflow ID
 	ID() string
@@ -724,7 +724,7 @@ func (r *createBootstrapAdminRun) Terminate(ctx context.Context, reason string, 
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-// CreateCertificateOptions provides configuration for a fabric.v1.CreateCertificate workflow operation
+// CreateCertificateOptions provides configuration for a fabric.certauth.v1.CreateCertificate workflow operation
 type CreateCertificateOptions struct {
 	options                  client.StartWorkflowOptions
 	executionTimeout         *time.Duration
@@ -846,7 +846,7 @@ func (o *CreateCertificateOptions) WithWorkflowIdConflictPolicy(policy enumsv1.W
 	return o
 }
 
-// CreateCertificateRun describes a(n) fabric.v1.CreateCertificate workflow run
+// CreateCertificateRun describes a(n) fabric.certauth.v1.CreateCertificate workflow run
 type CreateCertificateRun interface {
 	// ID returns the workflow ID
 	ID() string
@@ -907,7 +907,7 @@ func (r *createCertificateRun) Terminate(ctx context.Context, reason string, det
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-// CreateIdentityOptions provides configuration for a fabric.v1.CreateIdentity workflow operation
+// CreateIdentityOptions provides configuration for a fabric.certauth.v1.CreateIdentity workflow operation
 type CreateIdentityOptions struct {
 	options                  client.StartWorkflowOptions
 	executionTimeout         *time.Duration
@@ -1029,7 +1029,7 @@ func (o *CreateIdentityOptions) WithWorkflowIdConflictPolicy(policy enumsv1.Work
 	return o
 }
 
-// CreateIdentityRun describes a(n) fabric.v1.CreateIdentity workflow run
+// CreateIdentityRun describes a(n) fabric.certauth.v1.CreateIdentity workflow run
 type CreateIdentityRun interface {
 	// ID returns the workflow ID
 	ID() string
@@ -1239,7 +1239,7 @@ func buildCreateAdmin(ctor func(workflow.Context, *CreateAdminWorkflowInput) (Cr
 	}
 }
 
-// CreateAdminWorkflowInput describes the input to a(n) fabric.v1.CreateAdmin workflow constructor
+// CreateAdminWorkflowInput describes the input to a(n) fabric.certauth.v1.CreateAdmin workflow constructor
 type CreateAdminWorkflowInput struct {
 	Req *CreateAdminInput
 }
@@ -1248,9 +1248,9 @@ type CreateAdminWorkflowInput struct {
 // Uses the bootstrap admin to register/enroll a new permanent admin.
 // Creates both signing and TLS client certs for the permanent admin.
 //
-// workflow details: (name: "fabric.v1.CreateAdmin", id: "fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }")
+// workflow details: (name: "fabric.certauth.v1.CreateAdmin", id: "fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }")
 type CreateAdminWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.v1.CreateAdmin workflow
+	// Execute defines the entrypoint to a(n) fabric.certauth.v1.CreateAdmin workflow
 	Execute(ctx workflow.Context) (*CreateAdminOutput, error)
 }
 
@@ -1286,7 +1286,7 @@ func CreateAdminChildAsync(ctx workflow.Context, req *CreateAdminInput, options 
 	return &CreateAdminChildRun{Future: workflow.ExecuteChildWorkflow(ctx, CreateAdminWorkflowName, req)}, nil
 }
 
-// CreateAdminChildOptions provides configuration for a child fabric.v1.CreateAdmin workflow operation
+// CreateAdminChildOptions provides configuration for a child fabric.certauth.v1.CreateAdmin workflow operation
 type CreateAdminChildOptions struct {
 	options                  workflow.ChildWorkflowOptions
 	executionTimeout         *time.Duration
@@ -1516,7 +1516,7 @@ func buildCreateBootstrapAdmin(ctor func(workflow.Context, *CreateBootstrapAdmin
 	}
 }
 
-// CreateBootstrapAdminWorkflowInput describes the input to a(n) fabric.v1.CreateBootstrapAdmin workflow constructor
+// CreateBootstrapAdminWorkflowInput describes the input to a(n) fabric.certauth.v1.CreateBootstrapAdmin workflow constructor
 type CreateBootstrapAdminWorkflowInput struct {
 	Req *CreateBootstrapAdminInput
 }
@@ -1525,9 +1525,9 @@ type CreateBootstrapAdminWorkflowInput struct {
 // This is called after CA deployment to enroll using bootstrap credentials.
 // Creates both signing and TLS client certs for the bootstrap admin.
 //
-// workflow details: (name: "fabric.v1.CreateBootstrapAdmin", id: "fabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }")
+// workflow details: (name: "fabric.certauth.v1.CreateBootstrapAdmin", id: "fabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }")
 type CreateBootstrapAdminWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.v1.CreateBootstrapAdmin workflow
+	// Execute defines the entrypoint to a(n) fabric.certauth.v1.CreateBootstrapAdmin workflow
 	Execute(ctx workflow.Context) (*CreateBootstrapAdminOutput, error)
 }
 
@@ -1563,7 +1563,7 @@ func CreateBootstrapAdminChildAsync(ctx workflow.Context, req *CreateBootstrapAd
 	return &CreateBootstrapAdminChildRun{Future: workflow.ExecuteChildWorkflow(ctx, CreateBootstrapAdminWorkflowName, req)}, nil
 }
 
-// CreateBootstrapAdminChildOptions provides configuration for a child fabric.v1.CreateBootstrapAdmin workflow operation
+// CreateBootstrapAdminChildOptions provides configuration for a child fabric.certauth.v1.CreateBootstrapAdmin workflow operation
 type CreateBootstrapAdminChildOptions struct {
 	options                  workflow.ChildWorkflowOptions
 	executionTimeout         *time.Duration
@@ -1793,7 +1793,7 @@ func buildCreateCertificate(ctor func(workflow.Context, *CreateCertificateWorkfl
 	}
 }
 
-// CreateCertificateWorkflowInput describes the input to a(n) fabric.v1.CreateCertificate workflow constructor
+// CreateCertificateWorkflowInput describes the input to a(n) fabric.certauth.v1.CreateCertificate workflow constructor
 type CreateCertificateWorkflowInput struct {
 	Req *CreateCertificateInput
 }
@@ -1802,9 +1802,9 @@ type CreateCertificateWorkflowInput struct {
 // This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
 // Used for CA signing certs, TLS certs, and any other certificate needs.
 //
-// workflow details: (name: "fabric.v1.CreateCertificate", id: "fabric/create-certificate/${! Purpose }")
+// workflow details: (name: "fabric.certauth.v1.CreateCertificate", id: "fabric/create-certificate/${! Purpose }")
 type CreateCertificateWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.v1.CreateCertificate workflow
+	// Execute defines the entrypoint to a(n) fabric.certauth.v1.CreateCertificate workflow
 	Execute(ctx workflow.Context) (*CreateCertificateOutput, error)
 }
 
@@ -1840,7 +1840,7 @@ func CreateCertificateChildAsync(ctx workflow.Context, req *CreateCertificateInp
 	return &CreateCertificateChildRun{Future: workflow.ExecuteChildWorkflow(ctx, CreateCertificateWorkflowName, req)}, nil
 }
 
-// CreateCertificateChildOptions provides configuration for a child fabric.v1.CreateCertificate workflow operation
+// CreateCertificateChildOptions provides configuration for a child fabric.certauth.v1.CreateCertificate workflow operation
 type CreateCertificateChildOptions struct {
 	options                  workflow.ChildWorkflowOptions
 	executionTimeout         *time.Duration
@@ -2070,7 +2070,7 @@ func buildCreateIdentity(ctor func(workflow.Context, *CreateIdentityWorkflowInpu
 	}
 }
 
-// CreateIdentityWorkflowInput describes the input to a(n) fabric.v1.CreateIdentity workflow constructor
+// CreateIdentityWorkflowInput describes the input to a(n) fabric.certauth.v1.CreateIdentity workflow constructor
 type CreateIdentityWorkflowInput struct {
 	Req *CreateIdentityInput
 }
@@ -2079,9 +2079,9 @@ type CreateIdentityWorkflowInput struct {
 // Used for creating peer, orderer, admin, and client identities.
 // This is the production workflow for identity creation (not bootstrap).
 //
-// workflow details: (name: "fabric.v1.CreateIdentity", id: "fabric/create-identity/${! IdentityName }")
+// workflow details: (name: "fabric.certauth.v1.CreateIdentity", id: "fabric/create-identity/${! IdentityName }")
 type CreateIdentityWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.v1.CreateIdentity workflow
+	// Execute defines the entrypoint to a(n) fabric.certauth.v1.CreateIdentity workflow
 	Execute(ctx workflow.Context) (*CreateIdentityOutput, error)
 }
 
@@ -2117,7 +2117,7 @@ func CreateIdentityChildAsync(ctx workflow.Context, req *CreateIdentityInput, op
 	return &CreateIdentityChildRun{Future: workflow.ExecuteChildWorkflow(ctx, CreateIdentityWorkflowName, req)}, nil
 }
 
-// CreateIdentityChildOptions provides configuration for a child fabric.v1.CreateIdentity workflow operation
+// CreateIdentityChildOptions provides configuration for a child fabric.certauth.v1.CreateIdentity workflow operation
 type CreateIdentityChildOptions struct {
 	options                  workflow.ChildWorkflowOptions
 	executionTimeout         *time.Duration
@@ -2346,7 +2346,7 @@ func NewTestCertificateAuthorityClient(env *testsuite.TestWorkflowEnvironment, w
 	return &TestCertificateAuthorityClient{env, workflows}
 }
 
-// CreateAdmin executes a(n) fabric.v1.CreateAdmin workflow in the test environment
+// CreateAdmin executes a(n) fabric.certauth.v1.CreateAdmin workflow in the test environment
 func (c *TestCertificateAuthorityClient) CreateAdmin(ctx context.Context, req *CreateAdminInput, opts ...*CreateAdminOptions) (*CreateAdminOutput, error) {
 	run, err := c.CreateAdminAsync(ctx, req, opts...)
 	if err != nil {
@@ -2355,7 +2355,7 @@ func (c *TestCertificateAuthorityClient) CreateAdmin(ctx context.Context, req *C
 	return run.Get(ctx)
 }
 
-// CreateAdminAsync executes a(n) fabric.v1.CreateAdmin workflow in the test environment
+// CreateAdminAsync executes a(n) fabric.certauth.v1.CreateAdmin workflow in the test environment
 func (c *TestCertificateAuthorityClient) CreateAdminAsync(ctx context.Context, req *CreateAdminInput, options ...*CreateAdminOptions) (CreateAdminRun, error) {
 	var o *CreateAdminOptions
 	if len(options) > 0 && options[0] != nil {
@@ -2375,7 +2375,7 @@ func (c *TestCertificateAuthorityClient) GetCreateAdmin(ctx context.Context, wor
 	return &testCreateAdminRun{env: c.env, workflows: c.workflows}
 }
 
-// CreateBootstrapAdmin executes a(n) fabric.v1.CreateBootstrapAdmin workflow in the test environment
+// CreateBootstrapAdmin executes a(n) fabric.certauth.v1.CreateBootstrapAdmin workflow in the test environment
 func (c *TestCertificateAuthorityClient) CreateBootstrapAdmin(ctx context.Context, req *CreateBootstrapAdminInput, opts ...*CreateBootstrapAdminOptions) (*CreateBootstrapAdminOutput, error) {
 	run, err := c.CreateBootstrapAdminAsync(ctx, req, opts...)
 	if err != nil {
@@ -2384,7 +2384,7 @@ func (c *TestCertificateAuthorityClient) CreateBootstrapAdmin(ctx context.Contex
 	return run.Get(ctx)
 }
 
-// CreateBootstrapAdminAsync executes a(n) fabric.v1.CreateBootstrapAdmin workflow in the test environment
+// CreateBootstrapAdminAsync executes a(n) fabric.certauth.v1.CreateBootstrapAdmin workflow in the test environment
 func (c *TestCertificateAuthorityClient) CreateBootstrapAdminAsync(ctx context.Context, req *CreateBootstrapAdminInput, options ...*CreateBootstrapAdminOptions) (CreateBootstrapAdminRun, error) {
 	var o *CreateBootstrapAdminOptions
 	if len(options) > 0 && options[0] != nil {
@@ -2404,7 +2404,7 @@ func (c *TestCertificateAuthorityClient) GetCreateBootstrapAdmin(ctx context.Con
 	return &testCreateBootstrapAdminRun{env: c.env, workflows: c.workflows}
 }
 
-// CreateCertificate executes a(n) fabric.v1.CreateCertificate workflow in the test environment
+// CreateCertificate executes a(n) fabric.certauth.v1.CreateCertificate workflow in the test environment
 func (c *TestCertificateAuthorityClient) CreateCertificate(ctx context.Context, req *CreateCertificateInput, opts ...*CreateCertificateOptions) (*CreateCertificateOutput, error) {
 	run, err := c.CreateCertificateAsync(ctx, req, opts...)
 	if err != nil {
@@ -2413,7 +2413,7 @@ func (c *TestCertificateAuthorityClient) CreateCertificate(ctx context.Context, 
 	return run.Get(ctx)
 }
 
-// CreateCertificateAsync executes a(n) fabric.v1.CreateCertificate workflow in the test environment
+// CreateCertificateAsync executes a(n) fabric.certauth.v1.CreateCertificate workflow in the test environment
 func (c *TestCertificateAuthorityClient) CreateCertificateAsync(ctx context.Context, req *CreateCertificateInput, options ...*CreateCertificateOptions) (CreateCertificateRun, error) {
 	var o *CreateCertificateOptions
 	if len(options) > 0 && options[0] != nil {
@@ -2433,7 +2433,7 @@ func (c *TestCertificateAuthorityClient) GetCreateCertificate(ctx context.Contex
 	return &testCreateCertificateRun{env: c.env, workflows: c.workflows}
 }
 
-// CreateIdentity executes a(n) fabric.v1.CreateIdentity workflow in the test environment
+// CreateIdentity executes a(n) fabric.certauth.v1.CreateIdentity workflow in the test environment
 func (c *TestCertificateAuthorityClient) CreateIdentity(ctx context.Context, req *CreateIdentityInput, opts ...*CreateIdentityOptions) (*CreateIdentityOutput, error) {
 	run, err := c.CreateIdentityAsync(ctx, req, opts...)
 	if err != nil {
@@ -2442,7 +2442,7 @@ func (c *TestCertificateAuthorityClient) CreateIdentity(ctx context.Context, req
 	return run.Get(ctx)
 }
 
-// CreateIdentityAsync executes a(n) fabric.v1.CreateIdentity workflow in the test environment
+// CreateIdentityAsync executes a(n) fabric.certauth.v1.CreateIdentity workflow in the test environment
 func (c *TestCertificateAuthorityClient) CreateIdentityAsync(ctx context.Context, req *CreateIdentityInput, options ...*CreateIdentityOptions) (CreateIdentityRun, error) {
 	var o *CreateIdentityOptions
 	if len(options) > 0 && options[0] != nil {
@@ -2475,7 +2475,7 @@ func (c *TestCertificateAuthorityClient) TerminateWorkflow(ctx context.Context, 
 
 var _ CreateAdminRun = &testCreateAdminRun{}
 
-// testCreateAdminRun provides convenience methods for interacting with a(n) fabric.v1.CreateAdmin workflow in the test environment
+// testCreateAdminRun provides convenience methods for interacting with a(n) fabric.certauth.v1.CreateAdmin workflow in the test environment
 type testCreateAdminRun struct {
 	client    *TestCertificateAuthorityClient
 	env       *testsuite.TestWorkflowEnvironment
@@ -2490,7 +2490,7 @@ func (r *testCreateAdminRun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
-// Get retrieves a test fabric.v1.CreateAdmin workflow result
+// Get retrieves a test fabric.certauth.v1.CreateAdmin workflow result
 func (r *testCreateAdminRun) Get(context.Context) (*CreateAdminOutput, error) {
 	if r.isStarted.CompareAndSwap(false, true) {
 		r.env.ExecuteWorkflow(CreateAdminWorkflowName, r.req)
@@ -2508,7 +2508,7 @@ func (r *testCreateAdminRun) Get(context.Context) (*CreateAdminOutput, error) {
 	return &result, nil
 }
 
-// ID returns a test fabric.v1.CreateAdmin workflow run's workflow ID
+// ID returns a test fabric.certauth.v1.CreateAdmin workflow run's workflow ID
 func (r *testCreateAdminRun) ID() string {
 	if r.opts != nil {
 		return r.opts.ID
@@ -2533,7 +2533,7 @@ func (r *testCreateAdminRun) Terminate(ctx context.Context, reason string, detai
 
 var _ CreateBootstrapAdminRun = &testCreateBootstrapAdminRun{}
 
-// testCreateBootstrapAdminRun provides convenience methods for interacting with a(n) fabric.v1.CreateBootstrapAdmin workflow in the test environment
+// testCreateBootstrapAdminRun provides convenience methods for interacting with a(n) fabric.certauth.v1.CreateBootstrapAdmin workflow in the test environment
 type testCreateBootstrapAdminRun struct {
 	client    *TestCertificateAuthorityClient
 	env       *testsuite.TestWorkflowEnvironment
@@ -2548,7 +2548,7 @@ func (r *testCreateBootstrapAdminRun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
-// Get retrieves a test fabric.v1.CreateBootstrapAdmin workflow result
+// Get retrieves a test fabric.certauth.v1.CreateBootstrapAdmin workflow result
 func (r *testCreateBootstrapAdminRun) Get(context.Context) (*CreateBootstrapAdminOutput, error) {
 	if r.isStarted.CompareAndSwap(false, true) {
 		r.env.ExecuteWorkflow(CreateBootstrapAdminWorkflowName, r.req)
@@ -2566,7 +2566,7 @@ func (r *testCreateBootstrapAdminRun) Get(context.Context) (*CreateBootstrapAdmi
 	return &result, nil
 }
 
-// ID returns a test fabric.v1.CreateBootstrapAdmin workflow run's workflow ID
+// ID returns a test fabric.certauth.v1.CreateBootstrapAdmin workflow run's workflow ID
 func (r *testCreateBootstrapAdminRun) ID() string {
 	if r.opts != nil {
 		return r.opts.ID
@@ -2591,7 +2591,7 @@ func (r *testCreateBootstrapAdminRun) Terminate(ctx context.Context, reason stri
 
 var _ CreateCertificateRun = &testCreateCertificateRun{}
 
-// testCreateCertificateRun provides convenience methods for interacting with a(n) fabric.v1.CreateCertificate workflow in the test environment
+// testCreateCertificateRun provides convenience methods for interacting with a(n) fabric.certauth.v1.CreateCertificate workflow in the test environment
 type testCreateCertificateRun struct {
 	client    *TestCertificateAuthorityClient
 	env       *testsuite.TestWorkflowEnvironment
@@ -2606,7 +2606,7 @@ func (r *testCreateCertificateRun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
-// Get retrieves a test fabric.v1.CreateCertificate workflow result
+// Get retrieves a test fabric.certauth.v1.CreateCertificate workflow result
 func (r *testCreateCertificateRun) Get(context.Context) (*CreateCertificateOutput, error) {
 	if r.isStarted.CompareAndSwap(false, true) {
 		r.env.ExecuteWorkflow(CreateCertificateWorkflowName, r.req)
@@ -2624,7 +2624,7 @@ func (r *testCreateCertificateRun) Get(context.Context) (*CreateCertificateOutpu
 	return &result, nil
 }
 
-// ID returns a test fabric.v1.CreateCertificate workflow run's workflow ID
+// ID returns a test fabric.certauth.v1.CreateCertificate workflow run's workflow ID
 func (r *testCreateCertificateRun) ID() string {
 	if r.opts != nil {
 		return r.opts.ID
@@ -2649,7 +2649,7 @@ func (r *testCreateCertificateRun) Terminate(ctx context.Context, reason string,
 
 var _ CreateIdentityRun = &testCreateIdentityRun{}
 
-// testCreateIdentityRun provides convenience methods for interacting with a(n) fabric.v1.CreateIdentity workflow in the test environment
+// testCreateIdentityRun provides convenience methods for interacting with a(n) fabric.certauth.v1.CreateIdentity workflow in the test environment
 type testCreateIdentityRun struct {
 	client    *TestCertificateAuthorityClient
 	env       *testsuite.TestWorkflowEnvironment
@@ -2664,7 +2664,7 @@ func (r *testCreateIdentityRun) Cancel(ctx context.Context) error {
 	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
 }
 
-// Get retrieves a test fabric.v1.CreateIdentity workflow result
+// Get retrieves a test fabric.certauth.v1.CreateIdentity workflow result
 func (r *testCreateIdentityRun) Get(context.Context) (*CreateIdentityOutput, error) {
 	if r.isStarted.CompareAndSwap(false, true) {
 		r.env.ExecuteWorkflow(CreateIdentityWorkflowName, r.req)
@@ -2682,7 +2682,7 @@ func (r *testCreateIdentityRun) Get(context.Context) (*CreateIdentityOutput, err
 	return &result, nil
 }
 
-// ID returns a test fabric.v1.CreateIdentity workflow run's workflow ID
+// ID returns a test fabric.certauth.v1.CreateIdentity workflow run's workflow ID
 func (r *testCreateIdentityRun) ID() string {
 	if r.opts != nil {
 		return r.opts.ID

@@ -43,16 +43,16 @@
   - Services
     - [fabric.certauth.v1.Identity](#fabric-certauth-v1-identity)
       - [Activities](#fabric-certauth-v1-identity-activities)
-        - [fabric.v1.RegisterIdentity](#fabric-v1-registeridentity-activity)
-        - [fabric.v1.EnrollIdentity](#fabric-v1-enrollidentity-activity)
-        - [fabric.v1.RevokeIdentity](#fabric-v1-revokeidentity-activity)
-        - [fabric.v1.BootstrapEnrollIdentity](#fabric-v1-bootstrapenrollidentity-activity)
+        - [fabric.certauth.v1.RegisterIdentity](#fabric-certauth-v1-registeridentity-activity)
+        - [fabric.certauth.v1.EnrollIdentity](#fabric-certauth-v1-enrollidentity-activity)
+        - [fabric.certauth.v1.RevokeIdentity](#fabric-certauth-v1-revokeidentity-activity)
+        - [fabric.certauth.v1.BootstrapEnrollIdentity](#fabric-certauth-v1-bootstrapenrollidentity-activity)
     - [fabric.certauth.v1.CertificateAuthority](#fabric-certauth-v1-certificateauthority)
       - [Workflows](#fabric-certauth-v1-certificateauthority-workflows)
-        - [fabric.v1.CreateCertificate](#fabric-v1-createcertificate-workflow)
-        - [fabric.v1.CreateBootstrapAdmin](#fabric-v1-createbootstrapadmin-workflow)
-        - [fabric.v1.CreateAdmin](#fabric-v1-createadmin-workflow)
-        - [fabric.v1.CreateIdentity](#fabric-v1-createidentity-workflow)
+        - [fabric.certauth.v1.CreateCertificate](#fabric-certauth-v1-createcertificate-workflow)
+        - [fabric.certauth.v1.CreateBootstrapAdmin](#fabric-certauth-v1-createbootstrapadmin-workflow)
+        - [fabric.certauth.v1.CreateAdmin](#fabric-certauth-v1-createadmin-workflow)
+        - [fabric.certauth.v1.CreateIdentity](#fabric-certauth-v1-createidentity-workflow)
   - Messages
     - [fabric.certauth.v1.BootstrapEnrollIdentityInput](#fabric-certauth-v1-bootstrapenrollidentityinput)
     - [fabric.certauth.v1.BootstrapEnrollIdentityOutput](#fabric-certauth-v1-bootstrapenrollidentityoutput)
@@ -1358,8 +1358,8 @@ Activities are NOT exposed via Nexus (only workflows can be called cross-namespa
 ### Activities
 
 ---
-<a name="fabric-v1-registeridentity-activity"></a>
-### fabric.v1.RegisterIdentity
+<a name="fabric-certauth-v1-registeridentity-activity"></a>
+### fabric.certauth.v1.RegisterIdentity
 
 <pre>
 RegisterIdentity registers a new identity with a Fabric CA
@@ -1459,8 +1459,8 @@ go_tags: json:"EnrollmentSecret" validate:"required"</pre></td>
 </table> 
 
 ---
-<a name="fabric-v1-enrollidentity-activity"></a>
-### fabric.v1.EnrollIdentity
+<a name="fabric-certauth-v1-enrollidentity-activity"></a>
+### fabric.certauth.v1.EnrollIdentity
 
 <pre>
 EnrollIdentity enrolls a registered identity and retrieves certificates
@@ -1585,8 +1585,8 @@ go_tags: json:"Identity" validate:"required"</pre></td>
 </table> 
 
 ---
-<a name="fabric-v1-revokeidentity-activity"></a>
-### fabric.v1.RevokeIdentity
+<a name="fabric-certauth-v1-revokeidentity-activity"></a>
+### fabric.certauth.v1.RevokeIdentity
 
 <pre>
 RevokeIdentity revokes an identity from a Fabric CA
@@ -1668,8 +1668,8 @@ go_name: Revoked</pre></td>
 </table> 
 
 ---
-<a name="fabric-v1-bootstrapenrollidentity-activity"></a>
-### fabric.v1.BootstrapEnrollIdentity
+<a name="fabric-certauth-v1-bootstrapenrollidentity-activity"></a>
+### fabric.certauth.v1.BootstrapEnrollIdentity
 
 <pre>
 BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
@@ -1786,8 +1786,8 @@ These workflows run on the fabric worker in the org-specific Temporal namespace
 ### Workflows
 
 ---
-<a name="fabric-v1-createcertificate-workflow"></a>
-### fabric.v1.CreateCertificate
+<a name="fabric-certauth-v1-createcertificate-workflow"></a>
+### fabric.certauth.v1.CreateCertificate
 
 <pre>
 CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
@@ -1930,8 +1930,8 @@ go_tags: json:"Identity" validate:"required"</pre></td>
 </table>
 
 ---
-<a name="fabric-v1-createbootstrapadmin-workflow"></a>
-### fabric.v1.CreateBootstrapAdmin
+<a name="fabric-certauth-v1-createbootstrapadmin-workflow"></a>
+### fabric.certauth.v1.CreateBootstrapAdmin
 
 <pre>
 CreateBootstrapAdmin creates the bootstrap admin identity for a CA
@@ -2025,8 +2025,8 @@ go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 </table>
 
 ---
-<a name="fabric-v1-createadmin-workflow"></a>
-### fabric.v1.CreateAdmin
+<a name="fabric-certauth-v1-createadmin-workflow"></a>
+### fabric.certauth.v1.CreateAdmin
 
 <pre>
 CreateAdmin creates the permanent admin identity for a CA
@@ -2129,8 +2129,8 @@ go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 </table>
 
 ---
-<a name="fabric-v1-createidentity-workflow"></a>
-### fabric.v1.CreateIdentity
+<a name="fabric-certauth-v1-createidentity-workflow"></a>
+### fabric.certauth.v1.CreateIdentity
 
 <pre>
 CreateIdentity creates a full Fabric identity with both org and TLS certificates

@@ -726,12 +726,12 @@ const file_fabric_certauth_v1_workflows_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf6\x01\n" +
 	"\x14CreateIdentityOutput\x12t\n" +
 	"\x10signing_identity\x18\x01 \x01(\v2\x16.fabric.v1.IdentityRefB1ʵ\x03-\xa2\x01*json:\"SigningIdentity\" validate:\"required\"R\x0fSigningIdentity\x12h\n" +
-	"\ftls_identity\x18\x02 \x01(\v2\x16.fabric.v1.IdentityRefB-ʵ\x03)\xa2\x01&json:\"TlsIdentity\" validate:\"required\"R\vTlsIdentity2\xbe\x06\n" +
-	"\x14CertificateAuthority\x12\xba\x01\n" +
-	"\x11CreateCertificate\x12*.fabric.certauth.v1.CreateCertificateInput\x1a+.fabric.certauth.v1.CreateCertificateOutput\"L\x8a\xc4\x03H*'fabric/create-certificate/${! Purpose }0\x01r\x1bfabric.v1.CreateCertificate\x12\xe0\x01\n" +
-	"\x14CreateBootstrapAdmin\x12-.fabric.certauth.v1.CreateBootstrapAdminInput\x1a..fabric.certauth.v1.CreateBootstrapAdminOutput\"i\x8a\xc4\x03e*Afabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }0\x01r\x1efabric.v1.CreateBootstrapAdmin\x12\xb2\x01\n" +
-	"\vCreateAdmin\x12$.fabric.certauth.v1.CreateAdminInput\x1a%.fabric.certauth.v1.CreateAdminOutput\"V\x8a\xc4\x03R*7fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }0\x01r\x15fabric.v1.CreateAdmin\x12\xb0\x01\n" +
-	"\x0eCreateIdentity\x12'.fabric.certauth.v1.CreateIdentityInput\x1a(.fabric.certauth.v1.CreateIdentityOutput\"K\x8a\xc4\x03G*)fabric/create-identity/${! IdentityName }0\x01r\x18fabric.v1.CreateIdentity\x1a\x1e\x8a\xc4\x03\a\n" +
+	"\ftls_identity\x18\x02 \x01(\v2\x16.fabric.v1.IdentityRefB-ʵ\x03)\xa2\x01&json:\"TlsIdentity\" validate:\"required\"R\vTlsIdentity2\xe2\x06\n" +
+	"\x14CertificateAuthority\x12\xc3\x01\n" +
+	"\x11CreateCertificate\x12*.fabric.certauth.v1.CreateCertificateInput\x1a+.fabric.certauth.v1.CreateCertificateOutput\"U\x8a\xc4\x03Q*'fabric/create-certificate/${! Purpose }0\x01r$fabric.certauth.v1.CreateCertificate\x12\xe9\x01\n" +
+	"\x14CreateBootstrapAdmin\x12-.fabric.certauth.v1.CreateBootstrapAdminInput\x1a..fabric.certauth.v1.CreateBootstrapAdminOutput\"r\x8a\xc4\x03n*Afabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }0\x01r'fabric.certauth.v1.CreateBootstrapAdmin\x12\xbb\x01\n" +
+	"\vCreateAdmin\x12$.fabric.certauth.v1.CreateAdminInput\x1a%.fabric.certauth.v1.CreateAdminOutput\"_\x8a\xc4\x03[*7fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }0\x01r\x1efabric.certauth.v1.CreateAdmin\x12\xb9\x01\n" +
+	"\x0eCreateIdentity\x12'.fabric.certauth.v1.CreateIdentityInput\x1a(.fabric.certauth.v1.CreateIdentityOutput\"T\x8a\xc4\x03P*)fabric/create-identity/${! IdentityName }0\x01r!fabric.certauth.v1.CreateIdentity\x1a\x1e\x8a\xc4\x03\a\n" +
 	"\x05infraʂ\x04\x0f\x12\rnexus-enabledB\xe4\x01\n" +
 	"\x16com.fabric.certauth.v1B\x0eWorkflowsProtoP\x01ZPgithub.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1;certauthv1\xa2\x02\x03FCX\xaa\x02\x12Fabric.Certauth.V1\xca\x02\x12Fabric\\Certauth\\V1\xe2\x02\x1eFabric\\Certauth\\V1\\GPBMetadata\xea\x02\x14Fabric::Certauth::V1b\x06proto3"
 

@@ -23,7 +23,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/c
     // This is the first step in identity creation - registration returns an enrollment secret
     rpc RegisterIdentity(RegisterIdentityInput) returns (RegisterIdentityOutput) {
       option (temporal.v1.activity) = {
-        name: "fabric.v1.RegisterIdentity"
+        name: "fabric.certauth.v1.RegisterIdentity"
         schedule_to_close_timeout: {seconds: 60}
       };
     }
@@ -32,7 +32,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/c
     // This is the second step in identity creation - enrollment uses the secret from registration
     rpc EnrollIdentity(EnrollIdentityInput) returns (EnrollIdentityOutput) {
       option (temporal.v1.activity) = {
-        name: "fabric.v1.EnrollIdentity"
+        name: "fabric.certauth.v1.EnrollIdentity"
         schedule_to_close_timeout: {seconds: 60}
       };
     }
@@ -41,7 +41,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/c
     // Used to revoke bootstrap admin credentials after permanent admin is created
     rpc RevokeIdentity(RevokeIdentityInput) returns (RevokeIdentityOutput) {
       option (temporal.v1.activity) = {
-        name: "fabric.v1.RevokeIdentity"
+        name: "fabric.certauth.v1.RevokeIdentity"
         schedule_to_close_timeout: {seconds: 60}
       };
     }
@@ -51,7 +51,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/c
     // The activity generates a CSR internally and submits it to the CA
     rpc BootstrapEnrollIdentity(BootstrapEnrollIdentityInput) returns (BootstrapEnrollIdentityOutput) {
       option (temporal.v1.activity) = {
-        name: "fabric.v1.BootstrapEnrollIdentity"
+        name: "fabric.certauth.v1.BootstrapEnrollIdentity"
         schedule_to_close_timeout: {seconds: 60}
       };
     }

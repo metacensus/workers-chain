@@ -1,94 +1,137 @@
 # Fabric Bootstrap Workflows
 
-**Status Legend:**
-- ✅ Implemented
-- 🟡 Partial  
-- ❌ Not Started
+Orchestrating Hyperledger Fabric deployment through Temporal workflows across three isolated worker types.
+
+**Status Legend:** ✅ Implemented | 🟡 Partial | ❌ Not Started
 
 ---
 
-## Overview
+## Why Three Workers?
 
-This document outlines the complete execution flow for deploying a Fabric organization. It shows the hierarchy of workflows and activities across two worker types, the call sequence via task queue routing, dependency chains, architecture, security boundaries, and implementation status.
+Fabric deployment requires balancing **security isolation** with **shared infrastructure**. Three workers solve this:
 
-**Visual Workflow Tree:** See [`Fabric Shard Bootstrap Workflows.txt`](Fabric%20Shard%20Bootstrap%20Workflows.txt) for the complete hierarchical structure.
+| Problem | Solution |
+|---------|----------|
+| TLS certificates must be issued from a trusted authority | **Fabric Worker** owns TLS CAs, issues certs via Nexus |
+| Each organization needs isolated secrets and workflow history | **Shard Workers** run in per-org Temporal namespaces |
+| Someone must create Vault policies and Temporal namespaces | **Infra Worker** has elevated privileges, validates requests |
+
+**Key insight:** The Fabric Worker exists because TLS CAs serve all organizations but shouldn't be owned by any single org. Without it, either every shard would need TLS CA access (security risk) or the Infra Worker would need to understand Fabric CA operations (coupling).
 
 ---
 
 ## Worker Architecture
 
-### Central Worker (infra Temporal namespace, infra task queue)
-- **Temporal Namespace:** `infra` (or `default`)
-- **Task Queue:** `infra` (single queue)
-- **K8s Location:** `workers` namespace
-- **K8s RBAC:** Manages only `workers` namespace
-- **Vault Token:** God-mode with policy validation
-- **Nexus Services:** Exposes `CreateScopedIdentityAccess` in "infra" namespace
-- **Responsibilities:** Platform bootstrap, Temporal namespace/Nexus management, Vault policy/role creation
+### Infra Worker (platform orchestration)
+- **Temporal Namespace:** `infra`
+- **K8s Namespace:** `workers`
+- **Vault Access:** God-mode with policy validation
+- **Nexus Services:** Exposes `secrets.v1.CreateAccess`
+- **Responsibilities:** Temporal namespace/Nexus management, Vault policy creation, worker deployment
 
-### Per-Org Fabric Workers (dedicated Temporal namespace, infra task queue)
-- **Temporal Namespace:** `fabric-{org}` (e.g., `fabric-org1`) - one per org
-- **Task Queue:** `infra` (same name, different namespace)
-- **K8s Location:** `fabric-{org}` namespace (one pod per org, runs in its own namespace)
-- **K8s RBAC:** Role bound to `fabric-{org}` namespace (manages resources in same namespace)
-- **Vault Token:** Scoped to `secret/fabric/{org}/*`
-- **Nexus Calls:** Calls `CreateScopedIdentityAccess` and `IssueTlsCertificate` in "infra" namespace via Nexus
-- **Responsibilities:** Fabric deployment, identity provisioning, certificate management
+### Fabric Worker (shared TLS infrastructure)
+- **Temporal Namespace:** `fabric`
+- **K8s Namespace:** `fabric`
+- **Vault Access:** `secret/fabric/tls/*` (TLS CA secrets only)
+- **Nexus Calls:** `secrets.v1.CreateAccess` → Infra
+- **Nexus Services:** Exposes `fabric.certauth.v1.CreateCertifitcate`
+- **Responsibilities:** TLS CA chain (Root + Intermediate), Certificate Store, TLS certificate issuance
 
-**Isolation Strategy:** 
+### Shard Workers (per-org deployments)
+- **Temporal Namespace:** `fabric-shard-{org}` (one per org)
+- **K8s Namespace:** `fabric-shard-{org}` (one per org)
+- **Vault Access:** `secret/fabric/shard/{org}/*`
+- **Nexus Calls:** `secrets.v1.CreateAccess` → Infra, `fabric.certauth.v1.CreateCertifitcate` → Fabric
+- **Responsibilities:** Org CA chain, Peers, Orderers, CouchDB, identity management
+
+**Isolation Strategy:**
 - Temporal namespace boundaries provide workflow history isolation
-- Single task queue per namespace (no routing complexity)
-- Cross-namespace calls use Temporal Nexus (org → central for policy creation)
-- Central → org uses standard Temporal signals/StartWorkflow
+- Single task queue name (`infra`) per namespace (no routing complexity)
+- Cross-namespace calls use Temporal Nexus
+- Each worker type has scoped Vault access
 
 ---
 
-## Nexus Authorization Strategy
+## Nexus Authorization
 
-### Authorization for `CreateScopedIdentityAccess`
+Cross-namespace calls require authorization. Since Temporal Nexus ACL management requires server plugins (not available in standard SDK), authorization is handled at the application layer.
 
-**Note:** Nexus endpoint ACL management requires Temporal server plugins (not available in standard SDK). Authorization is handled at the application layer.
+### `secrets.v1.CreateAccess` (Infra Worker)
 
-**Workflow Validation (Application-level)**
-- **Setup:** Code in `CreateScopedIdentityAccess` workflow implementation
-- **Mechanism:** Workflow receives caller namespace context and validates request
-- **Validation:** Confirms caller can only create policies for their own organization
-  - Caller namespace `fabric-org1` → can only create policies under `secret/fabric/org1/*`
-  - Caller namespace `fabric-org2` → can only create policies under `secret/fabric/org2/*`
-  - Requests for paths outside org scope → rejected
-- **Purpose:** Fine-grained authorization; prevents one org from accessing another's secrets
+Validates caller namespace maps to requested Vault path:
+- `fabric` → `secret/fabric/tls/*` only
+- `fabric-shard-{org}` → `secret/fabric/shard/{org}/*` only
+
+### `fabric.certauth.v1.CreateCertifitcate` (Fabric Worker)
+
+Validates:
+- Caller namespace matches `fabric-shard-*` pattern
+- Certificate CN/SANs match caller's org
 
 ---
 
-## Execution Phases
+## Bootstrap Flows
 
-### Phase 1: Organization Infrastructure Bootstrap
+Fabric bootstrap has two distinct flows with different lifecycles:
 
-Central Worker orchestrates infrastructure setup:
+### One-Time: Fabric Initialization
 
-1. **CreateTemporalNamespace** workflow - async namespace creation with polling
-2. **CreateKubernetesNamespace** workflow - create org K8s namespace
-3. **CreateServiceAccount** workflow - create fabric worker service account in `workers` namespace
-4. **CreateVaultRole** workflow - create org-scoped Vault policy and role for fabric worker
-5. **DeployFabricWorker** workflow - render and deploy fabric worker pod with `TEMPORAL_NAMESPACE=fabric-org1` env
-6. **CreateNexusEndpoint** activity - register Nexus endpoint for `DeployOrgWorkflow` (enables central→org calls)
-7. **Nexus Call** - invoke `DeployOrgWorkflow` in org's Temporal namespace (triggers Phase 2)
+Run **once per cluster** to establish shared TLS infrastructure. Must complete before any shards can be created.
 
-**Note:** `CreateScopedIdentityAccess` Nexus endpoint is registered once at central worker init time (not per-org).
+```
+cell.v1.InitFabric (Infra Worker, infra namespace)
+│
+├─ temporal.v1.CreateNamespace (fabric)
+├─ cluster.fabric.v1.CreateNamespace (fabric)
+├─ cluster.fabric.v1.CreateServiceAccount
+├─ secrets.v1.CreateAccess
+├─ cluster.fabric.v1.CreateDeployment (fabric worker)
+├─ temporal.v1.CreateNexusEndpoint (CreateCertifitcate)
+│
+└─ Nexus → fabric.v1.BootstrapFabric (Fabric Worker, fabric namespace)
+           │
+           └─ fabric.v1.BootstrapTlsCertificateAuthorities
+              ├─ fabric.v1.DeployCertificateStore
+              ├─ fabric.v1.DeployTlsRootCertificateAuthority
+              └─ fabric.v1.DeployTlsIntermediateCertificateAuthority
+```
 
-### Phase 2: Fabric Worker Deployment
+**Result:** TLS CA infrastructure ready. Fabric worker accepting `CreateCertifitcate` requests.
 
-Fabric Worker orchestrates organization deployment:
+### On-Demand: Shard Creation
 
-1. **DeployCA** workflow - deploy Fabric CA pod
-2. **CreateAffiliations** activity - create identity affiliations in CA
-3. **BootstrapAdmin** workflow - create and enroll bootstrap admin identity
-4. **For each peer (SEQUENTIAL):**
-   - **DeployCouchDB** workflow - deploy peer-specific CouchDB instance
-   - **DeployPeer** workflow - orchestrates peer provisioning and deployment
-5. **For each orderer (SEQUENTIAL):**
-   - **DeployOrderer** workflow - orchestrates orderer provisioning and deployment
-6. Return `DeployOrgOutput` with references to all deployed resources
+Run **per organization** when a new org joins the network. Can be invoked multiple times.
+
+```
+cell.v1.InitFabricShard (Infra Worker, infra namespace)
+│
+├─ temporal.v1.CreateNamespace (fabric-shard-{org})
+├─ cluster.fabric.v1.CreateNamespace (fabric-shard-{org})
+├─ cluster.fabric.v1.CreateServiceAccount
+├─ secrets.v1.CreateAccess
+├─ cluster.fabric.v1.CreateDeployment (shard worker)
+├─ temporal.v1.CreateNexusEndpoint (BootstrapShard)
+│
+└─ Nexus → fabric.v1.BootstrapShard (Shard Worker, fabric-shard-{org} namespace)
+           │
+           ├─ fabric.v1.BootstrapOrgCertificateAuthorities
+           │  ├─ fabric.v1.DeployCertificateStore
+           │  ├─ fabric.v1.DeployOrgRootCertificateAuthority
+           │  │  └─ Nexus → fabric.certauth.v1.CreateCertifitcate (Fabric Worker)
+           │  └─ fabric.v1.DeployOrgIntermediateCertificateAuthority
+           │     └─ Nexus → fabric.certauth.v1.CreateCertifitcate (Fabric Worker)
+           │
+           ├─ for each peer:
+           │  ├─ fabric.v1.DeployCouchDb
+           │  └─ fabric.v1.DeployPeer
+           │     └─ fabric.certauth.v1.CreateIdentity (org + TLS certs)
+           │
+           └─ for each orderer:
+              └─ fabric.v1.DeployOrderer
+                 └─ fabric.certauth.v1.CreateIdentity (org + TLS certs)
+```
+
+**Result:** Organization deployed with isolated CAs, peers, and orderers.
 
 ---
 
@@ -96,315 +139,231 @@ Fabric Worker orchestrates organization deployment:
 
 ### Per-Worker Isolation
 
-| Worker | Temporal Namespace | K8s Namespace | K8s RBAC | Vault Access | Can Create Policies? |
-|--------|-------------------|---------------|----------|--------------|---------------------|
-| Central Worker | `infra` | `workers` | `workers` namespace only | God-mode token (all paths) | ✅ Yes (with validation) |
-| Fabric Worker (Org1) | `fabric-org1` | `fabric-org1` | Role in `fabric-org1` namespace | `secret/fabric/org1/*` only | ❌ No (calls via Nexus) |
-| Fabric Worker (Org2) | `fabric-org2` | `fabric-org2` | Role in `fabric-org2` namespace | `secret/fabric/org2/*` only | ❌ No (calls via Nexus) |
+| Worker | Temporal NS | K8s NS | Vault Access | Nexus Access |
+|--------|-------------|--------|--------------|--------------|
+| Infra | `infra` | `workers` | All paths (god-mode) | Exposes `CreateAccess` |
+| Fabric | `fabric` | `fabric` | `secret/fabric/tls/*` | Exposes `CreateCertifitcate` |
+| Shard (org1) | `fabric-shard-org1` | `fabric-shard-org1` | `secret/fabric/shard/org1/*` | Calls Infra + Fabric |
+| Shard (org2) | `fabric-shard-org2` | `fabric-shard-org2` | `secret/fabric/shard/org2/*` | Calls Infra + Fabric |
 
-**Temporal Namespace Isolation:**
-- Complete workflow history separation per org
-- Org1 worker cannot see Org2's workflow executions
-- Temporal RBAC enforces namespace boundaries
-- Nexus provides controlled cross-namespace RPC
+### Per-Identity Isolation (within shards)
 
-### Per-Identity Isolation
+| Pod | Service Account | Vault Access |
+|-----|-----------------|--------------|
+| peer0 (org1) | `fabric-shard-org1-peer0` | `secret/fabric/shard/org1/msp/peer-peer0/*` |
+| peer1 (org1) | `fabric-shard-org1-peer1` | `secret/fabric/shard/org1/msp/peer-peer1/*` |
+| orderer0 (org1) | `fabric-shard-org1-orderer0` | `secret/fabric/shard/org1/msp/orderer-orderer0/*` |
 
-| Pod | Service Account | Vault Policy | Vault Access |
-|-----|-----------------|--------------|-------------|
-| peer0 (org1) | `fabric-org1-peer0` | `fabric-org1-peer-peer0` | `secret/fabric/org1/msp/peer-peer0/*` + CA certs |
-| peer1 (org1) | `fabric-org1-peer1` | `fabric-org1-peer-peer1` | `secret/fabric/org1/msp/peer-peer1/*` + CA certs |
-| orderer0 (org1) | `fabric-org1-orderer0` | `fabric-org1-orderer-orderer0` | `secret/fabric/org1/msp/orderer-orderer0/*` + CA certs |
+### Compromise Scenarios
 
-**Security Result:**
-- Compromised peer0 pod cannot read peer1's secrets (Vault policy isolation)
-- Compromised org1 worker cannot access org2's K8s namespace (RBAC isolation)
-- Compromised org1 worker cannot read org2's Vault secrets (Vault token scoping)
-- Compromised org1 worker cannot see org2's workflow history (Temporal namespace isolation)
-- Compromised org1 worker cannot create arbitrary Vault policies (Nexus validation at central worker)
-
----
-
-## Implementation Status: Detailed Workflows
+| If compromised... | Cannot access... | Because... |
+|-------------------|------------------|------------|
+| peer0 pod | peer1 secrets | Vault policy isolation |
+| shard-org1 worker | org2 K8s resources | K8s RBAC namespace binding |
+| shard-org1 worker | org2 Vault secrets | Vault token scoped to org1 |
+| shard-org1 worker | org2 workflow history | Temporal namespace isolation |
+| any shard worker | arbitrary Vault policies | Nexus validation at Infra worker |
+| any shard worker | TLS certs for other orgs | Nexus validation at Fabric worker |
 
 ---
 
-## Root Bootstrap Workflow - Infra Worker
+## Implementation Status
+
+---
+
+### Infra Worker Workflows (cell package)
 
 ```
-Workflow: cell.v1.BootstrapInfra ✅ (Runs in infra namespace)
-├─ Activity: temporal.v1.CreateNexusEndpoint ✅ (creates secrets-CreateAccess endpoint)
-└─ Workflow: cell.v1.InitFabric ✅
-```
-
-```
-Workflow: cell.v1.InitFabric ✅ (Runs in infra namespace)
-├─ Workflow: cluster.fabric.v1.CreateNamespace ✅
-├─ Workflow: cluster.fabric.v1.CreateServiceAccount ✅
-├─ Workflow: secrets.v1.CreateAccess ✅
-├─ Activity: temporal.v1.CreateNexusEndpoint ✅ (creates fabric-IssueTlsCertificate endpoint)
-│
-└─ Workflow: fabric.v1.BootstrapTlsCertificateAuthorities ✅
-   ├─ Workflow: fabric.v1.DeployCertificateStore ✅
-   ├─ Workflow: fabric.v1.DeployTlsRootCertificateAuthority ✅
-   └─ Workflow: fabric.v1.DeployTlsIntermediateCertificateAuthority ✅
+cell.v1.BootstrapInfra ✅
+├─ temporal.v1.CreateNexusEndpoint ✅ (secrets-CreateAccess)
+└─ cell.v1.InitFabric 🟡
 ```
 
 ```
-Workflow: cell.v1.InitFabricShard ✅ (Runs in infra namespace)
-├─ Workflow: temporal.v1.CreateNamespace ✅
-├─ Workflow: cluster.fabric.v1.CreateNamespace ✅
-├─ Workflow: cluster.fabric.v1.CreateServiceAccount ✅
-├─ Workflow: secrets.v1.CreateAccess ✅
-├─ Workflow: cluster.fabric.v1.CreateDeployment ✅
-├─ Activity: temporal.v1.CreateNexusEndpoint ✅
-│
-└─ Nexus Call: fabric.v1.BootstrapShard [→ Fabric Worker in fabric-<org> namespace]
-```
-
-
-## Root Bootstrap Workflow - Fabric Worker
-
-```
-Workflow: fabric.v1.BootstrapShard 🟡 (Runs in fabric-<org> namespace)
-│
-├─ Workflow: fabric.v1.BootstrapOrgCertificateAuthorities ✅
-│  ├─ Workflow: fabric.v1.DeployCertificateStore ✅
-│  ├─ Workflow: fabric.v1.DeployOrgRootCertificateAuthority ✅
-│  └─ Workflow: fabric.v1.DeployOrgIntermediateCertificateAuthority ✅
-│
-├─ for each PeerSpec in deployment.peers
-│ ├─ Workflow: fabric.v1.DeployCouchDb ✅
-│ └─ Workflow: fabric.v1.DeployPeer ✅
-│
-├─ for each OrdererSpec in deployment.orderers
-│ └─ Workflow: fabric.v1.DeployOrderer ✅
-│
-└─ TODO: Deploy chaincode, hook into channels (osnadmin channel join)
-```
-
-
-## Fabric Component Deployment Workflows
-
-```
-Workflow: fabric.v1.DeployCouchDb ✅
-├─ Nexus Call: secrets.v1.CreateAccess ✅ [→ Infra Worker in infra namespace]
-├─ Activity: secrets.v1.CreatePassword ✅
-└─ Workflow: cluster.fabric.v1.CreateDeployment ✅
+cell.v1.InitFabric 🟡
+├─ temporal.v1.CreateNamespace ❌ (fabric)
+├─ cluster.fabric.v1.CreateNamespace ✅
+├─ cluster.fabric.v1.CreateServiceAccount ✅
+├─ secrets.v1.CreateAccess ✅
+├─ cluster.fabric.v1.CreateDeployment ❌ (fabric worker)
+├─ temporal.v1.CreateNexusEndpoint ✅ (CreateCertifitcate)
+└─ Nexus → fabric.v1.BootstrapFabric ❌
 ```
 
 ```
-Workflow: fabric.v1.DeployPeer ✅
-├─ Nexus Call: secrets.v1.CreateAccess ✅ [→ Infra Worker in infra namespace]
-├─ Workflow: fabric.v1.CreateIdentity ✅ (creates both org + TLS certs with IdentityType: "peer")
-│
-└─ Workflow: cluster.fabric.v1.CreateDeployment ✅
-```
-
-```
-Workflow: fabric.v1.DeployOrderer ✅
-├─ Nexus Call: secrets.v1.CreateAccess ✅ [→ Infra Worker in infra namespace]
-├─ Workflow: fabric.v1.CreateIdentity ✅ (creates both org + TLS certs with IdentityType: "orderer")
-│
-└─ Workflow: cluster.fabric.v1.CreateDeployment ✅
-```
-
-```
-Workflow: fabric.v1.DeployChainCode 🟡
-├─ Nexus Call: secrets.v1.CreateAccess ✅ [→ Infra Worker in infra namespace]
-├─ for only ("org")
-│ └─ Workflow: fabric.v1.CreateIdentity ✅
-│
-└─ Workflow: cluster.fabric.v1.CreateDeployment ✅
-```
-
-
-## Fabric Certificate Authority Bootstrap Workflows
-
-```
-Workflow: fabric.v1.BootstrapTlsCertificateAuthorities ✅
-├─ Workflow: fabric.v1.DeployCertificateStore ✅
-├─ Workflow: fabric.v1.DeployTlsRootCertificateAuthority ✅
-└─ Workflow: fabric.v1.DeployTlsIntermediateCertificateAuthority ✅
-```
-
-```
-Workflow: fabric.v1.BootstrapOrgCertificateAuthorities ✅
-├─ Workflow: fabric.v1.DeployCertificateStore ✅
-├─ Workflow: fabric.v1.DeployOrgRootCertificateAuthority ✅
-└─ Workflow: fabric.v1.DeployOrgIntermediateCertificateAuthority ✅
-```
-
-
-## Fabric Certificate Authority Setup Workflows
-
-```
-Workflow: fabric.v1.DeployCertificateStore ✅
-├─ Nexus Call: secrets.v1.CreateAccess ✅ [→ Infra Worker in infra namespace]
-├─ Activity: secrets.v1.CreatePassword ✅
-├─ Workflow: cluster.fabric.v1.CreateDeployment ✅
-└─ Activity: kube.v1.GetStatus ✅ (wait for ready)
-```
-
-```
-Workflow: fabric.v1.CreateCertificateDatabase ✅
-├─ Activity: postgres.v1.CreateDatabase ✅
-├─ Activity: secrets.v1.CreatePassword ✅
-├─ Activity: postgres.v1.CreateUser ✅
-└─ Activity: postgres.v1.GrantPrivileges ✅
-```
-
-```
-Workflow: fabric.v1.DeployTlsRootCertificateAuthority ✅
-├─ Nexus Call: secrets.v1.CreateAccess ✅ [→ Infra Worker in infra namespace]
-├─ Workflow: fabric.v1.CreateCertificateDatabase ✅
-├─ Activity: secrets.v1.CreateKeyPair ✅ (signing key)
-├─ Activity: secrets.v1.CreateSelfSignedCertificate ✅ (signing cert)
-├─ Activity: secrets.v1.CreateKeyPair ✅ (TLS key)
-├─ Activity: secrets.v1.CreateSelfSignedCertificate ✅ (TLS cert)
-├─ Activity: secrets.v1.CreatePassword ✅ (bootstrap admin credentials)
-├─ Workflow: cluster.fabric.v1.CreateDeployment ✅
-├─ Workflow: fabric.v1.CreateBootstrapAdmin ✅ (TLS issuer: self)
-└─ Workflow: fabric.v1.CreateAdmin ✅ (TLS issuer: self)
-```
-
-```
-Workflow: fabric.v1.DeployTlsIntermediateCertificateAuthority ✅
-├─ Nexus Call: secrets.v1.CreateAccess ✅ [→ Infra Worker in infra namespace]
-├─ Workflow: fabric.v1.CreateCertificateDatabase ✅
-├─ Workflow: fabric.v1.CreateCertificate ✅ (signing cert from TLS Root via direct call)
-├─ Workflow: fabric.v1.CreateCertificate ✅ (TLS cert from TLS Root via direct call)
-├─ Activity: secrets.v1.CreatePassword ✅ (bootstrap admin credentials)
-├─ Workflow: cluster.fabric.v1.CreateDeployment ✅
-├─ Workflow: fabric.v1.CreateBootstrapAdmin ✅ (TLS issuer: self)
-└─ Workflow: fabric.v1.CreateAdmin ✅ (TLS issuer: self)
-```
-
-```
-Workflow: fabric.v1.DeployOrgRootCertificateAuthority ✅
-├─ Nexus Call: secrets.v1.CreateAccess ✅ [→ Infra Worker in infra namespace]
-├─ Workflow: fabric.v1.CreateCertificateDatabase ✅
-├─ Activity: secrets.v1.CreateKeyPair ✅ (signing key)
-├─ Activity: secrets.v1.CreateSelfSignedCertificate ✅ (signing cert)
-├─ Nexus Call: fabric.v1.IssueTlsCertificate ✅ [→ Operator Worker in fabric-operator namespace]
-├─ Activity: secrets.v1.CreatePassword ✅ (bootstrap admin credentials)
-├─ Workflow: cluster.fabric.v1.CreateDeployment ✅
-├─ Workflow: fabric.v1.CreateBootstrapAdmin ✅ (TLS issuer: TLS Int)
-└─ Workflow: fabric.v1.CreateAdmin ✅ (TLS issuer: TLS Int)
-```
-
-```
-Workflow: fabric.v1.DeployOrgIntermediateCertificateAuthority ✅
-├─ Nexus Call: secrets.v1.CreateAccess ✅ [→ Infra Worker in infra namespace]
-├─ Workflow: fabric.v1.CreateCertificateDatabase ✅
-├─ Workflow: fabric.v1.CreateCertificate ✅ (signing cert from Org Root via direct call)
-├─ Nexus Call: fabric.v1.IssueTlsCertificate ✅ [→ Operator Worker in fabric-operator namespace]
-├─ Activity: secrets.v1.CreatePassword ✅ (bootstrap admin credentials)
-├─ Workflow: cluster.fabric.v1.CreateDeployment ✅
-├─ Workflow: fabric.v1.CreateBootstrapAdmin ✅ (TLS issuer: TLS Int)
-└─ Workflow: fabric.v1.CreateAdmin ✅ (TLS issuer: TLS Int)
-```
-
-
-## Fabric Certificate Authority Admin Bootstrap
-
-```
-Workflow: fabric.v1.BootstrapCertificateAuthorityAdmin ✅
-├─ Activity: secrets.v1.CreateKeyPair ✅
-├─ Activity: fabric.v1.BootstrapEnrollIdentity ✅ (fetches key, enrolls with CA, stores keypair+cert)
-├─ Activity: secrets.v1.StoreIdentityCredentials ✅ (stores keypair+cert together for client auth)
-├─ Workflow: fabric.v1.CreateIdentity ✅ (creates permanent admin)
-└─ Activity: fabric.v1.RevokeIdentity 🟡 (TODO: revoke bootstrap credentials after admin is enrolled)
-```
-
-
-## Fabric Identity Workflows
-
-```
-Workflow: fabric.v1.CreateIdentity ✅
-├─ Activity: secrets.v1.CreateKeyPair ✅
-├─ Activity: fabric.v1.RegisterIdentity ✅ (registers identity with CA, returns enrollment secret)
-└─ Activity: fabric.v1.EnrollIdentity ✅ (enrolls using secret, fetches & stores certificate with keypair)
-```
-
-**Fabric CA Activities:**
-- `fabric.v1.RegisterIdentity` ✅ - Register new identity with CA (admin auth required)
-- `fabric.v1.EnrollIdentity` ✅ - Enroll identity using enrollment secret, store keypair+cert
-- `fabric.v1.BootstrapEnrollIdentity` ✅ - Bootstrap enrollment using username/password
-- `fabric.v1.RevokeIdentity` ✅ - Revoke identity from CA (admin auth required)
-
-
-## Secrets Workflows (Secret Management)
-
-```
-Workflow: secrets.v1.CreateAccess ✅
-├─ Activity: vault.v1.CreatePolicy ✅
-└─ Activity: vault.v1.CreateAuthRole ✅
-```
-
-**Secrets Activities:**
-- `secrets.v1.CreatePassword` ✅ - Generate and store password credentials
-- `secrets.v1.CreateKeyPair` ✅ - Generate and store ECDSA keypair
-- `secrets.v1.CreateSelfSignedCertificate` ✅ - Generate self-signed CA certificate
-- `secrets.v1.StoreCertificate` ✅ - Store certificate data
-- `secrets.v1.StoreIdentityCredentials` ✅ - Store keypair+cert together for client auth
-
-
-## Cluster/Infrastructure Workflows
-
-```
-Workflow: cluster.fabric.v1.CreateNamespace ✅
-├─ Activity: helm.v1.RenderChartWithTemplate ✅
-└─ Activity: kube.v1.Apply ✅
-```
-
-```
-Workflow: cluster.fabric.v1.CreateServiceAccount ✅
-├─ Activity: helm.v1.RenderChartWithTemplate ✅
-└─ Activity: kube.v1.Apply ✅
-```
-
-```
-Workflow: cluster.fabric.v1.CreateDeployment ✅
-├─ Activity: helm.v1.RenderChartWithTemplate ✅
-└─ Activity: kube.v1.Apply ✅
-```
-
-```
-Workflow: cluster.fabric.v1.ScaleDeployment ❌
-└─ Activity: kube.v1.Apply ✅
-```
-
-```
-Workflow: temporal.v1.CreateNamespace ✅
-├─ Activity: temporal.v1.RegisterNamespace ✅
-└─ Activity: temporal.v1.DescribeNamespace ✅
+cell.v1.InitFabricShard ✅
+├─ temporal.v1.CreateNamespace ✅
+├─ cluster.fabric.v1.CreateNamespace ✅
+├─ cluster.fabric.v1.CreateServiceAccount ✅
+├─ secrets.v1.CreateAccess ✅
+├─ cluster.fabric.v1.CreateDeployment ✅
+├─ temporal.v1.CreateNexusEndpoint ✅
+└─ Nexus → fabric.v1.BootstrapShard ✅
 ```
 
 ---
 
-## Error Handling
+### Fabric Worker Workflows (fabric.v1 package)
 
-**Failure Strategy:** Fail immediately on critical sections
-- If any step fails, the workflow stops immediately
-- No rollback or cleanup is performed
-- Partial deployments may exist (e.g., namespace created but peers not)
+```
+fabric.v1.BootstrapFabric ❌
+└─ fabric.v1.BootstrapTlsCertificateAuthorities ✅
+   ├─ fabric.v1.DeployCertificateStore ✅
+   ├─ fabric.v1.DeployTlsRootCertificateAuthority ✅
+   └─ fabric.v1.DeployTlsIntermediateCertificateAuthority ✅
+```
 
-**Retry Policy:** Each activity/workflow has retry logic configured:
-- Initial interval: 1 second
-- Backoff coefficient: 2.0
-- Maximum interval: 30 seconds (activities) / 1 minute (workflows)
-- Maximum attempts: 3
+**TLS CA Deployment Details:**
+
+```
+fabric.v1.DeployTlsRootCertificateAuthority ✅
+├─ Nexus → secrets.v1.CreateAccess ✅
+├─ fabric.v1.CreateCertificateDatabase ✅
+├─ secrets.v1.CreateKeyPair ✅ (signing)
+├─ secrets.v1.CreateSelfSignedCertificate ✅ (signing)
+├─ secrets.v1.CreateKeyPair ✅ (TLS)
+├─ secrets.v1.CreateSelfSignedCertificate ✅ (TLS)
+├─ secrets.v1.CreatePassword ✅ (bootstrap)
+├─ cluster.fabric.v1.CreateDeployment ✅
+├─ fabric.certauth.v1.CreateBootstrapAdmin ✅
+└─ fabric.certauth.v1.CreateAdmin ✅
+```
+
+```
+fabric.v1.DeployTlsIntermediateCertificateAuthority ✅
+├─ Nexus → secrets.v1.CreateAccess ✅
+├─ fabric.v1.CreateCertificateDatabase ✅
+├─ fabric.certauth.v1.CreateCertificate ✅ (signing from TLS Root)
+├─ fabric.certauth.v1.CreateCertificate ✅ (TLS from TLS Root)
+├─ secrets.v1.CreatePassword ✅ (bootstrap)
+├─ cluster.fabric.v1.CreateDeployment ✅
+├─ fabric.certauth.v1.CreateBootstrapAdmin ✅
+└─ fabric.certauth.v1.CreateAdmin ✅
+```
 
 ---
 
-## See Also
+### Shard Worker Workflows (fabric.v1 package)
 
-- [`Fabric Shard Bootstrap Workflows.txt`](Fabric%20Shard%20Bootstrap%20Workflows.txt) - Complete workflow tree visualization
-- [`FABRIC_CERTIFICATE_ARCHITECTURE.md`](FABRIC_CERTIFICATE_ARCHITECTURE.md) - Architecture and design decisions
-- [`DEPLOYMENT_WORKFLOW_EXECUTION_TREE.md`](DEPLOYMENT_WORKFLOW_EXECUTION_TREE.md) - Detailed execution tree (now merged into this document)
-- [`Fabric Certs.csv`](Fabric%20Certs.csv) - Certificate matrix
+```
+fabric.v1.BootstrapShard 🟡
+├─ fabric.v1.BootstrapOrgCertificateAuthorities ✅
+│  ├─ fabric.v1.DeployCertificateStore ✅
+│  ├─ fabric.v1.DeployOrgRootCertificateAuthority ✅
+│  └─ fabric.v1.DeployOrgIntermediateCertificateAuthority ✅
+├─ for each peer:
+│  ├─ fabric.v1.DeployCouchDb ✅
+│  └─ fabric.v1.DeployPeer ✅
+├─ for each orderer:
+│  └─ fabric.v1.DeployOrderer ✅
+└─ TODO: chaincode, channel join
+```
+
+**Org CA Deployment Details:**
+
+```
+fabric.v1.DeployOrgRootCertificateAuthority ✅
+├─ Nexus → secrets.v1.CreateAccess ✅
+├─ fabric.v1.CreateCertificateDatabase ✅
+├─ secrets.v1.CreateKeyPair ✅ (signing)
+├─ secrets.v1.CreateSelfSignedCertificate ✅ (signing)
+├─ Nexus → fabric.certauth.v1.CreateCertifitcate ✅
+├─ secrets.v1.CreatePassword ✅ (bootstrap)
+├─ cluster.fabric.v1.CreateDeployment ✅
+├─ fabric.certauth.v1.CreateBootstrapAdmin ✅
+└─ fabric.certauth.v1.CreateAdmin ✅
+```
+
+**Component Deployment:**
+
+```
+fabric.v1.DeployPeer ✅
+├─ Nexus → secrets.v1.CreateAccess ✅
+├─ fabric.certauth.v1.CreateIdentity ✅ (org + TLS certs)
+└─ cluster.fabric.v1.CreateDeployment ✅
+```
+
+```
+fabric.v1.DeployOrderer ✅
+├─ Nexus → secrets.v1.CreateAccess ✅
+├─ fabric.certauth.v1.CreateIdentity ✅ (org + TLS certs)
+└─ cluster.fabric.v1.CreateDeployment ✅
+```
 
 ---
 
-**Last Updated:** 2026-01-05
+### Certificate Authority Workflows (fabric.certauth.v1 package)
+
+Identity and certificate management workflows used by both Fabric and Shard workers.
+
+```
+fabric.certauth.v1.CreateCertificate ✅
+├─ secrets.v1.CreateKeyPair ✅
+├─ fabric.certauth.v1.RegisterIdentity ✅
+└─ fabric.certauth.v1.EnrollIdentity ✅
+```
+
+```
+fabric.certauth.v1.CreateIdentity ✅
+├─ secrets.v1.CreateKeyPair ✅
+├─ fabric.certauth.v1.RegisterIdentity ✅ (org cert)
+├─ fabric.certauth.v1.EnrollIdentity ✅ (org cert)
+├─ fabric.certauth.v1.RegisterIdentity ✅ (TLS cert)
+└─ fabric.certauth.v1.EnrollIdentity ✅ (TLS cert)
+```
+
+```
+fabric.certauth.v1.CreateBootstrapAdmin ✅
+├─ secrets.v1.CreateKeyPair ✅
+├─ fabric.certauth.v1.BootstrapEnrollIdentity ✅
+└─ secrets.v1.StoreIdentityCredentials ✅
+```
+
+```
+fabric.certauth.v1.CreateAdmin ✅
+├─ fabric.certauth.v1.CreateCertificate ✅ (signing)
+└─ fabric.certauth.v1.CreateCertificate ✅ (TLS)
+```
+
+**Activities (fabric.certauth.v1):**
+- `RegisterIdentity` ✅ - Register identity with CA
+- `EnrollIdentity` ✅ - Enroll and store certificate
+- `BootstrapEnrollIdentity` ✅ - Bootstrap enrollment with username/password
+- `RevokeIdentity` ✅ - Revoke identity from CA
+
+
+---
+
+### Shared Infrastructure Workflows
+
+**secrets.v1 (Infra Worker only):**
+
+```
+secrets.v1.CreateAccess ✅
+├─ vault.v1.CreatePolicy ✅
+└─ vault.v1.CreateAuthRole ✅
+```
+
+Activities: `CreatePassword` ✅, `CreateKeyPair` ✅, `CreateSelfSignedCertificate` ✅, `StoreCertificate` ✅
+
+**cluster.fabric.v1 (All Workers):**
+
+```
+cluster.fabric.v1.CreateNamespace ✅
+├─ helm.v1.RenderChartWithTemplate ✅
+└─ kube.v1.Apply ✅
+```
+
+```
+cluster.fabric.v1.CreateDeployment ✅
+├─ helm.v1.RenderChartWithTemplate ✅
+└─ kube.v1.Apply ✅
+```
+
+**temporal.v1 (Infra Worker only):**
+
+```
+temporal.v1.CreateNamespace ✅
+├─ temporal.v1.RegisterNamespace ✅
+└─ temporal.v1.DescribeNamespace ✅
+```
