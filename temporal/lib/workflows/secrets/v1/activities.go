@@ -85,7 +85,7 @@ func (a *Activities) CreateSelfSignedCertificate(ctx context.Context, req *pb.Cr
 	if err != nil {
 		return nil, fmt.Errorf("%w: fetch secret: %w", ErrCreateSelfSignedCertificate, err)
 	}
-	
+
 	kp, err := secret.KeyPair()
 	if err != nil {
 		return nil, fmt.Errorf("%w: parse key pair: %w", ErrCreateSelfSignedCertificate, err)
