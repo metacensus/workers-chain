@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -732,7 +732,7 @@ func TestDeleteResource(t *testing.T) {
 				m.On("Delete", mock.Anything, "test-service", mock.Anything, mock.Anything).
 					Return(k8serrors.NewNotFound(schema.GroupResource{Resource: "services"}, "test-service"))
 			},
-			expectErr: true, // Currently DeleteResource wraps all errors, including NotFound
+			expectErr:   true, // Currently DeleteResource wraps all errors, including NotFound
 			errContains: "failed to delete resource",
 		},
 		{
@@ -805,9 +805,9 @@ func TestGetResourceStatus(t *testing.T) {
 						Replicas: int32Ptr(3),
 					},
 					Status: appsv1.DeploymentStatus{
-						ReadyReplicas:    3,
-						UpdatedReplicas:  3,
-						Replicas:         3,
+						ReadyReplicas:     3,
+						UpdatedReplicas:   3,
+						Replicas:          3,
 						AvailableReplicas: 3,
 					},
 				})
@@ -829,9 +829,9 @@ func TestGetResourceStatus(t *testing.T) {
 						Replicas: int32Ptr(3),
 					},
 					Status: appsv1.DeploymentStatus{
-						ReadyReplicas:    1,
-						UpdatedReplicas:  1,
-						Replicas:         1,
+						ReadyReplicas:     1,
+						UpdatedReplicas:   1,
+						Replicas:          1,
 						AvailableReplicas: 1,
 					},
 				})

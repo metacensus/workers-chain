@@ -394,6 +394,10 @@ func (kc *kubeClient) ExecPod(ctx context.Context, namespace, podName, container
 		return nil, nil, 0, fmt.Errorf("container %s not found in pod %s/%s", container, namespace, podName)
 	}
 
+	if kc.restConfig == nil {
+		return nil, nil, 0, fmt.Errorf("failed to create executor: rest config is required")
+	}
+
 	// Get REST client from typed client (reuses existing connection)
 	restClient := kc.typedClient.CoreV1().RESTClient()
 

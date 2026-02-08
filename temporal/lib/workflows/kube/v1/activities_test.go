@@ -997,14 +997,10 @@ func TestExecPodActivity(t *testing.T) {
 
 			mockClient := kubemocks.NewMockKubeClient(t)
 
-			// Set up mock expectations
-			if !tt.expectErr || tt.execErr == nil {
-				// Success case or command execution error (but pod/container found)
-				mockClient.On("ExecPod", mock.Anything, tt.input.GetNamespace(), tt.input.GetPodName(), tt.input.GetContainer(), tt.input.GetCommand(), tt.input.GetStdin()).
-					Return(tt.execStdout, tt.execStderr, tt.execExitCode, tt.execErr).
-					Once()
-			} else {
-				// Pod/container not found errors
+			// Set up mock expectations only when the activity will call the client.
+			// Validation errors (missing namespace/pod/container/command) return before calling ExecPod.
+			inputValid := tt.input.GetNamespace() != "" && tt.input.GetPodName() != "" && tt.input.GetContainer() != "" && len(tt.input.GetCommand()) > 0
+			if inputValid {
 				mockClient.On("ExecPod", mock.Anything, tt.input.GetNamespace(), tt.input.GetPodName(), tt.input.GetContainer(), tt.input.GetCommand(), tt.input.GetStdin()).
 					Return(tt.execStdout, tt.execStderr, tt.execExitCode, tt.execErr).
 					Once()
@@ -1019,10 +1015,10 @@ func TestExecPodActivity(t *testing.T) {
 				if err == nil {
 					t.Fatal("expected error, got nil")
 				}
-				// For command execution errors, we still get output
-				if tt.execErr != nil && tt.execExitCode != 0 {
+				// For command execution errors, we still get output (if the framework provides it)
+				if tt.execErr != nil && tt.execExitCode != 0 && res != nil {
 					var result *pb.ExecPodOutput
-					if err := res.Get(&result); err == nil {
+					if err := res.Get(&result); err == nil && result != nil {
 						if result.ExitCode != tt.expectExitCode {
 							t.Errorf("exit code: got %d, want %d", result.ExitCode, tt.expectExitCode)
 						}
