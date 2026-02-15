@@ -51,7 +51,7 @@ type KubeClient interface {
 	GetResourceStatus(ctx context.Context, id *pb.ResourceIdentifier) (*ResourceStatus, error)
 
 	// ExecPod executes a command in a pod container
-	ExecPod(ctx context.Context, namespace, podName, container string, command []string, stdin []byte) (stdout, stderr []byte, exitCode int32, err error)
+	ExecPod(ctx context.Context, id *pb.ContainerIdentifier, container string, command []string, stdin []byte) (stdout, stderr []byte, exitCode int32, err error)
 }
 
 // kubeClient implements KubeClient using client-go
@@ -370,7 +370,15 @@ func kindToResource(kind string) string {
 }
 
 // ExecPod executes a command in a pod container
-func (kc *kubeClient) ExecPod(ctx context.Context, namespace, podName, container string, command []string, stdin []byte) (stdout, stderr []byte, exitCode int32, err error) {
+func (kc *kubeClient) ExecPod(ctx context.Context, id *pb.ContainerIdentifier, container string, command []string, stdin []byte) (stdout, stderr []byte, exitCode int32, err error) {
+	if id == nil {
+		return nil, nil, 0, fmt.Errorf("container identifier is required")
+	}
+	namespace := id.GetNamespace()
+	podName := id.GetName()
+	if namespace == "" || podName == "" {
+		return nil, nil, 0, fmt.Errorf("namespace and name are required in container identifier")
+	}
 	// Get the pod to validate it exists and check its state
 	pod, err := kc.typedClient.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {

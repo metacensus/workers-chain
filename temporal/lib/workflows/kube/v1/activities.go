@@ -6,7 +6,6 @@ import (
 	"time"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
-	"go.temporal.io/sdk/activity"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
@@ -66,7 +65,6 @@ func (a *Activities) Create(ctx context.Context, req *pb.CreateInput) (*pb.Creat
 
 // createSingleResource creates a single resource in the cluster
 func (a *Activities) createSingleResource(ctx context.Context, resourceID string, resource *pb.Resource) (*pb.CreateResult, error) {
-	logger := activity.GetLogger(ctx)
 
 	// Parse resource to extract resource identifier and object
 	id, obj, err := a.parseResource(resourceID, resource)
@@ -84,7 +82,7 @@ func (a *Activities) createSingleResource(ctx context.Context, resourceID string
 	status, err := a.getResourceStatus(ctx, id)
 	if err != nil {
 		// Don't fail if status check fails - resource was created
-		logger.Warn("Failed to get resource status after create", "resource_id", resourceID, "error", err)
+
 		status = &pb.ResourceStatus{
 			Kind:      id.Kind,
 			Name:      id.Name,
@@ -131,7 +129,6 @@ func (a *Activities) Update(ctx context.Context, req *pb.UpdateInput) (*pb.Updat
 
 // updateSingleResource updates a single resource in the cluster
 func (a *Activities) updateSingleResource(ctx context.Context, resourceID string, resource *pb.Resource) (*pb.UpdateResult, error) {
-	logger := activity.GetLogger(ctx)
 
 	// Parse resource to extract resource identifier and object
 	id, obj, err := a.parseResource(resourceID, resource)
@@ -149,7 +146,6 @@ func (a *Activities) updateSingleResource(ctx context.Context, resourceID string
 	status, err := a.getResourceStatus(ctx, id)
 	if err != nil {
 		// Don't fail if status check fails - resource was updated
-		logger.Warn("Failed to get resource status after update", "resource_id", resourceID, "error", err)
 		status = &pb.ResourceStatus{
 			Kind:      id.Kind,
 			Name:      id.Name,
@@ -196,7 +192,6 @@ func (a *Activities) Apply(ctx context.Context, req *pb.ApplyInput) (*pb.ApplyOu
 
 // applySingleResource applies a single resource to the cluster
 func (a *Activities) applySingleResource(ctx context.Context, resourceID string, resource *pb.Resource) (*pb.ApplyResult, error) {
-	logger := activity.GetLogger(ctx)
 
 	// Parse resource to extract resource identifier and object
 	id, obj, err := a.parseResource(resourceID, resource)
@@ -214,7 +209,7 @@ func (a *Activities) applySingleResource(ctx context.Context, resourceID string,
 	status, err := a.getResourceStatus(ctx, id)
 	if err != nil {
 		// Don't fail if status check fails - resource was applied
-		logger.Warn("Failed to get resource status after apply", "resource_id", resourceID, "error", err)
+
 		status = &pb.ResourceStatus{
 			Kind:      id.Kind,
 			Name:      id.Name,
@@ -282,14 +277,13 @@ func (a *Activities) deleteSingleResource(ctx context.Context, resourceID string
 // GetStatus retrieves the current status of deployed resources
 // Returns error if any resources are not ready (for use with activity retry policies)
 func (a *Activities) GetStatus(ctx context.Context, req *pb.GetStatusInput) (*pb.GetStatusOutput, error) {
-	logger := activity.GetLogger(ctx)
 
 	response := &pb.GetStatusOutput{
 		ResourcesReady: []string{},
 	}
 
 	if len(req.GetResources()) == 0 {
-		logger.Warn("No resources provided for status check")
+
 		return response, nil
 	}
 
@@ -298,11 +292,7 @@ func (a *Activities) GetStatus(ctx context.Context, req *pb.GetStatusInput) (*pb
 	for resourceID, resourceIdentifier := range req.GetResources() {
 		status, err := a.getResourceStatus(ctx, resourceIdentifier)
 		if err != nil {
-			logger.Warn("Failed to get resource status",
-				"resource_id", resourceID,
-				"kind", resourceIdentifier.Kind,
-				"name", resourceIdentifier.Name,
-				"error", err)
+
 			notReadyResources = append(notReadyResources,
 				fmt.Sprintf("%s/%s (error: %v)", resourceIdentifier.Kind, resourceIdentifier.Name, err))
 			continue
@@ -318,14 +308,10 @@ func (a *Activities) GetStatus(ctx context.Context, req *pb.GetStatusInput) (*pb
 
 	// Return error if not all resources are ready (triggers activity retry)
 	if len(notReadyResources) > 0 {
-		logger.Info("Resources not ready, will retry",
-			"not_ready", notReadyResources,
-			"ready_count", len(response.ResourcesReady),
-			"total_count", len(req.GetResources()))
+
 		return response, fmt.Errorf("resources not ready: %v", notReadyResources)
 	}
 
-	logger.Info("All resources ready", "resource_count", len(response.ResourcesReady))
 	return response, nil
 }
 
@@ -379,7 +365,7 @@ func (a *Activities) getResourceStatus(ctx context.Context, id *pb.ResourceIdent
 // pollResourcesReady waits for resources to reach ready state
 // Polls status up to timeout duration
 func (a *Activities) pollResourcesReady(ctx context.Context, resources []*pb.ResourceIdentifier, timeout time.Duration) error {
-	logger := activity.GetLogger(ctx)
+
 	pollingInterval := 1 * time.Second
 	deadline := time.Now().Add(timeout)
 
@@ -389,7 +375,7 @@ func (a *Activities) pollResourcesReady(ctx context.Context, resources []*pb.Res
 		for _, id := range resources {
 			status, err := a.client.GetResourceStatus(ctx, id)
 			if err != nil {
-				logger.Warn("Failed to get resource status during polling", "resource", id.Name, "error", err)
+
 				allReady = false
 				break
 			}
@@ -400,7 +386,7 @@ func (a *Activities) pollResourcesReady(ctx context.Context, resources []*pb.Res
 		}
 
 		if allReady {
-			logger.Info("All resources are ready")
+
 			return nil
 		}
 
@@ -422,7 +408,6 @@ func (a *Activities) pollResourcesReady(ctx context.Context, resources []*pb.Res
 // pollResourcesDeleted waits for resources to be deleted
 // Polls until resources no longer exist or timeout
 func (a *Activities) pollResourcesDeleted(ctx context.Context, resources []*pb.ResourceIdentifier, timeout time.Duration) error {
-	logger := activity.GetLogger(ctx)
 	pollingInterval := 1 * time.Second
 	deadline := time.Now().Add(timeout)
 
@@ -433,7 +418,6 @@ func (a *Activities) pollResourcesDeleted(ctx context.Context, resources []*pb.R
 			status, err := a.client.GetResourceStatus(ctx, id)
 			if err != nil {
 				// Resource not found or can't be accessed - consider it deleted
-				logger.Debug("Resource not found during deletion poll", "resource", id.Name)
 				continue
 			}
 			if status != nil {
@@ -444,7 +428,7 @@ func (a *Activities) pollResourcesDeleted(ctx context.Context, resources []*pb.R
 		}
 
 		if allDeleted {
-			logger.Info("All resources are deleted")
+
 			return nil
 		}
 
@@ -477,14 +461,10 @@ func (a *Activities) pollResourceDeleted(ctx context.Context, resourceID *pb.Res
 
 // ExecPod executes a command in a pod container
 func (a *Activities) ExecPod(ctx context.Context, req *pb.ExecPodInput) (*pb.ExecPodOutput, error) {
-	logger := activity.GetLogger(ctx)
-
 	// Validate input
-	if req.GetNamespace() == "" {
-		return nil, fmt.Errorf("namespace is required")
-	}
-	if req.GetPodName() == "" {
-		return nil, fmt.Errorf("pod_name is required")
+	id := req.GetContainerId()
+	if id == nil || id.GetNamespace() == "" || id.GetName() == "" {
+		return nil, fmt.Errorf("container_id with namespace and name is required")
 	}
 	if req.GetContainer() == "" {
 		return nil, fmt.Errorf("container is required")
@@ -493,17 +473,10 @@ func (a *Activities) ExecPod(ctx context.Context, req *pb.ExecPodInput) (*pb.Exe
 		return nil, fmt.Errorf("command is required")
 	}
 
-	logger.Info("Executing command in pod",
-		"namespace", req.GetNamespace(),
-		"pod", req.GetPodName(),
-		"container", req.GetContainer(),
-		"command", req.GetCommand())
-
 	// Execute command
 	stdout, stderr, exitCode, err := a.client.ExecPod(
 		ctx,
-		req.GetNamespace(),
-		req.GetPodName(),
+		id,
 		req.GetContainer(),
 		req.GetCommand(),
 		req.GetStdin(),
@@ -517,21 +490,10 @@ func (a *Activities) ExecPod(ctx context.Context, req *pb.ExecPodInput) (*pb.Exe
 
 	if err != nil {
 		output.ErrorMessage = err.Error()
-		logger.Warn("Command execution failed",
-			"namespace", req.GetNamespace(),
-			"pod", req.GetPodName(),
-			"container", req.GetContainer(),
-			"exit_code", exitCode,
-			"error", err)
+
 		// Return the output even on error so caller can see stdout/stderr
 		return output, err
 	}
-
-	logger.Info("Command executed successfully",
-		"namespace", req.GetNamespace(),
-		"pod", req.GetPodName(),
-		"container", req.GetContainer(),
-		"exit_code", exitCode)
 
 	return output, nil
 }

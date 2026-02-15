@@ -129,6 +129,7 @@
     - [kube.v1.ApplyOutput.ResultsEntry](#kube-v1-applyoutput-resultsentry)
     - [kube.v1.ApplyResult](#kube-v1-applyresult)
     - [kube.v1.ApplySummary](#kube-v1-applysummary)
+    - [kube.v1.ContainerIdentifier](#kube-v1-containeridentifier)
     - [kube.v1.CreateInput](#kube-v1-createinput)
     - [kube.v1.CreateInput.ResourcesEntry](#kube-v1-createinput-resourcesentry)
     - [kube.v1.CreateOutput](#kube-v1-createoutput)
@@ -4405,23 +4406,14 @@ json_name: Container
 go_name: Container
 go_tags: json:"Container" validate:"required"</pre></td>
 </tr><tr>
-<td>namespace</td>
-<td>string</td>
+<td>container_id</td>
+<td><a href="#kube-v1-containeridentifier">kube.v1.ContainerIdentifier</a></td>
 <td><pre>
-namespace is the namespace containing the pod<br>
+container_id identifies the pod to execute the command in<br>
 
-json_name: Namespace
-go_name: Namespace
-go_tags: json:"Namespace" validate:"required"</pre></td>
-</tr><tr>
-<td>pod_name</td>
-<td>string</td>
-<td><pre>
-pod_name is the name of the pod to execute the command in<br>
-
-json_name: PodName
-go_name: PodName
-go_tags: json:"PodName" validate:"required"</pre></td>
+json_name: ContainerId
+go_name: ContainerId
+go_tags: json:"ContainerId" validate:"required"</pre></td>
 </tr><tr>
 <td>stdin</td>
 <td>bytes</td>
@@ -4682,6 +4674,43 @@ go_tags: json:"Failed" validate:"required"</pre></td>
 json_name: Total
 go_name: Total
 go_tags: json:"Total" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="kube-v1-containeridentifier"></a>
+### kube.v1.ContainerIdentifier
+
+<pre>
+ContainerIdentifier uniquely identifies a pod (namespace + pod name)
+Used by ExecPod and future pod-specific operations (e.g. logs, copy)
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the pod name<br>
+
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+namespace is the namespace containing the pod<br>
+
+json_name: Namespace
+go_name: Namespace
+go_tags: json:"Namespace" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -5115,23 +5144,14 @@ json_name: Container
 go_name: Container
 go_tags: json:"Container" validate:"required"</pre></td>
 </tr><tr>
-<td>namespace</td>
-<td>string</td>
+<td>container_id</td>
+<td><a href="#kube-v1-containeridentifier">kube.v1.ContainerIdentifier</a></td>
 <td><pre>
-namespace is the namespace containing the pod<br>
+container_id identifies the pod to execute the command in<br>
 
-json_name: Namespace
-go_name: Namespace
-go_tags: json:"Namespace" validate:"required"</pre></td>
-</tr><tr>
-<td>pod_name</td>
-<td>string</td>
-<td><pre>
-pod_name is the name of the pod to execute the command in<br>
-
-json_name: PodName
-go_name: PodName
-go_tags: json:"PodName" validate:"required"</pre></td>
+json_name: ContainerId
+go_name: ContainerId
+go_tags: json:"ContainerId" validate:"required"</pre></td>
 </tr><tr>
 <td>stdin</td>
 <td>bytes</td>

@@ -424,36 +424,46 @@ message ResourceStatus {
   ];
 }
 
-// ExecPodInput defines inputs for executing a command in a pod
-message ExecPodInput {
+// ContainerIdentifier uniquely identifies a pod (namespace + pod name)
+// Used by ExecPod and future pod-specific operations (e.g. logs, copy)
+message ContainerIdentifier {
   // namespace is the namespace containing the pod
   string namespace = 1 [
     json_name = "Namespace",
     (go.field).tags = 'json:"Namespace" validate:"required"'
   ];
 
-  // pod_name is the name of the pod to execute the command in
-  string pod_name = 2 [
-    json_name = "PodName",
-    (go.field).tags = 'json:"PodName" validate:"required"'
+  // name is the pod name
+  string name = 2 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
+}
+
+// ExecPodInput defines inputs for executing a command in a pod
+message ExecPodInput {
+  // container_id identifies the pod to execute the command in
+  ContainerIdentifier container_id = 1 [
+    json_name = "ContainerId",
+    (go.field).tags = 'json:"ContainerId" validate:"required"'
   ];
 
   // container is the name of the container in the pod
   // Must be explicitly specified
-  string container = 3 [
+  string container = 2 [
     json_name = "Container",
     (go.field).tags = 'json:"Container" validate:"required"'
   ];
 
   // command is the command and arguments to execute
   // Example: ["sh", "-c", "echo hello"]
-  repeated string command = 4 [
+  repeated string command = 3 [
     json_name = "Command",
     (go.field).tags = 'json:"Command" validate:"required"'
   ];
 
   // stdin is optional input to send to the command
-  bytes stdin = 5 [
+  bytes stdin = 4 [
     json_name = "Stdin",
     (go.field).tags = 'json:"Stdin,omitempty" validate:"omitempty"'
   ];

@@ -199,6 +199,65 @@ func (_c *MockKubernetesActivities_Delete_Call) RunAndReturn(run func(context.Co
 	return _c
 }
 
+// ExecPod provides a mock function with given fields: ctx, req
+func (_m *MockKubernetesActivities) ExecPod(ctx context.Context, req *kubev1.ExecPodInput) (*kubev1.ExecPodOutput, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExecPod")
+	}
+
+	var r0 *kubev1.ExecPodOutput
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.ExecPodInput) (*kubev1.ExecPodOutput, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.ExecPodInput) *kubev1.ExecPodOutput); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*kubev1.ExecPodOutput)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *kubev1.ExecPodInput) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockKubernetesActivities_ExecPod_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExecPod'
+type MockKubernetesActivities_ExecPod_Call struct {
+	*mock.Call
+}
+
+// ExecPod is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *kubev1.ExecPodInput
+func (_e *MockKubernetesActivities_Expecter) ExecPod(ctx interface{}, req interface{}) *MockKubernetesActivities_ExecPod_Call {
+	return &MockKubernetesActivities_ExecPod_Call{Call: _e.mock.On("ExecPod", ctx, req)}
+}
+
+func (_c *MockKubernetesActivities_ExecPod_Call) Run(run func(ctx context.Context, req *kubev1.ExecPodInput)) *MockKubernetesActivities_ExecPod_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*kubev1.ExecPodInput))
+	})
+	return _c
+}
+
+func (_c *MockKubernetesActivities_ExecPod_Call) Return(_a0 *kubev1.ExecPodOutput, _a1 error) *MockKubernetesActivities_ExecPod_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockKubernetesActivities_ExecPod_Call) RunAndReturn(run func(context.Context, *kubev1.ExecPodInput) (*kubev1.ExecPodOutput, error)) *MockKubernetesActivities_ExecPod_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetStatus provides a mock function with given fields: ctx, req
 func (_m *MockKubernetesActivities) GetStatus(ctx context.Context, req *kubev1.GetStatusInput) (*kubev1.GetStatusOutput, error) {
 	ret := _m.Called(ctx, req)

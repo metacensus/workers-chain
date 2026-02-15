@@ -1246,28 +1246,82 @@ func (x *ResourceStatus) GetMessage() string {
 	return ""
 }
 
-// ExecPodInput defines inputs for executing a command in a pod
-type ExecPodInput struct {
+// ContainerIdentifier uniquely identifies a pod (namespace + pod name)
+// Used by ExecPod and future pod-specific operations (e.g. logs, copy)
+type ContainerIdentifier struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// namespace is the namespace containing the pod
 	Namespace string `protobuf:"bytes,1,opt,name=namespace,json=Namespace,proto3" json:"Namespace" validate:"required"`
-	// pod_name is the name of the pod to execute the command in
-	PodName string `protobuf:"bytes,2,opt,name=pod_name,json=PodName,proto3" json:"PodName" validate:"required"`
+	// name is the pod name
+	Name          string `protobuf:"bytes,2,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ContainerIdentifier) Reset() {
+	*x = ContainerIdentifier{}
+	mi := &file_kube_v1_kube_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ContainerIdentifier) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ContainerIdentifier) ProtoMessage() {}
+
+func (x *ContainerIdentifier) ProtoReflect() protoreflect.Message {
+	mi := &file_kube_v1_kube_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ContainerIdentifier.ProtoReflect.Descriptor instead.
+func (*ContainerIdentifier) Descriptor() ([]byte, []int) {
+	return file_kube_v1_kube_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *ContainerIdentifier) GetNamespace() string {
+	if x != nil {
+		return x.Namespace
+	}
+	return ""
+}
+
+func (x *ContainerIdentifier) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// ExecPodInput defines inputs for executing a command in a pod
+type ExecPodInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// container_id identifies the pod to execute the command in
+	ContainerId *ContainerIdentifier `protobuf:"bytes,1,opt,name=container_id,json=ContainerId,proto3" json:"ContainerId" validate:"required"`
 	// container is the name of the container in the pod
 	// Must be explicitly specified
-	Container string `protobuf:"bytes,3,opt,name=container,json=Container,proto3" json:"Container" validate:"required"`
+	Container string `protobuf:"bytes,2,opt,name=container,json=Container,proto3" json:"Container" validate:"required"`
 	// command is the command and arguments to execute
 	// Example: ["sh", "-c", "echo hello"]
-	Command []string `protobuf:"bytes,4,rep,name=command,json=Command,proto3" json:"Command" validate:"required"`
+	Command []string `protobuf:"bytes,3,rep,name=command,json=Command,proto3" json:"Command" validate:"required"`
 	// stdin is optional input to send to the command
-	Stdin         []byte `protobuf:"bytes,5,opt,name=stdin,json=Stdin,proto3" json:"Stdin,omitempty" validate:"omitempty"`
+	Stdin         []byte `protobuf:"bytes,4,opt,name=stdin,json=Stdin,proto3" json:"Stdin,omitempty" validate:"omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ExecPodInput) Reset() {
 	*x = ExecPodInput{}
-	mi := &file_kube_v1_kube_proto_msgTypes[21]
+	mi := &file_kube_v1_kube_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1279,7 +1333,7 @@ func (x *ExecPodInput) String() string {
 func (*ExecPodInput) ProtoMessage() {}
 
 func (x *ExecPodInput) ProtoReflect() protoreflect.Message {
-	mi := &file_kube_v1_kube_proto_msgTypes[21]
+	mi := &file_kube_v1_kube_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1292,21 +1346,14 @@ func (x *ExecPodInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecPodInput.ProtoReflect.Descriptor instead.
 func (*ExecPodInput) Descriptor() ([]byte, []int) {
-	return file_kube_v1_kube_proto_rawDescGZIP(), []int{21}
+	return file_kube_v1_kube_proto_rawDescGZIP(), []int{22}
 }
 
-func (x *ExecPodInput) GetNamespace() string {
+func (x *ExecPodInput) GetContainerId() *ContainerIdentifier {
 	if x != nil {
-		return x.Namespace
+		return x.ContainerId
 	}
-	return ""
-}
-
-func (x *ExecPodInput) GetPodName() string {
-	if x != nil {
-		return x.PodName
-	}
-	return ""
+	return nil
 }
 
 func (x *ExecPodInput) GetContainer() string {
@@ -1348,7 +1395,7 @@ type ExecPodOutput struct {
 
 func (x *ExecPodOutput) Reset() {
 	*x = ExecPodOutput{}
-	mi := &file_kube_v1_kube_proto_msgTypes[22]
+	mi := &file_kube_v1_kube_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1360,7 +1407,7 @@ func (x *ExecPodOutput) String() string {
 func (*ExecPodOutput) ProtoMessage() {}
 
 func (x *ExecPodOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_kube_v1_kube_proto_msgTypes[22]
+	mi := &file_kube_v1_kube_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1373,7 +1420,7 @@ func (x *ExecPodOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecPodOutput.ProtoReflect.Descriptor instead.
 func (*ExecPodOutput) Descriptor() ([]byte, []int) {
-	return file_kube_v1_kube_proto_rawDescGZIP(), []int{22}
+	return file_kube_v1_kube_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ExecPodOutput) GetStdout() []byte {
@@ -1511,13 +1558,15 @@ const file_kube_v1_kube_proto_rawDesc = "" +
 	"\x06status\x18\x04 \x01(\tB(ʵ\x03$\xa2\x01!json:\"Status\" validate:\"required\"R\x06Status\x12a\n" +
 	"\x0eready_replicas\x18\x05 \x01(\x05B:ʵ\x036\xa2\x013json:\"ReadyReplicas,omitempty\" validate:\"omitempty\"R\rReadyReplicas\x12g\n" +
 	"\x10desired_replicas\x18\x06 \x01(\x05B<ʵ\x038\xa2\x015json:\"DesiredReplicas,omitempty\" validate:\"omitempty\"R\x0fDesiredReplicas\x12N\n" +
-	"\amessage\x18\a \x01(\tB4ʵ\x030\xa2\x01-json:\"Message,omitempty\" validate:\"omitempty\"R\aMessage\"\xf9\x02\n" +
-	"\fExecPodInput\x12I\n" +
-	"\tnamespace\x18\x01 \x01(\tB+ʵ\x03'\xa2\x01$json:\"Namespace\" validate:\"required\"R\tNamespace\x12D\n" +
-	"\bpod_name\x18\x02 \x01(\tB)ʵ\x03%\xa2\x01\"json:\"PodName\" validate:\"required\"R\aPodName\x12I\n" +
-	"\tcontainer\x18\x03 \x01(\tB+ʵ\x03'\xa2\x01$json:\"Container\" validate:\"required\"R\tContainer\x12C\n" +
-	"\acommand\x18\x04 \x03(\tB)ʵ\x03%\xa2\x01\"json:\"Command\" validate:\"required\"R\aCommand\x12H\n" +
-	"\x05stdin\x18\x05 \x01(\fB2ʵ\x03.\xa2\x01+json:\"Stdin,omitempty\" validate:\"omitempty\"R\x05Stdin\"\xd2\x02\n" +
+	"\amessage\x18\a \x01(\tB4ʵ\x030\xa2\x01-json:\"Message,omitempty\" validate:\"omitempty\"R\aMessage\"\x9c\x01\n" +
+	"\x13ContainerIdentifier\x12I\n" +
+	"\tnamespace\x18\x01 \x01(\tB+ʵ\x03'\xa2\x01$json:\"Namespace\" validate:\"required\"R\tNamespace\x12:\n" +
+	"\x04name\x18\x02 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Name\" validate:\"required\"R\x04Name\"\xd8\x02\n" +
+	"\fExecPodInput\x12n\n" +
+	"\fcontainer_id\x18\x01 \x01(\v2\x1c.kube.v1.ContainerIdentifierB-ʵ\x03)\xa2\x01&json:\"ContainerId\" validate:\"required\"R\vContainerId\x12I\n" +
+	"\tcontainer\x18\x02 \x01(\tB+ʵ\x03'\xa2\x01$json:\"Container\" validate:\"required\"R\tContainer\x12C\n" +
+	"\acommand\x18\x03 \x03(\tB)ʵ\x03%\xa2\x01\"json:\"Command\" validate:\"required\"R\aCommand\x12H\n" +
+	"\x05stdin\x18\x04 \x01(\fB2ʵ\x03.\xa2\x01+json:\"Stdin,omitempty\" validate:\"omitempty\"R\x05Stdin\"\xd2\x02\n" +
 	"\rExecPodOutput\x12K\n" +
 	"\x06stdout\x18\x01 \x01(\fB3ʵ\x03/\xa2\x01,json:\"Stdout,omitempty\" validate:\"omitempty\"R\x06Stdout\x12K\n" +
 	"\x06stderr\x18\x02 \x01(\fB3ʵ\x03/\xa2\x01,json:\"Stderr,omitempty\" validate:\"omitempty\"R\x06Stderr\x12G\n" +
@@ -1546,84 +1595,86 @@ func file_kube_v1_kube_proto_rawDescGZIP() []byte {
 	return file_kube_v1_kube_proto_rawDescData
 }
 
-var file_kube_v1_kube_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
+var file_kube_v1_kube_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_kube_v1_kube_proto_goTypes = []any{
-	(*Resource)(nil),           // 0: kube.v1.Resource
-	(*CreateInput)(nil),        // 1: kube.v1.CreateInput
-	(*CreateOutput)(nil),       // 2: kube.v1.CreateOutput
-	(*CreateResult)(nil),       // 3: kube.v1.CreateResult
-	(*CreateSummary)(nil),      // 4: kube.v1.CreateSummary
-	(*UpdateInput)(nil),        // 5: kube.v1.UpdateInput
-	(*UpdateOutput)(nil),       // 6: kube.v1.UpdateOutput
-	(*UpdateResult)(nil),       // 7: kube.v1.UpdateResult
-	(*UpdateSummary)(nil),      // 8: kube.v1.UpdateSummary
-	(*ApplyInput)(nil),         // 9: kube.v1.ApplyInput
-	(*ApplyOutput)(nil),        // 10: kube.v1.ApplyOutput
-	(*ApplyResult)(nil),        // 11: kube.v1.ApplyResult
-	(*ApplySummary)(nil),       // 12: kube.v1.ApplySummary
-	(*DeleteInput)(nil),        // 13: kube.v1.DeleteInput
-	(*DeleteOutput)(nil),       // 14: kube.v1.DeleteOutput
-	(*DeleteResult)(nil),       // 15: kube.v1.DeleteResult
-	(*DeleteSummary)(nil),      // 16: kube.v1.DeleteSummary
-	(*GetStatusInput)(nil),     // 17: kube.v1.GetStatusInput
-	(*GetStatusOutput)(nil),    // 18: kube.v1.GetStatusOutput
-	(*ResourceIdentifier)(nil), // 19: kube.v1.ResourceIdentifier
-	(*ResourceStatus)(nil),     // 20: kube.v1.ResourceStatus
-	(*ExecPodInput)(nil),       // 21: kube.v1.ExecPodInput
-	(*ExecPodOutput)(nil),      // 22: kube.v1.ExecPodOutput
-	nil,                        // 23: kube.v1.CreateInput.ResourcesEntry
-	nil,                        // 24: kube.v1.CreateOutput.ResultsEntry
-	nil,                        // 25: kube.v1.UpdateInput.ResourcesEntry
-	nil,                        // 26: kube.v1.UpdateOutput.ResultsEntry
-	nil,                        // 27: kube.v1.ApplyInput.ResourcesEntry
-	nil,                        // 28: kube.v1.ApplyOutput.ResultsEntry
-	nil,                        // 29: kube.v1.DeleteInput.ResourcesEntry
-	nil,                        // 30: kube.v1.DeleteOutput.ResultsEntry
-	nil,                        // 31: kube.v1.GetStatusInput.ResourcesEntry
+	(*Resource)(nil),            // 0: kube.v1.Resource
+	(*CreateInput)(nil),         // 1: kube.v1.CreateInput
+	(*CreateOutput)(nil),        // 2: kube.v1.CreateOutput
+	(*CreateResult)(nil),        // 3: kube.v1.CreateResult
+	(*CreateSummary)(nil),       // 4: kube.v1.CreateSummary
+	(*UpdateInput)(nil),         // 5: kube.v1.UpdateInput
+	(*UpdateOutput)(nil),        // 6: kube.v1.UpdateOutput
+	(*UpdateResult)(nil),        // 7: kube.v1.UpdateResult
+	(*UpdateSummary)(nil),       // 8: kube.v1.UpdateSummary
+	(*ApplyInput)(nil),          // 9: kube.v1.ApplyInput
+	(*ApplyOutput)(nil),         // 10: kube.v1.ApplyOutput
+	(*ApplyResult)(nil),         // 11: kube.v1.ApplyResult
+	(*ApplySummary)(nil),        // 12: kube.v1.ApplySummary
+	(*DeleteInput)(nil),         // 13: kube.v1.DeleteInput
+	(*DeleteOutput)(nil),        // 14: kube.v1.DeleteOutput
+	(*DeleteResult)(nil),        // 15: kube.v1.DeleteResult
+	(*DeleteSummary)(nil),       // 16: kube.v1.DeleteSummary
+	(*GetStatusInput)(nil),      // 17: kube.v1.GetStatusInput
+	(*GetStatusOutput)(nil),     // 18: kube.v1.GetStatusOutput
+	(*ResourceIdentifier)(nil),  // 19: kube.v1.ResourceIdentifier
+	(*ResourceStatus)(nil),      // 20: kube.v1.ResourceStatus
+	(*ContainerIdentifier)(nil), // 21: kube.v1.ContainerIdentifier
+	(*ExecPodInput)(nil),        // 22: kube.v1.ExecPodInput
+	(*ExecPodOutput)(nil),       // 23: kube.v1.ExecPodOutput
+	nil,                         // 24: kube.v1.CreateInput.ResourcesEntry
+	nil,                         // 25: kube.v1.CreateOutput.ResultsEntry
+	nil,                         // 26: kube.v1.UpdateInput.ResourcesEntry
+	nil,                         // 27: kube.v1.UpdateOutput.ResultsEntry
+	nil,                         // 28: kube.v1.ApplyInput.ResourcesEntry
+	nil,                         // 29: kube.v1.ApplyOutput.ResultsEntry
+	nil,                         // 30: kube.v1.DeleteInput.ResourcesEntry
+	nil,                         // 31: kube.v1.DeleteOutput.ResultsEntry
+	nil,                         // 32: kube.v1.GetStatusInput.ResourcesEntry
 }
 var file_kube_v1_kube_proto_depIdxs = []int32{
-	23, // 0: kube.v1.CreateInput.resources:type_name -> kube.v1.CreateInput.ResourcesEntry
-	24, // 1: kube.v1.CreateOutput.results:type_name -> kube.v1.CreateOutput.ResultsEntry
+	24, // 0: kube.v1.CreateInput.resources:type_name -> kube.v1.CreateInput.ResourcesEntry
+	25, // 1: kube.v1.CreateOutput.results:type_name -> kube.v1.CreateOutput.ResultsEntry
 	4,  // 2: kube.v1.CreateOutput.summary:type_name -> kube.v1.CreateSummary
 	20, // 3: kube.v1.CreateResult.resource_status:type_name -> kube.v1.ResourceStatus
-	25, // 4: kube.v1.UpdateInput.resources:type_name -> kube.v1.UpdateInput.ResourcesEntry
-	26, // 5: kube.v1.UpdateOutput.results:type_name -> kube.v1.UpdateOutput.ResultsEntry
+	26, // 4: kube.v1.UpdateInput.resources:type_name -> kube.v1.UpdateInput.ResourcesEntry
+	27, // 5: kube.v1.UpdateOutput.results:type_name -> kube.v1.UpdateOutput.ResultsEntry
 	8,  // 6: kube.v1.UpdateOutput.summary:type_name -> kube.v1.UpdateSummary
 	20, // 7: kube.v1.UpdateResult.resource_status:type_name -> kube.v1.ResourceStatus
-	27, // 8: kube.v1.ApplyInput.resources:type_name -> kube.v1.ApplyInput.ResourcesEntry
-	28, // 9: kube.v1.ApplyOutput.results:type_name -> kube.v1.ApplyOutput.ResultsEntry
+	28, // 8: kube.v1.ApplyInput.resources:type_name -> kube.v1.ApplyInput.ResourcesEntry
+	29, // 9: kube.v1.ApplyOutput.results:type_name -> kube.v1.ApplyOutput.ResultsEntry
 	12, // 10: kube.v1.ApplyOutput.summary:type_name -> kube.v1.ApplySummary
 	20, // 11: kube.v1.ApplyResult.resource_status:type_name -> kube.v1.ResourceStatus
-	29, // 12: kube.v1.DeleteInput.resources:type_name -> kube.v1.DeleteInput.ResourcesEntry
-	30, // 13: kube.v1.DeleteOutput.results:type_name -> kube.v1.DeleteOutput.ResultsEntry
+	30, // 12: kube.v1.DeleteInput.resources:type_name -> kube.v1.DeleteInput.ResourcesEntry
+	31, // 13: kube.v1.DeleteOutput.results:type_name -> kube.v1.DeleteOutput.ResultsEntry
 	16, // 14: kube.v1.DeleteOutput.summary:type_name -> kube.v1.DeleteSummary
-	31, // 15: kube.v1.GetStatusInput.resources:type_name -> kube.v1.GetStatusInput.ResourcesEntry
-	0,  // 16: kube.v1.CreateInput.ResourcesEntry.value:type_name -> kube.v1.Resource
-	3,  // 17: kube.v1.CreateOutput.ResultsEntry.value:type_name -> kube.v1.CreateResult
-	0,  // 18: kube.v1.UpdateInput.ResourcesEntry.value:type_name -> kube.v1.Resource
-	7,  // 19: kube.v1.UpdateOutput.ResultsEntry.value:type_name -> kube.v1.UpdateResult
-	0,  // 20: kube.v1.ApplyInput.ResourcesEntry.value:type_name -> kube.v1.Resource
-	11, // 21: kube.v1.ApplyOutput.ResultsEntry.value:type_name -> kube.v1.ApplyResult
-	0,  // 22: kube.v1.DeleteInput.ResourcesEntry.value:type_name -> kube.v1.Resource
-	15, // 23: kube.v1.DeleteOutput.ResultsEntry.value:type_name -> kube.v1.DeleteResult
-	19, // 24: kube.v1.GetStatusInput.ResourcesEntry.value:type_name -> kube.v1.ResourceIdentifier
-	1,  // 25: kube.v1.Kubernetes.Create:input_type -> kube.v1.CreateInput
-	5,  // 26: kube.v1.Kubernetes.Update:input_type -> kube.v1.UpdateInput
-	9,  // 27: kube.v1.Kubernetes.Apply:input_type -> kube.v1.ApplyInput
-	13, // 28: kube.v1.Kubernetes.Delete:input_type -> kube.v1.DeleteInput
-	17, // 29: kube.v1.Kubernetes.GetStatus:input_type -> kube.v1.GetStatusInput
-	21, // 30: kube.v1.Kubernetes.ExecPod:input_type -> kube.v1.ExecPodInput
-	2,  // 31: kube.v1.Kubernetes.Create:output_type -> kube.v1.CreateOutput
-	6,  // 32: kube.v1.Kubernetes.Update:output_type -> kube.v1.UpdateOutput
-	10, // 33: kube.v1.Kubernetes.Apply:output_type -> kube.v1.ApplyOutput
-	14, // 34: kube.v1.Kubernetes.Delete:output_type -> kube.v1.DeleteOutput
-	18, // 35: kube.v1.Kubernetes.GetStatus:output_type -> kube.v1.GetStatusOutput
-	22, // 36: kube.v1.Kubernetes.ExecPod:output_type -> kube.v1.ExecPodOutput
-	31, // [31:37] is the sub-list for method output_type
-	25, // [25:31] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	32, // 15: kube.v1.GetStatusInput.resources:type_name -> kube.v1.GetStatusInput.ResourcesEntry
+	21, // 16: kube.v1.ExecPodInput.container_id:type_name -> kube.v1.ContainerIdentifier
+	0,  // 17: kube.v1.CreateInput.ResourcesEntry.value:type_name -> kube.v1.Resource
+	3,  // 18: kube.v1.CreateOutput.ResultsEntry.value:type_name -> kube.v1.CreateResult
+	0,  // 19: kube.v1.UpdateInput.ResourcesEntry.value:type_name -> kube.v1.Resource
+	7,  // 20: kube.v1.UpdateOutput.ResultsEntry.value:type_name -> kube.v1.UpdateResult
+	0,  // 21: kube.v1.ApplyInput.ResourcesEntry.value:type_name -> kube.v1.Resource
+	11, // 22: kube.v1.ApplyOutput.ResultsEntry.value:type_name -> kube.v1.ApplyResult
+	0,  // 23: kube.v1.DeleteInput.ResourcesEntry.value:type_name -> kube.v1.Resource
+	15, // 24: kube.v1.DeleteOutput.ResultsEntry.value:type_name -> kube.v1.DeleteResult
+	19, // 25: kube.v1.GetStatusInput.ResourcesEntry.value:type_name -> kube.v1.ResourceIdentifier
+	1,  // 26: kube.v1.Kubernetes.Create:input_type -> kube.v1.CreateInput
+	5,  // 27: kube.v1.Kubernetes.Update:input_type -> kube.v1.UpdateInput
+	9,  // 28: kube.v1.Kubernetes.Apply:input_type -> kube.v1.ApplyInput
+	13, // 29: kube.v1.Kubernetes.Delete:input_type -> kube.v1.DeleteInput
+	17, // 30: kube.v1.Kubernetes.GetStatus:input_type -> kube.v1.GetStatusInput
+	22, // 31: kube.v1.Kubernetes.ExecPod:input_type -> kube.v1.ExecPodInput
+	2,  // 32: kube.v1.Kubernetes.Create:output_type -> kube.v1.CreateOutput
+	6,  // 33: kube.v1.Kubernetes.Update:output_type -> kube.v1.UpdateOutput
+	10, // 34: kube.v1.Kubernetes.Apply:output_type -> kube.v1.ApplyOutput
+	14, // 35: kube.v1.Kubernetes.Delete:output_type -> kube.v1.DeleteOutput
+	18, // 36: kube.v1.Kubernetes.GetStatus:output_type -> kube.v1.GetStatusOutput
+	23, // 37: kube.v1.Kubernetes.ExecPod:output_type -> kube.v1.ExecPodOutput
+	32, // [32:38] is the sub-list for method output_type
+	26, // [26:32] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_kube_v1_kube_proto_init() }
@@ -1637,7 +1688,7 @@ func file_kube_v1_kube_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_kube_v1_kube_proto_rawDesc), len(file_kube_v1_kube_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   32,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
