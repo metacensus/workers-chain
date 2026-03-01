@@ -39,6 +39,23 @@ func setupK3sCluster(t *testing.T) (KubeClient, func()) {
 
 	kubeconfigPath := filepath.Join(tmpDir, "kubeconfig.yaml")
 
+	var container testcontainers.Container
+	cleanup := func() {
+		if container != nil {
+			if err := container.Terminate(ctx); err != nil {
+				t.Logf("failed to terminate container: %v", err)
+			}
+		}
+		cleanupDir()
+	}
+
+	success := false
+	defer func() {
+		if !success {
+			cleanup()
+		}
+	}()
+
 	req := testcontainers.ContainerRequest{
 		Image:        "rancher/k3s:v1.28.5-k3s1",
 		ExposedPorts: []string{"6443/tcp"},
@@ -57,12 +74,11 @@ func setupK3sCluster(t *testing.T) (KubeClient, func()) {
 			WithStartupTimeout(120 * time.Second),
 	}
 
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+	container, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
 	})
 	if err != nil {
-		cleanupDir()
 		t.Fatalf("failed to start k3s container: %v", err)
 	}
 
@@ -70,44 +86,32 @@ func setupK3sCluster(t *testing.T) (KubeClient, func()) {
 
 	reader, err := container.CopyFileFromContainer(ctx, "/output/kubeconfig.yaml")
 	if err != nil {
-		container.Terminate(ctx)
-		cleanupDir()
 		t.Fatalf("failed to copy kubeconfig from container: %v", err)
 	}
 	defer reader.Close()
 
 	kubeconfigFile, err := os.Create(kubeconfigPath)
 	if err != nil {
-		container.Terminate(ctx)
-		cleanupDir()
 		t.Fatalf("failed to create kubeconfig file: %v", err)
 	}
 	defer kubeconfigFile.Close()
 
 	if _, err := kubeconfigFile.ReadFrom(reader); err != nil {
-		container.Terminate(ctx)
-		cleanupDir()
 		t.Fatalf("failed to write kubeconfig: %v", err)
 	}
 
 	mappedPort, err := container.MappedPort(ctx, "6443")
 	if err != nil {
-		container.Terminate(ctx)
-		cleanupDir()
 		t.Fatalf("failed to get mapped port: %v", err)
 	}
 
 	kubeconfigBytes, err := os.ReadFile(kubeconfigPath)
 	if err != nil {
-		container.Terminate(ctx)
-		cleanupDir()
 		t.Fatalf("failed to read kubeconfig: %v", err)
 	}
 
 	kubeconfig, err := clientcmd.Load(kubeconfigBytes)
 	if err != nil {
-		container.Terminate(ctx)
-		cleanupDir()
 		t.Fatalf("failed to parse kubeconfig: %v", err)
 	}
 
@@ -118,25 +122,15 @@ func setupK3sCluster(t *testing.T) (KubeClient, func()) {
 	}
 
 	if err := clientcmd.WriteToFile(*kubeconfig, kubeconfigPath); err != nil {
-		container.Terminate(ctx)
-		cleanupDir()
 		t.Fatalf("failed to write updated kubeconfig: %v", err)
 	}
 
 	client, err := NewKubeClient(&config.KubernetesConfig{KubeconfigPath: kubeconfigPath})
 	if err != nil {
-		container.Terminate(ctx)
-		cleanupDir()
 		t.Fatalf("failed to create kube client: %v", err)
 	}
 
-	cleanup := func() {
-		if err := container.Terminate(ctx); err != nil {
-			t.Logf("failed to terminate container: %v", err)
-		}
-		cleanupDir()
-	}
-
+	success = true
 	return client, cleanup
 }
 
@@ -156,7 +150,8 @@ func TestKubeClient_RealCluster(t *testing.T) {
 	client, cleanup := setupK3sCluster(t)
 	defer cleanup()
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
 
 	t.Run("create and delete service", func(t *testing.T) {
 		nsObj := decodeManifest(t, []byte(`
@@ -229,7 +224,8 @@ spec:
 func TestKubeClient_CreateResource(t *testing.T) {
 	client, cleanup := setupK3sCluster(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
 
 	t.Run("success", func(t *testing.T) {
 		nsObj := decodeManifest(t, []byte(`
@@ -263,7 +259,8 @@ metadata:
 func TestKubeClient_UpdateResource(t *testing.T) {
 	client, cleanup := setupK3sCluster(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
 
 	t.Run("success - create then update", func(t *testing.T) {
 		nsObj := decodeManifest(t, []byte(`
@@ -319,7 +316,8 @@ data:
 func TestKubeClient_ApplyResource(t *testing.T) {
 	client, cleanup := setupK3sCluster(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
 
 	t.Run("create new resource", func(t *testing.T) {
 		nsObj := decodeManifest(t, []byte(`
@@ -356,38 +354,12 @@ data:
 	})
 }
 
-// TestKubeClient_DeleteResource integration tests for DeleteResource
-func TestKubeClient_DeleteResource(t *testing.T) {
-	client, cleanup := setupK3sCluster(t)
-	defer cleanup()
-	ctx := context.Background()
-
-	t.Run("success - create then delete", func(t *testing.T) {
-		nsObj := decodeManifest(t, []byte(`
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: delete-test-ns
-`))
-		id := &pb.ResourceIdentifier{ApiVersion: "v1", Kind: "Namespace", Name: "delete-test-ns"}
-		if err := client.CreateResource(ctx, id, nsObj); err != nil {
-			t.Fatalf("create namespace: %v", err)
-		}
-		if err := client.DeleteResource(ctx, id); err != nil {
-			t.Fatalf("DeleteResource: %v", err)
-		}
-		_, err := client.GetResourceStatus(ctx, id)
-		if err == nil {
-			t.Error("expected error when getting status of deleted resource, got nil")
-		}
-	})
-}
-
 // TestKubeClient_GetResourceStatus integration tests for GetResourceStatus
 func TestKubeClient_GetResourceStatus(t *testing.T) {
 	client, cleanup := setupK3sCluster(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
 
 	t.Run("success - service", func(t *testing.T) {
 		nsObj := decodeManifest(t, []byte(`
@@ -443,7 +415,8 @@ spec:
 func TestKubeClient_ExecPod(t *testing.T) {
 	client, cleanup := setupK3sCluster(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
 
 	// Create namespace and a running pod
 	nsObj := decodeManifest(t, []byte(`
@@ -520,8 +493,8 @@ spec:
 
 	t.Run("success - exit code", func(t *testing.T) {
 		_, _, exitCode, err := client.ExecPod(ctx, containerID, "main", []string{"sh", "-c", "exit 42"}, nil)
-		if err != nil {
-			t.Fatalf("ExecPod: %v", err)
+		if err == nil {
+			t.Fatal("expected error for non-zero exit code, got nil")
 		}
 		if exitCode != 42 {
 			t.Errorf("exit code: got %d, want 42", exitCode)

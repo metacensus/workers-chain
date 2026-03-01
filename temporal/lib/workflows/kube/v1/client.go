@@ -3,20 +3,25 @@ package kube
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/httpstream"
+	apiremotecommand "k8s.io/apimachinery/pkg/util/remotecommand"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
+	k8sexec "k8s.io/client-go/util/exec"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
@@ -126,7 +131,7 @@ func (kc *kubeClient) ApplyResource(ctx context.Context, id *pb.ResourceIdentifi
 	// Try update first, then create if not found
 	err := kc.UpdateResource(ctx, id, obj)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			return kc.CreateResource(ctx, id, obj)
 		}
 		return err
@@ -275,7 +280,7 @@ func (kc *kubeClient) getPodStatus(ctx context.Context, namespace, name string) 
 
 	switch pod.Status.Phase {
 	case corev1.PodRunning:
-		allReady := true
+		allReady := len(pod.Status.ContainerStatuses) > 0
 		for _, cs := range pod.Status.ContainerStatuses {
 			if !cs.Ready {
 				allReady = false
@@ -369,7 +374,8 @@ func kindToResource(kind string) string {
 	return strings.ToLower(kind) + "s"
 }
 
-// ExecPod executes a command in a pod container
+// ExecPod executes a command in a pod container.
+// Non-zero exit statuses are reported via a non-nil error, and the exitCode is populated when available.
 func (kc *kubeClient) ExecPod(ctx context.Context, id *pb.ContainerIdentifier, container string, command []string, stdin []byte) (stdout, stderr []byte, exitCode int32, err error) {
 	if id == nil {
 		return nil, nil, 0, fmt.Errorf("container identifier is required")
@@ -388,6 +394,9 @@ func (kc *kubeClient) ExecPod(ctx context.Context, id *pb.ContainerIdentifier, c
 	// Validate pod is in a runnable state
 	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
 		return nil, nil, 0, fmt.Errorf("cannot exec into a container in a completed pod; current phase is %s", pod.Status.Phase)
+	}
+	if pod.Status.Phase != corev1.PodRunning {
+		return nil, nil, 0, fmt.Errorf("cannot exec into a container in a non-running pod; current phase is %s", pod.Status.Phase)
 	}
 
 	// Validate container exists in pod
@@ -428,22 +437,45 @@ func (kc *kubeClient) ExecPod(ctx context.Context, id *pb.ContainerIdentifier, c
 		TTY:       false,
 	}, scheme.ParameterCodec)
 
-	// Create executor using the request URL
-	// remotecommand.NewSPDYExecutor establishes a streaming connection for stdin/stdout/stderr
-	executor, err := remotecommand.NewSPDYExecutor(kc.restConfig, "POST", req.URL())
+	// Prefer WebSocket exec (works in more environments), fall back to SPDY.
+	wsExecutor, err := remotecommand.NewWebSocketExecutorForProtocols(
+		kc.restConfig,
+		"GET",
+		req.URL().String(),
+		apiremotecommand.StreamProtocolV5Name,
+		apiremotecommand.StreamProtocolV4Name,
+		apiremotecommand.StreamProtocolV3Name,
+		apiremotecommand.StreamProtocolV2Name,
+		apiremotecommand.StreamProtocolV1Name,
+	)
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("failed to create websocket executor: %w", err)
+	}
+	spdyExecutor, err := remotecommand.NewSPDYExecutor(kc.restConfig, "POST", req.URL())
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("failed to create spdy executor: %w", err)
+	}
+	executor, err := remotecommand.NewFallbackExecutor(
+		wsExecutor,
+		spdyExecutor,
+		func(err error) bool {
+			var upgradeErr *httpstream.UpgradeFailureError
+			return errors.As(err, &upgradeErr)
+		},
+	)
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("failed to create executor: %w", err)
 	}
 
 	// Capture stdout and stderr
 	var stdoutBuf, stderrBuf bytes.Buffer
-	var stdinReader *bytes.Reader
+	var stdinReader io.Reader
 	if len(stdin) > 0 {
 		stdinReader = bytes.NewReader(stdin)
 	}
 
 	// Execute command
-	err = executor.Stream(remotecommand.StreamOptions{
+	err = executor.StreamWithContext(ctx, remotecommand.StreamOptions{
 		Stdin:  stdinReader,
 		Stdout: &stdoutBuf,
 		Stderr: &stderrBuf,
@@ -452,9 +484,11 @@ func (kc *kubeClient) ExecPod(ctx context.Context, id *pb.ContainerIdentifier, c
 
 	// Handle execution error
 	if err != nil {
-		// Try to extract exit code from error if possible
-		// Kubernetes exec doesn't directly return exit codes, so we default to 1
 		exitCode = 1
+		var exitErr k8sexec.ExitError
+		if errors.As(err, &exitErr) {
+			exitCode = int32(exitErr.ExitStatus())
+		}
 		return stdoutBuf.Bytes(), stderrBuf.Bytes(), exitCode, fmt.Errorf("command execution failed: %w", err)
 	}
 
