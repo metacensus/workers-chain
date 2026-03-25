@@ -121,6 +121,7 @@
         - [kube.v1.Apply](#kube-v1-apply-activity)
         - [kube.v1.Delete](#kube-v1-delete-activity)
         - [kube.v1.GetStatus](#kube-v1-getstatus-activity)
+        - [kube.v1.ExecPod](#kube-v1-execpod-activity)
   - Messages
     - [kube.v1.ApplyInput](#kube-v1-applyinput)
     - [kube.v1.ApplyInput.ResourcesEntry](#kube-v1-applyinput-resourcesentry)
@@ -128,6 +129,7 @@
     - [kube.v1.ApplyOutput.ResultsEntry](#kube-v1-applyoutput-resultsentry)
     - [kube.v1.ApplyResult](#kube-v1-applyresult)
     - [kube.v1.ApplySummary](#kube-v1-applysummary)
+    - [kube.v1.ContainerIdentifier](#kube-v1-containeridentifier)
     - [kube.v1.CreateInput](#kube-v1-createinput)
     - [kube.v1.CreateInput.ResourcesEntry](#kube-v1-createinput-resourcesentry)
     - [kube.v1.CreateOutput](#kube-v1-createoutput)
@@ -140,6 +142,8 @@
     - [kube.v1.DeleteOutput.ResultsEntry](#kube-v1-deleteoutput-resultsentry)
     - [kube.v1.DeleteResult](#kube-v1-deleteresult)
     - [kube.v1.DeleteSummary](#kube-v1-deletesummary)
+    - [kube.v1.ExecPodInput](#kube-v1-execpodinput)
+    - [kube.v1.ExecPodOutput](#kube-v1-execpodoutput)
     - [kube.v1.GetStatusInput](#kube-v1-getstatusinput)
     - [kube.v1.GetStatusInput.ResourcesEntry](#kube-v1-getstatusinput-resourcesentry)
     - [kube.v1.GetStatusOutput](#kube-v1-getstatusoutput)
@@ -4363,6 +4367,111 @@ json_name: ResourcesReady
 go_name: ResourcesReady
 go_tags: json:"ResourcesReady" validate:"required"</pre></td>
 </tr>
+</table> 
+
+---
+<a name="kube-v1-execpod-activity"></a>
+### kube.v1.ExecPod
+
+<pre>
+ExecPod executes a command in a pod container
+</pre>
+
+**Input:** [kube.v1.ExecPodInput](#kube-v1-execpodinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>command</td>
+<td>string</td>
+<td><pre>
+command is the command and arguments to execute
+Example: ["sh", "-c", "echo hello"]<br>
+
+json_name: Command
+go_name: Command
+go_tags: json:"Command" validate:"required"</pre></td>
+</tr><tr>
+<td>container</td>
+<td>string</td>
+<td><pre>
+container is the name of the container in the pod
+Must be explicitly specified<br>
+
+json_name: Container
+go_name: Container
+go_tags: json:"Container" validate:"required"</pre></td>
+</tr><tr>
+<td>container_id</td>
+<td><a href="#kube-v1-containeridentifier">kube.v1.ContainerIdentifier</a></td>
+<td><pre>
+container_id identifies the pod to execute the command in<br>
+
+json_name: ContainerId
+go_name: ContainerId
+go_tags: json:"ContainerId" validate:"required"</pre></td>
+</tr><tr>
+<td>stdin</td>
+<td>bytes</td>
+<td><pre>
+stdin is optional input to send to the command<br>
+
+json_name: Stdin
+go_name: Stdin
+go_tags: json:"Stdin,omitempty" validate:"omitempty"</pre></td>
+</tr>
+</table>
+
+**Output:** [kube.v1.ExecPodOutput](#kube-v1-execpodoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>error_message</td>
+<td>string</td>
+<td><pre>
+error_message contains error details if execution failed<br>
+
+json_name: ErrorMessage
+go_name: ErrorMessage
+go_tags: json:"ErrorMessage,omitempty" validate:"omitempty"</pre></td>
+</tr><tr>
+<td>exit_code</td>
+<td>int32</td>
+<td><pre>
+exit_code is the exit code of the command
+0 indicates success, non-zero indicates failure<br>
+
+json_name: ExitCode
+go_name: ExitCode
+go_tags: json:"ExitCode" validate:"required"</pre></td>
+</tr><tr>
+<td>stderr</td>
+<td>bytes</td>
+<td><pre>
+stderr is the standard error output from the command<br>
+
+json_name: Stderr
+go_name: Stderr
+go_tags: json:"Stderr,omitempty" validate:"omitempty"</pre></td>
+</tr><tr>
+<td>stdout</td>
+<td>bytes</td>
+<td><pre>
+stdout is the standard output from the command<br>
+
+json_name: Stdout
+go_name: Stdout
+go_tags: json:"Stdout,omitempty" validate:"omitempty"</pre></td>
+</tr>
 </table>   
 
 <a name="kube-v1-messages"></a>
@@ -4565,6 +4674,43 @@ go_tags: json:"Failed" validate:"required"</pre></td>
 json_name: Total
 go_name: Total
 go_tags: json:"Total" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="kube-v1-containeridentifier"></a>
+### kube.v1.ContainerIdentifier
+
+<pre>
+ContainerIdentifier uniquely identifies a pod (namespace + pod name)
+Used by ExecPod and future pod-specific operations (e.g. logs, copy)
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td><pre>
+name is the pod name<br>
+
+json_name: Name
+go_name: Name
+go_tags: json:"Name" validate:"required"</pre></td>
+</tr><tr>
+<td>namespace</td>
+<td>string</td>
+<td><pre>
+namespace is the namespace containing the pod<br>
+
+json_name: Namespace
+go_name: Namespace
+go_tags: json:"Namespace" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4959,6 +5105,117 @@ go_tags: json:"Failed" validate:"required"</pre></td>
 json_name: Total
 go_name: Total
 go_tags: json:"Total" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="kube-v1-execpodinput"></a>
+### kube.v1.ExecPodInput
+
+<pre>
+ExecPodInput defines inputs for executing a command in a pod
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>command</td>
+<td>string</td>
+<td><pre>
+command is the command and arguments to execute
+Example: ["sh", "-c", "echo hello"]<br>
+
+json_name: Command
+go_name: Command
+go_tags: json:"Command" validate:"required"</pre></td>
+</tr><tr>
+<td>container</td>
+<td>string</td>
+<td><pre>
+container is the name of the container in the pod
+Must be explicitly specified<br>
+
+json_name: Container
+go_name: Container
+go_tags: json:"Container" validate:"required"</pre></td>
+</tr><tr>
+<td>container_id</td>
+<td><a href="#kube-v1-containeridentifier">kube.v1.ContainerIdentifier</a></td>
+<td><pre>
+container_id identifies the pod to execute the command in<br>
+
+json_name: ContainerId
+go_name: ContainerId
+go_tags: json:"ContainerId" validate:"required"</pre></td>
+</tr><tr>
+<td>stdin</td>
+<td>bytes</td>
+<td><pre>
+stdin is optional input to send to the command<br>
+
+json_name: Stdin
+go_name: Stdin
+go_tags: json:"Stdin,omitempty" validate:"omitempty"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="kube-v1-execpodoutput"></a>
+### kube.v1.ExecPodOutput
+
+<pre>
+ExecPodOutput represents the result of executing a command in a pod
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>error_message</td>
+<td>string</td>
+<td><pre>
+error_message contains error details if execution failed<br>
+
+json_name: ErrorMessage
+go_name: ErrorMessage
+go_tags: json:"ErrorMessage,omitempty" validate:"omitempty"</pre></td>
+</tr><tr>
+<td>exit_code</td>
+<td>int32</td>
+<td><pre>
+exit_code is the exit code of the command
+0 indicates success, non-zero indicates failure<br>
+
+json_name: ExitCode
+go_name: ExitCode
+go_tags: json:"ExitCode" validate:"required"</pre></td>
+</tr><tr>
+<td>stderr</td>
+<td>bytes</td>
+<td><pre>
+stderr is the standard error output from the command<br>
+
+json_name: Stderr
+go_name: Stderr
+go_tags: json:"Stderr,omitempty" validate:"omitempty"</pre></td>
+</tr><tr>
+<td>stdout</td>
+<td>bytes</td>
+<td><pre>
+stdout is the standard output from the command<br>
+
+json_name: Stdout
+go_name: Stdout
+go_tags: json:"Stdout,omitempty" validate:"omitempty"</pre></td>
 </tr>
 </table>
 
