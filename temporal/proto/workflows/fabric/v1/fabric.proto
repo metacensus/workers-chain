@@ -203,6 +203,98 @@ service Fabric {
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
+
+  // ==================== Channel Workflows ====================
+
+  // CreateChannel orchestrates creation of a new Fabric channel
+  // Generates genesis block, joins orderers and peers, sets anchor peers
+  rpc CreateChannel(CreateChannelInput) returns (CreateChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.CreateChannel"
+      id: 'fabric/create-channel'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // AddOrdererToChannel adds a new orderer to an existing channel
+  // Fetches latest config block, joins as follower, then promotes to consenter
+  rpc AddOrdererToChannel(AddOrdererToChannelInput) returns (AddOrdererToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.AddOrdererToChannel"
+      id: 'fabric/add-orderer-to-channel'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // AddPeerToChannel adds a new peer to an existing channel
+  // Optionally adds the org to the channel first if not already a member
+  rpc AddPeerToChannel(AddPeerToChannelInput) returns (AddPeerToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.AddPeerToChannel"
+      id: 'fabric/add-peer-to-channel'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+  // Handles both genesis-based (consenter) and config-block-based (follower) joins
+  rpc JoinOrdererToChannel(JoinOrdererToChannelInput) returns (JoinOrdererToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.JoinOrdererToChannel"
+      id: 'fabric/join-orderer-to-channel'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // JoinPeerToChannel joins a peer node to a channel
+  // Fetches the oldest block from an orderer and joins the peer
+  rpc JoinPeerToChannel(JoinPeerToChannelInput) returns (JoinPeerToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.JoinPeerToChannel"
+      id: 'fabric/join-peer-to-channel'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // SetAnchorPeer configures the anchor peer for an org on a channel
+  // Uses UpdateChannelConfig to modify the channel's Application group
+  rpc SetAnchorPeer(SetAnchorPeerInput) returns (SetAnchorPeerOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.SetAnchorPeer"
+      id: 'fabric/set-anchor-peer'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // AddOrdererToConsenterSet promotes an orderer from follower to consenter
+  // via a channel config update to the ConsensusType metadata
+  rpc AddOrdererToConsenterSet(AddOrdererToConsenterSetInput) returns (AddOrdererToConsenterSetOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.AddOrdererToConsenterSet"
+      id: 'fabric/add-orderer-to-consenter-set'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // AddOrgToChannel adds a new organization to an existing channel
+  // Requires signatures from a majority of existing channel admins
+  rpc AddOrgToChannel(AddOrgToChannelInput) returns (AddOrgToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.AddOrgToChannel"
+      id: 'fabric/add-org-to-channel'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // UpdateChannelConfig is the common pattern for all channel configuration changes
+  // Fetches current config, computes delta, collects signatures, and submits update
+  rpc UpdateChannelConfig(UpdateChannelConfigInput) returns (UpdateChannelConfigOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.UpdateChannelConfig"
+      id: 'fabric/update-channel-config'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
 }
 
 // FabricActivities service defines activities for Fabric CA operations
@@ -246,6 +338,104 @@ service FabricActivities {
     option (temporal.v1.activity) = {
       name: "fabric.v1.BootstrapEnrollIdentity"
       schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+
+  // ==================== Channel Activities ====================
+
+  // GenerateConfigTx generates a configtx.yaml from org definitions
+  rpc GenerateConfigTx(GenerateConfigTxInput) returns (GenerateConfigTxOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.GenerateConfigTx"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+
+  // GenerateGenesisBlock creates a channel genesis block using configtxgen
+  rpc GenerateGenesisBlock(GenerateGenesisBlockInput) returns (GenerateGenesisBlockOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.GenerateGenesisBlock"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+
+  // OsnadminChannelJoin joins an orderer to a channel via osnadmin channel join
+  rpc OsnadminChannelJoin(OsnadminChannelJoinInput) returns (OsnadminChannelJoinOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.OsnadminChannelJoin"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+
+  // WaitForOrdererActive polls osnadmin channel list until orderer status is "active"
+  rpc WaitForOrdererActive(WaitForOrdererActiveInput) returns (WaitForOrdererActiveOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.WaitForOrdererActive"
+      schedule_to_close_timeout: {seconds: 300}
+    };
+  }
+
+  // PeerChannelFetch fetches a block from an orderer using peer channel fetch
+  rpc PeerChannelFetch(PeerChannelFetchInput) returns (PeerChannelFetchOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.PeerChannelFetch"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+
+  // PeerChannelJoin joins a peer to a channel using peer channel join
+  rpc PeerChannelJoin(PeerChannelJoinInput) returns (PeerChannelJoinOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.PeerChannelJoin"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+
+  // FetchChannelConfig fetches and decodes the current channel configuration
+  rpc FetchChannelConfig(FetchChannelConfigInput) returns (FetchChannelConfigOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.FetchChannelConfig"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+
+  // ComputeConfigUpdate computes the config delta between original and modified configs
+  rpc ComputeConfigUpdate(ComputeConfigUpdateInput) returns (ComputeConfigUpdateOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.ComputeConfigUpdate"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+
+  // SignConfigUpdate signs a channel config update using peer channel signconfigtx
+  rpc SignConfigUpdate(SignConfigUpdateInput) returns (SignConfigUpdateOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.SignConfigUpdate"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+
+  // SubmitChannelUpdate wraps a config update in an envelope and submits it
+  rpc SubmitChannelUpdate(SubmitChannelUpdateInput) returns (SubmitChannelUpdateOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.SubmitChannelUpdate"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+
+  // GenerateOrgDefinition creates an org MSP definition for channel config
+  rpc GenerateOrgDefinition(GenerateOrgDefinitionInput) returns (GenerateOrgDefinitionOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.GenerateOrgDefinition"
+      schedule_to_close_timeout: {seconds: 60}
+    };
+  }
+
+  // CollectSignatures gathers required signatures from channel admin orgs
+  rpc CollectSignatures(CollectSignaturesInput) returns (CollectSignaturesOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.v1.CollectSignatures"
+      schedule_to_close_timeout: {seconds: 300}
     };
   }
 }
@@ -795,3 +985,129 @@ message DeployChainCodeInput {
 message DeployChainCodeOutput {
   // Empty for now
 }
+
+// ==================== CreateChannel Workflow Messages ====================
+
+message CreateChannelInput {}
+
+message CreateChannelOutput {}
+
+// ==================== AddOrdererToChannel Workflow Messages ====================
+
+message AddOrdererToChannelInput {}
+
+message AddOrdererToChannelOutput {}
+
+// ==================== AddPeerToChannel Workflow Messages ====================
+
+message AddPeerToChannelInput {}
+
+message AddPeerToChannelOutput {}
+
+// ==================== JoinOrdererToChannel Workflow Messages ====================
+
+message JoinOrdererToChannelInput {}
+
+message JoinOrdererToChannelOutput {}
+
+// ==================== JoinPeerToChannel Workflow Messages ====================
+
+message JoinPeerToChannelInput {}
+
+message JoinPeerToChannelOutput {}
+
+// ==================== SetAnchorPeer Workflow Messages ====================
+
+message SetAnchorPeerInput {}
+
+message SetAnchorPeerOutput {}
+
+// ==================== AddOrdererToConsenterSet Workflow Messages ====================
+
+message AddOrdererToConsenterSetInput {}
+
+message AddOrdererToConsenterSetOutput {}
+
+// ==================== AddOrgToChannel Workflow Messages ====================
+
+message AddOrgToChannelInput {}
+
+message AddOrgToChannelOutput {}
+
+// ==================== UpdateChannelConfig Workflow Messages ====================
+
+message UpdateChannelConfigInput {}
+
+message UpdateChannelConfigOutput {}
+
+// ==================== GenerateConfigTx Activity Messages ====================
+
+message GenerateConfigTxInput {}
+
+message GenerateConfigTxOutput {}
+
+// ==================== GenerateGenesisBlock Activity Messages ====================
+
+message GenerateGenesisBlockInput {}
+
+message GenerateGenesisBlockOutput {}
+
+// ==================== OsnadminChannelJoin Activity Messages ====================
+
+message OsnadminChannelJoinInput {}
+
+message OsnadminChannelJoinOutput {}
+
+// ==================== WaitForOrdererActive Activity Messages ====================
+
+message WaitForOrdererActiveInput {}
+
+message WaitForOrdererActiveOutput {}
+
+// ==================== PeerChannelFetch Activity Messages ====================
+
+message PeerChannelFetchInput {}
+
+message PeerChannelFetchOutput {}
+
+// ==================== PeerChannelJoin Activity Messages ====================
+
+message PeerChannelJoinInput {}
+
+message PeerChannelJoinOutput {}
+
+// ==================== FetchChannelConfig Activity Messages ====================
+
+message FetchChannelConfigInput {}
+
+message FetchChannelConfigOutput {}
+
+// ==================== ComputeConfigUpdate Activity Messages ====================
+
+message ComputeConfigUpdateInput {}
+
+message ComputeConfigUpdateOutput {}
+
+// ==================== SignConfigUpdate Activity Messages ====================
+
+message SignConfigUpdateInput {}
+
+message SignConfigUpdateOutput {}
+
+// ==================== SubmitChannelUpdate Activity Messages ====================
+
+message SubmitChannelUpdateInput {}
+
+message SubmitChannelUpdateOutput {}
+
+// ==================== GenerateOrgDefinition Activity Messages ====================
+
+message GenerateOrgDefinitionInput {}
+
+message GenerateOrgDefinitionOutput {}
+
+// ==================== CollectSignatures Activity Messages ====================
+
+message CollectSignaturesInput {}
+
+message CollectSignaturesOutput {}

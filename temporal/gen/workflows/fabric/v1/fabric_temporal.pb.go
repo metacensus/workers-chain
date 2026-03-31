@@ -33,12 +33,17 @@ var FabricTaskQueue = "infra"
 
 // fabric.v1.Fabric workflow names
 const (
+	AddOrdererToChannelWorkflowName             = "fabric.v1.AddOrdererToChannel"
+	AddOrdererToConsenterSetWorkflowName        = "fabric.v1.AddOrdererToConsenterSet"
+	AddOrgToChannelWorkflowName                 = "fabric.v1.AddOrgToChannel"
+	AddPeerToChannelWorkflowName                = "fabric.v1.AddPeerToChannel"
 	BootstrapCertificateAuthoritiesWorkflowName = "fabric.v1.BootstrapCertificateAuthorities"
 	BootstrapShardWorkflowName                  = "fabric.v1.BootstrapShard"
 	CreateAdminWorkflowName                     = "fabric.v1.CreateAdmin"
 	CreateBootstrapAdminWorkflowName            = "fabric.v1.CreateBootstrapAdmin"
 	CreateCertificateWorkflowName               = "fabric.v1.CreateCertificate"
 	CreateCertificateDatabaseWorkflowName       = "fabric.v1.CreateCertificateDatabase"
+	CreateChannelWorkflowName                   = "fabric.v1.CreateChannel"
 	CreateIdentityWorkflowName                  = "fabric.v1.CreateIdentity"
 	DeployCertificateAuthorityWorkflowName      = "fabric.v1.DeployCertificateAuthority"
 	DeployCertificateStoreWorkflowName          = "fabric.v1.DeployCertificateStore"
@@ -46,16 +51,25 @@ const (
 	DeployCouchDbWorkflowName                   = "fabric.v1.DeployCouchDb"
 	DeployOrdererWorkflowName                   = "fabric.v1.DeployOrderer"
 	DeployPeerWorkflowName                      = "fabric.v1.DeployPeer"
+	JoinOrdererToChannelWorkflowName            = "fabric.v1.JoinOrdererToChannel"
+	JoinPeerToChannelWorkflowName               = "fabric.v1.JoinPeerToChannel"
+	SetAnchorPeerWorkflowName                   = "fabric.v1.SetAnchorPeer"
+	UpdateChannelConfigWorkflowName             = "fabric.v1.UpdateChannelConfig"
 )
 
 // fabric.v1.Fabric workflow id expressions
 var (
+	AddOrdererToChannelIdexpression             = expression.MustParseExpression("fabric/add-orderer-to-channel")
+	AddOrdererToConsenterSetIdexpression        = expression.MustParseExpression("fabric/add-orderer-to-consenter-set")
+	AddOrgToChannelIdexpression                 = expression.MustParseExpression("fabric/add-org-to-channel")
+	AddPeerToChannelIdexpression                = expression.MustParseExpression("fabric/add-peer-to-channel")
 	BootstrapCertificateAuthoritiesIdexpression = expression.MustParseExpression("fabric/bootstrap-certificate-authorities")
 	BootstrapShardIdexpression                  = expression.MustParseExpression("fabric/bootstrap-shard")
 	CreateAdminIdexpression                     = expression.MustParseExpression("fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }")
 	CreateBootstrapAdminIdexpression            = expression.MustParseExpression("fabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }")
 	CreateCertificateIdexpression               = expression.MustParseExpression("fabric/create-certificate/${! Purpose }")
 	CreateCertificateDatabaseIdexpression       = expression.MustParseExpression("fabric/create-certificate-database/${! CaRef.CertType }/${! CaRef.Id }")
+	CreateChannelIdexpression                   = expression.MustParseExpression("fabric/create-channel")
 	CreateIdentityIdexpression                  = expression.MustParseExpression("fabric/create-identity/${! IdentityName }")
 	DeployCertificateAuthorityIdexpression      = expression.MustParseExpression("fabric/deploy-certificate-authority/${! CaRef.CertType }/${! CaRef.Id }")
 	DeployCertificateStoreIdexpression          = expression.MustParseExpression("fabric/deploy-certificate-store")
@@ -63,10 +77,54 @@ var (
 	DeployCouchDbIdexpression                   = expression.MustParseExpression("fabric/deploy-couchdb/${! PeerId }")
 	DeployOrdererIdexpression                   = expression.MustParseExpression("fabric/deploy-orderer/${! OrdererId }")
 	DeployPeerIdexpression                      = expression.MustParseExpression("fabric/deploy-peer/${! PeerId }")
+	JoinOrdererToChannelIdexpression            = expression.MustParseExpression("fabric/join-orderer-to-channel")
+	JoinPeerToChannelIdexpression               = expression.MustParseExpression("fabric/join-peer-to-channel")
+	SetAnchorPeerIdexpression                   = expression.MustParseExpression("fabric/set-anchor-peer")
+	UpdateChannelConfigIdexpression             = expression.MustParseExpression("fabric/update-channel-config")
 )
 
 // FabricClient describes a client for a(n) fabric.v1.Fabric worker
 type FabricClient interface {
+	// AddOrdererToChannel adds a new orderer to an existing channel
+	// Fetches latest config block, joins as follower, then promotes to consenter
+	AddOrdererToChannel(ctx context.Context, req *AddOrdererToChannelInput, opts ...*AddOrdererToChannelOptions) (*AddOrdererToChannelOutput, error)
+
+	// AddOrdererToChannelAsync starts a(n) fabric.v1.AddOrdererToChannel workflow and returns a handle to the workflow run
+	AddOrdererToChannelAsync(ctx context.Context, req *AddOrdererToChannelInput, opts ...*AddOrdererToChannelOptions) (AddOrdererToChannelRun, error)
+
+	// GetAddOrdererToChannel retrieves a handle to an existing fabric.v1.AddOrdererToChannel workflow execution
+	GetAddOrdererToChannel(ctx context.Context, workflowID string, runID string) AddOrdererToChannelRun
+
+	// AddOrdererToConsenterSet promotes an orderer from follower to consenter
+	// via a channel config update to the ConsensusType metadata
+	AddOrdererToConsenterSet(ctx context.Context, req *AddOrdererToConsenterSetInput, opts ...*AddOrdererToConsenterSetOptions) (*AddOrdererToConsenterSetOutput, error)
+
+	// AddOrdererToConsenterSetAsync starts a(n) fabric.v1.AddOrdererToConsenterSet workflow and returns a handle to the workflow run
+	AddOrdererToConsenterSetAsync(ctx context.Context, req *AddOrdererToConsenterSetInput, opts ...*AddOrdererToConsenterSetOptions) (AddOrdererToConsenterSetRun, error)
+
+	// GetAddOrdererToConsenterSet retrieves a handle to an existing fabric.v1.AddOrdererToConsenterSet workflow execution
+	GetAddOrdererToConsenterSet(ctx context.Context, workflowID string, runID string) AddOrdererToConsenterSetRun
+
+	// AddOrgToChannel adds a new organization to an existing channel
+	// Requires signatures from a majority of existing channel admins
+	AddOrgToChannel(ctx context.Context, req *AddOrgToChannelInput, opts ...*AddOrgToChannelOptions) (*AddOrgToChannelOutput, error)
+
+	// AddOrgToChannelAsync starts a(n) fabric.v1.AddOrgToChannel workflow and returns a handle to the workflow run
+	AddOrgToChannelAsync(ctx context.Context, req *AddOrgToChannelInput, opts ...*AddOrgToChannelOptions) (AddOrgToChannelRun, error)
+
+	// GetAddOrgToChannel retrieves a handle to an existing fabric.v1.AddOrgToChannel workflow execution
+	GetAddOrgToChannel(ctx context.Context, workflowID string, runID string) AddOrgToChannelRun
+
+	// AddPeerToChannel adds a new peer to an existing channel
+	// Optionally adds the org to the channel first if not already a member
+	AddPeerToChannel(ctx context.Context, req *AddPeerToChannelInput, opts ...*AddPeerToChannelOptions) (*AddPeerToChannelOutput, error)
+
+	// AddPeerToChannelAsync starts a(n) fabric.v1.AddPeerToChannel workflow and returns a handle to the workflow run
+	AddPeerToChannelAsync(ctx context.Context, req *AddPeerToChannelInput, opts ...*AddPeerToChannelOptions) (AddPeerToChannelRun, error)
+
+	// GetAddPeerToChannel retrieves a handle to an existing fabric.v1.AddPeerToChannel workflow execution
+	GetAddPeerToChannel(ctx context.Context, workflowID string, runID string) AddPeerToChannelRun
+
 	// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
 	// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
 	// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
@@ -133,6 +191,16 @@ type FabricClient interface {
 
 	// GetCreateCertificateDatabase retrieves a handle to an existing fabric.v1.CreateCertificateDatabase workflow execution
 	GetCreateCertificateDatabase(ctx context.Context, workflowID string, runID string) CreateCertificateDatabaseRun
+
+	// CreateChannel orchestrates creation of a new Fabric channel
+	// Generates genesis block, joins orderers and peers, sets anchor peers
+	CreateChannel(ctx context.Context, req *CreateChannelInput, opts ...*CreateChannelOptions) (*CreateChannelOutput, error)
+
+	// CreateChannelAsync starts a(n) fabric.v1.CreateChannel workflow and returns a handle to the workflow run
+	CreateChannelAsync(ctx context.Context, req *CreateChannelInput, opts ...*CreateChannelOptions) (CreateChannelRun, error)
+
+	// GetCreateChannel retrieves a handle to an existing fabric.v1.CreateChannel workflow execution
+	GetCreateChannel(ctx context.Context, workflowID string, runID string) CreateChannelRun
 
 	// CreateIdentity creates a full Fabric identity with both org and TLS certificates
 	// Used for creating peer, orderer, admin, and client identities.
@@ -207,6 +275,46 @@ type FabricClient interface {
 	// GetDeployPeer retrieves a handle to an existing fabric.v1.DeployPeer workflow execution
 	GetDeployPeer(ctx context.Context, workflowID string, runID string) DeployPeerRun
 
+	// JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+	// Handles both genesis-based (consenter) and config-block-based (follower) joins
+	JoinOrdererToChannel(ctx context.Context, req *JoinOrdererToChannelInput, opts ...*JoinOrdererToChannelOptions) (*JoinOrdererToChannelOutput, error)
+
+	// JoinOrdererToChannelAsync starts a(n) fabric.v1.JoinOrdererToChannel workflow and returns a handle to the workflow run
+	JoinOrdererToChannelAsync(ctx context.Context, req *JoinOrdererToChannelInput, opts ...*JoinOrdererToChannelOptions) (JoinOrdererToChannelRun, error)
+
+	// GetJoinOrdererToChannel retrieves a handle to an existing fabric.v1.JoinOrdererToChannel workflow execution
+	GetJoinOrdererToChannel(ctx context.Context, workflowID string, runID string) JoinOrdererToChannelRun
+
+	// JoinPeerToChannel joins a peer node to a channel
+	// Fetches the oldest block from an orderer and joins the peer
+	JoinPeerToChannel(ctx context.Context, req *JoinPeerToChannelInput, opts ...*JoinPeerToChannelOptions) (*JoinPeerToChannelOutput, error)
+
+	// JoinPeerToChannelAsync starts a(n) fabric.v1.JoinPeerToChannel workflow and returns a handle to the workflow run
+	JoinPeerToChannelAsync(ctx context.Context, req *JoinPeerToChannelInput, opts ...*JoinPeerToChannelOptions) (JoinPeerToChannelRun, error)
+
+	// GetJoinPeerToChannel retrieves a handle to an existing fabric.v1.JoinPeerToChannel workflow execution
+	GetJoinPeerToChannel(ctx context.Context, workflowID string, runID string) JoinPeerToChannelRun
+
+	// SetAnchorPeer configures the anchor peer for an org on a channel
+	// Uses UpdateChannelConfig to modify the channel's Application group
+	SetAnchorPeer(ctx context.Context, req *SetAnchorPeerInput, opts ...*SetAnchorPeerOptions) (*SetAnchorPeerOutput, error)
+
+	// SetAnchorPeerAsync starts a(n) fabric.v1.SetAnchorPeer workflow and returns a handle to the workflow run
+	SetAnchorPeerAsync(ctx context.Context, req *SetAnchorPeerInput, opts ...*SetAnchorPeerOptions) (SetAnchorPeerRun, error)
+
+	// GetSetAnchorPeer retrieves a handle to an existing fabric.v1.SetAnchorPeer workflow execution
+	GetSetAnchorPeer(ctx context.Context, workflowID string, runID string) SetAnchorPeerRun
+
+	// UpdateChannelConfig is the common pattern for all channel configuration changes
+	// Fetches current config, computes delta, collects signatures, and submits update
+	UpdateChannelConfig(ctx context.Context, req *UpdateChannelConfigInput, opts ...*UpdateChannelConfigOptions) (*UpdateChannelConfigOutput, error)
+
+	// UpdateChannelConfigAsync starts a(n) fabric.v1.UpdateChannelConfig workflow and returns a handle to the workflow run
+	UpdateChannelConfigAsync(ctx context.Context, req *UpdateChannelConfigInput, opts ...*UpdateChannelConfigOptions) (UpdateChannelConfigRun, error)
+
+	// GetUpdateChannelConfig retrieves a handle to an existing fabric.v1.UpdateChannelConfig workflow execution
+	GetUpdateChannelConfig(ctx context.Context, workflowID string, runID string) UpdateChannelConfigRun
+
 	// CancelWorkflow requests cancellation of an existing workflow execution
 	CancelWorkflow(ctx context.Context, workflowID string, runID string) error
 
@@ -277,6 +385,182 @@ func (opts *fabricClientOptions) getLogger() *slog.Logger {
 		return opts.log
 	}
 	return slog.Default()
+}
+
+// AddOrdererToChannel adds a new orderer to an existing channel
+// Fetches latest config block, joins as follower, then promotes to consenter
+func (c *fabricClient) AddOrdererToChannel(ctx context.Context, req *AddOrdererToChannelInput, options ...*AddOrdererToChannelOptions) (*AddOrdererToChannelOutput, error) {
+	run, err := c.AddOrdererToChannelAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// AddOrdererToChannel adds a new orderer to an existing channel
+// Fetches latest config block, joins as follower, then promotes to consenter
+func (c *fabricClient) AddOrdererToChannelAsync(ctx context.Context, req *AddOrdererToChannelInput, options ...*AddOrdererToChannelOptions) (AddOrdererToChannelRun, error) {
+	var o *AddOrdererToChannelOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewAddOrdererToChannelOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, AddOrdererToChannelWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &addOrdererToChannelRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetAddOrdererToChannel fetches an existing fabric.v1.AddOrdererToChannel execution
+func (c *fabricClient) GetAddOrdererToChannel(ctx context.Context, workflowID string, runID string) AddOrdererToChannelRun {
+	return &addOrdererToChannelRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// AddOrdererToConsenterSet promotes an orderer from follower to consenter
+// via a channel config update to the ConsensusType metadata
+func (c *fabricClient) AddOrdererToConsenterSet(ctx context.Context, req *AddOrdererToConsenterSetInput, options ...*AddOrdererToConsenterSetOptions) (*AddOrdererToConsenterSetOutput, error) {
+	run, err := c.AddOrdererToConsenterSetAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// AddOrdererToConsenterSet promotes an orderer from follower to consenter
+// via a channel config update to the ConsensusType metadata
+func (c *fabricClient) AddOrdererToConsenterSetAsync(ctx context.Context, req *AddOrdererToConsenterSetInput, options ...*AddOrdererToConsenterSetOptions) (AddOrdererToConsenterSetRun, error) {
+	var o *AddOrdererToConsenterSetOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewAddOrdererToConsenterSetOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, AddOrdererToConsenterSetWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &addOrdererToConsenterSetRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetAddOrdererToConsenterSet fetches an existing fabric.v1.AddOrdererToConsenterSet execution
+func (c *fabricClient) GetAddOrdererToConsenterSet(ctx context.Context, workflowID string, runID string) AddOrdererToConsenterSetRun {
+	return &addOrdererToConsenterSetRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// AddOrgToChannel adds a new organization to an existing channel
+// Requires signatures from a majority of existing channel admins
+func (c *fabricClient) AddOrgToChannel(ctx context.Context, req *AddOrgToChannelInput, options ...*AddOrgToChannelOptions) (*AddOrgToChannelOutput, error) {
+	run, err := c.AddOrgToChannelAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// AddOrgToChannel adds a new organization to an existing channel
+// Requires signatures from a majority of existing channel admins
+func (c *fabricClient) AddOrgToChannelAsync(ctx context.Context, req *AddOrgToChannelInput, options ...*AddOrgToChannelOptions) (AddOrgToChannelRun, error) {
+	var o *AddOrgToChannelOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewAddOrgToChannelOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, AddOrgToChannelWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &addOrgToChannelRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetAddOrgToChannel fetches an existing fabric.v1.AddOrgToChannel execution
+func (c *fabricClient) GetAddOrgToChannel(ctx context.Context, workflowID string, runID string) AddOrgToChannelRun {
+	return &addOrgToChannelRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// AddPeerToChannel adds a new peer to an existing channel
+// Optionally adds the org to the channel first if not already a member
+func (c *fabricClient) AddPeerToChannel(ctx context.Context, req *AddPeerToChannelInput, options ...*AddPeerToChannelOptions) (*AddPeerToChannelOutput, error) {
+	run, err := c.AddPeerToChannelAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// AddPeerToChannel adds a new peer to an existing channel
+// Optionally adds the org to the channel first if not already a member
+func (c *fabricClient) AddPeerToChannelAsync(ctx context.Context, req *AddPeerToChannelInput, options ...*AddPeerToChannelOptions) (AddPeerToChannelRun, error) {
+	var o *AddPeerToChannelOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewAddPeerToChannelOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, AddPeerToChannelWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &addPeerToChannelRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetAddPeerToChannel fetches an existing fabric.v1.AddPeerToChannel execution
+func (c *fabricClient) GetAddPeerToChannel(ctx context.Context, workflowID string, runID string) AddPeerToChannelRun {
+	return &addPeerToChannelRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
 }
 
 // BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
@@ -552,6 +836,50 @@ func (c *fabricClient) CreateCertificateDatabaseAsync(ctx context.Context, req *
 // GetCreateCertificateDatabase fetches an existing fabric.v1.CreateCertificateDatabase execution
 func (c *fabricClient) GetCreateCertificateDatabase(ctx context.Context, workflowID string, runID string) CreateCertificateDatabaseRun {
 	return &createCertificateDatabaseRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// CreateChannel orchestrates creation of a new Fabric channel
+// Generates genesis block, joins orderers and peers, sets anchor peers
+func (c *fabricClient) CreateChannel(ctx context.Context, req *CreateChannelInput, options ...*CreateChannelOptions) (*CreateChannelOutput, error) {
+	run, err := c.CreateChannelAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// CreateChannel orchestrates creation of a new Fabric channel
+// Generates genesis block, joins orderers and peers, sets anchor peers
+func (c *fabricClient) CreateChannelAsync(ctx context.Context, req *CreateChannelInput, options ...*CreateChannelOptions) (CreateChannelRun, error) {
+	var o *CreateChannelOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateChannelOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, CreateChannelWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &createChannelRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetCreateChannel fetches an existing fabric.v1.CreateChannel execution
+func (c *fabricClient) GetCreateChannel(ctx context.Context, workflowID string, runID string) CreateChannelRun {
+	return &createChannelRun{
 		client: c,
 		run:    c.client.GetWorkflow(ctx, workflowID, runID),
 	}
@@ -871,6 +1199,182 @@ func (c *fabricClient) GetDeployPeer(ctx context.Context, workflowID string, run
 	}
 }
 
+// JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+// Handles both genesis-based (consenter) and config-block-based (follower) joins
+func (c *fabricClient) JoinOrdererToChannel(ctx context.Context, req *JoinOrdererToChannelInput, options ...*JoinOrdererToChannelOptions) (*JoinOrdererToChannelOutput, error) {
+	run, err := c.JoinOrdererToChannelAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+// Handles both genesis-based (consenter) and config-block-based (follower) joins
+func (c *fabricClient) JoinOrdererToChannelAsync(ctx context.Context, req *JoinOrdererToChannelInput, options ...*JoinOrdererToChannelOptions) (JoinOrdererToChannelRun, error) {
+	var o *JoinOrdererToChannelOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewJoinOrdererToChannelOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, JoinOrdererToChannelWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &joinOrdererToChannelRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetJoinOrdererToChannel fetches an existing fabric.v1.JoinOrdererToChannel execution
+func (c *fabricClient) GetJoinOrdererToChannel(ctx context.Context, workflowID string, runID string) JoinOrdererToChannelRun {
+	return &joinOrdererToChannelRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// JoinPeerToChannel joins a peer node to a channel
+// Fetches the oldest block from an orderer and joins the peer
+func (c *fabricClient) JoinPeerToChannel(ctx context.Context, req *JoinPeerToChannelInput, options ...*JoinPeerToChannelOptions) (*JoinPeerToChannelOutput, error) {
+	run, err := c.JoinPeerToChannelAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// JoinPeerToChannel joins a peer node to a channel
+// Fetches the oldest block from an orderer and joins the peer
+func (c *fabricClient) JoinPeerToChannelAsync(ctx context.Context, req *JoinPeerToChannelInput, options ...*JoinPeerToChannelOptions) (JoinPeerToChannelRun, error) {
+	var o *JoinPeerToChannelOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewJoinPeerToChannelOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, JoinPeerToChannelWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &joinPeerToChannelRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetJoinPeerToChannel fetches an existing fabric.v1.JoinPeerToChannel execution
+func (c *fabricClient) GetJoinPeerToChannel(ctx context.Context, workflowID string, runID string) JoinPeerToChannelRun {
+	return &joinPeerToChannelRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// SetAnchorPeer configures the anchor peer for an org on a channel
+// Uses UpdateChannelConfig to modify the channel's Application group
+func (c *fabricClient) SetAnchorPeer(ctx context.Context, req *SetAnchorPeerInput, options ...*SetAnchorPeerOptions) (*SetAnchorPeerOutput, error) {
+	run, err := c.SetAnchorPeerAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// SetAnchorPeer configures the anchor peer for an org on a channel
+// Uses UpdateChannelConfig to modify the channel's Application group
+func (c *fabricClient) SetAnchorPeerAsync(ctx context.Context, req *SetAnchorPeerInput, options ...*SetAnchorPeerOptions) (SetAnchorPeerRun, error) {
+	var o *SetAnchorPeerOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewSetAnchorPeerOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, SetAnchorPeerWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &setAnchorPeerRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetSetAnchorPeer fetches an existing fabric.v1.SetAnchorPeer execution
+func (c *fabricClient) GetSetAnchorPeer(ctx context.Context, workflowID string, runID string) SetAnchorPeerRun {
+	return &setAnchorPeerRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// UpdateChannelConfig is the common pattern for all channel configuration changes
+// Fetches current config, computes delta, collects signatures, and submits update
+func (c *fabricClient) UpdateChannelConfig(ctx context.Context, req *UpdateChannelConfigInput, options ...*UpdateChannelConfigOptions) (*UpdateChannelConfigOutput, error) {
+	run, err := c.UpdateChannelConfigAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// UpdateChannelConfig is the common pattern for all channel configuration changes
+// Fetches current config, computes delta, collects signatures, and submits update
+func (c *fabricClient) UpdateChannelConfigAsync(ctx context.Context, req *UpdateChannelConfigInput, options ...*UpdateChannelConfigOptions) (UpdateChannelConfigRun, error) {
+	var o *UpdateChannelConfigOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewUpdateChannelConfigOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, UpdateChannelConfigWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &updateChannelConfigRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetUpdateChannelConfig fetches an existing fabric.v1.UpdateChannelConfig execution
+func (c *fabricClient) GetUpdateChannelConfig(ctx context.Context, workflowID string, runID string) UpdateChannelConfigRun {
+	return &updateChannelConfigRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
 // CancelWorkflow requests cancellation of an existing workflow execution
 func (c *fabricClient) CancelWorkflow(ctx context.Context, workflowID string, runID string) error {
 	return c.client.CancelWorkflow(ctx, workflowID, runID)
@@ -879,6 +1383,738 @@ func (c *fabricClient) CancelWorkflow(ctx context.Context, workflowID string, ru
 // TerminateWorkflow terminates an existing workflow execution
 func (c *fabricClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
 	return c.client.TerminateWorkflow(ctx, workflowID, runID, reason, details...)
+}
+
+// AddOrdererToChannelOptions provides configuration for a fabric.v1.AddOrdererToChannel workflow operation
+type AddOrdererToChannelOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewAddOrdererToChannelOptions initializes a new AddOrdererToChannelOptions value
+func NewAddOrdererToChannelOptions() *AddOrdererToChannelOptions {
+	return &AddOrdererToChannelOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *AddOrdererToChannelOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(AddOrdererToChannelIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", AddOrdererToChannelWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *AddOrdererToChannelOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *AddOrdererToChannelOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *AddOrdererToChannelOptions) WithExecutionTimeout(d time.Duration) *AddOrdererToChannelOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *AddOrdererToChannelOptions) WithID(id string) *AddOrdererToChannelOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *AddOrdererToChannelOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *AddOrdererToChannelOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *AddOrdererToChannelOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *AddOrdererToChannelOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *AddOrdererToChannelOptions) WithRunTimeout(d time.Duration) *AddOrdererToChannelOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *AddOrdererToChannelOptions) WithSearchAttributes(sa map[string]any) *AddOrdererToChannelOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *AddOrdererToChannelOptions) WithTaskTimeout(d time.Duration) *AddOrdererToChannelOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *AddOrdererToChannelOptions) WithTaskQueue(tq string) *AddOrdererToChannelOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *AddOrdererToChannelOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *AddOrdererToChannelOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// AddOrdererToChannelRun describes a(n) fabric.v1.AddOrdererToChannel workflow run
+type AddOrdererToChannelRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*AddOrdererToChannelOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// addOrdererToChannelRun provides an internal implementation of a(n) AddOrdererToChannelRunRun
+type addOrdererToChannelRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *addOrdererToChannelRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *addOrdererToChannelRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *addOrdererToChannelRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *addOrdererToChannelRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *addOrdererToChannelRun) Get(ctx context.Context) (*AddOrdererToChannelOutput, error) {
+	var resp AddOrdererToChannelOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *addOrdererToChannelRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+// AddOrdererToConsenterSetOptions provides configuration for a fabric.v1.AddOrdererToConsenterSet workflow operation
+type AddOrdererToConsenterSetOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewAddOrdererToConsenterSetOptions initializes a new AddOrdererToConsenterSetOptions value
+func NewAddOrdererToConsenterSetOptions() *AddOrdererToConsenterSetOptions {
+	return &AddOrdererToConsenterSetOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *AddOrdererToConsenterSetOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(AddOrdererToConsenterSetIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", AddOrdererToConsenterSetWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *AddOrdererToConsenterSetOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *AddOrdererToConsenterSetOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *AddOrdererToConsenterSetOptions) WithExecutionTimeout(d time.Duration) *AddOrdererToConsenterSetOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *AddOrdererToConsenterSetOptions) WithID(id string) *AddOrdererToConsenterSetOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *AddOrdererToConsenterSetOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *AddOrdererToConsenterSetOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *AddOrdererToConsenterSetOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *AddOrdererToConsenterSetOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *AddOrdererToConsenterSetOptions) WithRunTimeout(d time.Duration) *AddOrdererToConsenterSetOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *AddOrdererToConsenterSetOptions) WithSearchAttributes(sa map[string]any) *AddOrdererToConsenterSetOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *AddOrdererToConsenterSetOptions) WithTaskTimeout(d time.Duration) *AddOrdererToConsenterSetOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *AddOrdererToConsenterSetOptions) WithTaskQueue(tq string) *AddOrdererToConsenterSetOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *AddOrdererToConsenterSetOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *AddOrdererToConsenterSetOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// AddOrdererToConsenterSetRun describes a(n) fabric.v1.AddOrdererToConsenterSet workflow run
+type AddOrdererToConsenterSetRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*AddOrdererToConsenterSetOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// addOrdererToConsenterSetRun provides an internal implementation of a(n) AddOrdererToConsenterSetRunRun
+type addOrdererToConsenterSetRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *addOrdererToConsenterSetRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *addOrdererToConsenterSetRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *addOrdererToConsenterSetRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *addOrdererToConsenterSetRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *addOrdererToConsenterSetRun) Get(ctx context.Context) (*AddOrdererToConsenterSetOutput, error) {
+	var resp AddOrdererToConsenterSetOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *addOrdererToConsenterSetRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+// AddOrgToChannelOptions provides configuration for a fabric.v1.AddOrgToChannel workflow operation
+type AddOrgToChannelOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewAddOrgToChannelOptions initializes a new AddOrgToChannelOptions value
+func NewAddOrgToChannelOptions() *AddOrgToChannelOptions {
+	return &AddOrgToChannelOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *AddOrgToChannelOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(AddOrgToChannelIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", AddOrgToChannelWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *AddOrgToChannelOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *AddOrgToChannelOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *AddOrgToChannelOptions) WithExecutionTimeout(d time.Duration) *AddOrgToChannelOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *AddOrgToChannelOptions) WithID(id string) *AddOrgToChannelOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *AddOrgToChannelOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *AddOrgToChannelOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *AddOrgToChannelOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *AddOrgToChannelOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *AddOrgToChannelOptions) WithRunTimeout(d time.Duration) *AddOrgToChannelOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *AddOrgToChannelOptions) WithSearchAttributes(sa map[string]any) *AddOrgToChannelOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *AddOrgToChannelOptions) WithTaskTimeout(d time.Duration) *AddOrgToChannelOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *AddOrgToChannelOptions) WithTaskQueue(tq string) *AddOrgToChannelOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *AddOrgToChannelOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *AddOrgToChannelOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// AddOrgToChannelRun describes a(n) fabric.v1.AddOrgToChannel workflow run
+type AddOrgToChannelRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*AddOrgToChannelOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// addOrgToChannelRun provides an internal implementation of a(n) AddOrgToChannelRunRun
+type addOrgToChannelRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *addOrgToChannelRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *addOrgToChannelRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *addOrgToChannelRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *addOrgToChannelRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *addOrgToChannelRun) Get(ctx context.Context) (*AddOrgToChannelOutput, error) {
+	var resp AddOrgToChannelOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *addOrgToChannelRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+// AddPeerToChannelOptions provides configuration for a fabric.v1.AddPeerToChannel workflow operation
+type AddPeerToChannelOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewAddPeerToChannelOptions initializes a new AddPeerToChannelOptions value
+func NewAddPeerToChannelOptions() *AddPeerToChannelOptions {
+	return &AddPeerToChannelOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *AddPeerToChannelOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(AddPeerToChannelIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", AddPeerToChannelWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *AddPeerToChannelOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *AddPeerToChannelOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *AddPeerToChannelOptions) WithExecutionTimeout(d time.Duration) *AddPeerToChannelOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *AddPeerToChannelOptions) WithID(id string) *AddPeerToChannelOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *AddPeerToChannelOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *AddPeerToChannelOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *AddPeerToChannelOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *AddPeerToChannelOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *AddPeerToChannelOptions) WithRunTimeout(d time.Duration) *AddPeerToChannelOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *AddPeerToChannelOptions) WithSearchAttributes(sa map[string]any) *AddPeerToChannelOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *AddPeerToChannelOptions) WithTaskTimeout(d time.Duration) *AddPeerToChannelOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *AddPeerToChannelOptions) WithTaskQueue(tq string) *AddPeerToChannelOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *AddPeerToChannelOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *AddPeerToChannelOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// AddPeerToChannelRun describes a(n) fabric.v1.AddPeerToChannel workflow run
+type AddPeerToChannelRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*AddPeerToChannelOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// addPeerToChannelRun provides an internal implementation of a(n) AddPeerToChannelRunRun
+type addPeerToChannelRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *addPeerToChannelRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *addPeerToChannelRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *addPeerToChannelRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *addPeerToChannelRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *addPeerToChannelRun) Get(ctx context.Context) (*AddPeerToChannelOutput, error) {
+	var resp AddPeerToChannelOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *addPeerToChannelRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
 // BootstrapCertificateAuthoritiesOptions provides configuration for a fabric.v1.BootstrapCertificateAuthorities workflow operation
@@ -1976,6 +3212,189 @@ func (r *createCertificateDatabaseRun) Get(ctx context.Context) (*CreateCertific
 
 // Terminate terminates a workflow in execution, returning an error if applicable
 func (r *createCertificateDatabaseRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+// CreateChannelOptions provides configuration for a fabric.v1.CreateChannel workflow operation
+type CreateChannelOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewCreateChannelOptions initializes a new CreateChannelOptions value
+func NewCreateChannelOptions() *CreateChannelOptions {
+	return &CreateChannelOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *CreateChannelOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(CreateChannelIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateChannelWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *CreateChannelOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *CreateChannelOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *CreateChannelOptions) WithExecutionTimeout(d time.Duration) *CreateChannelOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *CreateChannelOptions) WithID(id string) *CreateChannelOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *CreateChannelOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *CreateChannelOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CreateChannelOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateChannelOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *CreateChannelOptions) WithRunTimeout(d time.Duration) *CreateChannelOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *CreateChannelOptions) WithSearchAttributes(sa map[string]any) *CreateChannelOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *CreateChannelOptions) WithTaskTimeout(d time.Duration) *CreateChannelOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *CreateChannelOptions) WithTaskQueue(tq string) *CreateChannelOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *CreateChannelOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *CreateChannelOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// CreateChannelRun describes a(n) fabric.v1.CreateChannel workflow run
+type CreateChannelRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*CreateChannelOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// createChannelRun provides an internal implementation of a(n) CreateChannelRunRun
+type createChannelRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *createChannelRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *createChannelRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *createChannelRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *createChannelRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *createChannelRun) Get(ctx context.Context) (*CreateChannelOutput, error) {
+	var resp CreateChannelOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *createChannelRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
@@ -3260,10 +4679,754 @@ func (r *deployPeerRun) Terminate(ctx context.Context, reason string, details ..
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
+// JoinOrdererToChannelOptions provides configuration for a fabric.v1.JoinOrdererToChannel workflow operation
+type JoinOrdererToChannelOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewJoinOrdererToChannelOptions initializes a new JoinOrdererToChannelOptions value
+func NewJoinOrdererToChannelOptions() *JoinOrdererToChannelOptions {
+	return &JoinOrdererToChannelOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *JoinOrdererToChannelOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(JoinOrdererToChannelIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", JoinOrdererToChannelWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *JoinOrdererToChannelOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *JoinOrdererToChannelOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *JoinOrdererToChannelOptions) WithExecutionTimeout(d time.Duration) *JoinOrdererToChannelOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *JoinOrdererToChannelOptions) WithID(id string) *JoinOrdererToChannelOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *JoinOrdererToChannelOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *JoinOrdererToChannelOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *JoinOrdererToChannelOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *JoinOrdererToChannelOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *JoinOrdererToChannelOptions) WithRunTimeout(d time.Duration) *JoinOrdererToChannelOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *JoinOrdererToChannelOptions) WithSearchAttributes(sa map[string]any) *JoinOrdererToChannelOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *JoinOrdererToChannelOptions) WithTaskTimeout(d time.Duration) *JoinOrdererToChannelOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *JoinOrdererToChannelOptions) WithTaskQueue(tq string) *JoinOrdererToChannelOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *JoinOrdererToChannelOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *JoinOrdererToChannelOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// JoinOrdererToChannelRun describes a(n) fabric.v1.JoinOrdererToChannel workflow run
+type JoinOrdererToChannelRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*JoinOrdererToChannelOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// joinOrdererToChannelRun provides an internal implementation of a(n) JoinOrdererToChannelRunRun
+type joinOrdererToChannelRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *joinOrdererToChannelRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *joinOrdererToChannelRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *joinOrdererToChannelRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *joinOrdererToChannelRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *joinOrdererToChannelRun) Get(ctx context.Context) (*JoinOrdererToChannelOutput, error) {
+	var resp JoinOrdererToChannelOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *joinOrdererToChannelRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+// JoinPeerToChannelOptions provides configuration for a fabric.v1.JoinPeerToChannel workflow operation
+type JoinPeerToChannelOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewJoinPeerToChannelOptions initializes a new JoinPeerToChannelOptions value
+func NewJoinPeerToChannelOptions() *JoinPeerToChannelOptions {
+	return &JoinPeerToChannelOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *JoinPeerToChannelOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(JoinPeerToChannelIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", JoinPeerToChannelWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *JoinPeerToChannelOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *JoinPeerToChannelOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *JoinPeerToChannelOptions) WithExecutionTimeout(d time.Duration) *JoinPeerToChannelOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *JoinPeerToChannelOptions) WithID(id string) *JoinPeerToChannelOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *JoinPeerToChannelOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *JoinPeerToChannelOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *JoinPeerToChannelOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *JoinPeerToChannelOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *JoinPeerToChannelOptions) WithRunTimeout(d time.Duration) *JoinPeerToChannelOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *JoinPeerToChannelOptions) WithSearchAttributes(sa map[string]any) *JoinPeerToChannelOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *JoinPeerToChannelOptions) WithTaskTimeout(d time.Duration) *JoinPeerToChannelOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *JoinPeerToChannelOptions) WithTaskQueue(tq string) *JoinPeerToChannelOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *JoinPeerToChannelOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *JoinPeerToChannelOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// JoinPeerToChannelRun describes a(n) fabric.v1.JoinPeerToChannel workflow run
+type JoinPeerToChannelRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*JoinPeerToChannelOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// joinPeerToChannelRun provides an internal implementation of a(n) JoinPeerToChannelRunRun
+type joinPeerToChannelRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *joinPeerToChannelRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *joinPeerToChannelRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *joinPeerToChannelRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *joinPeerToChannelRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *joinPeerToChannelRun) Get(ctx context.Context) (*JoinPeerToChannelOutput, error) {
+	var resp JoinPeerToChannelOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *joinPeerToChannelRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+// SetAnchorPeerOptions provides configuration for a fabric.v1.SetAnchorPeer workflow operation
+type SetAnchorPeerOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewSetAnchorPeerOptions initializes a new SetAnchorPeerOptions value
+func NewSetAnchorPeerOptions() *SetAnchorPeerOptions {
+	return &SetAnchorPeerOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *SetAnchorPeerOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(SetAnchorPeerIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", SetAnchorPeerWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *SetAnchorPeerOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *SetAnchorPeerOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *SetAnchorPeerOptions) WithExecutionTimeout(d time.Duration) *SetAnchorPeerOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *SetAnchorPeerOptions) WithID(id string) *SetAnchorPeerOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *SetAnchorPeerOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *SetAnchorPeerOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *SetAnchorPeerOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *SetAnchorPeerOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *SetAnchorPeerOptions) WithRunTimeout(d time.Duration) *SetAnchorPeerOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *SetAnchorPeerOptions) WithSearchAttributes(sa map[string]any) *SetAnchorPeerOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *SetAnchorPeerOptions) WithTaskTimeout(d time.Duration) *SetAnchorPeerOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *SetAnchorPeerOptions) WithTaskQueue(tq string) *SetAnchorPeerOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *SetAnchorPeerOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *SetAnchorPeerOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// SetAnchorPeerRun describes a(n) fabric.v1.SetAnchorPeer workflow run
+type SetAnchorPeerRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*SetAnchorPeerOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// setAnchorPeerRun provides an internal implementation of a(n) SetAnchorPeerRunRun
+type setAnchorPeerRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *setAnchorPeerRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *setAnchorPeerRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *setAnchorPeerRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *setAnchorPeerRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *setAnchorPeerRun) Get(ctx context.Context) (*SetAnchorPeerOutput, error) {
+	var resp SetAnchorPeerOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *setAnchorPeerRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+// UpdateChannelConfigOptions provides configuration for a fabric.v1.UpdateChannelConfig workflow operation
+type UpdateChannelConfigOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewUpdateChannelConfigOptions initializes a new UpdateChannelConfigOptions value
+func NewUpdateChannelConfigOptions() *UpdateChannelConfigOptions {
+	return &UpdateChannelConfigOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *UpdateChannelConfigOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(UpdateChannelConfigIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", UpdateChannelConfigWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *UpdateChannelConfigOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *UpdateChannelConfigOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *UpdateChannelConfigOptions) WithExecutionTimeout(d time.Duration) *UpdateChannelConfigOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *UpdateChannelConfigOptions) WithID(id string) *UpdateChannelConfigOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *UpdateChannelConfigOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *UpdateChannelConfigOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *UpdateChannelConfigOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *UpdateChannelConfigOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *UpdateChannelConfigOptions) WithRunTimeout(d time.Duration) *UpdateChannelConfigOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *UpdateChannelConfigOptions) WithSearchAttributes(sa map[string]any) *UpdateChannelConfigOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *UpdateChannelConfigOptions) WithTaskTimeout(d time.Duration) *UpdateChannelConfigOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *UpdateChannelConfigOptions) WithTaskQueue(tq string) *UpdateChannelConfigOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *UpdateChannelConfigOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *UpdateChannelConfigOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// UpdateChannelConfigRun describes a(n) fabric.v1.UpdateChannelConfig workflow run
+type UpdateChannelConfigRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*UpdateChannelConfigOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// updateChannelConfigRun provides an internal implementation of a(n) UpdateChannelConfigRunRun
+type updateChannelConfigRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *updateChannelConfigRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *updateChannelConfigRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *updateChannelConfigRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *updateChannelConfigRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *updateChannelConfigRun) Get(ctx context.Context) (*UpdateChannelConfigOutput, error) {
+	var resp UpdateChannelConfigOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *updateChannelConfigRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
 // Reference to generated workflow functions
 var (
 	// fabricRegistrationMutex is a mutex for registering fabric.v1.Fabric workflows
 	fabricRegistrationMutex sync.Mutex
+	// AddOrdererToChannel adds a new orderer to an existing channel
+	// Fetches latest config block, joins as follower, then promotes to consenter
+	AddOrdererToChannelFunction func(workflow.Context, *AddOrdererToChannelInput) (*AddOrdererToChannelOutput, error)
+	// AddOrdererToConsenterSet promotes an orderer from follower to consenter
+	// via a channel config update to the ConsensusType metadata
+	AddOrdererToConsenterSetFunction func(workflow.Context, *AddOrdererToConsenterSetInput) (*AddOrdererToConsenterSetOutput, error)
+	// AddOrgToChannel adds a new organization to an existing channel
+	// Requires signatures from a majority of existing channel admins
+	AddOrgToChannelFunction func(workflow.Context, *AddOrgToChannelInput) (*AddOrgToChannelOutput, error)
+	// AddPeerToChannel adds a new peer to an existing channel
+	// Optionally adds the org to the channel first if not already a member
+	AddPeerToChannelFunction func(workflow.Context, *AddPeerToChannelInput) (*AddPeerToChannelOutput, error)
 	// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
 	// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
 	// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
@@ -3289,6 +5452,9 @@ var (
 	// in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
 	// isolated database to store issued certificates and revocation information.
 	CreateCertificateDatabaseFunction func(workflow.Context, *CreateCertificateDatabaseInput) (*CreateCertificateDatabaseOutput, error)
+	// CreateChannel orchestrates creation of a new Fabric channel
+	// Generates genesis block, joins orderers and peers, sets anchor peers
+	CreateChannelFunction func(workflow.Context, *CreateChannelInput) (*CreateChannelOutput, error)
 	// CreateIdentity creates a full Fabric identity with both org and TLS certificates
 	// Used for creating peer, orderer, admin, and client identities.
 	// This is the production workflow for identity creation (not bootstrap).
@@ -3313,12 +5479,36 @@ var (
 	// DeployPeer deploys a Fabric peer node
 	// Peers endorse transactions and maintain ledger state
 	DeployPeerFunction func(workflow.Context, *DeployPeerInput) (*DeployPeerOutput, error)
+	// JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+	// Handles both genesis-based (consenter) and config-block-based (follower) joins
+	JoinOrdererToChannelFunction func(workflow.Context, *JoinOrdererToChannelInput) (*JoinOrdererToChannelOutput, error)
+	// JoinPeerToChannel joins a peer node to a channel
+	// Fetches the oldest block from an orderer and joins the peer
+	JoinPeerToChannelFunction func(workflow.Context, *JoinPeerToChannelInput) (*JoinPeerToChannelOutput, error)
+	// SetAnchorPeer configures the anchor peer for an org on a channel
+	// Uses UpdateChannelConfig to modify the channel's Application group
+	SetAnchorPeerFunction func(workflow.Context, *SetAnchorPeerInput) (*SetAnchorPeerOutput, error)
+	// UpdateChannelConfig is the common pattern for all channel configuration changes
+	// Fetches current config, computes delta, collects signatures, and submits update
+	UpdateChannelConfigFunction func(workflow.Context, *UpdateChannelConfigInput) (*UpdateChannelConfigOutput, error)
 )
 
 // FabricWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
 type (
 	// FabricWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
 	FabricWorkflowFunctions interface {
+		// AddOrdererToChannel adds a new orderer to an existing channel
+		// Fetches latest config block, joins as follower, then promotes to consenter
+		AddOrdererToChannel(workflow.Context, *AddOrdererToChannelInput) (*AddOrdererToChannelOutput, error)
+		// AddOrdererToConsenterSet promotes an orderer from follower to consenter
+		// via a channel config update to the ConsensusType metadata
+		AddOrdererToConsenterSet(workflow.Context, *AddOrdererToConsenterSetInput) (*AddOrdererToConsenterSetOutput, error)
+		// AddOrgToChannel adds a new organization to an existing channel
+		// Requires signatures from a majority of existing channel admins
+		AddOrgToChannel(workflow.Context, *AddOrgToChannelInput) (*AddOrgToChannelOutput, error)
+		// AddPeerToChannel adds a new peer to an existing channel
+		// Optionally adds the org to the channel first if not already a member
+		AddPeerToChannel(workflow.Context, *AddPeerToChannelInput) (*AddPeerToChannelOutput, error)
 		// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
 		// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
 		// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
@@ -3344,6 +5534,9 @@ type (
 		// in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
 		// isolated database to store issued certificates and revocation information.
 		CreateCertificateDatabase(workflow.Context, *CreateCertificateDatabaseInput) (*CreateCertificateDatabaseOutput, error)
+		// CreateChannel orchestrates creation of a new Fabric channel
+		// Generates genesis block, joins orderers and peers, sets anchor peers
+		CreateChannel(workflow.Context, *CreateChannelInput) (*CreateChannelOutput, error)
 		// CreateIdentity creates a full Fabric identity with both org and TLS certificates
 		// Used for creating peer, orderer, admin, and client identities.
 		// This is the production workflow for identity creation (not bootstrap).
@@ -3368,6 +5561,18 @@ type (
 		// DeployPeer deploys a Fabric peer node
 		// Peers endorse transactions and maintain ledger state
 		DeployPeer(workflow.Context, *DeployPeerInput) (*DeployPeerOutput, error)
+		// JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+		// Handles both genesis-based (consenter) and config-block-based (follower) joins
+		JoinOrdererToChannel(workflow.Context, *JoinOrdererToChannelInput) (*JoinOrdererToChannelOutput, error)
+		// JoinPeerToChannel joins a peer node to a channel
+		// Fetches the oldest block from an orderer and joins the peer
+		JoinPeerToChannel(workflow.Context, *JoinPeerToChannelInput) (*JoinPeerToChannelOutput, error)
+		// SetAnchorPeer configures the anchor peer for an org on a channel
+		// Uses UpdateChannelConfig to modify the channel's Application group
+		SetAnchorPeer(workflow.Context, *SetAnchorPeerInput) (*SetAnchorPeerOutput, error)
+		// UpdateChannelConfig is the common pattern for all channel configuration changes
+		// Fetches current config, computes delta, collects signatures, and submits update
+		UpdateChannelConfig(workflow.Context, *UpdateChannelConfigInput) (*UpdateChannelConfigOutput, error)
 	}
 	// fabricWorkflowFunctions provides an internal FabricWorkflowFunctions implementation
 	fabricWorkflowFunctions struct{}
@@ -3375,6 +5580,42 @@ type (
 
 func NewFabricWorkflowFunctions() FabricWorkflowFunctions {
 	return &fabricWorkflowFunctions{}
+}
+
+// AddOrdererToChannel adds a new orderer to an existing channel
+// Fetches latest config block, joins as follower, then promotes to consenter
+func (f *fabricWorkflowFunctions) AddOrdererToChannel(ctx workflow.Context, req *AddOrdererToChannelInput) (*AddOrdererToChannelOutput, error) {
+	if AddOrdererToChannelFunction == nil {
+		return nil, errors.New("AddOrdererToChannel requires workflow registration via RegisterFabricWorkflows or RegisterAddOrdererToChannelWorkflow")
+	}
+	return AddOrdererToChannelFunction(ctx, req)
+}
+
+// AddOrdererToConsenterSet promotes an orderer from follower to consenter
+// via a channel config update to the ConsensusType metadata
+func (f *fabricWorkflowFunctions) AddOrdererToConsenterSet(ctx workflow.Context, req *AddOrdererToConsenterSetInput) (*AddOrdererToConsenterSetOutput, error) {
+	if AddOrdererToConsenterSetFunction == nil {
+		return nil, errors.New("AddOrdererToConsenterSet requires workflow registration via RegisterFabricWorkflows or RegisterAddOrdererToConsenterSetWorkflow")
+	}
+	return AddOrdererToConsenterSetFunction(ctx, req)
+}
+
+// AddOrgToChannel adds a new organization to an existing channel
+// Requires signatures from a majority of existing channel admins
+func (f *fabricWorkflowFunctions) AddOrgToChannel(ctx workflow.Context, req *AddOrgToChannelInput) (*AddOrgToChannelOutput, error) {
+	if AddOrgToChannelFunction == nil {
+		return nil, errors.New("AddOrgToChannel requires workflow registration via RegisterFabricWorkflows or RegisterAddOrgToChannelWorkflow")
+	}
+	return AddOrgToChannelFunction(ctx, req)
+}
+
+// AddPeerToChannel adds a new peer to an existing channel
+// Optionally adds the org to the channel first if not already a member
+func (f *fabricWorkflowFunctions) AddPeerToChannel(ctx workflow.Context, req *AddPeerToChannelInput) (*AddPeerToChannelOutput, error) {
+	if AddPeerToChannelFunction == nil {
+		return nil, errors.New("AddPeerToChannel requires workflow registration via RegisterFabricWorkflows or RegisterAddPeerToChannelWorkflow")
+	}
+	return AddPeerToChannelFunction(ctx, req)
 }
 
 // BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
@@ -3436,6 +5677,15 @@ func (f *fabricWorkflowFunctions) CreateCertificateDatabase(ctx workflow.Context
 		return nil, errors.New("CreateCertificateDatabase requires workflow registration via RegisterFabricWorkflows or RegisterCreateCertificateDatabaseWorkflow")
 	}
 	return CreateCertificateDatabaseFunction(ctx, req)
+}
+
+// CreateChannel orchestrates creation of a new Fabric channel
+// Generates genesis block, joins orderers and peers, sets anchor peers
+func (f *fabricWorkflowFunctions) CreateChannel(ctx workflow.Context, req *CreateChannelInput) (*CreateChannelOutput, error) {
+	if CreateChannelFunction == nil {
+		return nil, errors.New("CreateChannel requires workflow registration via RegisterFabricWorkflows or RegisterCreateChannelWorkflow")
+	}
+	return CreateChannelFunction(ctx, req)
 }
 
 // CreateIdentity creates a full Fabric identity with both org and TLS certificates
@@ -3504,8 +5754,60 @@ func (f *fabricWorkflowFunctions) DeployPeer(ctx workflow.Context, req *DeployPe
 	return DeployPeerFunction(ctx, req)
 }
 
+// JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+// Handles both genesis-based (consenter) and config-block-based (follower) joins
+func (f *fabricWorkflowFunctions) JoinOrdererToChannel(ctx workflow.Context, req *JoinOrdererToChannelInput) (*JoinOrdererToChannelOutput, error) {
+	if JoinOrdererToChannelFunction == nil {
+		return nil, errors.New("JoinOrdererToChannel requires workflow registration via RegisterFabricWorkflows or RegisterJoinOrdererToChannelWorkflow")
+	}
+	return JoinOrdererToChannelFunction(ctx, req)
+}
+
+// JoinPeerToChannel joins a peer node to a channel
+// Fetches the oldest block from an orderer and joins the peer
+func (f *fabricWorkflowFunctions) JoinPeerToChannel(ctx workflow.Context, req *JoinPeerToChannelInput) (*JoinPeerToChannelOutput, error) {
+	if JoinPeerToChannelFunction == nil {
+		return nil, errors.New("JoinPeerToChannel requires workflow registration via RegisterFabricWorkflows or RegisterJoinPeerToChannelWorkflow")
+	}
+	return JoinPeerToChannelFunction(ctx, req)
+}
+
+// SetAnchorPeer configures the anchor peer for an org on a channel
+// Uses UpdateChannelConfig to modify the channel's Application group
+func (f *fabricWorkflowFunctions) SetAnchorPeer(ctx workflow.Context, req *SetAnchorPeerInput) (*SetAnchorPeerOutput, error) {
+	if SetAnchorPeerFunction == nil {
+		return nil, errors.New("SetAnchorPeer requires workflow registration via RegisterFabricWorkflows or RegisterSetAnchorPeerWorkflow")
+	}
+	return SetAnchorPeerFunction(ctx, req)
+}
+
+// UpdateChannelConfig is the common pattern for all channel configuration changes
+// Fetches current config, computes delta, collects signatures, and submits update
+func (f *fabricWorkflowFunctions) UpdateChannelConfig(ctx workflow.Context, req *UpdateChannelConfigInput) (*UpdateChannelConfigOutput, error) {
+	if UpdateChannelConfigFunction == nil {
+		return nil, errors.New("UpdateChannelConfig requires workflow registration via RegisterFabricWorkflows or RegisterUpdateChannelConfigWorkflow")
+	}
+	return UpdateChannelConfigFunction(ctx, req)
+}
+
 // FabricWorkflows provides methods for initializing new fabric.v1.Fabric workflow values
 type FabricWorkflows interface {
+	// AddOrdererToChannel adds a new orderer to an existing channel
+	// Fetches latest config block, joins as follower, then promotes to consenter
+	AddOrdererToChannel(ctx workflow.Context, input *AddOrdererToChannelWorkflowInput) (AddOrdererToChannelWorkflow, error)
+
+	// AddOrdererToConsenterSet promotes an orderer from follower to consenter
+	// via a channel config update to the ConsensusType metadata
+	AddOrdererToConsenterSet(ctx workflow.Context, input *AddOrdererToConsenterSetWorkflowInput) (AddOrdererToConsenterSetWorkflow, error)
+
+	// AddOrgToChannel adds a new organization to an existing channel
+	// Requires signatures from a majority of existing channel admins
+	AddOrgToChannel(ctx workflow.Context, input *AddOrgToChannelWorkflowInput) (AddOrgToChannelWorkflow, error)
+
+	// AddPeerToChannel adds a new peer to an existing channel
+	// Optionally adds the org to the channel first if not already a member
+	AddPeerToChannel(ctx workflow.Context, input *AddPeerToChannelWorkflowInput) (AddPeerToChannelWorkflow, error)
+
 	// BootstrapCertificateAuthorities orchestrates the deployment of all certificate authorities
 	// for a Fabric organization. This includes the certificate store, root CA, and intermediate CAs.
 	// Deploys TLS chain first (required for Org CA TLS certs), then Org chain.
@@ -3537,6 +5839,10 @@ type FabricWorkflows interface {
 	// isolated database to store issued certificates and revocation information.
 	CreateCertificateDatabase(ctx workflow.Context, input *CreateCertificateDatabaseWorkflowInput) (CreateCertificateDatabaseWorkflow, error)
 
+	// CreateChannel orchestrates creation of a new Fabric channel
+	// Generates genesis block, joins orderers and peers, sets anchor peers
+	CreateChannel(ctx workflow.Context, input *CreateChannelWorkflowInput) (CreateChannelWorkflow, error)
+
 	// CreateIdentity creates a full Fabric identity with both org and TLS certificates
 	// Used for creating peer, orderer, admin, and client identities.
 	// This is the production workflow for identity creation (not bootstrap).
@@ -3567,16 +5873,37 @@ type FabricWorkflows interface {
 	// DeployPeer deploys a Fabric peer node
 	// Peers endorse transactions and maintain ledger state
 	DeployPeer(ctx workflow.Context, input *DeployPeerWorkflowInput) (DeployPeerWorkflow, error)
+
+	// JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+	// Handles both genesis-based (consenter) and config-block-based (follower) joins
+	JoinOrdererToChannel(ctx workflow.Context, input *JoinOrdererToChannelWorkflowInput) (JoinOrdererToChannelWorkflow, error)
+
+	// JoinPeerToChannel joins a peer node to a channel
+	// Fetches the oldest block from an orderer and joins the peer
+	JoinPeerToChannel(ctx workflow.Context, input *JoinPeerToChannelWorkflowInput) (JoinPeerToChannelWorkflow, error)
+
+	// SetAnchorPeer configures the anchor peer for an org on a channel
+	// Uses UpdateChannelConfig to modify the channel's Application group
+	SetAnchorPeer(ctx workflow.Context, input *SetAnchorPeerWorkflowInput) (SetAnchorPeerWorkflow, error)
+
+	// UpdateChannelConfig is the common pattern for all channel configuration changes
+	// Fetches current config, computes delta, collects signatures, and submits update
+	UpdateChannelConfig(ctx workflow.Context, input *UpdateChannelConfigWorkflowInput) (UpdateChannelConfigWorkflow, error)
 }
 
 // RegisterFabricWorkflows registers fabric.v1.Fabric workflows with the given worker
 func RegisterFabricWorkflows(r worker.WorkflowRegistry, workflows FabricWorkflows) {
+	RegisterAddOrdererToChannelWorkflow(r, workflows.AddOrdererToChannel)
+	RegisterAddOrdererToConsenterSetWorkflow(r, workflows.AddOrdererToConsenterSet)
+	RegisterAddOrgToChannelWorkflow(r, workflows.AddOrgToChannel)
+	RegisterAddPeerToChannelWorkflow(r, workflows.AddPeerToChannel)
 	RegisterBootstrapCertificateAuthoritiesWorkflow(r, workflows.BootstrapCertificateAuthorities)
 	RegisterBootstrapShardWorkflow(r, workflows.BootstrapShard)
 	RegisterCreateAdminWorkflow(r, workflows.CreateAdmin)
 	RegisterCreateBootstrapAdminWorkflow(r, workflows.CreateBootstrapAdmin)
 	RegisterCreateCertificateWorkflow(r, workflows.CreateCertificate)
 	RegisterCreateCertificateDatabaseWorkflow(r, workflows.CreateCertificateDatabase)
+	RegisterCreateChannelWorkflow(r, workflows.CreateChannel)
 	RegisterCreateIdentityWorkflow(r, workflows.CreateIdentity)
 	RegisterDeployCertificateAuthorityWorkflow(r, workflows.DeployCertificateAuthority)
 	RegisterDeployCertificateStoreWorkflow(r, workflows.DeployCertificateStore)
@@ -3584,6 +5911,1106 @@ func RegisterFabricWorkflows(r worker.WorkflowRegistry, workflows FabricWorkflow
 	RegisterDeployCouchDbWorkflow(r, workflows.DeployCouchDb)
 	RegisterDeployOrdererWorkflow(r, workflows.DeployOrderer)
 	RegisterDeployPeerWorkflow(r, workflows.DeployPeer)
+	RegisterJoinOrdererToChannelWorkflow(r, workflows.JoinOrdererToChannel)
+	RegisterJoinPeerToChannelWorkflow(r, workflows.JoinPeerToChannel)
+	RegisterSetAnchorPeerWorkflow(r, workflows.SetAnchorPeer)
+	RegisterUpdateChannelConfigWorkflow(r, workflows.UpdateChannelConfig)
+}
+
+// RegisterAddOrdererToChannelWorkflow registers a fabric.v1.Fabric.AddOrdererToChannel workflow with the given worker
+func RegisterAddOrdererToChannelWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *AddOrdererToChannelWorkflowInput) (AddOrdererToChannelWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	AddOrdererToChannelFunction = buildAddOrdererToChannel(wf)
+	r.RegisterWorkflowWithOptions(AddOrdererToChannelFunction, workflow.RegisterOptions{Name: AddOrdererToChannelWorkflowName})
+}
+
+// buildAddOrdererToChannel converts a AddOrdererToChannel workflow struct into a valid workflow function
+func buildAddOrdererToChannel(ctor func(workflow.Context, *AddOrdererToChannelWorkflowInput) (AddOrdererToChannelWorkflow, error)) func(workflow.Context, *AddOrdererToChannelInput) (*AddOrdererToChannelOutput, error) {
+	return func(ctx workflow.Context, req *AddOrdererToChannelInput) (*AddOrdererToChannelOutput, error) {
+		input := &AddOrdererToChannelWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// AddOrdererToChannelWorkflowInput describes the input to a(n) fabric.v1.AddOrdererToChannel workflow constructor
+type AddOrdererToChannelWorkflowInput struct {
+	Req *AddOrdererToChannelInput
+}
+
+// AddOrdererToChannel adds a new orderer to an existing channel
+// Fetches latest config block, joins as follower, then promotes to consenter
+//
+// workflow details: (name: "fabric.v1.AddOrdererToChannel", id: "fabric/add-orderer-to-channel")
+type AddOrdererToChannelWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.AddOrdererToChannel workflow
+	Execute(ctx workflow.Context) (*AddOrdererToChannelOutput, error)
+}
+
+// AddOrdererToChannel adds a new orderer to an existing channel
+// Fetches latest config block, joins as follower, then promotes to consenter
+func AddOrdererToChannelChild(ctx workflow.Context, req *AddOrdererToChannelInput, options ...*AddOrdererToChannelChildOptions) (*AddOrdererToChannelOutput, error) {
+	childRun, err := AddOrdererToChannelChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// AddOrdererToChannel adds a new orderer to an existing channel
+// Fetches latest config block, joins as follower, then promotes to consenter
+func AddOrdererToChannelChildAsync(ctx workflow.Context, req *AddOrdererToChannelInput, options ...*AddOrdererToChannelChildOptions) (*AddOrdererToChannelChildRun, error) {
+	var o *AddOrdererToChannelChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewAddOrdererToChannelChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &AddOrdererToChannelChildRun{Future: workflow.ExecuteChildWorkflow(ctx, AddOrdererToChannelWorkflowName, req)}, nil
+}
+
+// AddOrdererToChannelChildOptions provides configuration for a child fabric.v1.AddOrdererToChannel workflow operation
+type AddOrdererToChannelChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewAddOrdererToChannelChildOptions initializes a new AddOrdererToChannelChildOptions value
+func NewAddOrdererToChannelChildOptions() *AddOrdererToChannelChildOptions {
+	return &AddOrdererToChannelChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *AddOrdererToChannelChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(AddOrdererToChannelIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", AddOrdererToChannelWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", AddOrdererToChannelWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(AddOrdererToChannelIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", AddOrdererToChannelWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *AddOrdererToChannelChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *AddOrdererToChannelChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *AddOrdererToChannelChildOptions) WithDataConverter(dc converter.DataConverter) *AddOrdererToChannelChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *AddOrdererToChannelChildOptions) WithExecutionTimeout(d time.Duration) *AddOrdererToChannelChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *AddOrdererToChannelChildOptions) WithID(id string) *AddOrdererToChannelChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *AddOrdererToChannelChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *AddOrdererToChannelChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *AddOrdererToChannelChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *AddOrdererToChannelChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *AddOrdererToChannelChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *AddOrdererToChannelChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *AddOrdererToChannelChildOptions) WithRunTimeout(d time.Duration) *AddOrdererToChannelChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *AddOrdererToChannelChildOptions) WithSearchAttributes(sa map[string]any) *AddOrdererToChannelChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *AddOrdererToChannelChildOptions) WithTaskTimeout(d time.Duration) *AddOrdererToChannelChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *AddOrdererToChannelChildOptions) WithTaskQueue(tq string) *AddOrdererToChannelChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *AddOrdererToChannelChildOptions) WithWaitForCancellation(wait bool) *AddOrdererToChannelChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *AddOrdererToChannelChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *AddOrdererToChannelChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// AddOrdererToChannelChildRun describes a child AddOrdererToChannel workflow run
+type AddOrdererToChannelChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *AddOrdererToChannelChildRun) Get(ctx workflow.Context) (*AddOrdererToChannelOutput, error) {
+	var resp AddOrdererToChannelOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *AddOrdererToChannelChildRun) Select(sel workflow.Selector, fn func(*AddOrdererToChannelChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *AddOrdererToChannelChildRun) SelectStart(sel workflow.Selector, fn func(*AddOrdererToChannelChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *AddOrdererToChannelChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
+// RegisterAddOrdererToConsenterSetWorkflow registers a fabric.v1.Fabric.AddOrdererToConsenterSet workflow with the given worker
+func RegisterAddOrdererToConsenterSetWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *AddOrdererToConsenterSetWorkflowInput) (AddOrdererToConsenterSetWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	AddOrdererToConsenterSetFunction = buildAddOrdererToConsenterSet(wf)
+	r.RegisterWorkflowWithOptions(AddOrdererToConsenterSetFunction, workflow.RegisterOptions{Name: AddOrdererToConsenterSetWorkflowName})
+}
+
+// buildAddOrdererToConsenterSet converts a AddOrdererToConsenterSet workflow struct into a valid workflow function
+func buildAddOrdererToConsenterSet(ctor func(workflow.Context, *AddOrdererToConsenterSetWorkflowInput) (AddOrdererToConsenterSetWorkflow, error)) func(workflow.Context, *AddOrdererToConsenterSetInput) (*AddOrdererToConsenterSetOutput, error) {
+	return func(ctx workflow.Context, req *AddOrdererToConsenterSetInput) (*AddOrdererToConsenterSetOutput, error) {
+		input := &AddOrdererToConsenterSetWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// AddOrdererToConsenterSetWorkflowInput describes the input to a(n) fabric.v1.AddOrdererToConsenterSet workflow constructor
+type AddOrdererToConsenterSetWorkflowInput struct {
+	Req *AddOrdererToConsenterSetInput
+}
+
+// AddOrdererToConsenterSet promotes an orderer from follower to consenter
+// via a channel config update to the ConsensusType metadata
+//
+// workflow details: (name: "fabric.v1.AddOrdererToConsenterSet", id: "fabric/add-orderer-to-consenter-set")
+type AddOrdererToConsenterSetWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.AddOrdererToConsenterSet workflow
+	Execute(ctx workflow.Context) (*AddOrdererToConsenterSetOutput, error)
+}
+
+// AddOrdererToConsenterSet promotes an orderer from follower to consenter
+// via a channel config update to the ConsensusType metadata
+func AddOrdererToConsenterSetChild(ctx workflow.Context, req *AddOrdererToConsenterSetInput, options ...*AddOrdererToConsenterSetChildOptions) (*AddOrdererToConsenterSetOutput, error) {
+	childRun, err := AddOrdererToConsenterSetChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// AddOrdererToConsenterSet promotes an orderer from follower to consenter
+// via a channel config update to the ConsensusType metadata
+func AddOrdererToConsenterSetChildAsync(ctx workflow.Context, req *AddOrdererToConsenterSetInput, options ...*AddOrdererToConsenterSetChildOptions) (*AddOrdererToConsenterSetChildRun, error) {
+	var o *AddOrdererToConsenterSetChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewAddOrdererToConsenterSetChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &AddOrdererToConsenterSetChildRun{Future: workflow.ExecuteChildWorkflow(ctx, AddOrdererToConsenterSetWorkflowName, req)}, nil
+}
+
+// AddOrdererToConsenterSetChildOptions provides configuration for a child fabric.v1.AddOrdererToConsenterSet workflow operation
+type AddOrdererToConsenterSetChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewAddOrdererToConsenterSetChildOptions initializes a new AddOrdererToConsenterSetChildOptions value
+func NewAddOrdererToConsenterSetChildOptions() *AddOrdererToConsenterSetChildOptions {
+	return &AddOrdererToConsenterSetChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *AddOrdererToConsenterSetChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(AddOrdererToConsenterSetIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", AddOrdererToConsenterSetWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", AddOrdererToConsenterSetWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(AddOrdererToConsenterSetIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", AddOrdererToConsenterSetWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *AddOrdererToConsenterSetChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *AddOrdererToConsenterSetChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *AddOrdererToConsenterSetChildOptions) WithDataConverter(dc converter.DataConverter) *AddOrdererToConsenterSetChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *AddOrdererToConsenterSetChildOptions) WithExecutionTimeout(d time.Duration) *AddOrdererToConsenterSetChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *AddOrdererToConsenterSetChildOptions) WithID(id string) *AddOrdererToConsenterSetChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *AddOrdererToConsenterSetChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *AddOrdererToConsenterSetChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *AddOrdererToConsenterSetChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *AddOrdererToConsenterSetChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *AddOrdererToConsenterSetChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *AddOrdererToConsenterSetChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *AddOrdererToConsenterSetChildOptions) WithRunTimeout(d time.Duration) *AddOrdererToConsenterSetChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *AddOrdererToConsenterSetChildOptions) WithSearchAttributes(sa map[string]any) *AddOrdererToConsenterSetChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *AddOrdererToConsenterSetChildOptions) WithTaskTimeout(d time.Duration) *AddOrdererToConsenterSetChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *AddOrdererToConsenterSetChildOptions) WithTaskQueue(tq string) *AddOrdererToConsenterSetChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *AddOrdererToConsenterSetChildOptions) WithWaitForCancellation(wait bool) *AddOrdererToConsenterSetChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *AddOrdererToConsenterSetChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *AddOrdererToConsenterSetChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// AddOrdererToConsenterSetChildRun describes a child AddOrdererToConsenterSet workflow run
+type AddOrdererToConsenterSetChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *AddOrdererToConsenterSetChildRun) Get(ctx workflow.Context) (*AddOrdererToConsenterSetOutput, error) {
+	var resp AddOrdererToConsenterSetOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *AddOrdererToConsenterSetChildRun) Select(sel workflow.Selector, fn func(*AddOrdererToConsenterSetChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *AddOrdererToConsenterSetChildRun) SelectStart(sel workflow.Selector, fn func(*AddOrdererToConsenterSetChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *AddOrdererToConsenterSetChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
+// RegisterAddOrgToChannelWorkflow registers a fabric.v1.Fabric.AddOrgToChannel workflow with the given worker
+func RegisterAddOrgToChannelWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *AddOrgToChannelWorkflowInput) (AddOrgToChannelWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	AddOrgToChannelFunction = buildAddOrgToChannel(wf)
+	r.RegisterWorkflowWithOptions(AddOrgToChannelFunction, workflow.RegisterOptions{Name: AddOrgToChannelWorkflowName})
+}
+
+// buildAddOrgToChannel converts a AddOrgToChannel workflow struct into a valid workflow function
+func buildAddOrgToChannel(ctor func(workflow.Context, *AddOrgToChannelWorkflowInput) (AddOrgToChannelWorkflow, error)) func(workflow.Context, *AddOrgToChannelInput) (*AddOrgToChannelOutput, error) {
+	return func(ctx workflow.Context, req *AddOrgToChannelInput) (*AddOrgToChannelOutput, error) {
+		input := &AddOrgToChannelWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// AddOrgToChannelWorkflowInput describes the input to a(n) fabric.v1.AddOrgToChannel workflow constructor
+type AddOrgToChannelWorkflowInput struct {
+	Req *AddOrgToChannelInput
+}
+
+// AddOrgToChannel adds a new organization to an existing channel
+// Requires signatures from a majority of existing channel admins
+//
+// workflow details: (name: "fabric.v1.AddOrgToChannel", id: "fabric/add-org-to-channel")
+type AddOrgToChannelWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.AddOrgToChannel workflow
+	Execute(ctx workflow.Context) (*AddOrgToChannelOutput, error)
+}
+
+// AddOrgToChannel adds a new organization to an existing channel
+// Requires signatures from a majority of existing channel admins
+func AddOrgToChannelChild(ctx workflow.Context, req *AddOrgToChannelInput, options ...*AddOrgToChannelChildOptions) (*AddOrgToChannelOutput, error) {
+	childRun, err := AddOrgToChannelChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// AddOrgToChannel adds a new organization to an existing channel
+// Requires signatures from a majority of existing channel admins
+func AddOrgToChannelChildAsync(ctx workflow.Context, req *AddOrgToChannelInput, options ...*AddOrgToChannelChildOptions) (*AddOrgToChannelChildRun, error) {
+	var o *AddOrgToChannelChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewAddOrgToChannelChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &AddOrgToChannelChildRun{Future: workflow.ExecuteChildWorkflow(ctx, AddOrgToChannelWorkflowName, req)}, nil
+}
+
+// AddOrgToChannelChildOptions provides configuration for a child fabric.v1.AddOrgToChannel workflow operation
+type AddOrgToChannelChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewAddOrgToChannelChildOptions initializes a new AddOrgToChannelChildOptions value
+func NewAddOrgToChannelChildOptions() *AddOrgToChannelChildOptions {
+	return &AddOrgToChannelChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *AddOrgToChannelChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(AddOrgToChannelIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", AddOrgToChannelWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", AddOrgToChannelWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(AddOrgToChannelIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", AddOrgToChannelWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *AddOrgToChannelChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *AddOrgToChannelChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *AddOrgToChannelChildOptions) WithDataConverter(dc converter.DataConverter) *AddOrgToChannelChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *AddOrgToChannelChildOptions) WithExecutionTimeout(d time.Duration) *AddOrgToChannelChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *AddOrgToChannelChildOptions) WithID(id string) *AddOrgToChannelChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *AddOrgToChannelChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *AddOrgToChannelChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *AddOrgToChannelChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *AddOrgToChannelChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *AddOrgToChannelChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *AddOrgToChannelChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *AddOrgToChannelChildOptions) WithRunTimeout(d time.Duration) *AddOrgToChannelChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *AddOrgToChannelChildOptions) WithSearchAttributes(sa map[string]any) *AddOrgToChannelChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *AddOrgToChannelChildOptions) WithTaskTimeout(d time.Duration) *AddOrgToChannelChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *AddOrgToChannelChildOptions) WithTaskQueue(tq string) *AddOrgToChannelChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *AddOrgToChannelChildOptions) WithWaitForCancellation(wait bool) *AddOrgToChannelChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *AddOrgToChannelChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *AddOrgToChannelChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// AddOrgToChannelChildRun describes a child AddOrgToChannel workflow run
+type AddOrgToChannelChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *AddOrgToChannelChildRun) Get(ctx workflow.Context) (*AddOrgToChannelOutput, error) {
+	var resp AddOrgToChannelOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *AddOrgToChannelChildRun) Select(sel workflow.Selector, fn func(*AddOrgToChannelChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *AddOrgToChannelChildRun) SelectStart(sel workflow.Selector, fn func(*AddOrgToChannelChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *AddOrgToChannelChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
+// RegisterAddPeerToChannelWorkflow registers a fabric.v1.Fabric.AddPeerToChannel workflow with the given worker
+func RegisterAddPeerToChannelWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *AddPeerToChannelWorkflowInput) (AddPeerToChannelWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	AddPeerToChannelFunction = buildAddPeerToChannel(wf)
+	r.RegisterWorkflowWithOptions(AddPeerToChannelFunction, workflow.RegisterOptions{Name: AddPeerToChannelWorkflowName})
+}
+
+// buildAddPeerToChannel converts a AddPeerToChannel workflow struct into a valid workflow function
+func buildAddPeerToChannel(ctor func(workflow.Context, *AddPeerToChannelWorkflowInput) (AddPeerToChannelWorkflow, error)) func(workflow.Context, *AddPeerToChannelInput) (*AddPeerToChannelOutput, error) {
+	return func(ctx workflow.Context, req *AddPeerToChannelInput) (*AddPeerToChannelOutput, error) {
+		input := &AddPeerToChannelWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// AddPeerToChannelWorkflowInput describes the input to a(n) fabric.v1.AddPeerToChannel workflow constructor
+type AddPeerToChannelWorkflowInput struct {
+	Req *AddPeerToChannelInput
+}
+
+// AddPeerToChannel adds a new peer to an existing channel
+// Optionally adds the org to the channel first if not already a member
+//
+// workflow details: (name: "fabric.v1.AddPeerToChannel", id: "fabric/add-peer-to-channel")
+type AddPeerToChannelWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.AddPeerToChannel workflow
+	Execute(ctx workflow.Context) (*AddPeerToChannelOutput, error)
+}
+
+// AddPeerToChannel adds a new peer to an existing channel
+// Optionally adds the org to the channel first if not already a member
+func AddPeerToChannelChild(ctx workflow.Context, req *AddPeerToChannelInput, options ...*AddPeerToChannelChildOptions) (*AddPeerToChannelOutput, error) {
+	childRun, err := AddPeerToChannelChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// AddPeerToChannel adds a new peer to an existing channel
+// Optionally adds the org to the channel first if not already a member
+func AddPeerToChannelChildAsync(ctx workflow.Context, req *AddPeerToChannelInput, options ...*AddPeerToChannelChildOptions) (*AddPeerToChannelChildRun, error) {
+	var o *AddPeerToChannelChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewAddPeerToChannelChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &AddPeerToChannelChildRun{Future: workflow.ExecuteChildWorkflow(ctx, AddPeerToChannelWorkflowName, req)}, nil
+}
+
+// AddPeerToChannelChildOptions provides configuration for a child fabric.v1.AddPeerToChannel workflow operation
+type AddPeerToChannelChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewAddPeerToChannelChildOptions initializes a new AddPeerToChannelChildOptions value
+func NewAddPeerToChannelChildOptions() *AddPeerToChannelChildOptions {
+	return &AddPeerToChannelChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *AddPeerToChannelChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(AddPeerToChannelIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", AddPeerToChannelWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", AddPeerToChannelWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(AddPeerToChannelIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", AddPeerToChannelWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *AddPeerToChannelChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *AddPeerToChannelChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *AddPeerToChannelChildOptions) WithDataConverter(dc converter.DataConverter) *AddPeerToChannelChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *AddPeerToChannelChildOptions) WithExecutionTimeout(d time.Duration) *AddPeerToChannelChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *AddPeerToChannelChildOptions) WithID(id string) *AddPeerToChannelChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *AddPeerToChannelChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *AddPeerToChannelChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *AddPeerToChannelChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *AddPeerToChannelChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *AddPeerToChannelChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *AddPeerToChannelChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *AddPeerToChannelChildOptions) WithRunTimeout(d time.Duration) *AddPeerToChannelChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *AddPeerToChannelChildOptions) WithSearchAttributes(sa map[string]any) *AddPeerToChannelChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *AddPeerToChannelChildOptions) WithTaskTimeout(d time.Duration) *AddPeerToChannelChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *AddPeerToChannelChildOptions) WithTaskQueue(tq string) *AddPeerToChannelChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *AddPeerToChannelChildOptions) WithWaitForCancellation(wait bool) *AddPeerToChannelChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *AddPeerToChannelChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *AddPeerToChannelChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// AddPeerToChannelChildRun describes a child AddPeerToChannel workflow run
+type AddPeerToChannelChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *AddPeerToChannelChildRun) Get(ctx workflow.Context) (*AddPeerToChannelOutput, error) {
+	var resp AddPeerToChannelOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *AddPeerToChannelChildRun) Select(sel workflow.Selector, fn func(*AddPeerToChannelChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *AddPeerToChannelChildRun) SelectStart(sel workflow.Selector, fn func(*AddPeerToChannelChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *AddPeerToChannelChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
 }
 
 // RegisterBootstrapCertificateAuthoritiesWorkflow registers a fabric.v1.Fabric.BootstrapCertificateAuthorities workflow with the given worker
@@ -5244,6 +8671,280 @@ func (r *CreateCertificateDatabaseChildRun) SelectStart(sel workflow.Selector, f
 
 // WaitStart waits for the child workflow to start
 func (r *CreateCertificateDatabaseChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
+// RegisterCreateChannelWorkflow registers a fabric.v1.Fabric.CreateChannel workflow with the given worker
+func RegisterCreateChannelWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *CreateChannelWorkflowInput) (CreateChannelWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	CreateChannelFunction = buildCreateChannel(wf)
+	r.RegisterWorkflowWithOptions(CreateChannelFunction, workflow.RegisterOptions{Name: CreateChannelWorkflowName})
+}
+
+// buildCreateChannel converts a CreateChannel workflow struct into a valid workflow function
+func buildCreateChannel(ctor func(workflow.Context, *CreateChannelWorkflowInput) (CreateChannelWorkflow, error)) func(workflow.Context, *CreateChannelInput) (*CreateChannelOutput, error) {
+	return func(ctx workflow.Context, req *CreateChannelInput) (*CreateChannelOutput, error) {
+		input := &CreateChannelWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// CreateChannelWorkflowInput describes the input to a(n) fabric.v1.CreateChannel workflow constructor
+type CreateChannelWorkflowInput struct {
+	Req *CreateChannelInput
+}
+
+// CreateChannel orchestrates creation of a new Fabric channel
+// Generates genesis block, joins orderers and peers, sets anchor peers
+//
+// workflow details: (name: "fabric.v1.CreateChannel", id: "fabric/create-channel")
+type CreateChannelWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.CreateChannel workflow
+	Execute(ctx workflow.Context) (*CreateChannelOutput, error)
+}
+
+// CreateChannel orchestrates creation of a new Fabric channel
+// Generates genesis block, joins orderers and peers, sets anchor peers
+func CreateChannelChild(ctx workflow.Context, req *CreateChannelInput, options ...*CreateChannelChildOptions) (*CreateChannelOutput, error) {
+	childRun, err := CreateChannelChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// CreateChannel orchestrates creation of a new Fabric channel
+// Generates genesis block, joins orderers and peers, sets anchor peers
+func CreateChannelChildAsync(ctx workflow.Context, req *CreateChannelInput, options ...*CreateChannelChildOptions) (*CreateChannelChildRun, error) {
+	var o *CreateChannelChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateChannelChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &CreateChannelChildRun{Future: workflow.ExecuteChildWorkflow(ctx, CreateChannelWorkflowName, req)}, nil
+}
+
+// CreateChannelChildOptions provides configuration for a child fabric.v1.CreateChannel workflow operation
+type CreateChannelChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewCreateChannelChildOptions initializes a new CreateChannelChildOptions value
+func NewCreateChannelChildOptions() *CreateChannelChildOptions {
+	return &CreateChannelChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *CreateChannelChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(CreateChannelIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateChannelWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateChannelWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(CreateChannelIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateChannelWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *CreateChannelChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *CreateChannelChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *CreateChannelChildOptions) WithDataConverter(dc converter.DataConverter) *CreateChannelChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *CreateChannelChildOptions) WithExecutionTimeout(d time.Duration) *CreateChannelChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *CreateChannelChildOptions) WithID(id string) *CreateChannelChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *CreateChannelChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *CreateChannelChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *CreateChannelChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *CreateChannelChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CreateChannelChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateChannelChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *CreateChannelChildOptions) WithRunTimeout(d time.Duration) *CreateChannelChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *CreateChannelChildOptions) WithSearchAttributes(sa map[string]any) *CreateChannelChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *CreateChannelChildOptions) WithTaskTimeout(d time.Duration) *CreateChannelChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *CreateChannelChildOptions) WithTaskQueue(tq string) *CreateChannelChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *CreateChannelChildOptions) WithWaitForCancellation(wait bool) *CreateChannelChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *CreateChannelChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *CreateChannelChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// CreateChannelChildRun describes a child CreateChannel workflow run
+type CreateChannelChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *CreateChannelChildRun) Get(ctx workflow.Context) (*CreateChannelOutput, error) {
+	var resp CreateChannelOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *CreateChannelChildRun) Select(sel workflow.Selector, fn func(*CreateChannelChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *CreateChannelChildRun) SelectStart(sel workflow.Selector, fn func(*CreateChannelChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *CreateChannelChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
 	var exec workflow.Execution
 	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
 		return nil, err
@@ -7178,6 +10879,1102 @@ func (r *DeployPeerChildRun) WaitStart(ctx workflow.Context) (*workflow.Executio
 	return &exec, nil
 }
 
+// RegisterJoinOrdererToChannelWorkflow registers a fabric.v1.Fabric.JoinOrdererToChannel workflow with the given worker
+func RegisterJoinOrdererToChannelWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *JoinOrdererToChannelWorkflowInput) (JoinOrdererToChannelWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	JoinOrdererToChannelFunction = buildJoinOrdererToChannel(wf)
+	r.RegisterWorkflowWithOptions(JoinOrdererToChannelFunction, workflow.RegisterOptions{Name: JoinOrdererToChannelWorkflowName})
+}
+
+// buildJoinOrdererToChannel converts a JoinOrdererToChannel workflow struct into a valid workflow function
+func buildJoinOrdererToChannel(ctor func(workflow.Context, *JoinOrdererToChannelWorkflowInput) (JoinOrdererToChannelWorkflow, error)) func(workflow.Context, *JoinOrdererToChannelInput) (*JoinOrdererToChannelOutput, error) {
+	return func(ctx workflow.Context, req *JoinOrdererToChannelInput) (*JoinOrdererToChannelOutput, error) {
+		input := &JoinOrdererToChannelWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// JoinOrdererToChannelWorkflowInput describes the input to a(n) fabric.v1.JoinOrdererToChannel workflow constructor
+type JoinOrdererToChannelWorkflowInput struct {
+	Req *JoinOrdererToChannelInput
+}
+
+// JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+// Handles both genesis-based (consenter) and config-block-based (follower) joins
+//
+// workflow details: (name: "fabric.v1.JoinOrdererToChannel", id: "fabric/join-orderer-to-channel")
+type JoinOrdererToChannelWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.JoinOrdererToChannel workflow
+	Execute(ctx workflow.Context) (*JoinOrdererToChannelOutput, error)
+}
+
+// JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+// Handles both genesis-based (consenter) and config-block-based (follower) joins
+func JoinOrdererToChannelChild(ctx workflow.Context, req *JoinOrdererToChannelInput, options ...*JoinOrdererToChannelChildOptions) (*JoinOrdererToChannelOutput, error) {
+	childRun, err := JoinOrdererToChannelChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+// Handles both genesis-based (consenter) and config-block-based (follower) joins
+func JoinOrdererToChannelChildAsync(ctx workflow.Context, req *JoinOrdererToChannelInput, options ...*JoinOrdererToChannelChildOptions) (*JoinOrdererToChannelChildRun, error) {
+	var o *JoinOrdererToChannelChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewJoinOrdererToChannelChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &JoinOrdererToChannelChildRun{Future: workflow.ExecuteChildWorkflow(ctx, JoinOrdererToChannelWorkflowName, req)}, nil
+}
+
+// JoinOrdererToChannelChildOptions provides configuration for a child fabric.v1.JoinOrdererToChannel workflow operation
+type JoinOrdererToChannelChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewJoinOrdererToChannelChildOptions initializes a new JoinOrdererToChannelChildOptions value
+func NewJoinOrdererToChannelChildOptions() *JoinOrdererToChannelChildOptions {
+	return &JoinOrdererToChannelChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *JoinOrdererToChannelChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(JoinOrdererToChannelIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", JoinOrdererToChannelWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", JoinOrdererToChannelWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(JoinOrdererToChannelIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", JoinOrdererToChannelWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *JoinOrdererToChannelChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *JoinOrdererToChannelChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *JoinOrdererToChannelChildOptions) WithDataConverter(dc converter.DataConverter) *JoinOrdererToChannelChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *JoinOrdererToChannelChildOptions) WithExecutionTimeout(d time.Duration) *JoinOrdererToChannelChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *JoinOrdererToChannelChildOptions) WithID(id string) *JoinOrdererToChannelChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *JoinOrdererToChannelChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *JoinOrdererToChannelChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *JoinOrdererToChannelChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *JoinOrdererToChannelChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *JoinOrdererToChannelChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *JoinOrdererToChannelChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *JoinOrdererToChannelChildOptions) WithRunTimeout(d time.Duration) *JoinOrdererToChannelChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *JoinOrdererToChannelChildOptions) WithSearchAttributes(sa map[string]any) *JoinOrdererToChannelChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *JoinOrdererToChannelChildOptions) WithTaskTimeout(d time.Duration) *JoinOrdererToChannelChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *JoinOrdererToChannelChildOptions) WithTaskQueue(tq string) *JoinOrdererToChannelChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *JoinOrdererToChannelChildOptions) WithWaitForCancellation(wait bool) *JoinOrdererToChannelChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *JoinOrdererToChannelChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *JoinOrdererToChannelChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// JoinOrdererToChannelChildRun describes a child JoinOrdererToChannel workflow run
+type JoinOrdererToChannelChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *JoinOrdererToChannelChildRun) Get(ctx workflow.Context) (*JoinOrdererToChannelOutput, error) {
+	var resp JoinOrdererToChannelOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *JoinOrdererToChannelChildRun) Select(sel workflow.Selector, fn func(*JoinOrdererToChannelChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *JoinOrdererToChannelChildRun) SelectStart(sel workflow.Selector, fn func(*JoinOrdererToChannelChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *JoinOrdererToChannelChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
+// RegisterJoinPeerToChannelWorkflow registers a fabric.v1.Fabric.JoinPeerToChannel workflow with the given worker
+func RegisterJoinPeerToChannelWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *JoinPeerToChannelWorkflowInput) (JoinPeerToChannelWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	JoinPeerToChannelFunction = buildJoinPeerToChannel(wf)
+	r.RegisterWorkflowWithOptions(JoinPeerToChannelFunction, workflow.RegisterOptions{Name: JoinPeerToChannelWorkflowName})
+}
+
+// buildJoinPeerToChannel converts a JoinPeerToChannel workflow struct into a valid workflow function
+func buildJoinPeerToChannel(ctor func(workflow.Context, *JoinPeerToChannelWorkflowInput) (JoinPeerToChannelWorkflow, error)) func(workflow.Context, *JoinPeerToChannelInput) (*JoinPeerToChannelOutput, error) {
+	return func(ctx workflow.Context, req *JoinPeerToChannelInput) (*JoinPeerToChannelOutput, error) {
+		input := &JoinPeerToChannelWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// JoinPeerToChannelWorkflowInput describes the input to a(n) fabric.v1.JoinPeerToChannel workflow constructor
+type JoinPeerToChannelWorkflowInput struct {
+	Req *JoinPeerToChannelInput
+}
+
+// JoinPeerToChannel joins a peer node to a channel
+// Fetches the oldest block from an orderer and joins the peer
+//
+// workflow details: (name: "fabric.v1.JoinPeerToChannel", id: "fabric/join-peer-to-channel")
+type JoinPeerToChannelWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.JoinPeerToChannel workflow
+	Execute(ctx workflow.Context) (*JoinPeerToChannelOutput, error)
+}
+
+// JoinPeerToChannel joins a peer node to a channel
+// Fetches the oldest block from an orderer and joins the peer
+func JoinPeerToChannelChild(ctx workflow.Context, req *JoinPeerToChannelInput, options ...*JoinPeerToChannelChildOptions) (*JoinPeerToChannelOutput, error) {
+	childRun, err := JoinPeerToChannelChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// JoinPeerToChannel joins a peer node to a channel
+// Fetches the oldest block from an orderer and joins the peer
+func JoinPeerToChannelChildAsync(ctx workflow.Context, req *JoinPeerToChannelInput, options ...*JoinPeerToChannelChildOptions) (*JoinPeerToChannelChildRun, error) {
+	var o *JoinPeerToChannelChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewJoinPeerToChannelChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &JoinPeerToChannelChildRun{Future: workflow.ExecuteChildWorkflow(ctx, JoinPeerToChannelWorkflowName, req)}, nil
+}
+
+// JoinPeerToChannelChildOptions provides configuration for a child fabric.v1.JoinPeerToChannel workflow operation
+type JoinPeerToChannelChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewJoinPeerToChannelChildOptions initializes a new JoinPeerToChannelChildOptions value
+func NewJoinPeerToChannelChildOptions() *JoinPeerToChannelChildOptions {
+	return &JoinPeerToChannelChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *JoinPeerToChannelChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(JoinPeerToChannelIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", JoinPeerToChannelWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", JoinPeerToChannelWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(JoinPeerToChannelIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", JoinPeerToChannelWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *JoinPeerToChannelChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *JoinPeerToChannelChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *JoinPeerToChannelChildOptions) WithDataConverter(dc converter.DataConverter) *JoinPeerToChannelChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *JoinPeerToChannelChildOptions) WithExecutionTimeout(d time.Duration) *JoinPeerToChannelChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *JoinPeerToChannelChildOptions) WithID(id string) *JoinPeerToChannelChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *JoinPeerToChannelChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *JoinPeerToChannelChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *JoinPeerToChannelChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *JoinPeerToChannelChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *JoinPeerToChannelChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *JoinPeerToChannelChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *JoinPeerToChannelChildOptions) WithRunTimeout(d time.Duration) *JoinPeerToChannelChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *JoinPeerToChannelChildOptions) WithSearchAttributes(sa map[string]any) *JoinPeerToChannelChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *JoinPeerToChannelChildOptions) WithTaskTimeout(d time.Duration) *JoinPeerToChannelChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *JoinPeerToChannelChildOptions) WithTaskQueue(tq string) *JoinPeerToChannelChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *JoinPeerToChannelChildOptions) WithWaitForCancellation(wait bool) *JoinPeerToChannelChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *JoinPeerToChannelChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *JoinPeerToChannelChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// JoinPeerToChannelChildRun describes a child JoinPeerToChannel workflow run
+type JoinPeerToChannelChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *JoinPeerToChannelChildRun) Get(ctx workflow.Context) (*JoinPeerToChannelOutput, error) {
+	var resp JoinPeerToChannelOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *JoinPeerToChannelChildRun) Select(sel workflow.Selector, fn func(*JoinPeerToChannelChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *JoinPeerToChannelChildRun) SelectStart(sel workflow.Selector, fn func(*JoinPeerToChannelChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *JoinPeerToChannelChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
+// RegisterSetAnchorPeerWorkflow registers a fabric.v1.Fabric.SetAnchorPeer workflow with the given worker
+func RegisterSetAnchorPeerWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *SetAnchorPeerWorkflowInput) (SetAnchorPeerWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	SetAnchorPeerFunction = buildSetAnchorPeer(wf)
+	r.RegisterWorkflowWithOptions(SetAnchorPeerFunction, workflow.RegisterOptions{Name: SetAnchorPeerWorkflowName})
+}
+
+// buildSetAnchorPeer converts a SetAnchorPeer workflow struct into a valid workflow function
+func buildSetAnchorPeer(ctor func(workflow.Context, *SetAnchorPeerWorkflowInput) (SetAnchorPeerWorkflow, error)) func(workflow.Context, *SetAnchorPeerInput) (*SetAnchorPeerOutput, error) {
+	return func(ctx workflow.Context, req *SetAnchorPeerInput) (*SetAnchorPeerOutput, error) {
+		input := &SetAnchorPeerWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// SetAnchorPeerWorkflowInput describes the input to a(n) fabric.v1.SetAnchorPeer workflow constructor
+type SetAnchorPeerWorkflowInput struct {
+	Req *SetAnchorPeerInput
+}
+
+// SetAnchorPeer configures the anchor peer for an org on a channel
+// Uses UpdateChannelConfig to modify the channel's Application group
+//
+// workflow details: (name: "fabric.v1.SetAnchorPeer", id: "fabric/set-anchor-peer")
+type SetAnchorPeerWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.SetAnchorPeer workflow
+	Execute(ctx workflow.Context) (*SetAnchorPeerOutput, error)
+}
+
+// SetAnchorPeer configures the anchor peer for an org on a channel
+// Uses UpdateChannelConfig to modify the channel's Application group
+func SetAnchorPeerChild(ctx workflow.Context, req *SetAnchorPeerInput, options ...*SetAnchorPeerChildOptions) (*SetAnchorPeerOutput, error) {
+	childRun, err := SetAnchorPeerChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// SetAnchorPeer configures the anchor peer for an org on a channel
+// Uses UpdateChannelConfig to modify the channel's Application group
+func SetAnchorPeerChildAsync(ctx workflow.Context, req *SetAnchorPeerInput, options ...*SetAnchorPeerChildOptions) (*SetAnchorPeerChildRun, error) {
+	var o *SetAnchorPeerChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewSetAnchorPeerChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &SetAnchorPeerChildRun{Future: workflow.ExecuteChildWorkflow(ctx, SetAnchorPeerWorkflowName, req)}, nil
+}
+
+// SetAnchorPeerChildOptions provides configuration for a child fabric.v1.SetAnchorPeer workflow operation
+type SetAnchorPeerChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewSetAnchorPeerChildOptions initializes a new SetAnchorPeerChildOptions value
+func NewSetAnchorPeerChildOptions() *SetAnchorPeerChildOptions {
+	return &SetAnchorPeerChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *SetAnchorPeerChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(SetAnchorPeerIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", SetAnchorPeerWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", SetAnchorPeerWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(SetAnchorPeerIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", SetAnchorPeerWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *SetAnchorPeerChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *SetAnchorPeerChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *SetAnchorPeerChildOptions) WithDataConverter(dc converter.DataConverter) *SetAnchorPeerChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *SetAnchorPeerChildOptions) WithExecutionTimeout(d time.Duration) *SetAnchorPeerChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *SetAnchorPeerChildOptions) WithID(id string) *SetAnchorPeerChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *SetAnchorPeerChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *SetAnchorPeerChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *SetAnchorPeerChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *SetAnchorPeerChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *SetAnchorPeerChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *SetAnchorPeerChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *SetAnchorPeerChildOptions) WithRunTimeout(d time.Duration) *SetAnchorPeerChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *SetAnchorPeerChildOptions) WithSearchAttributes(sa map[string]any) *SetAnchorPeerChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *SetAnchorPeerChildOptions) WithTaskTimeout(d time.Duration) *SetAnchorPeerChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *SetAnchorPeerChildOptions) WithTaskQueue(tq string) *SetAnchorPeerChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *SetAnchorPeerChildOptions) WithWaitForCancellation(wait bool) *SetAnchorPeerChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *SetAnchorPeerChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *SetAnchorPeerChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// SetAnchorPeerChildRun describes a child SetAnchorPeer workflow run
+type SetAnchorPeerChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *SetAnchorPeerChildRun) Get(ctx workflow.Context) (*SetAnchorPeerOutput, error) {
+	var resp SetAnchorPeerOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *SetAnchorPeerChildRun) Select(sel workflow.Selector, fn func(*SetAnchorPeerChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *SetAnchorPeerChildRun) SelectStart(sel workflow.Selector, fn func(*SetAnchorPeerChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *SetAnchorPeerChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
+// RegisterUpdateChannelConfigWorkflow registers a fabric.v1.Fabric.UpdateChannelConfig workflow with the given worker
+func RegisterUpdateChannelConfigWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *UpdateChannelConfigWorkflowInput) (UpdateChannelConfigWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	UpdateChannelConfigFunction = buildUpdateChannelConfig(wf)
+	r.RegisterWorkflowWithOptions(UpdateChannelConfigFunction, workflow.RegisterOptions{Name: UpdateChannelConfigWorkflowName})
+}
+
+// buildUpdateChannelConfig converts a UpdateChannelConfig workflow struct into a valid workflow function
+func buildUpdateChannelConfig(ctor func(workflow.Context, *UpdateChannelConfigWorkflowInput) (UpdateChannelConfigWorkflow, error)) func(workflow.Context, *UpdateChannelConfigInput) (*UpdateChannelConfigOutput, error) {
+	return func(ctx workflow.Context, req *UpdateChannelConfigInput) (*UpdateChannelConfigOutput, error) {
+		input := &UpdateChannelConfigWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// UpdateChannelConfigWorkflowInput describes the input to a(n) fabric.v1.UpdateChannelConfig workflow constructor
+type UpdateChannelConfigWorkflowInput struct {
+	Req *UpdateChannelConfigInput
+}
+
+// UpdateChannelConfig is the common pattern for all channel configuration changes
+// Fetches current config, computes delta, collects signatures, and submits update
+//
+// workflow details: (name: "fabric.v1.UpdateChannelConfig", id: "fabric/update-channel-config")
+type UpdateChannelConfigWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.UpdateChannelConfig workflow
+	Execute(ctx workflow.Context) (*UpdateChannelConfigOutput, error)
+}
+
+// UpdateChannelConfig is the common pattern for all channel configuration changes
+// Fetches current config, computes delta, collects signatures, and submits update
+func UpdateChannelConfigChild(ctx workflow.Context, req *UpdateChannelConfigInput, options ...*UpdateChannelConfigChildOptions) (*UpdateChannelConfigOutput, error) {
+	childRun, err := UpdateChannelConfigChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// UpdateChannelConfig is the common pattern for all channel configuration changes
+// Fetches current config, computes delta, collects signatures, and submits update
+func UpdateChannelConfigChildAsync(ctx workflow.Context, req *UpdateChannelConfigInput, options ...*UpdateChannelConfigChildOptions) (*UpdateChannelConfigChildRun, error) {
+	var o *UpdateChannelConfigChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewUpdateChannelConfigChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &UpdateChannelConfigChildRun{Future: workflow.ExecuteChildWorkflow(ctx, UpdateChannelConfigWorkflowName, req)}, nil
+}
+
+// UpdateChannelConfigChildOptions provides configuration for a child fabric.v1.UpdateChannelConfig workflow operation
+type UpdateChannelConfigChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewUpdateChannelConfigChildOptions initializes a new UpdateChannelConfigChildOptions value
+func NewUpdateChannelConfigChildOptions() *UpdateChannelConfigChildOptions {
+	return &UpdateChannelConfigChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *UpdateChannelConfigChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(UpdateChannelConfigIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", UpdateChannelConfigWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", UpdateChannelConfigWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(UpdateChannelConfigIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", UpdateChannelConfigWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *UpdateChannelConfigChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *UpdateChannelConfigChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *UpdateChannelConfigChildOptions) WithDataConverter(dc converter.DataConverter) *UpdateChannelConfigChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *UpdateChannelConfigChildOptions) WithExecutionTimeout(d time.Duration) *UpdateChannelConfigChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *UpdateChannelConfigChildOptions) WithID(id string) *UpdateChannelConfigChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *UpdateChannelConfigChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *UpdateChannelConfigChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *UpdateChannelConfigChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *UpdateChannelConfigChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *UpdateChannelConfigChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *UpdateChannelConfigChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *UpdateChannelConfigChildOptions) WithRunTimeout(d time.Duration) *UpdateChannelConfigChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *UpdateChannelConfigChildOptions) WithSearchAttributes(sa map[string]any) *UpdateChannelConfigChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *UpdateChannelConfigChildOptions) WithTaskTimeout(d time.Duration) *UpdateChannelConfigChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *UpdateChannelConfigChildOptions) WithTaskQueue(tq string) *UpdateChannelConfigChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *UpdateChannelConfigChildOptions) WithWaitForCancellation(wait bool) *UpdateChannelConfigChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *UpdateChannelConfigChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *UpdateChannelConfigChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// UpdateChannelConfigChildRun describes a child UpdateChannelConfig workflow run
+type UpdateChannelConfigChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *UpdateChannelConfigChildRun) Get(ctx workflow.Context) (*UpdateChannelConfigOutput, error) {
+	var resp UpdateChannelConfigOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *UpdateChannelConfigChildRun) Select(sel workflow.Selector, fn func(*UpdateChannelConfigChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *UpdateChannelConfigChildRun) SelectStart(sel workflow.Selector, fn func(*UpdateChannelConfigChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *UpdateChannelConfigChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
 // FabricActivities describes available worker activities
 type FabricActivities interface{}
 
@@ -7201,6 +11998,122 @@ func NewTestFabricClient(env *testsuite.TestWorkflowEnvironment, workflows Fabri
 		RegisterFabricActivities(env, activities)
 	}
 	return &TestFabricClient{env, workflows}
+}
+
+// AddOrdererToChannel executes a(n) fabric.v1.AddOrdererToChannel workflow in the test environment
+func (c *TestFabricClient) AddOrdererToChannel(ctx context.Context, req *AddOrdererToChannelInput, opts ...*AddOrdererToChannelOptions) (*AddOrdererToChannelOutput, error) {
+	run, err := c.AddOrdererToChannelAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// AddOrdererToChannelAsync executes a(n) fabric.v1.AddOrdererToChannel workflow in the test environment
+func (c *TestFabricClient) AddOrdererToChannelAsync(ctx context.Context, req *AddOrdererToChannelInput, options ...*AddOrdererToChannelOptions) (AddOrdererToChannelRun, error) {
+	var o *AddOrdererToChannelOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewAddOrdererToChannelOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testAddOrdererToChannelRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetAddOrdererToChannel is a noop
+func (c *TestFabricClient) GetAddOrdererToChannel(ctx context.Context, workflowID string, runID string) AddOrdererToChannelRun {
+	return &testAddOrdererToChannelRun{env: c.env, workflows: c.workflows}
+}
+
+// AddOrdererToConsenterSet executes a(n) fabric.v1.AddOrdererToConsenterSet workflow in the test environment
+func (c *TestFabricClient) AddOrdererToConsenterSet(ctx context.Context, req *AddOrdererToConsenterSetInput, opts ...*AddOrdererToConsenterSetOptions) (*AddOrdererToConsenterSetOutput, error) {
+	run, err := c.AddOrdererToConsenterSetAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// AddOrdererToConsenterSetAsync executes a(n) fabric.v1.AddOrdererToConsenterSet workflow in the test environment
+func (c *TestFabricClient) AddOrdererToConsenterSetAsync(ctx context.Context, req *AddOrdererToConsenterSetInput, options ...*AddOrdererToConsenterSetOptions) (AddOrdererToConsenterSetRun, error) {
+	var o *AddOrdererToConsenterSetOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewAddOrdererToConsenterSetOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testAddOrdererToConsenterSetRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetAddOrdererToConsenterSet is a noop
+func (c *TestFabricClient) GetAddOrdererToConsenterSet(ctx context.Context, workflowID string, runID string) AddOrdererToConsenterSetRun {
+	return &testAddOrdererToConsenterSetRun{env: c.env, workflows: c.workflows}
+}
+
+// AddOrgToChannel executes a(n) fabric.v1.AddOrgToChannel workflow in the test environment
+func (c *TestFabricClient) AddOrgToChannel(ctx context.Context, req *AddOrgToChannelInput, opts ...*AddOrgToChannelOptions) (*AddOrgToChannelOutput, error) {
+	run, err := c.AddOrgToChannelAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// AddOrgToChannelAsync executes a(n) fabric.v1.AddOrgToChannel workflow in the test environment
+func (c *TestFabricClient) AddOrgToChannelAsync(ctx context.Context, req *AddOrgToChannelInput, options ...*AddOrgToChannelOptions) (AddOrgToChannelRun, error) {
+	var o *AddOrgToChannelOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewAddOrgToChannelOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testAddOrgToChannelRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetAddOrgToChannel is a noop
+func (c *TestFabricClient) GetAddOrgToChannel(ctx context.Context, workflowID string, runID string) AddOrgToChannelRun {
+	return &testAddOrgToChannelRun{env: c.env, workflows: c.workflows}
+}
+
+// AddPeerToChannel executes a(n) fabric.v1.AddPeerToChannel workflow in the test environment
+func (c *TestFabricClient) AddPeerToChannel(ctx context.Context, req *AddPeerToChannelInput, opts ...*AddPeerToChannelOptions) (*AddPeerToChannelOutput, error) {
+	run, err := c.AddPeerToChannelAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// AddPeerToChannelAsync executes a(n) fabric.v1.AddPeerToChannel workflow in the test environment
+func (c *TestFabricClient) AddPeerToChannelAsync(ctx context.Context, req *AddPeerToChannelInput, options ...*AddPeerToChannelOptions) (AddPeerToChannelRun, error) {
+	var o *AddPeerToChannelOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewAddPeerToChannelOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testAddPeerToChannelRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetAddPeerToChannel is a noop
+func (c *TestFabricClient) GetAddPeerToChannel(ctx context.Context, workflowID string, runID string) AddPeerToChannelRun {
+	return &testAddPeerToChannelRun{env: c.env, workflows: c.workflows}
 }
 
 // BootstrapCertificateAuthorities executes a(n) fabric.v1.BootstrapCertificateAuthorities workflow in the test environment
@@ -7375,6 +12288,35 @@ func (c *TestFabricClient) CreateCertificateDatabaseAsync(ctx context.Context, r
 // GetCreateCertificateDatabase is a noop
 func (c *TestFabricClient) GetCreateCertificateDatabase(ctx context.Context, workflowID string, runID string) CreateCertificateDatabaseRun {
 	return &testCreateCertificateDatabaseRun{env: c.env, workflows: c.workflows}
+}
+
+// CreateChannel executes a(n) fabric.v1.CreateChannel workflow in the test environment
+func (c *TestFabricClient) CreateChannel(ctx context.Context, req *CreateChannelInput, opts ...*CreateChannelOptions) (*CreateChannelOutput, error) {
+	run, err := c.CreateChannelAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// CreateChannelAsync executes a(n) fabric.v1.CreateChannel workflow in the test environment
+func (c *TestFabricClient) CreateChannelAsync(ctx context.Context, req *CreateChannelInput, options ...*CreateChannelOptions) (CreateChannelRun, error) {
+	var o *CreateChannelOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCreateChannelOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testCreateChannelRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetCreateChannel is a noop
+func (c *TestFabricClient) GetCreateChannel(ctx context.Context, workflowID string, runID string) CreateChannelRun {
+	return &testCreateChannelRun{env: c.env, workflows: c.workflows}
 }
 
 // CreateIdentity executes a(n) fabric.v1.CreateIdentity workflow in the test environment
@@ -7580,6 +12522,122 @@ func (c *TestFabricClient) GetDeployPeer(ctx context.Context, workflowID string,
 	return &testDeployPeerRun{env: c.env, workflows: c.workflows}
 }
 
+// JoinOrdererToChannel executes a(n) fabric.v1.JoinOrdererToChannel workflow in the test environment
+func (c *TestFabricClient) JoinOrdererToChannel(ctx context.Context, req *JoinOrdererToChannelInput, opts ...*JoinOrdererToChannelOptions) (*JoinOrdererToChannelOutput, error) {
+	run, err := c.JoinOrdererToChannelAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// JoinOrdererToChannelAsync executes a(n) fabric.v1.JoinOrdererToChannel workflow in the test environment
+func (c *TestFabricClient) JoinOrdererToChannelAsync(ctx context.Context, req *JoinOrdererToChannelInput, options ...*JoinOrdererToChannelOptions) (JoinOrdererToChannelRun, error) {
+	var o *JoinOrdererToChannelOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewJoinOrdererToChannelOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testJoinOrdererToChannelRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetJoinOrdererToChannel is a noop
+func (c *TestFabricClient) GetJoinOrdererToChannel(ctx context.Context, workflowID string, runID string) JoinOrdererToChannelRun {
+	return &testJoinOrdererToChannelRun{env: c.env, workflows: c.workflows}
+}
+
+// JoinPeerToChannel executes a(n) fabric.v1.JoinPeerToChannel workflow in the test environment
+func (c *TestFabricClient) JoinPeerToChannel(ctx context.Context, req *JoinPeerToChannelInput, opts ...*JoinPeerToChannelOptions) (*JoinPeerToChannelOutput, error) {
+	run, err := c.JoinPeerToChannelAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// JoinPeerToChannelAsync executes a(n) fabric.v1.JoinPeerToChannel workflow in the test environment
+func (c *TestFabricClient) JoinPeerToChannelAsync(ctx context.Context, req *JoinPeerToChannelInput, options ...*JoinPeerToChannelOptions) (JoinPeerToChannelRun, error) {
+	var o *JoinPeerToChannelOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewJoinPeerToChannelOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testJoinPeerToChannelRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetJoinPeerToChannel is a noop
+func (c *TestFabricClient) GetJoinPeerToChannel(ctx context.Context, workflowID string, runID string) JoinPeerToChannelRun {
+	return &testJoinPeerToChannelRun{env: c.env, workflows: c.workflows}
+}
+
+// SetAnchorPeer executes a(n) fabric.v1.SetAnchorPeer workflow in the test environment
+func (c *TestFabricClient) SetAnchorPeer(ctx context.Context, req *SetAnchorPeerInput, opts ...*SetAnchorPeerOptions) (*SetAnchorPeerOutput, error) {
+	run, err := c.SetAnchorPeerAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// SetAnchorPeerAsync executes a(n) fabric.v1.SetAnchorPeer workflow in the test environment
+func (c *TestFabricClient) SetAnchorPeerAsync(ctx context.Context, req *SetAnchorPeerInput, options ...*SetAnchorPeerOptions) (SetAnchorPeerRun, error) {
+	var o *SetAnchorPeerOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewSetAnchorPeerOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testSetAnchorPeerRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetSetAnchorPeer is a noop
+func (c *TestFabricClient) GetSetAnchorPeer(ctx context.Context, workflowID string, runID string) SetAnchorPeerRun {
+	return &testSetAnchorPeerRun{env: c.env, workflows: c.workflows}
+}
+
+// UpdateChannelConfig executes a(n) fabric.v1.UpdateChannelConfig workflow in the test environment
+func (c *TestFabricClient) UpdateChannelConfig(ctx context.Context, req *UpdateChannelConfigInput, opts ...*UpdateChannelConfigOptions) (*UpdateChannelConfigOutput, error) {
+	run, err := c.UpdateChannelConfigAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// UpdateChannelConfigAsync executes a(n) fabric.v1.UpdateChannelConfig workflow in the test environment
+func (c *TestFabricClient) UpdateChannelConfigAsync(ctx context.Context, req *UpdateChannelConfigInput, options ...*UpdateChannelConfigOptions) (UpdateChannelConfigRun, error) {
+	var o *UpdateChannelConfigOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewUpdateChannelConfigOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testUpdateChannelConfigRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetUpdateChannelConfig is a noop
+func (c *TestFabricClient) GetUpdateChannelConfig(ctx context.Context, workflowID string, runID string) UpdateChannelConfigRun {
+	return &testUpdateChannelConfigRun{env: c.env, workflows: c.workflows}
+}
+
 // CancelWorkflow requests cancellation of an existing workflow execution
 func (c *TestFabricClient) CancelWorkflow(ctx context.Context, workflowID string, runID string) error {
 	c.env.CancelWorkflow()
@@ -7589,6 +12647,238 @@ func (c *TestFabricClient) CancelWorkflow(ctx context.Context, workflowID string
 // TerminateWorkflow terminates an existing workflow execution
 func (c *TestFabricClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
 	return c.CancelWorkflow(ctx, workflowID, runID)
+}
+
+var _ AddOrdererToChannelRun = &testAddOrdererToChannelRun{}
+
+// testAddOrdererToChannelRun provides convenience methods for interacting with a(n) fabric.v1.AddOrdererToChannel workflow in the test environment
+type testAddOrdererToChannelRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *AddOrdererToChannelInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testAddOrdererToChannelRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.AddOrdererToChannel workflow result
+func (r *testAddOrdererToChannelRun) Get(context.Context) (*AddOrdererToChannelOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(AddOrdererToChannelWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result AddOrdererToChannelOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.AddOrdererToChannel workflow run's workflow ID
+func (r *testAddOrdererToChannelRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testAddOrdererToChannelRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testAddOrdererToChannelRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testAddOrdererToChannelRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ AddOrdererToConsenterSetRun = &testAddOrdererToConsenterSetRun{}
+
+// testAddOrdererToConsenterSetRun provides convenience methods for interacting with a(n) fabric.v1.AddOrdererToConsenterSet workflow in the test environment
+type testAddOrdererToConsenterSetRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *AddOrdererToConsenterSetInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testAddOrdererToConsenterSetRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.AddOrdererToConsenterSet workflow result
+func (r *testAddOrdererToConsenterSetRun) Get(context.Context) (*AddOrdererToConsenterSetOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(AddOrdererToConsenterSetWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result AddOrdererToConsenterSetOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.AddOrdererToConsenterSet workflow run's workflow ID
+func (r *testAddOrdererToConsenterSetRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testAddOrdererToConsenterSetRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testAddOrdererToConsenterSetRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testAddOrdererToConsenterSetRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ AddOrgToChannelRun = &testAddOrgToChannelRun{}
+
+// testAddOrgToChannelRun provides convenience methods for interacting with a(n) fabric.v1.AddOrgToChannel workflow in the test environment
+type testAddOrgToChannelRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *AddOrgToChannelInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testAddOrgToChannelRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.AddOrgToChannel workflow result
+func (r *testAddOrgToChannelRun) Get(context.Context) (*AddOrgToChannelOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(AddOrgToChannelWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result AddOrgToChannelOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.AddOrgToChannel workflow run's workflow ID
+func (r *testAddOrgToChannelRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testAddOrgToChannelRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testAddOrgToChannelRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testAddOrgToChannelRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ AddPeerToChannelRun = &testAddPeerToChannelRun{}
+
+// testAddPeerToChannelRun provides convenience methods for interacting with a(n) fabric.v1.AddPeerToChannel workflow in the test environment
+type testAddPeerToChannelRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *AddPeerToChannelInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testAddPeerToChannelRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.AddPeerToChannel workflow result
+func (r *testAddPeerToChannelRun) Get(context.Context) (*AddPeerToChannelOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(AddPeerToChannelWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result AddPeerToChannelOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.AddPeerToChannel workflow run's workflow ID
+func (r *testAddPeerToChannelRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testAddPeerToChannelRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testAddPeerToChannelRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testAddPeerToChannelRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
 var _ BootstrapCertificateAuthoritiesRun = &testBootstrapCertificateAuthoritiesRun{}
@@ -7936,6 +13226,64 @@ func (r *testCreateCertificateDatabaseRun) RunID() string {
 
 // Terminate terminates a workflow in execution, returning an error if applicable
 func (r *testCreateCertificateDatabaseRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ CreateChannelRun = &testCreateChannelRun{}
+
+// testCreateChannelRun provides convenience methods for interacting with a(n) fabric.v1.CreateChannel workflow in the test environment
+type testCreateChannelRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *CreateChannelInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testCreateChannelRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.CreateChannel workflow result
+func (r *testCreateChannelRun) Get(context.Context) (*CreateChannelOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(CreateChannelWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result CreateChannelOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.CreateChannel workflow run's workflow ID
+func (r *testCreateChannelRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testCreateChannelRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testCreateChannelRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testCreateChannelRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
@@ -8345,15 +13693,259 @@ func (r *testDeployPeerRun) Terminate(ctx context.Context, reason string, detail
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
+var _ JoinOrdererToChannelRun = &testJoinOrdererToChannelRun{}
+
+// testJoinOrdererToChannelRun provides convenience methods for interacting with a(n) fabric.v1.JoinOrdererToChannel workflow in the test environment
+type testJoinOrdererToChannelRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *JoinOrdererToChannelInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testJoinOrdererToChannelRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.JoinOrdererToChannel workflow result
+func (r *testJoinOrdererToChannelRun) Get(context.Context) (*JoinOrdererToChannelOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(JoinOrdererToChannelWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result JoinOrdererToChannelOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.JoinOrdererToChannel workflow run's workflow ID
+func (r *testJoinOrdererToChannelRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testJoinOrdererToChannelRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testJoinOrdererToChannelRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testJoinOrdererToChannelRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ JoinPeerToChannelRun = &testJoinPeerToChannelRun{}
+
+// testJoinPeerToChannelRun provides convenience methods for interacting with a(n) fabric.v1.JoinPeerToChannel workflow in the test environment
+type testJoinPeerToChannelRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *JoinPeerToChannelInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testJoinPeerToChannelRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.JoinPeerToChannel workflow result
+func (r *testJoinPeerToChannelRun) Get(context.Context) (*JoinPeerToChannelOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(JoinPeerToChannelWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result JoinPeerToChannelOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.JoinPeerToChannel workflow run's workflow ID
+func (r *testJoinPeerToChannelRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testJoinPeerToChannelRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testJoinPeerToChannelRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testJoinPeerToChannelRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ SetAnchorPeerRun = &testSetAnchorPeerRun{}
+
+// testSetAnchorPeerRun provides convenience methods for interacting with a(n) fabric.v1.SetAnchorPeer workflow in the test environment
+type testSetAnchorPeerRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *SetAnchorPeerInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testSetAnchorPeerRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.SetAnchorPeer workflow result
+func (r *testSetAnchorPeerRun) Get(context.Context) (*SetAnchorPeerOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(SetAnchorPeerWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result SetAnchorPeerOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.SetAnchorPeer workflow run's workflow ID
+func (r *testSetAnchorPeerRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testSetAnchorPeerRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testSetAnchorPeerRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testSetAnchorPeerRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ UpdateChannelConfigRun = &testUpdateChannelConfigRun{}
+
+// testUpdateChannelConfigRun provides convenience methods for interacting with a(n) fabric.v1.UpdateChannelConfig workflow in the test environment
+type testUpdateChannelConfigRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *UpdateChannelConfigInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testUpdateChannelConfigRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.UpdateChannelConfig workflow result
+func (r *testUpdateChannelConfigRun) Get(context.Context) (*UpdateChannelConfigOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(UpdateChannelConfigWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result UpdateChannelConfigOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.UpdateChannelConfig workflow run's workflow ID
+func (r *testUpdateChannelConfigRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testUpdateChannelConfigRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testUpdateChannelConfigRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testUpdateChannelConfigRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
 // FabricActivitiesTaskQueue is the default task-queue for a fabric.v1.FabricActivities worker
 var FabricActivitiesTaskQueue = "infra"
 
 // fabric.v1.FabricActivities activity names
 const (
 	BootstrapEnrollIdentityActivityName = "fabric.v1.BootstrapEnrollIdentity"
+	CollectSignaturesActivityName       = "fabric.v1.CollectSignatures"
+	ComputeConfigUpdateActivityName     = "fabric.v1.ComputeConfigUpdate"
 	EnrollIdentityActivityName          = "fabric.v1.EnrollIdentity"
+	FetchChannelConfigActivityName      = "fabric.v1.FetchChannelConfig"
+	GenerateConfigTxActivityName        = "fabric.v1.GenerateConfigTx"
+	GenerateGenesisBlockActivityName    = "fabric.v1.GenerateGenesisBlock"
+	GenerateOrgDefinitionActivityName   = "fabric.v1.GenerateOrgDefinition"
+	OsnadminChannelJoinActivityName     = "fabric.v1.OsnadminChannelJoin"
+	PeerChannelFetchActivityName        = "fabric.v1.PeerChannelFetch"
+	PeerChannelJoinActivityName         = "fabric.v1.PeerChannelJoin"
 	RegisterIdentityActivityName        = "fabric.v1.RegisterIdentity"
 	RevokeIdentityActivityName          = "fabric.v1.RevokeIdentity"
+	SignConfigUpdateActivityName        = "fabric.v1.SignConfigUpdate"
+	SubmitChannelUpdateActivityName     = "fabric.v1.SubmitChannelUpdate"
+	WaitForOrdererActiveActivityName    = "fabric.v1.WaitForOrdererActive"
 )
 
 // FabricActivitiesActivities describes available worker activities
@@ -8363,9 +13955,36 @@ type FabricActivitiesActivities interface {
 	// The activity generates a CSR internally and submits it to the CA
 	BootstrapEnrollIdentity(ctx context.Context, req *BootstrapEnrollIdentityInput) (*BootstrapEnrollIdentityOutput, error)
 
+	// CollectSignatures gathers required signatures from channel admin orgs
+	CollectSignatures(ctx context.Context, req *CollectSignaturesInput) (*CollectSignaturesOutput, error)
+
+	// ComputeConfigUpdate computes the config delta between original and modified configs
+	ComputeConfigUpdate(ctx context.Context, req *ComputeConfigUpdateInput) (*ComputeConfigUpdateOutput, error)
+
 	// EnrollIdentity enrolls a registered identity and retrieves certificates
 	// This is the second step in identity creation - enrollment uses the secret from registration
 	EnrollIdentity(ctx context.Context, req *EnrollIdentityInput) (*EnrollIdentityOutput, error)
+
+	// FetchChannelConfig fetches and decodes the current channel configuration
+	FetchChannelConfig(ctx context.Context, req *FetchChannelConfigInput) (*FetchChannelConfigOutput, error)
+
+	// GenerateConfigTx generates a configtx.yaml from org definitions
+	GenerateConfigTx(ctx context.Context, req *GenerateConfigTxInput) (*GenerateConfigTxOutput, error)
+
+	// GenerateGenesisBlock creates a channel genesis block using configtxgen
+	GenerateGenesisBlock(ctx context.Context, req *GenerateGenesisBlockInput) (*GenerateGenesisBlockOutput, error)
+
+	// GenerateOrgDefinition creates an org MSP definition for channel config
+	GenerateOrgDefinition(ctx context.Context, req *GenerateOrgDefinitionInput) (*GenerateOrgDefinitionOutput, error)
+
+	// OsnadminChannelJoin joins an orderer to a channel via osnadmin channel join
+	OsnadminChannelJoin(ctx context.Context, req *OsnadminChannelJoinInput) (*OsnadminChannelJoinOutput, error)
+
+	// PeerChannelFetch fetches a block from an orderer using peer channel fetch
+	PeerChannelFetch(ctx context.Context, req *PeerChannelFetchInput) (*PeerChannelFetchOutput, error)
+
+	// PeerChannelJoin joins a peer to a channel using peer channel join
+	PeerChannelJoin(ctx context.Context, req *PeerChannelJoinInput) (*PeerChannelJoinOutput, error)
 
 	// RegisterIdentity registers a new identity with a Fabric CA
 	// This is the first step in identity creation - registration returns an enrollment secret
@@ -8374,14 +13993,35 @@ type FabricActivitiesActivities interface {
 	// RevokeIdentity revokes an identity from a Fabric CA
 	// Used to revoke bootstrap admin credentials after permanent admin is created
 	RevokeIdentity(ctx context.Context, req *RevokeIdentityInput) (*RevokeIdentityOutput, error)
+
+	// SignConfigUpdate signs a channel config update using peer channel signconfigtx
+	SignConfigUpdate(ctx context.Context, req *SignConfigUpdateInput) (*SignConfigUpdateOutput, error)
+
+	// SubmitChannelUpdate wraps a config update in an envelope and submits it
+	SubmitChannelUpdate(ctx context.Context, req *SubmitChannelUpdateInput) (*SubmitChannelUpdateOutput, error)
+
+	// WaitForOrdererActive polls osnadmin channel list until orderer status is "active"
+	WaitForOrdererActive(ctx context.Context, req *WaitForOrdererActiveInput) (*WaitForOrdererActiveOutput, error)
 }
 
 // RegisterFabricActivitiesActivities registers activities with a worker
 func RegisterFabricActivitiesActivities(r worker.ActivityRegistry, activities FabricActivitiesActivities) {
 	RegisterBootstrapEnrollIdentityActivity(r, activities.BootstrapEnrollIdentity)
+	RegisterCollectSignaturesActivity(r, activities.CollectSignatures)
+	RegisterComputeConfigUpdateActivity(r, activities.ComputeConfigUpdate)
 	RegisterEnrollIdentityActivity(r, activities.EnrollIdentity)
+	RegisterFetchChannelConfigActivity(r, activities.FetchChannelConfig)
+	RegisterGenerateConfigTxActivity(r, activities.GenerateConfigTx)
+	RegisterGenerateGenesisBlockActivity(r, activities.GenerateGenesisBlock)
+	RegisterGenerateOrgDefinitionActivity(r, activities.GenerateOrgDefinition)
+	RegisterOsnadminChannelJoinActivity(r, activities.OsnadminChannelJoin)
+	RegisterPeerChannelFetchActivity(r, activities.PeerChannelFetch)
+	RegisterPeerChannelJoinActivity(r, activities.PeerChannelJoin)
 	RegisterRegisterIdentityActivity(r, activities.RegisterIdentity)
 	RegisterRevokeIdentityActivity(r, activities.RevokeIdentity)
+	RegisterSignConfigUpdateActivity(r, activities.SignConfigUpdate)
+	RegisterSubmitChannelUpdateActivity(r, activities.SubmitChannelUpdate)
+	RegisterWaitForOrdererActiveActivity(r, activities.WaitForOrdererActive)
 }
 
 // RegisterBootstrapEnrollIdentityActivity registers a fabric.v1.BootstrapEnrollIdentity activity
@@ -8652,6 +14292,526 @@ func (o *BootstrapEnrollIdentityLocalActivityOptions) WithStartToCloseTimeout(d 
 	return o
 }
 
+// RegisterCollectSignaturesActivity registers a fabric.v1.CollectSignatures activity
+func RegisterCollectSignaturesActivity(r worker.ActivityRegistry, fn func(context.Context, *CollectSignaturesInput) (*CollectSignaturesOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: CollectSignaturesActivityName,
+	})
+}
+
+// CollectSignaturesFuture describes a(n) fabric.v1.CollectSignatures activity execution
+type CollectSignaturesFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *CollectSignaturesFuture) Get(ctx workflow.Context) (*CollectSignaturesOutput, error) {
+	var resp CollectSignaturesOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *CollectSignaturesFuture) Select(sel workflow.Selector, fn func(*CollectSignaturesFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// CollectSignatures gathers required signatures from channel admin orgs
+func CollectSignatures(ctx workflow.Context, req *CollectSignaturesInput, options ...*CollectSignaturesActivityOptions) (*CollectSignaturesOutput, error) {
+	return CollectSignaturesAsync(ctx, req, options...).Get(ctx)
+}
+
+// CollectSignatures gathers required signatures from channel admin orgs
+func CollectSignaturesAsync(ctx workflow.Context, req *CollectSignaturesInput, options ...*CollectSignaturesActivityOptions) *CollectSignaturesFuture {
+	var o *CollectSignaturesActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCollectSignaturesActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &CollectSignaturesFuture{Future: errF}
+	}
+	activity := CollectSignaturesActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &CollectSignaturesFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// CollectSignatures gathers required signatures from channel admin orgs
+func CollectSignaturesLocal(ctx workflow.Context, req *CollectSignaturesInput, options ...*CollectSignaturesLocalActivityOptions) (*CollectSignaturesOutput, error) {
+	return CollectSignaturesLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// CollectSignatures gathers required signatures from channel admin orgs
+func CollectSignaturesLocalAsync(ctx workflow.Context, req *CollectSignaturesInput, options ...*CollectSignaturesLocalActivityOptions) *CollectSignaturesFuture {
+	var o *CollectSignaturesLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCollectSignaturesLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &CollectSignaturesFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = CollectSignaturesActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &CollectSignaturesFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// CollectSignaturesActivityOptions provides configuration for a(n) fabric.v1.CollectSignatures activity
+type CollectSignaturesActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewCollectSignaturesActivityOptions initializes a new CollectSignaturesActivityOptions value
+func NewCollectSignaturesActivityOptions() *CollectSignaturesActivityOptions {
+	return &CollectSignaturesActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *CollectSignaturesActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricActivitiesTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *CollectSignaturesActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *CollectSignaturesActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *CollectSignaturesActivityOptions) WithDataConverter(dc converter.DataConverter) *CollectSignaturesActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *CollectSignaturesActivityOptions) WithHeartbeatTimeout(d time.Duration) *CollectSignaturesActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CollectSignaturesActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CollectSignaturesActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *CollectSignaturesActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *CollectSignaturesActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *CollectSignaturesActivityOptions) WithScheduleToStartTimeout(d time.Duration) *CollectSignaturesActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *CollectSignaturesActivityOptions) WithStartToCloseTimeout(d time.Duration) *CollectSignaturesActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *CollectSignaturesActivityOptions) WithTaskQueue(tq string) *CollectSignaturesActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *CollectSignaturesActivityOptions) WithWaitForCancellation(wait bool) *CollectSignaturesActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// CollectSignaturesLocalActivityOptions provides configuration for a(n) fabric.v1.CollectSignatures activity
+type CollectSignaturesLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *CollectSignaturesInput) (*CollectSignaturesOutput, error)
+}
+
+// NewCollectSignaturesLocalActivityOptions initializes a new CollectSignaturesLocalActivityOptions value
+func NewCollectSignaturesLocalActivityOptions() *CollectSignaturesLocalActivityOptions {
+	return &CollectSignaturesLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *CollectSignaturesLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom fabric.v1.CollectSignatures implementation
+func (o *CollectSignaturesLocalActivityOptions) Local(fn func(context.Context, *CollectSignaturesInput) (*CollectSignaturesOutput, error)) *CollectSignaturesLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *CollectSignaturesLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *CollectSignaturesLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *CollectSignaturesLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *CollectSignaturesLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CollectSignaturesLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CollectSignaturesLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *CollectSignaturesLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *CollectSignaturesLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *CollectSignaturesLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *CollectSignaturesLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterComputeConfigUpdateActivity registers a fabric.v1.ComputeConfigUpdate activity
+func RegisterComputeConfigUpdateActivity(r worker.ActivityRegistry, fn func(context.Context, *ComputeConfigUpdateInput) (*ComputeConfigUpdateOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: ComputeConfigUpdateActivityName,
+	})
+}
+
+// ComputeConfigUpdateFuture describes a(n) fabric.v1.ComputeConfigUpdate activity execution
+type ComputeConfigUpdateFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *ComputeConfigUpdateFuture) Get(ctx workflow.Context) (*ComputeConfigUpdateOutput, error) {
+	var resp ComputeConfigUpdateOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *ComputeConfigUpdateFuture) Select(sel workflow.Selector, fn func(*ComputeConfigUpdateFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// ComputeConfigUpdate computes the config delta between original and modified configs
+func ComputeConfigUpdate(ctx workflow.Context, req *ComputeConfigUpdateInput, options ...*ComputeConfigUpdateActivityOptions) (*ComputeConfigUpdateOutput, error) {
+	return ComputeConfigUpdateAsync(ctx, req, options...).Get(ctx)
+}
+
+// ComputeConfigUpdate computes the config delta between original and modified configs
+func ComputeConfigUpdateAsync(ctx workflow.Context, req *ComputeConfigUpdateInput, options ...*ComputeConfigUpdateActivityOptions) *ComputeConfigUpdateFuture {
+	var o *ComputeConfigUpdateActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewComputeConfigUpdateActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &ComputeConfigUpdateFuture{Future: errF}
+	}
+	activity := ComputeConfigUpdateActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &ComputeConfigUpdateFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// ComputeConfigUpdate computes the config delta between original and modified configs
+func ComputeConfigUpdateLocal(ctx workflow.Context, req *ComputeConfigUpdateInput, options ...*ComputeConfigUpdateLocalActivityOptions) (*ComputeConfigUpdateOutput, error) {
+	return ComputeConfigUpdateLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// ComputeConfigUpdate computes the config delta between original and modified configs
+func ComputeConfigUpdateLocalAsync(ctx workflow.Context, req *ComputeConfigUpdateInput, options ...*ComputeConfigUpdateLocalActivityOptions) *ComputeConfigUpdateFuture {
+	var o *ComputeConfigUpdateLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewComputeConfigUpdateLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &ComputeConfigUpdateFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = ComputeConfigUpdateActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &ComputeConfigUpdateFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// ComputeConfigUpdateActivityOptions provides configuration for a(n) fabric.v1.ComputeConfigUpdate activity
+type ComputeConfigUpdateActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewComputeConfigUpdateActivityOptions initializes a new ComputeConfigUpdateActivityOptions value
+func NewComputeConfigUpdateActivityOptions() *ComputeConfigUpdateActivityOptions {
+	return &ComputeConfigUpdateActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *ComputeConfigUpdateActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricActivitiesTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *ComputeConfigUpdateActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *ComputeConfigUpdateActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *ComputeConfigUpdateActivityOptions) WithDataConverter(dc converter.DataConverter) *ComputeConfigUpdateActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *ComputeConfigUpdateActivityOptions) WithHeartbeatTimeout(d time.Duration) *ComputeConfigUpdateActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *ComputeConfigUpdateActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *ComputeConfigUpdateActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *ComputeConfigUpdateActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *ComputeConfigUpdateActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *ComputeConfigUpdateActivityOptions) WithScheduleToStartTimeout(d time.Duration) *ComputeConfigUpdateActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *ComputeConfigUpdateActivityOptions) WithStartToCloseTimeout(d time.Duration) *ComputeConfigUpdateActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *ComputeConfigUpdateActivityOptions) WithTaskQueue(tq string) *ComputeConfigUpdateActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *ComputeConfigUpdateActivityOptions) WithWaitForCancellation(wait bool) *ComputeConfigUpdateActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// ComputeConfigUpdateLocalActivityOptions provides configuration for a(n) fabric.v1.ComputeConfigUpdate activity
+type ComputeConfigUpdateLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *ComputeConfigUpdateInput) (*ComputeConfigUpdateOutput, error)
+}
+
+// NewComputeConfigUpdateLocalActivityOptions initializes a new ComputeConfigUpdateLocalActivityOptions value
+func NewComputeConfigUpdateLocalActivityOptions() *ComputeConfigUpdateLocalActivityOptions {
+	return &ComputeConfigUpdateLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *ComputeConfigUpdateLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom fabric.v1.ComputeConfigUpdate implementation
+func (o *ComputeConfigUpdateLocalActivityOptions) Local(fn func(context.Context, *ComputeConfigUpdateInput) (*ComputeConfigUpdateOutput, error)) *ComputeConfigUpdateLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *ComputeConfigUpdateLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *ComputeConfigUpdateLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *ComputeConfigUpdateLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *ComputeConfigUpdateLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *ComputeConfigUpdateLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *ComputeConfigUpdateLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *ComputeConfigUpdateLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *ComputeConfigUpdateLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *ComputeConfigUpdateLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *ComputeConfigUpdateLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
 // RegisterEnrollIdentityActivity registers a fabric.v1.EnrollIdentity activity
 func RegisterEnrollIdentityActivity(r worker.ActivityRegistry, fn func(context.Context, *EnrollIdentityInput) (*EnrollIdentityOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
@@ -8912,6 +15072,1826 @@ func (o *EnrollIdentityLocalActivityOptions) WithScheduleToCloseTimeout(d time.D
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
 func (o *EnrollIdentityLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *EnrollIdentityLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterFetchChannelConfigActivity registers a fabric.v1.FetchChannelConfig activity
+func RegisterFetchChannelConfigActivity(r worker.ActivityRegistry, fn func(context.Context, *FetchChannelConfigInput) (*FetchChannelConfigOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: FetchChannelConfigActivityName,
+	})
+}
+
+// FetchChannelConfigFuture describes a(n) fabric.v1.FetchChannelConfig activity execution
+type FetchChannelConfigFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *FetchChannelConfigFuture) Get(ctx workflow.Context) (*FetchChannelConfigOutput, error) {
+	var resp FetchChannelConfigOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *FetchChannelConfigFuture) Select(sel workflow.Selector, fn func(*FetchChannelConfigFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// FetchChannelConfig fetches and decodes the current channel configuration
+func FetchChannelConfig(ctx workflow.Context, req *FetchChannelConfigInput, options ...*FetchChannelConfigActivityOptions) (*FetchChannelConfigOutput, error) {
+	return FetchChannelConfigAsync(ctx, req, options...).Get(ctx)
+}
+
+// FetchChannelConfig fetches and decodes the current channel configuration
+func FetchChannelConfigAsync(ctx workflow.Context, req *FetchChannelConfigInput, options ...*FetchChannelConfigActivityOptions) *FetchChannelConfigFuture {
+	var o *FetchChannelConfigActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewFetchChannelConfigActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &FetchChannelConfigFuture{Future: errF}
+	}
+	activity := FetchChannelConfigActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &FetchChannelConfigFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// FetchChannelConfig fetches and decodes the current channel configuration
+func FetchChannelConfigLocal(ctx workflow.Context, req *FetchChannelConfigInput, options ...*FetchChannelConfigLocalActivityOptions) (*FetchChannelConfigOutput, error) {
+	return FetchChannelConfigLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// FetchChannelConfig fetches and decodes the current channel configuration
+func FetchChannelConfigLocalAsync(ctx workflow.Context, req *FetchChannelConfigInput, options ...*FetchChannelConfigLocalActivityOptions) *FetchChannelConfigFuture {
+	var o *FetchChannelConfigLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewFetchChannelConfigLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &FetchChannelConfigFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = FetchChannelConfigActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &FetchChannelConfigFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// FetchChannelConfigActivityOptions provides configuration for a(n) fabric.v1.FetchChannelConfig activity
+type FetchChannelConfigActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewFetchChannelConfigActivityOptions initializes a new FetchChannelConfigActivityOptions value
+func NewFetchChannelConfigActivityOptions() *FetchChannelConfigActivityOptions {
+	return &FetchChannelConfigActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *FetchChannelConfigActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricActivitiesTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *FetchChannelConfigActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *FetchChannelConfigActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *FetchChannelConfigActivityOptions) WithDataConverter(dc converter.DataConverter) *FetchChannelConfigActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *FetchChannelConfigActivityOptions) WithHeartbeatTimeout(d time.Duration) *FetchChannelConfigActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *FetchChannelConfigActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *FetchChannelConfigActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *FetchChannelConfigActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *FetchChannelConfigActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *FetchChannelConfigActivityOptions) WithScheduleToStartTimeout(d time.Duration) *FetchChannelConfigActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *FetchChannelConfigActivityOptions) WithStartToCloseTimeout(d time.Duration) *FetchChannelConfigActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *FetchChannelConfigActivityOptions) WithTaskQueue(tq string) *FetchChannelConfigActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *FetchChannelConfigActivityOptions) WithWaitForCancellation(wait bool) *FetchChannelConfigActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// FetchChannelConfigLocalActivityOptions provides configuration for a(n) fabric.v1.FetchChannelConfig activity
+type FetchChannelConfigLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *FetchChannelConfigInput) (*FetchChannelConfigOutput, error)
+}
+
+// NewFetchChannelConfigLocalActivityOptions initializes a new FetchChannelConfigLocalActivityOptions value
+func NewFetchChannelConfigLocalActivityOptions() *FetchChannelConfigLocalActivityOptions {
+	return &FetchChannelConfigLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *FetchChannelConfigLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom fabric.v1.FetchChannelConfig implementation
+func (o *FetchChannelConfigLocalActivityOptions) Local(fn func(context.Context, *FetchChannelConfigInput) (*FetchChannelConfigOutput, error)) *FetchChannelConfigLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *FetchChannelConfigLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *FetchChannelConfigLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *FetchChannelConfigLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *FetchChannelConfigLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *FetchChannelConfigLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *FetchChannelConfigLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *FetchChannelConfigLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *FetchChannelConfigLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *FetchChannelConfigLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *FetchChannelConfigLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterGenerateConfigTxActivity registers a fabric.v1.GenerateConfigTx activity
+func RegisterGenerateConfigTxActivity(r worker.ActivityRegistry, fn func(context.Context, *GenerateConfigTxInput) (*GenerateConfigTxOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: GenerateConfigTxActivityName,
+	})
+}
+
+// GenerateConfigTxFuture describes a(n) fabric.v1.GenerateConfigTx activity execution
+type GenerateConfigTxFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *GenerateConfigTxFuture) Get(ctx workflow.Context) (*GenerateConfigTxOutput, error) {
+	var resp GenerateConfigTxOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *GenerateConfigTxFuture) Select(sel workflow.Selector, fn func(*GenerateConfigTxFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// GenerateConfigTx generates a configtx.yaml from org definitions
+func GenerateConfigTx(ctx workflow.Context, req *GenerateConfigTxInput, options ...*GenerateConfigTxActivityOptions) (*GenerateConfigTxOutput, error) {
+	return GenerateConfigTxAsync(ctx, req, options...).Get(ctx)
+}
+
+// GenerateConfigTx generates a configtx.yaml from org definitions
+func GenerateConfigTxAsync(ctx workflow.Context, req *GenerateConfigTxInput, options ...*GenerateConfigTxActivityOptions) *GenerateConfigTxFuture {
+	var o *GenerateConfigTxActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewGenerateConfigTxActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &GenerateConfigTxFuture{Future: errF}
+	}
+	activity := GenerateConfigTxActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &GenerateConfigTxFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// GenerateConfigTx generates a configtx.yaml from org definitions
+func GenerateConfigTxLocal(ctx workflow.Context, req *GenerateConfigTxInput, options ...*GenerateConfigTxLocalActivityOptions) (*GenerateConfigTxOutput, error) {
+	return GenerateConfigTxLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// GenerateConfigTx generates a configtx.yaml from org definitions
+func GenerateConfigTxLocalAsync(ctx workflow.Context, req *GenerateConfigTxInput, options ...*GenerateConfigTxLocalActivityOptions) *GenerateConfigTxFuture {
+	var o *GenerateConfigTxLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewGenerateConfigTxLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &GenerateConfigTxFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = GenerateConfigTxActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &GenerateConfigTxFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// GenerateConfigTxActivityOptions provides configuration for a(n) fabric.v1.GenerateConfigTx activity
+type GenerateConfigTxActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewGenerateConfigTxActivityOptions initializes a new GenerateConfigTxActivityOptions value
+func NewGenerateConfigTxActivityOptions() *GenerateConfigTxActivityOptions {
+	return &GenerateConfigTxActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *GenerateConfigTxActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricActivitiesTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *GenerateConfigTxActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *GenerateConfigTxActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *GenerateConfigTxActivityOptions) WithDataConverter(dc converter.DataConverter) *GenerateConfigTxActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *GenerateConfigTxActivityOptions) WithHeartbeatTimeout(d time.Duration) *GenerateConfigTxActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *GenerateConfigTxActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *GenerateConfigTxActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *GenerateConfigTxActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *GenerateConfigTxActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *GenerateConfigTxActivityOptions) WithScheduleToStartTimeout(d time.Duration) *GenerateConfigTxActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *GenerateConfigTxActivityOptions) WithStartToCloseTimeout(d time.Duration) *GenerateConfigTxActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *GenerateConfigTxActivityOptions) WithTaskQueue(tq string) *GenerateConfigTxActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *GenerateConfigTxActivityOptions) WithWaitForCancellation(wait bool) *GenerateConfigTxActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// GenerateConfigTxLocalActivityOptions provides configuration for a(n) fabric.v1.GenerateConfigTx activity
+type GenerateConfigTxLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *GenerateConfigTxInput) (*GenerateConfigTxOutput, error)
+}
+
+// NewGenerateConfigTxLocalActivityOptions initializes a new GenerateConfigTxLocalActivityOptions value
+func NewGenerateConfigTxLocalActivityOptions() *GenerateConfigTxLocalActivityOptions {
+	return &GenerateConfigTxLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *GenerateConfigTxLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom fabric.v1.GenerateConfigTx implementation
+func (o *GenerateConfigTxLocalActivityOptions) Local(fn func(context.Context, *GenerateConfigTxInput) (*GenerateConfigTxOutput, error)) *GenerateConfigTxLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *GenerateConfigTxLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *GenerateConfigTxLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *GenerateConfigTxLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *GenerateConfigTxLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *GenerateConfigTxLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *GenerateConfigTxLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *GenerateConfigTxLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *GenerateConfigTxLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *GenerateConfigTxLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *GenerateConfigTxLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterGenerateGenesisBlockActivity registers a fabric.v1.GenerateGenesisBlock activity
+func RegisterGenerateGenesisBlockActivity(r worker.ActivityRegistry, fn func(context.Context, *GenerateGenesisBlockInput) (*GenerateGenesisBlockOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: GenerateGenesisBlockActivityName,
+	})
+}
+
+// GenerateGenesisBlockFuture describes a(n) fabric.v1.GenerateGenesisBlock activity execution
+type GenerateGenesisBlockFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *GenerateGenesisBlockFuture) Get(ctx workflow.Context) (*GenerateGenesisBlockOutput, error) {
+	var resp GenerateGenesisBlockOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *GenerateGenesisBlockFuture) Select(sel workflow.Selector, fn func(*GenerateGenesisBlockFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// GenerateGenesisBlock creates a channel genesis block using configtxgen
+func GenerateGenesisBlock(ctx workflow.Context, req *GenerateGenesisBlockInput, options ...*GenerateGenesisBlockActivityOptions) (*GenerateGenesisBlockOutput, error) {
+	return GenerateGenesisBlockAsync(ctx, req, options...).Get(ctx)
+}
+
+// GenerateGenesisBlock creates a channel genesis block using configtxgen
+func GenerateGenesisBlockAsync(ctx workflow.Context, req *GenerateGenesisBlockInput, options ...*GenerateGenesisBlockActivityOptions) *GenerateGenesisBlockFuture {
+	var o *GenerateGenesisBlockActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewGenerateGenesisBlockActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &GenerateGenesisBlockFuture{Future: errF}
+	}
+	activity := GenerateGenesisBlockActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &GenerateGenesisBlockFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// GenerateGenesisBlock creates a channel genesis block using configtxgen
+func GenerateGenesisBlockLocal(ctx workflow.Context, req *GenerateGenesisBlockInput, options ...*GenerateGenesisBlockLocalActivityOptions) (*GenerateGenesisBlockOutput, error) {
+	return GenerateGenesisBlockLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// GenerateGenesisBlock creates a channel genesis block using configtxgen
+func GenerateGenesisBlockLocalAsync(ctx workflow.Context, req *GenerateGenesisBlockInput, options ...*GenerateGenesisBlockLocalActivityOptions) *GenerateGenesisBlockFuture {
+	var o *GenerateGenesisBlockLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewGenerateGenesisBlockLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &GenerateGenesisBlockFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = GenerateGenesisBlockActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &GenerateGenesisBlockFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// GenerateGenesisBlockActivityOptions provides configuration for a(n) fabric.v1.GenerateGenesisBlock activity
+type GenerateGenesisBlockActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewGenerateGenesisBlockActivityOptions initializes a new GenerateGenesisBlockActivityOptions value
+func NewGenerateGenesisBlockActivityOptions() *GenerateGenesisBlockActivityOptions {
+	return &GenerateGenesisBlockActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *GenerateGenesisBlockActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricActivitiesTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *GenerateGenesisBlockActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *GenerateGenesisBlockActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *GenerateGenesisBlockActivityOptions) WithDataConverter(dc converter.DataConverter) *GenerateGenesisBlockActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *GenerateGenesisBlockActivityOptions) WithHeartbeatTimeout(d time.Duration) *GenerateGenesisBlockActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *GenerateGenesisBlockActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *GenerateGenesisBlockActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *GenerateGenesisBlockActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *GenerateGenesisBlockActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *GenerateGenesisBlockActivityOptions) WithScheduleToStartTimeout(d time.Duration) *GenerateGenesisBlockActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *GenerateGenesisBlockActivityOptions) WithStartToCloseTimeout(d time.Duration) *GenerateGenesisBlockActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *GenerateGenesisBlockActivityOptions) WithTaskQueue(tq string) *GenerateGenesisBlockActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *GenerateGenesisBlockActivityOptions) WithWaitForCancellation(wait bool) *GenerateGenesisBlockActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// GenerateGenesisBlockLocalActivityOptions provides configuration for a(n) fabric.v1.GenerateGenesisBlock activity
+type GenerateGenesisBlockLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *GenerateGenesisBlockInput) (*GenerateGenesisBlockOutput, error)
+}
+
+// NewGenerateGenesisBlockLocalActivityOptions initializes a new GenerateGenesisBlockLocalActivityOptions value
+func NewGenerateGenesisBlockLocalActivityOptions() *GenerateGenesisBlockLocalActivityOptions {
+	return &GenerateGenesisBlockLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *GenerateGenesisBlockLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom fabric.v1.GenerateGenesisBlock implementation
+func (o *GenerateGenesisBlockLocalActivityOptions) Local(fn func(context.Context, *GenerateGenesisBlockInput) (*GenerateGenesisBlockOutput, error)) *GenerateGenesisBlockLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *GenerateGenesisBlockLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *GenerateGenesisBlockLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *GenerateGenesisBlockLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *GenerateGenesisBlockLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *GenerateGenesisBlockLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *GenerateGenesisBlockLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *GenerateGenesisBlockLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *GenerateGenesisBlockLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *GenerateGenesisBlockLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *GenerateGenesisBlockLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterGenerateOrgDefinitionActivity registers a fabric.v1.GenerateOrgDefinition activity
+func RegisterGenerateOrgDefinitionActivity(r worker.ActivityRegistry, fn func(context.Context, *GenerateOrgDefinitionInput) (*GenerateOrgDefinitionOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: GenerateOrgDefinitionActivityName,
+	})
+}
+
+// GenerateOrgDefinitionFuture describes a(n) fabric.v1.GenerateOrgDefinition activity execution
+type GenerateOrgDefinitionFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *GenerateOrgDefinitionFuture) Get(ctx workflow.Context) (*GenerateOrgDefinitionOutput, error) {
+	var resp GenerateOrgDefinitionOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *GenerateOrgDefinitionFuture) Select(sel workflow.Selector, fn func(*GenerateOrgDefinitionFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// GenerateOrgDefinition creates an org MSP definition for channel config
+func GenerateOrgDefinition(ctx workflow.Context, req *GenerateOrgDefinitionInput, options ...*GenerateOrgDefinitionActivityOptions) (*GenerateOrgDefinitionOutput, error) {
+	return GenerateOrgDefinitionAsync(ctx, req, options...).Get(ctx)
+}
+
+// GenerateOrgDefinition creates an org MSP definition for channel config
+func GenerateOrgDefinitionAsync(ctx workflow.Context, req *GenerateOrgDefinitionInput, options ...*GenerateOrgDefinitionActivityOptions) *GenerateOrgDefinitionFuture {
+	var o *GenerateOrgDefinitionActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewGenerateOrgDefinitionActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &GenerateOrgDefinitionFuture{Future: errF}
+	}
+	activity := GenerateOrgDefinitionActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &GenerateOrgDefinitionFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// GenerateOrgDefinition creates an org MSP definition for channel config
+func GenerateOrgDefinitionLocal(ctx workflow.Context, req *GenerateOrgDefinitionInput, options ...*GenerateOrgDefinitionLocalActivityOptions) (*GenerateOrgDefinitionOutput, error) {
+	return GenerateOrgDefinitionLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// GenerateOrgDefinition creates an org MSP definition for channel config
+func GenerateOrgDefinitionLocalAsync(ctx workflow.Context, req *GenerateOrgDefinitionInput, options ...*GenerateOrgDefinitionLocalActivityOptions) *GenerateOrgDefinitionFuture {
+	var o *GenerateOrgDefinitionLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewGenerateOrgDefinitionLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &GenerateOrgDefinitionFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = GenerateOrgDefinitionActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &GenerateOrgDefinitionFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// GenerateOrgDefinitionActivityOptions provides configuration for a(n) fabric.v1.GenerateOrgDefinition activity
+type GenerateOrgDefinitionActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewGenerateOrgDefinitionActivityOptions initializes a new GenerateOrgDefinitionActivityOptions value
+func NewGenerateOrgDefinitionActivityOptions() *GenerateOrgDefinitionActivityOptions {
+	return &GenerateOrgDefinitionActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *GenerateOrgDefinitionActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricActivitiesTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *GenerateOrgDefinitionActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *GenerateOrgDefinitionActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *GenerateOrgDefinitionActivityOptions) WithDataConverter(dc converter.DataConverter) *GenerateOrgDefinitionActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *GenerateOrgDefinitionActivityOptions) WithHeartbeatTimeout(d time.Duration) *GenerateOrgDefinitionActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *GenerateOrgDefinitionActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *GenerateOrgDefinitionActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *GenerateOrgDefinitionActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *GenerateOrgDefinitionActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *GenerateOrgDefinitionActivityOptions) WithScheduleToStartTimeout(d time.Duration) *GenerateOrgDefinitionActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *GenerateOrgDefinitionActivityOptions) WithStartToCloseTimeout(d time.Duration) *GenerateOrgDefinitionActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *GenerateOrgDefinitionActivityOptions) WithTaskQueue(tq string) *GenerateOrgDefinitionActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *GenerateOrgDefinitionActivityOptions) WithWaitForCancellation(wait bool) *GenerateOrgDefinitionActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// GenerateOrgDefinitionLocalActivityOptions provides configuration for a(n) fabric.v1.GenerateOrgDefinition activity
+type GenerateOrgDefinitionLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *GenerateOrgDefinitionInput) (*GenerateOrgDefinitionOutput, error)
+}
+
+// NewGenerateOrgDefinitionLocalActivityOptions initializes a new GenerateOrgDefinitionLocalActivityOptions value
+func NewGenerateOrgDefinitionLocalActivityOptions() *GenerateOrgDefinitionLocalActivityOptions {
+	return &GenerateOrgDefinitionLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *GenerateOrgDefinitionLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom fabric.v1.GenerateOrgDefinition implementation
+func (o *GenerateOrgDefinitionLocalActivityOptions) Local(fn func(context.Context, *GenerateOrgDefinitionInput) (*GenerateOrgDefinitionOutput, error)) *GenerateOrgDefinitionLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *GenerateOrgDefinitionLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *GenerateOrgDefinitionLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *GenerateOrgDefinitionLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *GenerateOrgDefinitionLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *GenerateOrgDefinitionLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *GenerateOrgDefinitionLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *GenerateOrgDefinitionLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *GenerateOrgDefinitionLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *GenerateOrgDefinitionLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *GenerateOrgDefinitionLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterOsnadminChannelJoinActivity registers a fabric.v1.OsnadminChannelJoin activity
+func RegisterOsnadminChannelJoinActivity(r worker.ActivityRegistry, fn func(context.Context, *OsnadminChannelJoinInput) (*OsnadminChannelJoinOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: OsnadminChannelJoinActivityName,
+	})
+}
+
+// OsnadminChannelJoinFuture describes a(n) fabric.v1.OsnadminChannelJoin activity execution
+type OsnadminChannelJoinFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *OsnadminChannelJoinFuture) Get(ctx workflow.Context) (*OsnadminChannelJoinOutput, error) {
+	var resp OsnadminChannelJoinOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *OsnadminChannelJoinFuture) Select(sel workflow.Selector, fn func(*OsnadminChannelJoinFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// OsnadminChannelJoin joins an orderer to a channel via osnadmin channel join
+func OsnadminChannelJoin(ctx workflow.Context, req *OsnadminChannelJoinInput, options ...*OsnadminChannelJoinActivityOptions) (*OsnadminChannelJoinOutput, error) {
+	return OsnadminChannelJoinAsync(ctx, req, options...).Get(ctx)
+}
+
+// OsnadminChannelJoin joins an orderer to a channel via osnadmin channel join
+func OsnadminChannelJoinAsync(ctx workflow.Context, req *OsnadminChannelJoinInput, options ...*OsnadminChannelJoinActivityOptions) *OsnadminChannelJoinFuture {
+	var o *OsnadminChannelJoinActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewOsnadminChannelJoinActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &OsnadminChannelJoinFuture{Future: errF}
+	}
+	activity := OsnadminChannelJoinActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &OsnadminChannelJoinFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// OsnadminChannelJoin joins an orderer to a channel via osnadmin channel join
+func OsnadminChannelJoinLocal(ctx workflow.Context, req *OsnadminChannelJoinInput, options ...*OsnadminChannelJoinLocalActivityOptions) (*OsnadminChannelJoinOutput, error) {
+	return OsnadminChannelJoinLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// OsnadminChannelJoin joins an orderer to a channel via osnadmin channel join
+func OsnadminChannelJoinLocalAsync(ctx workflow.Context, req *OsnadminChannelJoinInput, options ...*OsnadminChannelJoinLocalActivityOptions) *OsnadminChannelJoinFuture {
+	var o *OsnadminChannelJoinLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewOsnadminChannelJoinLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &OsnadminChannelJoinFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = OsnadminChannelJoinActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &OsnadminChannelJoinFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// OsnadminChannelJoinActivityOptions provides configuration for a(n) fabric.v1.OsnadminChannelJoin activity
+type OsnadminChannelJoinActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewOsnadminChannelJoinActivityOptions initializes a new OsnadminChannelJoinActivityOptions value
+func NewOsnadminChannelJoinActivityOptions() *OsnadminChannelJoinActivityOptions {
+	return &OsnadminChannelJoinActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *OsnadminChannelJoinActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricActivitiesTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *OsnadminChannelJoinActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *OsnadminChannelJoinActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *OsnadminChannelJoinActivityOptions) WithDataConverter(dc converter.DataConverter) *OsnadminChannelJoinActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *OsnadminChannelJoinActivityOptions) WithHeartbeatTimeout(d time.Duration) *OsnadminChannelJoinActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *OsnadminChannelJoinActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *OsnadminChannelJoinActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *OsnadminChannelJoinActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *OsnadminChannelJoinActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *OsnadminChannelJoinActivityOptions) WithScheduleToStartTimeout(d time.Duration) *OsnadminChannelJoinActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *OsnadminChannelJoinActivityOptions) WithStartToCloseTimeout(d time.Duration) *OsnadminChannelJoinActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *OsnadminChannelJoinActivityOptions) WithTaskQueue(tq string) *OsnadminChannelJoinActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *OsnadminChannelJoinActivityOptions) WithWaitForCancellation(wait bool) *OsnadminChannelJoinActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// OsnadminChannelJoinLocalActivityOptions provides configuration for a(n) fabric.v1.OsnadminChannelJoin activity
+type OsnadminChannelJoinLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *OsnadminChannelJoinInput) (*OsnadminChannelJoinOutput, error)
+}
+
+// NewOsnadminChannelJoinLocalActivityOptions initializes a new OsnadminChannelJoinLocalActivityOptions value
+func NewOsnadminChannelJoinLocalActivityOptions() *OsnadminChannelJoinLocalActivityOptions {
+	return &OsnadminChannelJoinLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *OsnadminChannelJoinLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom fabric.v1.OsnadminChannelJoin implementation
+func (o *OsnadminChannelJoinLocalActivityOptions) Local(fn func(context.Context, *OsnadminChannelJoinInput) (*OsnadminChannelJoinOutput, error)) *OsnadminChannelJoinLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *OsnadminChannelJoinLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *OsnadminChannelJoinLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *OsnadminChannelJoinLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *OsnadminChannelJoinLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *OsnadminChannelJoinLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *OsnadminChannelJoinLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *OsnadminChannelJoinLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *OsnadminChannelJoinLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *OsnadminChannelJoinLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *OsnadminChannelJoinLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterPeerChannelFetchActivity registers a fabric.v1.PeerChannelFetch activity
+func RegisterPeerChannelFetchActivity(r worker.ActivityRegistry, fn func(context.Context, *PeerChannelFetchInput) (*PeerChannelFetchOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: PeerChannelFetchActivityName,
+	})
+}
+
+// PeerChannelFetchFuture describes a(n) fabric.v1.PeerChannelFetch activity execution
+type PeerChannelFetchFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *PeerChannelFetchFuture) Get(ctx workflow.Context) (*PeerChannelFetchOutput, error) {
+	var resp PeerChannelFetchOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *PeerChannelFetchFuture) Select(sel workflow.Selector, fn func(*PeerChannelFetchFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// PeerChannelFetch fetches a block from an orderer using peer channel fetch
+func PeerChannelFetch(ctx workflow.Context, req *PeerChannelFetchInput, options ...*PeerChannelFetchActivityOptions) (*PeerChannelFetchOutput, error) {
+	return PeerChannelFetchAsync(ctx, req, options...).Get(ctx)
+}
+
+// PeerChannelFetch fetches a block from an orderer using peer channel fetch
+func PeerChannelFetchAsync(ctx workflow.Context, req *PeerChannelFetchInput, options ...*PeerChannelFetchActivityOptions) *PeerChannelFetchFuture {
+	var o *PeerChannelFetchActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewPeerChannelFetchActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &PeerChannelFetchFuture{Future: errF}
+	}
+	activity := PeerChannelFetchActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &PeerChannelFetchFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// PeerChannelFetch fetches a block from an orderer using peer channel fetch
+func PeerChannelFetchLocal(ctx workflow.Context, req *PeerChannelFetchInput, options ...*PeerChannelFetchLocalActivityOptions) (*PeerChannelFetchOutput, error) {
+	return PeerChannelFetchLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// PeerChannelFetch fetches a block from an orderer using peer channel fetch
+func PeerChannelFetchLocalAsync(ctx workflow.Context, req *PeerChannelFetchInput, options ...*PeerChannelFetchLocalActivityOptions) *PeerChannelFetchFuture {
+	var o *PeerChannelFetchLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewPeerChannelFetchLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &PeerChannelFetchFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = PeerChannelFetchActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &PeerChannelFetchFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// PeerChannelFetchActivityOptions provides configuration for a(n) fabric.v1.PeerChannelFetch activity
+type PeerChannelFetchActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewPeerChannelFetchActivityOptions initializes a new PeerChannelFetchActivityOptions value
+func NewPeerChannelFetchActivityOptions() *PeerChannelFetchActivityOptions {
+	return &PeerChannelFetchActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *PeerChannelFetchActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricActivitiesTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *PeerChannelFetchActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *PeerChannelFetchActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *PeerChannelFetchActivityOptions) WithDataConverter(dc converter.DataConverter) *PeerChannelFetchActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *PeerChannelFetchActivityOptions) WithHeartbeatTimeout(d time.Duration) *PeerChannelFetchActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *PeerChannelFetchActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *PeerChannelFetchActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *PeerChannelFetchActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *PeerChannelFetchActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *PeerChannelFetchActivityOptions) WithScheduleToStartTimeout(d time.Duration) *PeerChannelFetchActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *PeerChannelFetchActivityOptions) WithStartToCloseTimeout(d time.Duration) *PeerChannelFetchActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *PeerChannelFetchActivityOptions) WithTaskQueue(tq string) *PeerChannelFetchActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *PeerChannelFetchActivityOptions) WithWaitForCancellation(wait bool) *PeerChannelFetchActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// PeerChannelFetchLocalActivityOptions provides configuration for a(n) fabric.v1.PeerChannelFetch activity
+type PeerChannelFetchLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *PeerChannelFetchInput) (*PeerChannelFetchOutput, error)
+}
+
+// NewPeerChannelFetchLocalActivityOptions initializes a new PeerChannelFetchLocalActivityOptions value
+func NewPeerChannelFetchLocalActivityOptions() *PeerChannelFetchLocalActivityOptions {
+	return &PeerChannelFetchLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *PeerChannelFetchLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom fabric.v1.PeerChannelFetch implementation
+func (o *PeerChannelFetchLocalActivityOptions) Local(fn func(context.Context, *PeerChannelFetchInput) (*PeerChannelFetchOutput, error)) *PeerChannelFetchLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *PeerChannelFetchLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *PeerChannelFetchLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *PeerChannelFetchLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *PeerChannelFetchLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *PeerChannelFetchLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *PeerChannelFetchLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *PeerChannelFetchLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *PeerChannelFetchLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *PeerChannelFetchLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *PeerChannelFetchLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterPeerChannelJoinActivity registers a fabric.v1.PeerChannelJoin activity
+func RegisterPeerChannelJoinActivity(r worker.ActivityRegistry, fn func(context.Context, *PeerChannelJoinInput) (*PeerChannelJoinOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: PeerChannelJoinActivityName,
+	})
+}
+
+// PeerChannelJoinFuture describes a(n) fabric.v1.PeerChannelJoin activity execution
+type PeerChannelJoinFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *PeerChannelJoinFuture) Get(ctx workflow.Context) (*PeerChannelJoinOutput, error) {
+	var resp PeerChannelJoinOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *PeerChannelJoinFuture) Select(sel workflow.Selector, fn func(*PeerChannelJoinFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// PeerChannelJoin joins a peer to a channel using peer channel join
+func PeerChannelJoin(ctx workflow.Context, req *PeerChannelJoinInput, options ...*PeerChannelJoinActivityOptions) (*PeerChannelJoinOutput, error) {
+	return PeerChannelJoinAsync(ctx, req, options...).Get(ctx)
+}
+
+// PeerChannelJoin joins a peer to a channel using peer channel join
+func PeerChannelJoinAsync(ctx workflow.Context, req *PeerChannelJoinInput, options ...*PeerChannelJoinActivityOptions) *PeerChannelJoinFuture {
+	var o *PeerChannelJoinActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewPeerChannelJoinActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &PeerChannelJoinFuture{Future: errF}
+	}
+	activity := PeerChannelJoinActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &PeerChannelJoinFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// PeerChannelJoin joins a peer to a channel using peer channel join
+func PeerChannelJoinLocal(ctx workflow.Context, req *PeerChannelJoinInput, options ...*PeerChannelJoinLocalActivityOptions) (*PeerChannelJoinOutput, error) {
+	return PeerChannelJoinLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// PeerChannelJoin joins a peer to a channel using peer channel join
+func PeerChannelJoinLocalAsync(ctx workflow.Context, req *PeerChannelJoinInput, options ...*PeerChannelJoinLocalActivityOptions) *PeerChannelJoinFuture {
+	var o *PeerChannelJoinLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewPeerChannelJoinLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &PeerChannelJoinFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = PeerChannelJoinActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &PeerChannelJoinFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// PeerChannelJoinActivityOptions provides configuration for a(n) fabric.v1.PeerChannelJoin activity
+type PeerChannelJoinActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewPeerChannelJoinActivityOptions initializes a new PeerChannelJoinActivityOptions value
+func NewPeerChannelJoinActivityOptions() *PeerChannelJoinActivityOptions {
+	return &PeerChannelJoinActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *PeerChannelJoinActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricActivitiesTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *PeerChannelJoinActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *PeerChannelJoinActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *PeerChannelJoinActivityOptions) WithDataConverter(dc converter.DataConverter) *PeerChannelJoinActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *PeerChannelJoinActivityOptions) WithHeartbeatTimeout(d time.Duration) *PeerChannelJoinActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *PeerChannelJoinActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *PeerChannelJoinActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *PeerChannelJoinActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *PeerChannelJoinActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *PeerChannelJoinActivityOptions) WithScheduleToStartTimeout(d time.Duration) *PeerChannelJoinActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *PeerChannelJoinActivityOptions) WithStartToCloseTimeout(d time.Duration) *PeerChannelJoinActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *PeerChannelJoinActivityOptions) WithTaskQueue(tq string) *PeerChannelJoinActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *PeerChannelJoinActivityOptions) WithWaitForCancellation(wait bool) *PeerChannelJoinActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// PeerChannelJoinLocalActivityOptions provides configuration for a(n) fabric.v1.PeerChannelJoin activity
+type PeerChannelJoinLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *PeerChannelJoinInput) (*PeerChannelJoinOutput, error)
+}
+
+// NewPeerChannelJoinLocalActivityOptions initializes a new PeerChannelJoinLocalActivityOptions value
+func NewPeerChannelJoinLocalActivityOptions() *PeerChannelJoinLocalActivityOptions {
+	return &PeerChannelJoinLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *PeerChannelJoinLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom fabric.v1.PeerChannelJoin implementation
+func (o *PeerChannelJoinLocalActivityOptions) Local(fn func(context.Context, *PeerChannelJoinInput) (*PeerChannelJoinOutput, error)) *PeerChannelJoinLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *PeerChannelJoinLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *PeerChannelJoinLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *PeerChannelJoinLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *PeerChannelJoinLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *PeerChannelJoinLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *PeerChannelJoinLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *PeerChannelJoinLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *PeerChannelJoinLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *PeerChannelJoinLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *PeerChannelJoinLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }
@@ -9440,6 +17420,786 @@ func (o *RevokeIdentityLocalActivityOptions) WithScheduleToCloseTimeout(d time.D
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
 func (o *RevokeIdentityLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *RevokeIdentityLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterSignConfigUpdateActivity registers a fabric.v1.SignConfigUpdate activity
+func RegisterSignConfigUpdateActivity(r worker.ActivityRegistry, fn func(context.Context, *SignConfigUpdateInput) (*SignConfigUpdateOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: SignConfigUpdateActivityName,
+	})
+}
+
+// SignConfigUpdateFuture describes a(n) fabric.v1.SignConfigUpdate activity execution
+type SignConfigUpdateFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *SignConfigUpdateFuture) Get(ctx workflow.Context) (*SignConfigUpdateOutput, error) {
+	var resp SignConfigUpdateOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *SignConfigUpdateFuture) Select(sel workflow.Selector, fn func(*SignConfigUpdateFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// SignConfigUpdate signs a channel config update using peer channel signconfigtx
+func SignConfigUpdate(ctx workflow.Context, req *SignConfigUpdateInput, options ...*SignConfigUpdateActivityOptions) (*SignConfigUpdateOutput, error) {
+	return SignConfigUpdateAsync(ctx, req, options...).Get(ctx)
+}
+
+// SignConfigUpdate signs a channel config update using peer channel signconfigtx
+func SignConfigUpdateAsync(ctx workflow.Context, req *SignConfigUpdateInput, options ...*SignConfigUpdateActivityOptions) *SignConfigUpdateFuture {
+	var o *SignConfigUpdateActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewSignConfigUpdateActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &SignConfigUpdateFuture{Future: errF}
+	}
+	activity := SignConfigUpdateActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &SignConfigUpdateFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// SignConfigUpdate signs a channel config update using peer channel signconfigtx
+func SignConfigUpdateLocal(ctx workflow.Context, req *SignConfigUpdateInput, options ...*SignConfigUpdateLocalActivityOptions) (*SignConfigUpdateOutput, error) {
+	return SignConfigUpdateLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// SignConfigUpdate signs a channel config update using peer channel signconfigtx
+func SignConfigUpdateLocalAsync(ctx workflow.Context, req *SignConfigUpdateInput, options ...*SignConfigUpdateLocalActivityOptions) *SignConfigUpdateFuture {
+	var o *SignConfigUpdateLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewSignConfigUpdateLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &SignConfigUpdateFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = SignConfigUpdateActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &SignConfigUpdateFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// SignConfigUpdateActivityOptions provides configuration for a(n) fabric.v1.SignConfigUpdate activity
+type SignConfigUpdateActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewSignConfigUpdateActivityOptions initializes a new SignConfigUpdateActivityOptions value
+func NewSignConfigUpdateActivityOptions() *SignConfigUpdateActivityOptions {
+	return &SignConfigUpdateActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *SignConfigUpdateActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricActivitiesTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *SignConfigUpdateActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *SignConfigUpdateActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *SignConfigUpdateActivityOptions) WithDataConverter(dc converter.DataConverter) *SignConfigUpdateActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *SignConfigUpdateActivityOptions) WithHeartbeatTimeout(d time.Duration) *SignConfigUpdateActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *SignConfigUpdateActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *SignConfigUpdateActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *SignConfigUpdateActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *SignConfigUpdateActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *SignConfigUpdateActivityOptions) WithScheduleToStartTimeout(d time.Duration) *SignConfigUpdateActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *SignConfigUpdateActivityOptions) WithStartToCloseTimeout(d time.Duration) *SignConfigUpdateActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *SignConfigUpdateActivityOptions) WithTaskQueue(tq string) *SignConfigUpdateActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *SignConfigUpdateActivityOptions) WithWaitForCancellation(wait bool) *SignConfigUpdateActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// SignConfigUpdateLocalActivityOptions provides configuration for a(n) fabric.v1.SignConfigUpdate activity
+type SignConfigUpdateLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *SignConfigUpdateInput) (*SignConfigUpdateOutput, error)
+}
+
+// NewSignConfigUpdateLocalActivityOptions initializes a new SignConfigUpdateLocalActivityOptions value
+func NewSignConfigUpdateLocalActivityOptions() *SignConfigUpdateLocalActivityOptions {
+	return &SignConfigUpdateLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *SignConfigUpdateLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom fabric.v1.SignConfigUpdate implementation
+func (o *SignConfigUpdateLocalActivityOptions) Local(fn func(context.Context, *SignConfigUpdateInput) (*SignConfigUpdateOutput, error)) *SignConfigUpdateLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *SignConfigUpdateLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *SignConfigUpdateLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *SignConfigUpdateLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *SignConfigUpdateLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *SignConfigUpdateLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *SignConfigUpdateLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *SignConfigUpdateLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *SignConfigUpdateLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *SignConfigUpdateLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *SignConfigUpdateLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterSubmitChannelUpdateActivity registers a fabric.v1.SubmitChannelUpdate activity
+func RegisterSubmitChannelUpdateActivity(r worker.ActivityRegistry, fn func(context.Context, *SubmitChannelUpdateInput) (*SubmitChannelUpdateOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: SubmitChannelUpdateActivityName,
+	})
+}
+
+// SubmitChannelUpdateFuture describes a(n) fabric.v1.SubmitChannelUpdate activity execution
+type SubmitChannelUpdateFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *SubmitChannelUpdateFuture) Get(ctx workflow.Context) (*SubmitChannelUpdateOutput, error) {
+	var resp SubmitChannelUpdateOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *SubmitChannelUpdateFuture) Select(sel workflow.Selector, fn func(*SubmitChannelUpdateFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// SubmitChannelUpdate wraps a config update in an envelope and submits it
+func SubmitChannelUpdate(ctx workflow.Context, req *SubmitChannelUpdateInput, options ...*SubmitChannelUpdateActivityOptions) (*SubmitChannelUpdateOutput, error) {
+	return SubmitChannelUpdateAsync(ctx, req, options...).Get(ctx)
+}
+
+// SubmitChannelUpdate wraps a config update in an envelope and submits it
+func SubmitChannelUpdateAsync(ctx workflow.Context, req *SubmitChannelUpdateInput, options ...*SubmitChannelUpdateActivityOptions) *SubmitChannelUpdateFuture {
+	var o *SubmitChannelUpdateActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewSubmitChannelUpdateActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &SubmitChannelUpdateFuture{Future: errF}
+	}
+	activity := SubmitChannelUpdateActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &SubmitChannelUpdateFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// SubmitChannelUpdate wraps a config update in an envelope and submits it
+func SubmitChannelUpdateLocal(ctx workflow.Context, req *SubmitChannelUpdateInput, options ...*SubmitChannelUpdateLocalActivityOptions) (*SubmitChannelUpdateOutput, error) {
+	return SubmitChannelUpdateLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// SubmitChannelUpdate wraps a config update in an envelope and submits it
+func SubmitChannelUpdateLocalAsync(ctx workflow.Context, req *SubmitChannelUpdateInput, options ...*SubmitChannelUpdateLocalActivityOptions) *SubmitChannelUpdateFuture {
+	var o *SubmitChannelUpdateLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewSubmitChannelUpdateLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &SubmitChannelUpdateFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = SubmitChannelUpdateActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &SubmitChannelUpdateFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// SubmitChannelUpdateActivityOptions provides configuration for a(n) fabric.v1.SubmitChannelUpdate activity
+type SubmitChannelUpdateActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewSubmitChannelUpdateActivityOptions initializes a new SubmitChannelUpdateActivityOptions value
+func NewSubmitChannelUpdateActivityOptions() *SubmitChannelUpdateActivityOptions {
+	return &SubmitChannelUpdateActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *SubmitChannelUpdateActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricActivitiesTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *SubmitChannelUpdateActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *SubmitChannelUpdateActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *SubmitChannelUpdateActivityOptions) WithDataConverter(dc converter.DataConverter) *SubmitChannelUpdateActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *SubmitChannelUpdateActivityOptions) WithHeartbeatTimeout(d time.Duration) *SubmitChannelUpdateActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *SubmitChannelUpdateActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *SubmitChannelUpdateActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *SubmitChannelUpdateActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *SubmitChannelUpdateActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *SubmitChannelUpdateActivityOptions) WithScheduleToStartTimeout(d time.Duration) *SubmitChannelUpdateActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *SubmitChannelUpdateActivityOptions) WithStartToCloseTimeout(d time.Duration) *SubmitChannelUpdateActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *SubmitChannelUpdateActivityOptions) WithTaskQueue(tq string) *SubmitChannelUpdateActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *SubmitChannelUpdateActivityOptions) WithWaitForCancellation(wait bool) *SubmitChannelUpdateActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// SubmitChannelUpdateLocalActivityOptions provides configuration for a(n) fabric.v1.SubmitChannelUpdate activity
+type SubmitChannelUpdateLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *SubmitChannelUpdateInput) (*SubmitChannelUpdateOutput, error)
+}
+
+// NewSubmitChannelUpdateLocalActivityOptions initializes a new SubmitChannelUpdateLocalActivityOptions value
+func NewSubmitChannelUpdateLocalActivityOptions() *SubmitChannelUpdateLocalActivityOptions {
+	return &SubmitChannelUpdateLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *SubmitChannelUpdateLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom fabric.v1.SubmitChannelUpdate implementation
+func (o *SubmitChannelUpdateLocalActivityOptions) Local(fn func(context.Context, *SubmitChannelUpdateInput) (*SubmitChannelUpdateOutput, error)) *SubmitChannelUpdateLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *SubmitChannelUpdateLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *SubmitChannelUpdateLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *SubmitChannelUpdateLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *SubmitChannelUpdateLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *SubmitChannelUpdateLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *SubmitChannelUpdateLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *SubmitChannelUpdateLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *SubmitChannelUpdateLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *SubmitChannelUpdateLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *SubmitChannelUpdateLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterWaitForOrdererActiveActivity registers a fabric.v1.WaitForOrdererActive activity
+func RegisterWaitForOrdererActiveActivity(r worker.ActivityRegistry, fn func(context.Context, *WaitForOrdererActiveInput) (*WaitForOrdererActiveOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: WaitForOrdererActiveActivityName,
+	})
+}
+
+// WaitForOrdererActiveFuture describes a(n) fabric.v1.WaitForOrdererActive activity execution
+type WaitForOrdererActiveFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *WaitForOrdererActiveFuture) Get(ctx workflow.Context) (*WaitForOrdererActiveOutput, error) {
+	var resp WaitForOrdererActiveOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *WaitForOrdererActiveFuture) Select(sel workflow.Selector, fn func(*WaitForOrdererActiveFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// WaitForOrdererActive polls osnadmin channel list until orderer status is "active"
+func WaitForOrdererActive(ctx workflow.Context, req *WaitForOrdererActiveInput, options ...*WaitForOrdererActiveActivityOptions) (*WaitForOrdererActiveOutput, error) {
+	return WaitForOrdererActiveAsync(ctx, req, options...).Get(ctx)
+}
+
+// WaitForOrdererActive polls osnadmin channel list until orderer status is "active"
+func WaitForOrdererActiveAsync(ctx workflow.Context, req *WaitForOrdererActiveInput, options ...*WaitForOrdererActiveActivityOptions) *WaitForOrdererActiveFuture {
+	var o *WaitForOrdererActiveActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewWaitForOrdererActiveActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &WaitForOrdererActiveFuture{Future: errF}
+	}
+	activity := WaitForOrdererActiveActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &WaitForOrdererActiveFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// WaitForOrdererActive polls osnadmin channel list until orderer status is "active"
+func WaitForOrdererActiveLocal(ctx workflow.Context, req *WaitForOrdererActiveInput, options ...*WaitForOrdererActiveLocalActivityOptions) (*WaitForOrdererActiveOutput, error) {
+	return WaitForOrdererActiveLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// WaitForOrdererActive polls osnadmin channel list until orderer status is "active"
+func WaitForOrdererActiveLocalAsync(ctx workflow.Context, req *WaitForOrdererActiveInput, options ...*WaitForOrdererActiveLocalActivityOptions) *WaitForOrdererActiveFuture {
+	var o *WaitForOrdererActiveLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewWaitForOrdererActiveLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &WaitForOrdererActiveFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = WaitForOrdererActiveActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &WaitForOrdererActiveFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// WaitForOrdererActiveActivityOptions provides configuration for a(n) fabric.v1.WaitForOrdererActive activity
+type WaitForOrdererActiveActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewWaitForOrdererActiveActivityOptions initializes a new WaitForOrdererActiveActivityOptions value
+func NewWaitForOrdererActiveActivityOptions() *WaitForOrdererActiveActivityOptions {
+	return &WaitForOrdererActiveActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *WaitForOrdererActiveActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricActivitiesTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *WaitForOrdererActiveActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *WaitForOrdererActiveActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *WaitForOrdererActiveActivityOptions) WithDataConverter(dc converter.DataConverter) *WaitForOrdererActiveActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *WaitForOrdererActiveActivityOptions) WithHeartbeatTimeout(d time.Duration) *WaitForOrdererActiveActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *WaitForOrdererActiveActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *WaitForOrdererActiveActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *WaitForOrdererActiveActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *WaitForOrdererActiveActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *WaitForOrdererActiveActivityOptions) WithScheduleToStartTimeout(d time.Duration) *WaitForOrdererActiveActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *WaitForOrdererActiveActivityOptions) WithStartToCloseTimeout(d time.Duration) *WaitForOrdererActiveActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *WaitForOrdererActiveActivityOptions) WithTaskQueue(tq string) *WaitForOrdererActiveActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *WaitForOrdererActiveActivityOptions) WithWaitForCancellation(wait bool) *WaitForOrdererActiveActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WaitForOrdererActiveLocalActivityOptions provides configuration for a(n) fabric.v1.WaitForOrdererActive activity
+type WaitForOrdererActiveLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *WaitForOrdererActiveInput) (*WaitForOrdererActiveOutput, error)
+}
+
+// NewWaitForOrdererActiveLocalActivityOptions initializes a new WaitForOrdererActiveLocalActivityOptions value
+func NewWaitForOrdererActiveLocalActivityOptions() *WaitForOrdererActiveLocalActivityOptions {
+	return &WaitForOrdererActiveLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *WaitForOrdererActiveLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom fabric.v1.WaitForOrdererActive implementation
+func (o *WaitForOrdererActiveLocalActivityOptions) Local(fn func(context.Context, *WaitForOrdererActiveInput) (*WaitForOrdererActiveOutput, error)) *WaitForOrdererActiveLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *WaitForOrdererActiveLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *WaitForOrdererActiveLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *WaitForOrdererActiveLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *WaitForOrdererActiveLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *WaitForOrdererActiveLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *WaitForOrdererActiveLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *WaitForOrdererActiveLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *WaitForOrdererActiveLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *WaitForOrdererActiveLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *WaitForOrdererActiveLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }

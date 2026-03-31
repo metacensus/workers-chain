@@ -2,7 +2,7 @@
 // versions:
 //
 //	protoc-gen-go-nexus dev (latest)
-//	go go1.25.5
+//	go go1.26.1
 //
 // include service tags: nexus-enabled
 // exclude operation tags: activity
@@ -85,6 +85,51 @@ const FabricDeployChainCodeOperationName = "DeployChainCode"
 
 var FabricDeployChainCodeOperation = nexus.NewOperationReference[*v1.DeployChainCodeInput, *v1.DeployChainCodeOutput](FabricDeployChainCodeOperationName)
 
+// FabricCreateChannelOperationName defines the fully-qualified name for the CreateChannel operation.
+const FabricCreateChannelOperationName = "CreateChannel"
+
+var FabricCreateChannelOperation = nexus.NewOperationReference[*v1.CreateChannelInput, *v1.CreateChannelOutput](FabricCreateChannelOperationName)
+
+// FabricAddOrdererToChannelOperationName defines the fully-qualified name for the AddOrdererToChannel operation.
+const FabricAddOrdererToChannelOperationName = "AddOrdererToChannel"
+
+var FabricAddOrdererToChannelOperation = nexus.NewOperationReference[*v1.AddOrdererToChannelInput, *v1.AddOrdererToChannelOutput](FabricAddOrdererToChannelOperationName)
+
+// FabricAddPeerToChannelOperationName defines the fully-qualified name for the AddPeerToChannel operation.
+const FabricAddPeerToChannelOperationName = "AddPeerToChannel"
+
+var FabricAddPeerToChannelOperation = nexus.NewOperationReference[*v1.AddPeerToChannelInput, *v1.AddPeerToChannelOutput](FabricAddPeerToChannelOperationName)
+
+// FabricJoinOrdererToChannelOperationName defines the fully-qualified name for the JoinOrdererToChannel operation.
+const FabricJoinOrdererToChannelOperationName = "JoinOrdererToChannel"
+
+var FabricJoinOrdererToChannelOperation = nexus.NewOperationReference[*v1.JoinOrdererToChannelInput, *v1.JoinOrdererToChannelOutput](FabricJoinOrdererToChannelOperationName)
+
+// FabricJoinPeerToChannelOperationName defines the fully-qualified name for the JoinPeerToChannel operation.
+const FabricJoinPeerToChannelOperationName = "JoinPeerToChannel"
+
+var FabricJoinPeerToChannelOperation = nexus.NewOperationReference[*v1.JoinPeerToChannelInput, *v1.JoinPeerToChannelOutput](FabricJoinPeerToChannelOperationName)
+
+// FabricSetAnchorPeerOperationName defines the fully-qualified name for the SetAnchorPeer operation.
+const FabricSetAnchorPeerOperationName = "SetAnchorPeer"
+
+var FabricSetAnchorPeerOperation = nexus.NewOperationReference[*v1.SetAnchorPeerInput, *v1.SetAnchorPeerOutput](FabricSetAnchorPeerOperationName)
+
+// FabricAddOrdererToConsenterSetOperationName defines the fully-qualified name for the AddOrdererToConsenterSet operation.
+const FabricAddOrdererToConsenterSetOperationName = "AddOrdererToConsenterSet"
+
+var FabricAddOrdererToConsenterSetOperation = nexus.NewOperationReference[*v1.AddOrdererToConsenterSetInput, *v1.AddOrdererToConsenterSetOutput](FabricAddOrdererToConsenterSetOperationName)
+
+// FabricAddOrgToChannelOperationName defines the fully-qualified name for the AddOrgToChannel operation.
+const FabricAddOrgToChannelOperationName = "AddOrgToChannel"
+
+var FabricAddOrgToChannelOperation = nexus.NewOperationReference[*v1.AddOrgToChannelInput, *v1.AddOrgToChannelOutput](FabricAddOrgToChannelOperationName)
+
+// FabricUpdateChannelConfigOperationName defines the fully-qualified name for the UpdateChannelConfig operation.
+const FabricUpdateChannelConfigOperationName = "UpdateChannelConfig"
+
+var FabricUpdateChannelConfigOperation = nexus.NewOperationReference[*v1.UpdateChannelConfigInput, *v1.UpdateChannelConfigOutput](FabricUpdateChannelConfigOperationName)
+
 type FabricNexusHandler interface {
 	BootstrapShard(name string) nexus.Operation[*v1.BootstrapShardInput, *v1.BootstrapShardOutput]
 	BootstrapCertificateAuthorities(name string) nexus.Operation[*v1.BootstrapCertificateAuthoritiesInput, *v1.BootstrapCertificateAuthoritiesOutput]
@@ -99,11 +144,20 @@ type FabricNexusHandler interface {
 	DeployPeer(name string) nexus.Operation[*v1.DeployPeerInput, *v1.DeployPeerOutput]
 	DeployOrderer(name string) nexus.Operation[*v1.DeployOrdererInput, *v1.DeployOrdererOutput]
 	DeployChainCode(name string) nexus.Operation[*v1.DeployChainCodeInput, *v1.DeployChainCodeOutput]
+	CreateChannel(name string) nexus.Operation[*v1.CreateChannelInput, *v1.CreateChannelOutput]
+	AddOrdererToChannel(name string) nexus.Operation[*v1.AddOrdererToChannelInput, *v1.AddOrdererToChannelOutput]
+	AddPeerToChannel(name string) nexus.Operation[*v1.AddPeerToChannelInput, *v1.AddPeerToChannelOutput]
+	JoinOrdererToChannel(name string) nexus.Operation[*v1.JoinOrdererToChannelInput, *v1.JoinOrdererToChannelOutput]
+	JoinPeerToChannel(name string) nexus.Operation[*v1.JoinPeerToChannelInput, *v1.JoinPeerToChannelOutput]
+	SetAnchorPeer(name string) nexus.Operation[*v1.SetAnchorPeerInput, *v1.SetAnchorPeerOutput]
+	AddOrdererToConsenterSet(name string) nexus.Operation[*v1.AddOrdererToConsenterSetInput, *v1.AddOrdererToConsenterSetOutput]
+	AddOrgToChannel(name string) nexus.Operation[*v1.AddOrgToChannelInput, *v1.AddOrgToChannelOutput]
+	UpdateChannelConfig(name string) nexus.Operation[*v1.UpdateChannelConfigInput, *v1.UpdateChannelConfigOutput]
 }
 
 func NewFabricNexusService(h FabricNexusHandler) (*nexus.Service, error) {
 	svc := nexus.NewService(FabricServiceName)
-	err := svc.Register(h.BootstrapShard(FabricBootstrapShardOperationName), h.BootstrapCertificateAuthorities(FabricBootstrapCertificateAuthoritiesOperationName), h.DeployCertificateStore(FabricDeployCertificateStoreOperationName), h.DeployCertificateAuthority(FabricDeployCertificateAuthorityOperationName), h.CreateCertificateDatabase(FabricCreateCertificateDatabaseOperationName), h.CreateCertificate(FabricCreateCertificateOperationName), h.CreateBootstrapAdmin(FabricCreateBootstrapAdminOperationName), h.CreateAdmin(FabricCreateAdminOperationName), h.CreateIdentity(FabricCreateIdentityOperationName), h.DeployCouchDb(FabricDeployCouchDbOperationName), h.DeployPeer(FabricDeployPeerOperationName), h.DeployOrderer(FabricDeployOrdererOperationName), h.DeployChainCode(FabricDeployChainCodeOperationName))
+	err := svc.Register(h.BootstrapShard(FabricBootstrapShardOperationName), h.BootstrapCertificateAuthorities(FabricBootstrapCertificateAuthoritiesOperationName), h.DeployCertificateStore(FabricDeployCertificateStoreOperationName), h.DeployCertificateAuthority(FabricDeployCertificateAuthorityOperationName), h.CreateCertificateDatabase(FabricCreateCertificateDatabaseOperationName), h.CreateCertificate(FabricCreateCertificateOperationName), h.CreateBootstrapAdmin(FabricCreateBootstrapAdminOperationName), h.CreateAdmin(FabricCreateAdminOperationName), h.CreateIdentity(FabricCreateIdentityOperationName), h.DeployCouchDb(FabricDeployCouchDbOperationName), h.DeployPeer(FabricDeployPeerOperationName), h.DeployOrderer(FabricDeployOrdererOperationName), h.DeployChainCode(FabricDeployChainCodeOperationName), h.CreateChannel(FabricCreateChannelOperationName), h.AddOrdererToChannel(FabricAddOrdererToChannelOperationName), h.AddPeerToChannel(FabricAddPeerToChannelOperationName), h.JoinOrdererToChannel(FabricJoinOrdererToChannelOperationName), h.JoinPeerToChannel(FabricJoinPeerToChannelOperationName), h.SetAnchorPeer(FabricSetAnchorPeerOperationName), h.AddOrdererToConsenterSet(FabricAddOrdererToConsenterSetOperationName), h.AddOrgToChannel(FabricAddOrgToChannelOperationName), h.UpdateChannelConfig(FabricUpdateChannelConfigOperationName))
 	if err != nil {
 		return nil, err
 	}
@@ -289,6 +343,132 @@ func (h *unimplementedFabricDeployChainCode) Name() string {
 }
 func (h *UnimplementedFabricNexusHandler) DeployChainCode(name string) nexus.Operation[*v1.DeployChainCodeInput, *v1.DeployChainCodeOutput] {
 	return &unimplementedFabricDeployChainCode{
+		name: name,
+	}
+}
+
+type unimplementedFabricCreateChannel struct {
+	nexus.UnimplementedOperation[*v1.CreateChannelInput, *v1.CreateChannelOutput]
+	name string
+}
+
+func (h *unimplementedFabricCreateChannel) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) CreateChannel(name string) nexus.Operation[*v1.CreateChannelInput, *v1.CreateChannelOutput] {
+	return &unimplementedFabricCreateChannel{
+		name: name,
+	}
+}
+
+type unimplementedFabricAddOrdererToChannel struct {
+	nexus.UnimplementedOperation[*v1.AddOrdererToChannelInput, *v1.AddOrdererToChannelOutput]
+	name string
+}
+
+func (h *unimplementedFabricAddOrdererToChannel) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) AddOrdererToChannel(name string) nexus.Operation[*v1.AddOrdererToChannelInput, *v1.AddOrdererToChannelOutput] {
+	return &unimplementedFabricAddOrdererToChannel{
+		name: name,
+	}
+}
+
+type unimplementedFabricAddPeerToChannel struct {
+	nexus.UnimplementedOperation[*v1.AddPeerToChannelInput, *v1.AddPeerToChannelOutput]
+	name string
+}
+
+func (h *unimplementedFabricAddPeerToChannel) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) AddPeerToChannel(name string) nexus.Operation[*v1.AddPeerToChannelInput, *v1.AddPeerToChannelOutput] {
+	return &unimplementedFabricAddPeerToChannel{
+		name: name,
+	}
+}
+
+type unimplementedFabricJoinOrdererToChannel struct {
+	nexus.UnimplementedOperation[*v1.JoinOrdererToChannelInput, *v1.JoinOrdererToChannelOutput]
+	name string
+}
+
+func (h *unimplementedFabricJoinOrdererToChannel) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) JoinOrdererToChannel(name string) nexus.Operation[*v1.JoinOrdererToChannelInput, *v1.JoinOrdererToChannelOutput] {
+	return &unimplementedFabricJoinOrdererToChannel{
+		name: name,
+	}
+}
+
+type unimplementedFabricJoinPeerToChannel struct {
+	nexus.UnimplementedOperation[*v1.JoinPeerToChannelInput, *v1.JoinPeerToChannelOutput]
+	name string
+}
+
+func (h *unimplementedFabricJoinPeerToChannel) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) JoinPeerToChannel(name string) nexus.Operation[*v1.JoinPeerToChannelInput, *v1.JoinPeerToChannelOutput] {
+	return &unimplementedFabricJoinPeerToChannel{
+		name: name,
+	}
+}
+
+type unimplementedFabricSetAnchorPeer struct {
+	nexus.UnimplementedOperation[*v1.SetAnchorPeerInput, *v1.SetAnchorPeerOutput]
+	name string
+}
+
+func (h *unimplementedFabricSetAnchorPeer) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) SetAnchorPeer(name string) nexus.Operation[*v1.SetAnchorPeerInput, *v1.SetAnchorPeerOutput] {
+	return &unimplementedFabricSetAnchorPeer{
+		name: name,
+	}
+}
+
+type unimplementedFabricAddOrdererToConsenterSet struct {
+	nexus.UnimplementedOperation[*v1.AddOrdererToConsenterSetInput, *v1.AddOrdererToConsenterSetOutput]
+	name string
+}
+
+func (h *unimplementedFabricAddOrdererToConsenterSet) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) AddOrdererToConsenterSet(name string) nexus.Operation[*v1.AddOrdererToConsenterSetInput, *v1.AddOrdererToConsenterSetOutput] {
+	return &unimplementedFabricAddOrdererToConsenterSet{
+		name: name,
+	}
+}
+
+type unimplementedFabricAddOrgToChannel struct {
+	nexus.UnimplementedOperation[*v1.AddOrgToChannelInput, *v1.AddOrgToChannelOutput]
+	name string
+}
+
+func (h *unimplementedFabricAddOrgToChannel) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) AddOrgToChannel(name string) nexus.Operation[*v1.AddOrgToChannelInput, *v1.AddOrgToChannelOutput] {
+	return &unimplementedFabricAddOrgToChannel{
+		name: name,
+	}
+}
+
+type unimplementedFabricUpdateChannelConfig struct {
+	nexus.UnimplementedOperation[*v1.UpdateChannelConfigInput, *v1.UpdateChannelConfigOutput]
+	name string
+}
+
+func (h *unimplementedFabricUpdateChannelConfig) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) UpdateChannelConfig(name string) nexus.Operation[*v1.UpdateChannelConfigInput, *v1.UpdateChannelConfigOutput] {
+	return &unimplementedFabricUpdateChannelConfig{
 		name: name,
 	}
 }

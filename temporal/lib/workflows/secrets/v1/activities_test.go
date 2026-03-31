@@ -515,3 +515,25 @@ func TestStoreCertificateActivity(t *testing.T) {
 		})
 	}
 }
+
+func TestStoreGenesisBlockActivity(t *testing.T) {
+	testSuite := &testsuite.WorkflowTestSuite{}
+	env := testSuite.NewTestActivityEnvironment()
+
+	mockProvider := newMockSecretProvider(t)
+	activities := NewActivities(mockProvider)
+	env.RegisterActivity(activities.StoreGenesisBlock)
+
+	val, err := env.ExecuteActivity(activities.StoreGenesisBlock, &pb.StoreGenesisBlockInput{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var result *pb.StoreGenesisBlockOutput
+	if err := val.Get(&result); err != nil {
+		t.Fatalf("error getting result: %v", err)
+	}
+	if result == nil {
+		t.Fatal("result is nil")
+	}
+}

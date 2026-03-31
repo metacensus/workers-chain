@@ -2010,6 +2010,1518 @@ func (*DeployChainCodeOutput) Descriptor() ([]byte, []int) {
 	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{35}
 }
 
+type CreateChannelInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateChannelInput) Reset() {
+	*x = CreateChannelInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateChannelInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateChannelInput) ProtoMessage() {}
+
+func (x *CreateChannelInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateChannelInput.ProtoReflect.Descriptor instead.
+func (*CreateChannelInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{36}
+}
+
+type CreateChannelOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateChannelOutput) Reset() {
+	*x = CreateChannelOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateChannelOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateChannelOutput) ProtoMessage() {}
+
+func (x *CreateChannelOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateChannelOutput.ProtoReflect.Descriptor instead.
+func (*CreateChannelOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{37}
+}
+
+type AddOrdererToChannelInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddOrdererToChannelInput) Reset() {
+	*x = AddOrdererToChannelInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddOrdererToChannelInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddOrdererToChannelInput) ProtoMessage() {}
+
+func (x *AddOrdererToChannelInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddOrdererToChannelInput.ProtoReflect.Descriptor instead.
+func (*AddOrdererToChannelInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{38}
+}
+
+type AddOrdererToChannelOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddOrdererToChannelOutput) Reset() {
+	*x = AddOrdererToChannelOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddOrdererToChannelOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddOrdererToChannelOutput) ProtoMessage() {}
+
+func (x *AddOrdererToChannelOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddOrdererToChannelOutput.ProtoReflect.Descriptor instead.
+func (*AddOrdererToChannelOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{39}
+}
+
+type AddPeerToChannelInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddPeerToChannelInput) Reset() {
+	*x = AddPeerToChannelInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddPeerToChannelInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddPeerToChannelInput) ProtoMessage() {}
+
+func (x *AddPeerToChannelInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddPeerToChannelInput.ProtoReflect.Descriptor instead.
+func (*AddPeerToChannelInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{40}
+}
+
+type AddPeerToChannelOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddPeerToChannelOutput) Reset() {
+	*x = AddPeerToChannelOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddPeerToChannelOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddPeerToChannelOutput) ProtoMessage() {}
+
+func (x *AddPeerToChannelOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddPeerToChannelOutput.ProtoReflect.Descriptor instead.
+func (*AddPeerToChannelOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{41}
+}
+
+type JoinOrdererToChannelInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinOrdererToChannelInput) Reset() {
+	*x = JoinOrdererToChannelInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinOrdererToChannelInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinOrdererToChannelInput) ProtoMessage() {}
+
+func (x *JoinOrdererToChannelInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinOrdererToChannelInput.ProtoReflect.Descriptor instead.
+func (*JoinOrdererToChannelInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{42}
+}
+
+type JoinOrdererToChannelOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinOrdererToChannelOutput) Reset() {
+	*x = JoinOrdererToChannelOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinOrdererToChannelOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinOrdererToChannelOutput) ProtoMessage() {}
+
+func (x *JoinOrdererToChannelOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinOrdererToChannelOutput.ProtoReflect.Descriptor instead.
+func (*JoinOrdererToChannelOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{43}
+}
+
+type JoinPeerToChannelInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinPeerToChannelInput) Reset() {
+	*x = JoinPeerToChannelInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinPeerToChannelInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinPeerToChannelInput) ProtoMessage() {}
+
+func (x *JoinPeerToChannelInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinPeerToChannelInput.ProtoReflect.Descriptor instead.
+func (*JoinPeerToChannelInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{44}
+}
+
+type JoinPeerToChannelOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinPeerToChannelOutput) Reset() {
+	*x = JoinPeerToChannelOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinPeerToChannelOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinPeerToChannelOutput) ProtoMessage() {}
+
+func (x *JoinPeerToChannelOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinPeerToChannelOutput.ProtoReflect.Descriptor instead.
+func (*JoinPeerToChannelOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{45}
+}
+
+type SetAnchorPeerInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetAnchorPeerInput) Reset() {
+	*x = SetAnchorPeerInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetAnchorPeerInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetAnchorPeerInput) ProtoMessage() {}
+
+func (x *SetAnchorPeerInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetAnchorPeerInput.ProtoReflect.Descriptor instead.
+func (*SetAnchorPeerInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{46}
+}
+
+type SetAnchorPeerOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetAnchorPeerOutput) Reset() {
+	*x = SetAnchorPeerOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetAnchorPeerOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetAnchorPeerOutput) ProtoMessage() {}
+
+func (x *SetAnchorPeerOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetAnchorPeerOutput.ProtoReflect.Descriptor instead.
+func (*SetAnchorPeerOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{47}
+}
+
+type AddOrdererToConsenterSetInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddOrdererToConsenterSetInput) Reset() {
+	*x = AddOrdererToConsenterSetInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddOrdererToConsenterSetInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddOrdererToConsenterSetInput) ProtoMessage() {}
+
+func (x *AddOrdererToConsenterSetInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddOrdererToConsenterSetInput.ProtoReflect.Descriptor instead.
+func (*AddOrdererToConsenterSetInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{48}
+}
+
+type AddOrdererToConsenterSetOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddOrdererToConsenterSetOutput) Reset() {
+	*x = AddOrdererToConsenterSetOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddOrdererToConsenterSetOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddOrdererToConsenterSetOutput) ProtoMessage() {}
+
+func (x *AddOrdererToConsenterSetOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddOrdererToConsenterSetOutput.ProtoReflect.Descriptor instead.
+func (*AddOrdererToConsenterSetOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{49}
+}
+
+type AddOrgToChannelInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddOrgToChannelInput) Reset() {
+	*x = AddOrgToChannelInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddOrgToChannelInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddOrgToChannelInput) ProtoMessage() {}
+
+func (x *AddOrgToChannelInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddOrgToChannelInput.ProtoReflect.Descriptor instead.
+func (*AddOrgToChannelInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{50}
+}
+
+type AddOrgToChannelOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddOrgToChannelOutput) Reset() {
+	*x = AddOrgToChannelOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddOrgToChannelOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddOrgToChannelOutput) ProtoMessage() {}
+
+func (x *AddOrgToChannelOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddOrgToChannelOutput.ProtoReflect.Descriptor instead.
+func (*AddOrgToChannelOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{51}
+}
+
+type UpdateChannelConfigInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateChannelConfigInput) Reset() {
+	*x = UpdateChannelConfigInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateChannelConfigInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateChannelConfigInput) ProtoMessage() {}
+
+func (x *UpdateChannelConfigInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateChannelConfigInput.ProtoReflect.Descriptor instead.
+func (*UpdateChannelConfigInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{52}
+}
+
+type UpdateChannelConfigOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateChannelConfigOutput) Reset() {
+	*x = UpdateChannelConfigOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateChannelConfigOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateChannelConfigOutput) ProtoMessage() {}
+
+func (x *UpdateChannelConfigOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateChannelConfigOutput.ProtoReflect.Descriptor instead.
+func (*UpdateChannelConfigOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{53}
+}
+
+type GenerateConfigTxInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateConfigTxInput) Reset() {
+	*x = GenerateConfigTxInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateConfigTxInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateConfigTxInput) ProtoMessage() {}
+
+func (x *GenerateConfigTxInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateConfigTxInput.ProtoReflect.Descriptor instead.
+func (*GenerateConfigTxInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{54}
+}
+
+type GenerateConfigTxOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateConfigTxOutput) Reset() {
+	*x = GenerateConfigTxOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[55]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateConfigTxOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateConfigTxOutput) ProtoMessage() {}
+
+func (x *GenerateConfigTxOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[55]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateConfigTxOutput.ProtoReflect.Descriptor instead.
+func (*GenerateConfigTxOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{55}
+}
+
+type GenerateGenesisBlockInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateGenesisBlockInput) Reset() {
+	*x = GenerateGenesisBlockInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[56]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateGenesisBlockInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateGenesisBlockInput) ProtoMessage() {}
+
+func (x *GenerateGenesisBlockInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[56]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateGenesisBlockInput.ProtoReflect.Descriptor instead.
+func (*GenerateGenesisBlockInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{56}
+}
+
+type GenerateGenesisBlockOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateGenesisBlockOutput) Reset() {
+	*x = GenerateGenesisBlockOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[57]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateGenesisBlockOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateGenesisBlockOutput) ProtoMessage() {}
+
+func (x *GenerateGenesisBlockOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[57]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateGenesisBlockOutput.ProtoReflect.Descriptor instead.
+func (*GenerateGenesisBlockOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{57}
+}
+
+type OsnadminChannelJoinInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OsnadminChannelJoinInput) Reset() {
+	*x = OsnadminChannelJoinInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OsnadminChannelJoinInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OsnadminChannelJoinInput) ProtoMessage() {}
+
+func (x *OsnadminChannelJoinInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OsnadminChannelJoinInput.ProtoReflect.Descriptor instead.
+func (*OsnadminChannelJoinInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{58}
+}
+
+type OsnadminChannelJoinOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OsnadminChannelJoinOutput) Reset() {
+	*x = OsnadminChannelJoinOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OsnadminChannelJoinOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OsnadminChannelJoinOutput) ProtoMessage() {}
+
+func (x *OsnadminChannelJoinOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OsnadminChannelJoinOutput.ProtoReflect.Descriptor instead.
+func (*OsnadminChannelJoinOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{59}
+}
+
+type WaitForOrdererActiveInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WaitForOrdererActiveInput) Reset() {
+	*x = WaitForOrdererActiveInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[60]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WaitForOrdererActiveInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WaitForOrdererActiveInput) ProtoMessage() {}
+
+func (x *WaitForOrdererActiveInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[60]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WaitForOrdererActiveInput.ProtoReflect.Descriptor instead.
+func (*WaitForOrdererActiveInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{60}
+}
+
+type WaitForOrdererActiveOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WaitForOrdererActiveOutput) Reset() {
+	*x = WaitForOrdererActiveOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WaitForOrdererActiveOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WaitForOrdererActiveOutput) ProtoMessage() {}
+
+func (x *WaitForOrdererActiveOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WaitForOrdererActiveOutput.ProtoReflect.Descriptor instead.
+func (*WaitForOrdererActiveOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{61}
+}
+
+type PeerChannelFetchInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PeerChannelFetchInput) Reset() {
+	*x = PeerChannelFetchInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[62]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeerChannelFetchInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeerChannelFetchInput) ProtoMessage() {}
+
+func (x *PeerChannelFetchInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[62]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeerChannelFetchInput.ProtoReflect.Descriptor instead.
+func (*PeerChannelFetchInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{62}
+}
+
+type PeerChannelFetchOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PeerChannelFetchOutput) Reset() {
+	*x = PeerChannelFetchOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[63]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeerChannelFetchOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeerChannelFetchOutput) ProtoMessage() {}
+
+func (x *PeerChannelFetchOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[63]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeerChannelFetchOutput.ProtoReflect.Descriptor instead.
+func (*PeerChannelFetchOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{63}
+}
+
+type PeerChannelJoinInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PeerChannelJoinInput) Reset() {
+	*x = PeerChannelJoinInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[64]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeerChannelJoinInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeerChannelJoinInput) ProtoMessage() {}
+
+func (x *PeerChannelJoinInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[64]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeerChannelJoinInput.ProtoReflect.Descriptor instead.
+func (*PeerChannelJoinInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{64}
+}
+
+type PeerChannelJoinOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PeerChannelJoinOutput) Reset() {
+	*x = PeerChannelJoinOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[65]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeerChannelJoinOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeerChannelJoinOutput) ProtoMessage() {}
+
+func (x *PeerChannelJoinOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[65]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeerChannelJoinOutput.ProtoReflect.Descriptor instead.
+func (*PeerChannelJoinOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{65}
+}
+
+type FetchChannelConfigInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FetchChannelConfigInput) Reset() {
+	*x = FetchChannelConfigInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[66]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FetchChannelConfigInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchChannelConfigInput) ProtoMessage() {}
+
+func (x *FetchChannelConfigInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[66]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchChannelConfigInput.ProtoReflect.Descriptor instead.
+func (*FetchChannelConfigInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{66}
+}
+
+type FetchChannelConfigOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FetchChannelConfigOutput) Reset() {
+	*x = FetchChannelConfigOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[67]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FetchChannelConfigOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchChannelConfigOutput) ProtoMessage() {}
+
+func (x *FetchChannelConfigOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[67]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchChannelConfigOutput.ProtoReflect.Descriptor instead.
+func (*FetchChannelConfigOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{67}
+}
+
+type ComputeConfigUpdateInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ComputeConfigUpdateInput) Reset() {
+	*x = ComputeConfigUpdateInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[68]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ComputeConfigUpdateInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ComputeConfigUpdateInput) ProtoMessage() {}
+
+func (x *ComputeConfigUpdateInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[68]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ComputeConfigUpdateInput.ProtoReflect.Descriptor instead.
+func (*ComputeConfigUpdateInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{68}
+}
+
+type ComputeConfigUpdateOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ComputeConfigUpdateOutput) Reset() {
+	*x = ComputeConfigUpdateOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[69]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ComputeConfigUpdateOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ComputeConfigUpdateOutput) ProtoMessage() {}
+
+func (x *ComputeConfigUpdateOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[69]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ComputeConfigUpdateOutput.ProtoReflect.Descriptor instead.
+func (*ComputeConfigUpdateOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{69}
+}
+
+type SignConfigUpdateInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SignConfigUpdateInput) Reset() {
+	*x = SignConfigUpdateInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[70]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SignConfigUpdateInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignConfigUpdateInput) ProtoMessage() {}
+
+func (x *SignConfigUpdateInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[70]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignConfigUpdateInput.ProtoReflect.Descriptor instead.
+func (*SignConfigUpdateInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{70}
+}
+
+type SignConfigUpdateOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SignConfigUpdateOutput) Reset() {
+	*x = SignConfigUpdateOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[71]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SignConfigUpdateOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignConfigUpdateOutput) ProtoMessage() {}
+
+func (x *SignConfigUpdateOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[71]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignConfigUpdateOutput.ProtoReflect.Descriptor instead.
+func (*SignConfigUpdateOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{71}
+}
+
+type SubmitChannelUpdateInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubmitChannelUpdateInput) Reset() {
+	*x = SubmitChannelUpdateInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[72]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubmitChannelUpdateInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitChannelUpdateInput) ProtoMessage() {}
+
+func (x *SubmitChannelUpdateInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[72]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitChannelUpdateInput.ProtoReflect.Descriptor instead.
+func (*SubmitChannelUpdateInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{72}
+}
+
+type SubmitChannelUpdateOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubmitChannelUpdateOutput) Reset() {
+	*x = SubmitChannelUpdateOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[73]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubmitChannelUpdateOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitChannelUpdateOutput) ProtoMessage() {}
+
+func (x *SubmitChannelUpdateOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[73]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitChannelUpdateOutput.ProtoReflect.Descriptor instead.
+func (*SubmitChannelUpdateOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{73}
+}
+
+type GenerateOrgDefinitionInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateOrgDefinitionInput) Reset() {
+	*x = GenerateOrgDefinitionInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[74]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateOrgDefinitionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateOrgDefinitionInput) ProtoMessage() {}
+
+func (x *GenerateOrgDefinitionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[74]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateOrgDefinitionInput.ProtoReflect.Descriptor instead.
+func (*GenerateOrgDefinitionInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{74}
+}
+
+type GenerateOrgDefinitionOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateOrgDefinitionOutput) Reset() {
+	*x = GenerateOrgDefinitionOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[75]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateOrgDefinitionOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateOrgDefinitionOutput) ProtoMessage() {}
+
+func (x *GenerateOrgDefinitionOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[75]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateOrgDefinitionOutput.ProtoReflect.Descriptor instead.
+func (*GenerateOrgDefinitionOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{75}
+}
+
+type CollectSignaturesInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CollectSignaturesInput) Reset() {
+	*x = CollectSignaturesInput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[76]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CollectSignaturesInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CollectSignaturesInput) ProtoMessage() {}
+
+func (x *CollectSignaturesInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[76]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CollectSignaturesInput.ProtoReflect.Descriptor instead.
+func (*CollectSignaturesInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{76}
+}
+
+type CollectSignaturesOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CollectSignaturesOutput) Reset() {
+	*x = CollectSignaturesOutput{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[77]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CollectSignaturesOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CollectSignaturesOutput) ProtoMessage() {}
+
+func (x *CollectSignaturesOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[77]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CollectSignaturesOutput.ProtoReflect.Descriptor instead.
+func (*CollectSignaturesOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{77}
+}
+
 var File_fabric_v1_fabric_proto protoreflect.FileDescriptor
 
 const file_fabric_v1_fabric_proto_rawDesc = "" +
@@ -2140,7 +3652,49 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x13DeployOrdererOutput\"i\n" +
 	"\x14DeployChainCodeInput\x12Q\n" +
 	"\rchain_code_id\x18\x01 \x01(\tB-ʵ\x03)\xa2\x01&json:\"ChainCodeId\" validate:\"required\"R\vChainCodeId\"\x17\n" +
-	"\x15DeployChainCodeOutput2\xc5\x12\n" +
+	"\x15DeployChainCodeOutput\"\x14\n" +
+	"\x12CreateChannelInput\"\x15\n" +
+	"\x13CreateChannelOutput\"\x1a\n" +
+	"\x18AddOrdererToChannelInput\"\x1b\n" +
+	"\x19AddOrdererToChannelOutput\"\x17\n" +
+	"\x15AddPeerToChannelInput\"\x18\n" +
+	"\x16AddPeerToChannelOutput\"\x1b\n" +
+	"\x19JoinOrdererToChannelInput\"\x1c\n" +
+	"\x1aJoinOrdererToChannelOutput\"\x18\n" +
+	"\x16JoinPeerToChannelInput\"\x19\n" +
+	"\x17JoinPeerToChannelOutput\"\x14\n" +
+	"\x12SetAnchorPeerInput\"\x15\n" +
+	"\x13SetAnchorPeerOutput\"\x1f\n" +
+	"\x1dAddOrdererToConsenterSetInput\" \n" +
+	"\x1eAddOrdererToConsenterSetOutput\"\x16\n" +
+	"\x14AddOrgToChannelInput\"\x17\n" +
+	"\x15AddOrgToChannelOutput\"\x1a\n" +
+	"\x18UpdateChannelConfigInput\"\x1b\n" +
+	"\x19UpdateChannelConfigOutput\"\x17\n" +
+	"\x15GenerateConfigTxInput\"\x18\n" +
+	"\x16GenerateConfigTxOutput\"\x1b\n" +
+	"\x19GenerateGenesisBlockInput\"\x1c\n" +
+	"\x1aGenerateGenesisBlockOutput\"\x1a\n" +
+	"\x18OsnadminChannelJoinInput\"\x1b\n" +
+	"\x19OsnadminChannelJoinOutput\"\x1b\n" +
+	"\x19WaitForOrdererActiveInput\"\x1c\n" +
+	"\x1aWaitForOrdererActiveOutput\"\x17\n" +
+	"\x15PeerChannelFetchInput\"\x18\n" +
+	"\x16PeerChannelFetchOutput\"\x16\n" +
+	"\x14PeerChannelJoinInput\"\x17\n" +
+	"\x15PeerChannelJoinOutput\"\x19\n" +
+	"\x17FetchChannelConfigInput\"\x1a\n" +
+	"\x18FetchChannelConfigOutput\"\x1a\n" +
+	"\x18ComputeConfigUpdateInput\"\x1b\n" +
+	"\x19ComputeConfigUpdateOutput\"\x17\n" +
+	"\x15SignConfigUpdateInput\"\x18\n" +
+	"\x16SignConfigUpdateOutput\"\x1a\n" +
+	"\x18SubmitChannelUpdateInput\"\x1b\n" +
+	"\x19SubmitChannelUpdateOutput\"\x1c\n" +
+	"\x1aGenerateOrgDefinitionInput\"\x1d\n" +
+	"\x1bGenerateOrgDefinitionOutput\"\x18\n" +
+	"\x16CollectSignaturesInput\"\x19\n" +
+	"\x17CollectSignaturesOutput2\xe8\x1d\n" +
 	"\x06Fabric\x12\x8b\x01\n" +
 	"\x0eBootstrapShard\x12\x1e.fabric.v1.BootstrapShardInput\x1a\x1f.fabric.v1.BootstrapShardOutput\"8\x8a\xc4\x034*\x16fabric/bootstrap-shard0\x01r\x18fabric.v1.BootstrapShard\x12\xe1\x01\n" +
 	"\x1fBootstrapCertificateAuthorities\x12/.fabric.v1.BootstrapCertificateAuthoritiesInput\x1a0.fabric.v1.BootstrapCertificateAuthoritiesOutput\"[\x8a\xc4\x03W*(fabric/bootstrap-certificate-authorities0\x01r)fabric.v1.BootstrapCertificateAuthorities\x12\xb4\x01\n" +
@@ -2155,13 +3709,34 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\n" +
 	"DeployPeer\x12\x1a.fabric.v1.DeployPeerInput\x1a\x1b.fabric.v1.DeployPeerOutput\"=\x8a\xc4\x039*\x1ffabric/deploy-peer/${! PeerId }0\x01r\x14fabric.v1.DeployPeer\x12\x96\x01\n" +
 	"\rDeployOrderer\x12\x1d.fabric.v1.DeployOrdererInput\x1a\x1e.fabric.v1.DeployOrdererOutput\"F\x8a\xc4\x03B*%fabric/deploy-orderer/${! OrdererId }0\x01r\x17fabric.v1.DeployOrderer\x12\xa2\x01\n" +
-	"\x0fDeployChainCode\x12\x1f.fabric.v1.DeployChainCodeInput\x1a .fabric.v1.DeployChainCodeOutput\"L\x8a\xc4\x03H*)fabric/deploy-chaincode/${! ChainCodeId }0\x01r\x19fabric.v1.DeployChainCode\x1a\x1e\x8a\xc4\x03\a\n" +
-	"\x05infraʂ\x04\x0f\x12\rnexus-enabled2\xa8\x04\n" +
+	"\x0fDeployChainCode\x12\x1f.fabric.v1.DeployChainCodeInput\x1a .fabric.v1.DeployChainCodeOutput\"L\x8a\xc4\x03H*)fabric/deploy-chaincode/${! ChainCodeId }0\x01r\x19fabric.v1.DeployChainCode\x12\x86\x01\n" +
+	"\rCreateChannel\x12\x1d.fabric.v1.CreateChannelInput\x1a\x1e.fabric.v1.CreateChannelOutput\"6\x8a\xc4\x032*\x15fabric/create-channel0\x01r\x17fabric.v1.CreateChannel\x12\xa6\x01\n" +
+	"\x13AddOrdererToChannel\x12#.fabric.v1.AddOrdererToChannelInput\x1a$.fabric.v1.AddOrdererToChannelOutput\"D\x8a\xc4\x03@*\x1dfabric/add-orderer-to-channel0\x01r\x1dfabric.v1.AddOrdererToChannel\x12\x97\x01\n" +
+	"\x10AddPeerToChannel\x12 .fabric.v1.AddPeerToChannelInput\x1a!.fabric.v1.AddPeerToChannelOutput\">\x8a\xc4\x03:*\x1afabric/add-peer-to-channel0\x01r\x1afabric.v1.AddPeerToChannel\x12\xab\x01\n" +
+	"\x14JoinOrdererToChannel\x12$.fabric.v1.JoinOrdererToChannelInput\x1a%.fabric.v1.JoinOrdererToChannelOutput\"F\x8a\xc4\x03B*\x1efabric/join-orderer-to-channel0\x01r\x1efabric.v1.JoinOrdererToChannel\x12\x9c\x01\n" +
+	"\x11JoinPeerToChannel\x12!.fabric.v1.JoinPeerToChannelInput\x1a\".fabric.v1.JoinPeerToChannelOutput\"@\x8a\xc4\x03<*\x1bfabric/join-peer-to-channel0\x01r\x1bfabric.v1.JoinPeerToChannel\x12\x87\x01\n" +
+	"\rSetAnchorPeer\x12\x1d.fabric.v1.SetAnchorPeerInput\x1a\x1e.fabric.v1.SetAnchorPeerOutput\"7\x8a\xc4\x033*\x16fabric/set-anchor-peer0\x01r\x17fabric.v1.SetAnchorPeer\x12\xc0\x01\n" +
+	"\x18AddOrdererToConsenterSet\x12(.fabric.v1.AddOrdererToConsenterSetInput\x1a).fabric.v1.AddOrdererToConsenterSetOutput\"O\x8a\xc4\x03K*#fabric/add-orderer-to-consenter-set0\x01r\"fabric.v1.AddOrdererToConsenterSet\x12\x92\x01\n" +
+	"\x0fAddOrgToChannel\x12\x1f.fabric.v1.AddOrgToChannelInput\x1a .fabric.v1.AddOrgToChannelOutput\"<\x8a\xc4\x038*\x19fabric/add-org-to-channel0\x01r\x19fabric.v1.AddOrgToChannel\x12\xa5\x01\n" +
+	"\x13UpdateChannelConfig\x12#.fabric.v1.UpdateChannelConfigInput\x1a$.fabric.v1.UpdateChannelConfigOutput\"C\x8a\xc4\x03?*\x1cfabric/update-channel-config0\x01r\x1dfabric.v1.UpdateChannelConfig\x1a\x1e\x8a\xc4\x03\a\n" +
+	"\x05infraʂ\x04\x0f\x12\rnexus-enabled2\x86\x11\n" +
 	"\x10FabricActivities\x12}\n" +
 	"\x10RegisterIdentity\x12 .fabric.v1.RegisterIdentityInput\x1a!.fabric.v1.RegisterIdentityOutput\"$\x92\xc4\x03 \x12\x02\b<:\x1afabric.v1.RegisterIdentity\x12u\n" +
 	"\x0eEnrollIdentity\x12\x1e.fabric.v1.EnrollIdentityInput\x1a\x1f.fabric.v1.EnrollIdentityOutput\"\"\x92\xc4\x03\x1e\x12\x02\b<:\x18fabric.v1.EnrollIdentity\x12u\n" +
 	"\x0eRevokeIdentity\x12\x1e.fabric.v1.RevokeIdentityInput\x1a\x1f.fabric.v1.RevokeIdentityOutput\"\"\x92\xc4\x03\x1e\x12\x02\b<:\x18fabric.v1.RevokeIdentity\x12\x99\x01\n" +
-	"\x17BootstrapEnrollIdentity\x12'.fabric.v1.BootstrapEnrollIdentityInput\x1a(.fabric.v1.BootstrapEnrollIdentityOutput\"+\x92\xc4\x03'\x12\x02\b<:!fabric.v1.BootstrapEnrollIdentity\x1a\v\x8a\xc4\x03\a\n" +
+	"\x17BootstrapEnrollIdentity\x12'.fabric.v1.BootstrapEnrollIdentityInput\x1a(.fabric.v1.BootstrapEnrollIdentityOutput\"+\x92\xc4\x03'\x12\x02\b<:!fabric.v1.BootstrapEnrollIdentity\x12}\n" +
+	"\x10GenerateConfigTx\x12 .fabric.v1.GenerateConfigTxInput\x1a!.fabric.v1.GenerateConfigTxOutput\"$\x92\xc4\x03 \x12\x02\b<:\x1afabric.v1.GenerateConfigTx\x12\x8d\x01\n" +
+	"\x14GenerateGenesisBlock\x12$.fabric.v1.GenerateGenesisBlockInput\x1a%.fabric.v1.GenerateGenesisBlockOutput\"(\x92\xc4\x03$\x12\x02\b<:\x1efabric.v1.GenerateGenesisBlock\x12\x89\x01\n" +
+	"\x13OsnadminChannelJoin\x12#.fabric.v1.OsnadminChannelJoinInput\x1a$.fabric.v1.OsnadminChannelJoinOutput\"'\x92\xc4\x03#\x12\x02\b<:\x1dfabric.v1.OsnadminChannelJoin\x12\x8e\x01\n" +
+	"\x14WaitForOrdererActive\x12$.fabric.v1.WaitForOrdererActiveInput\x1a%.fabric.v1.WaitForOrdererActiveOutput\")\x92\xc4\x03%\x12\x03\b\xac\x02:\x1efabric.v1.WaitForOrdererActive\x12}\n" +
+	"\x10PeerChannelFetch\x12 .fabric.v1.PeerChannelFetchInput\x1a!.fabric.v1.PeerChannelFetchOutput\"$\x92\xc4\x03 \x12\x02\b<:\x1afabric.v1.PeerChannelFetch\x12y\n" +
+	"\x0fPeerChannelJoin\x12\x1f.fabric.v1.PeerChannelJoinInput\x1a .fabric.v1.PeerChannelJoinOutput\"#\x92\xc4\x03\x1f\x12\x02\b<:\x19fabric.v1.PeerChannelJoin\x12\x85\x01\n" +
+	"\x12FetchChannelConfig\x12\".fabric.v1.FetchChannelConfigInput\x1a#.fabric.v1.FetchChannelConfigOutput\"&\x92\xc4\x03\"\x12\x02\b<:\x1cfabric.v1.FetchChannelConfig\x12\x89\x01\n" +
+	"\x13ComputeConfigUpdate\x12#.fabric.v1.ComputeConfigUpdateInput\x1a$.fabric.v1.ComputeConfigUpdateOutput\"'\x92\xc4\x03#\x12\x02\b<:\x1dfabric.v1.ComputeConfigUpdate\x12}\n" +
+	"\x10SignConfigUpdate\x12 .fabric.v1.SignConfigUpdateInput\x1a!.fabric.v1.SignConfigUpdateOutput\"$\x92\xc4\x03 \x12\x02\b<:\x1afabric.v1.SignConfigUpdate\x12\x89\x01\n" +
+	"\x13SubmitChannelUpdate\x12#.fabric.v1.SubmitChannelUpdateInput\x1a$.fabric.v1.SubmitChannelUpdateOutput\"'\x92\xc4\x03#\x12\x02\b<:\x1dfabric.v1.SubmitChannelUpdate\x12\x91\x01\n" +
+	"\x15GenerateOrgDefinition\x12%.fabric.v1.GenerateOrgDefinitionInput\x1a&.fabric.v1.GenerateOrgDefinitionOutput\")\x92\xc4\x03%\x12\x02\b<:\x1ffabric.v1.GenerateOrgDefinition\x12\x82\x01\n" +
+	"\x11CollectSignatures\x12!.fabric.v1.CollectSignaturesInput\x1a\".fabric.v1.CollectSignaturesOutput\"&\x92\xc4\x03\"\x12\x03\b\xac\x02:\x1bfabric.v1.CollectSignatures\x1a\v\x8a\xc4\x03\a\n" +
 	"\x05infraB\xa8\x01\n" +
 	"\rcom.fabric.v1B\vFabricProtoP\x01ZEgithub.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1\xa2\x02\x03FXX\xaa\x02\tFabric.V1\xca\x02\tFabric\\V1\xe2\x02\x15Fabric\\V1\\GPBMetadata\xea\x02\n" +
 	"Fabric::V1b\x06proto3"
@@ -2178,7 +3753,7 @@ func file_fabric_v1_fabric_proto_rawDescGZIP() []byte {
 	return file_fabric_v1_fabric_proto_rawDescData
 }
 
-var file_fabric_v1_fabric_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
+var file_fabric_v1_fabric_proto_msgTypes = make([]protoimpl.MessageInfo, 81)
 var file_fabric_v1_fabric_proto_goTypes = []any{
 	(*CertificateAuthorityRef)(nil),               // 0: fabric.v1.CertificateAuthorityRef
 	(*CertificateSubject)(nil),                    // 1: fabric.v1.CertificateSubject
@@ -2216,54 +3791,96 @@ var file_fabric_v1_fabric_proto_goTypes = []any{
 	(*DeployOrdererOutput)(nil),                   // 33: fabric.v1.DeployOrdererOutput
 	(*DeployChainCodeInput)(nil),                  // 34: fabric.v1.DeployChainCodeInput
 	(*DeployChainCodeOutput)(nil),                 // 35: fabric.v1.DeployChainCodeOutput
-	nil,                                           // 36: fabric.v1.CreateCertificateInput.AttributesEntry
-	nil,                                           // 37: fabric.v1.CreateIdentityInput.AttributesEntry
-	nil,                                           // 38: fabric.v1.RegisterIdentityInput.AttributesEntry
-	(*v1.SecretRef)(nil),                          // 39: secrets.v1.SecretRef
+	(*CreateChannelInput)(nil),                    // 36: fabric.v1.CreateChannelInput
+	(*CreateChannelOutput)(nil),                   // 37: fabric.v1.CreateChannelOutput
+	(*AddOrdererToChannelInput)(nil),              // 38: fabric.v1.AddOrdererToChannelInput
+	(*AddOrdererToChannelOutput)(nil),             // 39: fabric.v1.AddOrdererToChannelOutput
+	(*AddPeerToChannelInput)(nil),                 // 40: fabric.v1.AddPeerToChannelInput
+	(*AddPeerToChannelOutput)(nil),                // 41: fabric.v1.AddPeerToChannelOutput
+	(*JoinOrdererToChannelInput)(nil),             // 42: fabric.v1.JoinOrdererToChannelInput
+	(*JoinOrdererToChannelOutput)(nil),            // 43: fabric.v1.JoinOrdererToChannelOutput
+	(*JoinPeerToChannelInput)(nil),                // 44: fabric.v1.JoinPeerToChannelInput
+	(*JoinPeerToChannelOutput)(nil),               // 45: fabric.v1.JoinPeerToChannelOutput
+	(*SetAnchorPeerInput)(nil),                    // 46: fabric.v1.SetAnchorPeerInput
+	(*SetAnchorPeerOutput)(nil),                   // 47: fabric.v1.SetAnchorPeerOutput
+	(*AddOrdererToConsenterSetInput)(nil),         // 48: fabric.v1.AddOrdererToConsenterSetInput
+	(*AddOrdererToConsenterSetOutput)(nil),        // 49: fabric.v1.AddOrdererToConsenterSetOutput
+	(*AddOrgToChannelInput)(nil),                  // 50: fabric.v1.AddOrgToChannelInput
+	(*AddOrgToChannelOutput)(nil),                 // 51: fabric.v1.AddOrgToChannelOutput
+	(*UpdateChannelConfigInput)(nil),              // 52: fabric.v1.UpdateChannelConfigInput
+	(*UpdateChannelConfigOutput)(nil),             // 53: fabric.v1.UpdateChannelConfigOutput
+	(*GenerateConfigTxInput)(nil),                 // 54: fabric.v1.GenerateConfigTxInput
+	(*GenerateConfigTxOutput)(nil),                // 55: fabric.v1.GenerateConfigTxOutput
+	(*GenerateGenesisBlockInput)(nil),             // 56: fabric.v1.GenerateGenesisBlockInput
+	(*GenerateGenesisBlockOutput)(nil),            // 57: fabric.v1.GenerateGenesisBlockOutput
+	(*OsnadminChannelJoinInput)(nil),              // 58: fabric.v1.OsnadminChannelJoinInput
+	(*OsnadminChannelJoinOutput)(nil),             // 59: fabric.v1.OsnadminChannelJoinOutput
+	(*WaitForOrdererActiveInput)(nil),             // 60: fabric.v1.WaitForOrdererActiveInput
+	(*WaitForOrdererActiveOutput)(nil),            // 61: fabric.v1.WaitForOrdererActiveOutput
+	(*PeerChannelFetchInput)(nil),                 // 62: fabric.v1.PeerChannelFetchInput
+	(*PeerChannelFetchOutput)(nil),                // 63: fabric.v1.PeerChannelFetchOutput
+	(*PeerChannelJoinInput)(nil),                  // 64: fabric.v1.PeerChannelJoinInput
+	(*PeerChannelJoinOutput)(nil),                 // 65: fabric.v1.PeerChannelJoinOutput
+	(*FetchChannelConfigInput)(nil),               // 66: fabric.v1.FetchChannelConfigInput
+	(*FetchChannelConfigOutput)(nil),              // 67: fabric.v1.FetchChannelConfigOutput
+	(*ComputeConfigUpdateInput)(nil),              // 68: fabric.v1.ComputeConfigUpdateInput
+	(*ComputeConfigUpdateOutput)(nil),             // 69: fabric.v1.ComputeConfigUpdateOutput
+	(*SignConfigUpdateInput)(nil),                 // 70: fabric.v1.SignConfigUpdateInput
+	(*SignConfigUpdateOutput)(nil),                // 71: fabric.v1.SignConfigUpdateOutput
+	(*SubmitChannelUpdateInput)(nil),              // 72: fabric.v1.SubmitChannelUpdateInput
+	(*SubmitChannelUpdateOutput)(nil),             // 73: fabric.v1.SubmitChannelUpdateOutput
+	(*GenerateOrgDefinitionInput)(nil),            // 74: fabric.v1.GenerateOrgDefinitionInput
+	(*GenerateOrgDefinitionOutput)(nil),           // 75: fabric.v1.GenerateOrgDefinitionOutput
+	(*CollectSignaturesInput)(nil),                // 76: fabric.v1.CollectSignaturesInput
+	(*CollectSignaturesOutput)(nil),               // 77: fabric.v1.CollectSignaturesOutput
+	nil,                                           // 78: fabric.v1.CreateCertificateInput.AttributesEntry
+	nil,                                           // 79: fabric.v1.CreateIdentityInput.AttributesEntry
+	nil,                                           // 80: fabric.v1.RegisterIdentityInput.AttributesEntry
+	(*v1.SecretRef)(nil),                          // 81: secrets.v1.SecretRef
 }
 var file_fabric_v1_fabric_proto_depIdxs = []int32{
 	0,  // 0: fabric.v1.DeployCertificateAuthorityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
 	0,  // 1: fabric.v1.CreateCertificateDatabaseInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	39, // 2: fabric.v1.CreateCertificateDatabaseOutput.credentials_ref:type_name -> secrets.v1.SecretRef
+	81, // 2: fabric.v1.CreateCertificateDatabaseOutput.credentials_ref:type_name -> secrets.v1.SecretRef
 	0,  // 3: fabric.v1.CreateCertificateInput.issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
 	1,  // 4: fabric.v1.CreateCertificateInput.subject:type_name -> fabric.v1.CertificateSubject
-	39, // 5: fabric.v1.CreateCertificateInput.storage_ref:type_name -> secrets.v1.SecretRef
-	39, // 6: fabric.v1.CreateCertificateInput.admin_credentials_ref:type_name -> secrets.v1.SecretRef
-	36, // 7: fabric.v1.CreateCertificateInput.attributes:type_name -> fabric.v1.CreateCertificateInput.AttributesEntry
-	39, // 8: fabric.v1.CreateCertificateInput.chain_ref:type_name -> secrets.v1.SecretRef
-	39, // 9: fabric.v1.CreateCertificateOutput.credentials_ref:type_name -> secrets.v1.SecretRef
+	81, // 5: fabric.v1.CreateCertificateInput.storage_ref:type_name -> secrets.v1.SecretRef
+	81, // 6: fabric.v1.CreateCertificateInput.admin_credentials_ref:type_name -> secrets.v1.SecretRef
+	78, // 7: fabric.v1.CreateCertificateInput.attributes:type_name -> fabric.v1.CreateCertificateInput.AttributesEntry
+	81, // 8: fabric.v1.CreateCertificateInput.chain_ref:type_name -> secrets.v1.SecretRef
+	81, // 9: fabric.v1.CreateCertificateOutput.credentials_ref:type_name -> secrets.v1.SecretRef
 	0,  // 10: fabric.v1.CreateBootstrapAdminInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	39, // 11: fabric.v1.CreateBootstrapAdminOutput.signing_credentials_ref:type_name -> secrets.v1.SecretRef
-	39, // 12: fabric.v1.CreateBootstrapAdminOutput.tls_credentials_ref:type_name -> secrets.v1.SecretRef
+	81, // 11: fabric.v1.CreateBootstrapAdminOutput.signing_credentials_ref:type_name -> secrets.v1.SecretRef
+	81, // 12: fabric.v1.CreateBootstrapAdminOutput.tls_credentials_ref:type_name -> secrets.v1.SecretRef
 	0,  // 13: fabric.v1.CreateAdminInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	39, // 14: fabric.v1.CreateAdminOutput.signing_credentials_ref:type_name -> secrets.v1.SecretRef
-	39, // 15: fabric.v1.CreateAdminOutput.tls_credentials_ref:type_name -> secrets.v1.SecretRef
+	81, // 14: fabric.v1.CreateAdminOutput.signing_credentials_ref:type_name -> secrets.v1.SecretRef
+	81, // 15: fabric.v1.CreateAdminOutput.tls_credentials_ref:type_name -> secrets.v1.SecretRef
 	1,  // 16: fabric.v1.CreateIdentityInput.subject:type_name -> fabric.v1.CertificateSubject
 	0,  // 17: fabric.v1.CreateIdentityInput.org_issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
 	0,  // 18: fabric.v1.CreateIdentityInput.tls_issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	39, // 19: fabric.v1.CreateIdentityInput.storage_signing_ref:type_name -> secrets.v1.SecretRef
-	39, // 20: fabric.v1.CreateIdentityInput.storage_tls_ref:type_name -> secrets.v1.SecretRef
-	37, // 21: fabric.v1.CreateIdentityInput.attributes:type_name -> fabric.v1.CreateIdentityInput.AttributesEntry
-	39, // 22: fabric.v1.CreateIdentityOutput.signing_credentials_ref:type_name -> secrets.v1.SecretRef
-	39, // 23: fabric.v1.CreateIdentityOutput.tls_credentials_ref:type_name -> secrets.v1.SecretRef
+	81, // 19: fabric.v1.CreateIdentityInput.storage_signing_ref:type_name -> secrets.v1.SecretRef
+	81, // 20: fabric.v1.CreateIdentityInput.storage_tls_ref:type_name -> secrets.v1.SecretRef
+	79, // 21: fabric.v1.CreateIdentityInput.attributes:type_name -> fabric.v1.CreateIdentityInput.AttributesEntry
+	81, // 22: fabric.v1.CreateIdentityOutput.signing_credentials_ref:type_name -> secrets.v1.SecretRef
+	81, // 23: fabric.v1.CreateIdentityOutput.tls_credentials_ref:type_name -> secrets.v1.SecretRef
 	0,  // 24: fabric.v1.RegisterIdentityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	38, // 25: fabric.v1.RegisterIdentityInput.attributes:type_name -> fabric.v1.RegisterIdentityInput.AttributesEntry
-	39, // 26: fabric.v1.RegisterIdentityInput.admin_credentials_ref:type_name -> secrets.v1.SecretRef
+	80, // 25: fabric.v1.RegisterIdentityInput.attributes:type_name -> fabric.v1.RegisterIdentityInput.AttributesEntry
+	81, // 26: fabric.v1.RegisterIdentityInput.admin_credentials_ref:type_name -> secrets.v1.SecretRef
 	0,  // 27: fabric.v1.EnrollIdentityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	39, // 28: fabric.v1.EnrollIdentityInput.key_ref:type_name -> secrets.v1.SecretRef
+	81, // 28: fabric.v1.EnrollIdentityInput.key_ref:type_name -> secrets.v1.SecretRef
 	1,  // 29: fabric.v1.EnrollIdentityInput.subject:type_name -> fabric.v1.CertificateSubject
-	39, // 30: fabric.v1.EnrollIdentityInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
-	39, // 31: fabric.v1.EnrollIdentityInput.chain_ref:type_name -> secrets.v1.SecretRef
-	39, // 32: fabric.v1.EnrollIdentityOutput.cert_ref:type_name -> secrets.v1.SecretRef
+	81, // 30: fabric.v1.EnrollIdentityInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
+	81, // 31: fabric.v1.EnrollIdentityInput.chain_ref:type_name -> secrets.v1.SecretRef
+	81, // 32: fabric.v1.EnrollIdentityOutput.cert_ref:type_name -> secrets.v1.SecretRef
 	0,  // 33: fabric.v1.RevokeIdentityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	39, // 34: fabric.v1.RevokeIdentityInput.admin_credentials_ref:type_name -> secrets.v1.SecretRef
-	39, // 35: fabric.v1.BootstrapEnrollIdentityInput.bootstrap_credentials_ref:type_name -> secrets.v1.SecretRef
-	39, // 36: fabric.v1.BootstrapEnrollIdentityInput.key_ref:type_name -> secrets.v1.SecretRef
-	39, // 37: fabric.v1.BootstrapEnrollIdentityInput.cert_ref:type_name -> secrets.v1.SecretRef
+	81, // 34: fabric.v1.RevokeIdentityInput.admin_credentials_ref:type_name -> secrets.v1.SecretRef
+	81, // 35: fabric.v1.BootstrapEnrollIdentityInput.bootstrap_credentials_ref:type_name -> secrets.v1.SecretRef
+	81, // 36: fabric.v1.BootstrapEnrollIdentityInput.key_ref:type_name -> secrets.v1.SecretRef
+	81, // 37: fabric.v1.BootstrapEnrollIdentityInput.cert_ref:type_name -> secrets.v1.SecretRef
 	1,  // 38: fabric.v1.BootstrapEnrollIdentityInput.subject:type_name -> fabric.v1.CertificateSubject
-	39, // 39: fabric.v1.BootstrapEnrollIdentityInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
-	39, // 40: fabric.v1.BootstrapEnrollIdentityInput.chain_ref:type_name -> secrets.v1.SecretRef
-	39, // 41: fabric.v1.BootstrapEnrollIdentityOutput.cert_ref:type_name -> secrets.v1.SecretRef
+	81, // 39: fabric.v1.BootstrapEnrollIdentityInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
+	81, // 40: fabric.v1.BootstrapEnrollIdentityInput.chain_ref:type_name -> secrets.v1.SecretRef
+	81, // 41: fabric.v1.BootstrapEnrollIdentityOutput.cert_ref:type_name -> secrets.v1.SecretRef
 	2,  // 42: fabric.v1.Fabric.BootstrapShard:input_type -> fabric.v1.BootstrapShardInput
 	4,  // 43: fabric.v1.Fabric.BootstrapCertificateAuthorities:input_type -> fabric.v1.BootstrapCertificateAuthoritiesInput
 	6,  // 44: fabric.v1.Fabric.DeployCertificateStore:input_type -> fabric.v1.DeployCertificateStoreInput
@@ -2277,29 +3894,71 @@ var file_fabric_v1_fabric_proto_depIdxs = []int32{
 	30, // 52: fabric.v1.Fabric.DeployPeer:input_type -> fabric.v1.DeployPeerInput
 	32, // 53: fabric.v1.Fabric.DeployOrderer:input_type -> fabric.v1.DeployOrdererInput
 	34, // 54: fabric.v1.Fabric.DeployChainCode:input_type -> fabric.v1.DeployChainCodeInput
-	20, // 55: fabric.v1.FabricActivities.RegisterIdentity:input_type -> fabric.v1.RegisterIdentityInput
-	22, // 56: fabric.v1.FabricActivities.EnrollIdentity:input_type -> fabric.v1.EnrollIdentityInput
-	24, // 57: fabric.v1.FabricActivities.RevokeIdentity:input_type -> fabric.v1.RevokeIdentityInput
-	26, // 58: fabric.v1.FabricActivities.BootstrapEnrollIdentity:input_type -> fabric.v1.BootstrapEnrollIdentityInput
-	3,  // 59: fabric.v1.Fabric.BootstrapShard:output_type -> fabric.v1.BootstrapShardOutput
-	5,  // 60: fabric.v1.Fabric.BootstrapCertificateAuthorities:output_type -> fabric.v1.BootstrapCertificateAuthoritiesOutput
-	7,  // 61: fabric.v1.Fabric.DeployCertificateStore:output_type -> fabric.v1.DeployCertificateStoreOutput
-	9,  // 62: fabric.v1.Fabric.DeployCertificateAuthority:output_type -> fabric.v1.DeployCertificateAuthorityOutput
-	11, // 63: fabric.v1.Fabric.CreateCertificateDatabase:output_type -> fabric.v1.CreateCertificateDatabaseOutput
-	13, // 64: fabric.v1.Fabric.CreateCertificate:output_type -> fabric.v1.CreateCertificateOutput
-	15, // 65: fabric.v1.Fabric.CreateBootstrapAdmin:output_type -> fabric.v1.CreateBootstrapAdminOutput
-	17, // 66: fabric.v1.Fabric.CreateAdmin:output_type -> fabric.v1.CreateAdminOutput
-	19, // 67: fabric.v1.Fabric.CreateIdentity:output_type -> fabric.v1.CreateIdentityOutput
-	29, // 68: fabric.v1.Fabric.DeployCouchDb:output_type -> fabric.v1.DeployCouchDbOutput
-	31, // 69: fabric.v1.Fabric.DeployPeer:output_type -> fabric.v1.DeployPeerOutput
-	33, // 70: fabric.v1.Fabric.DeployOrderer:output_type -> fabric.v1.DeployOrdererOutput
-	35, // 71: fabric.v1.Fabric.DeployChainCode:output_type -> fabric.v1.DeployChainCodeOutput
-	21, // 72: fabric.v1.FabricActivities.RegisterIdentity:output_type -> fabric.v1.RegisterIdentityOutput
-	23, // 73: fabric.v1.FabricActivities.EnrollIdentity:output_type -> fabric.v1.EnrollIdentityOutput
-	25, // 74: fabric.v1.FabricActivities.RevokeIdentity:output_type -> fabric.v1.RevokeIdentityOutput
-	27, // 75: fabric.v1.FabricActivities.BootstrapEnrollIdentity:output_type -> fabric.v1.BootstrapEnrollIdentityOutput
-	59, // [59:76] is the sub-list for method output_type
-	42, // [42:59] is the sub-list for method input_type
+	36, // 55: fabric.v1.Fabric.CreateChannel:input_type -> fabric.v1.CreateChannelInput
+	38, // 56: fabric.v1.Fabric.AddOrdererToChannel:input_type -> fabric.v1.AddOrdererToChannelInput
+	40, // 57: fabric.v1.Fabric.AddPeerToChannel:input_type -> fabric.v1.AddPeerToChannelInput
+	42, // 58: fabric.v1.Fabric.JoinOrdererToChannel:input_type -> fabric.v1.JoinOrdererToChannelInput
+	44, // 59: fabric.v1.Fabric.JoinPeerToChannel:input_type -> fabric.v1.JoinPeerToChannelInput
+	46, // 60: fabric.v1.Fabric.SetAnchorPeer:input_type -> fabric.v1.SetAnchorPeerInput
+	48, // 61: fabric.v1.Fabric.AddOrdererToConsenterSet:input_type -> fabric.v1.AddOrdererToConsenterSetInput
+	50, // 62: fabric.v1.Fabric.AddOrgToChannel:input_type -> fabric.v1.AddOrgToChannelInput
+	52, // 63: fabric.v1.Fabric.UpdateChannelConfig:input_type -> fabric.v1.UpdateChannelConfigInput
+	20, // 64: fabric.v1.FabricActivities.RegisterIdentity:input_type -> fabric.v1.RegisterIdentityInput
+	22, // 65: fabric.v1.FabricActivities.EnrollIdentity:input_type -> fabric.v1.EnrollIdentityInput
+	24, // 66: fabric.v1.FabricActivities.RevokeIdentity:input_type -> fabric.v1.RevokeIdentityInput
+	26, // 67: fabric.v1.FabricActivities.BootstrapEnrollIdentity:input_type -> fabric.v1.BootstrapEnrollIdentityInput
+	54, // 68: fabric.v1.FabricActivities.GenerateConfigTx:input_type -> fabric.v1.GenerateConfigTxInput
+	56, // 69: fabric.v1.FabricActivities.GenerateGenesisBlock:input_type -> fabric.v1.GenerateGenesisBlockInput
+	58, // 70: fabric.v1.FabricActivities.OsnadminChannelJoin:input_type -> fabric.v1.OsnadminChannelJoinInput
+	60, // 71: fabric.v1.FabricActivities.WaitForOrdererActive:input_type -> fabric.v1.WaitForOrdererActiveInput
+	62, // 72: fabric.v1.FabricActivities.PeerChannelFetch:input_type -> fabric.v1.PeerChannelFetchInput
+	64, // 73: fabric.v1.FabricActivities.PeerChannelJoin:input_type -> fabric.v1.PeerChannelJoinInput
+	66, // 74: fabric.v1.FabricActivities.FetchChannelConfig:input_type -> fabric.v1.FetchChannelConfigInput
+	68, // 75: fabric.v1.FabricActivities.ComputeConfigUpdate:input_type -> fabric.v1.ComputeConfigUpdateInput
+	70, // 76: fabric.v1.FabricActivities.SignConfigUpdate:input_type -> fabric.v1.SignConfigUpdateInput
+	72, // 77: fabric.v1.FabricActivities.SubmitChannelUpdate:input_type -> fabric.v1.SubmitChannelUpdateInput
+	74, // 78: fabric.v1.FabricActivities.GenerateOrgDefinition:input_type -> fabric.v1.GenerateOrgDefinitionInput
+	76, // 79: fabric.v1.FabricActivities.CollectSignatures:input_type -> fabric.v1.CollectSignaturesInput
+	3,  // 80: fabric.v1.Fabric.BootstrapShard:output_type -> fabric.v1.BootstrapShardOutput
+	5,  // 81: fabric.v1.Fabric.BootstrapCertificateAuthorities:output_type -> fabric.v1.BootstrapCertificateAuthoritiesOutput
+	7,  // 82: fabric.v1.Fabric.DeployCertificateStore:output_type -> fabric.v1.DeployCertificateStoreOutput
+	9,  // 83: fabric.v1.Fabric.DeployCertificateAuthority:output_type -> fabric.v1.DeployCertificateAuthorityOutput
+	11, // 84: fabric.v1.Fabric.CreateCertificateDatabase:output_type -> fabric.v1.CreateCertificateDatabaseOutput
+	13, // 85: fabric.v1.Fabric.CreateCertificate:output_type -> fabric.v1.CreateCertificateOutput
+	15, // 86: fabric.v1.Fabric.CreateBootstrapAdmin:output_type -> fabric.v1.CreateBootstrapAdminOutput
+	17, // 87: fabric.v1.Fabric.CreateAdmin:output_type -> fabric.v1.CreateAdminOutput
+	19, // 88: fabric.v1.Fabric.CreateIdentity:output_type -> fabric.v1.CreateIdentityOutput
+	29, // 89: fabric.v1.Fabric.DeployCouchDb:output_type -> fabric.v1.DeployCouchDbOutput
+	31, // 90: fabric.v1.Fabric.DeployPeer:output_type -> fabric.v1.DeployPeerOutput
+	33, // 91: fabric.v1.Fabric.DeployOrderer:output_type -> fabric.v1.DeployOrdererOutput
+	35, // 92: fabric.v1.Fabric.DeployChainCode:output_type -> fabric.v1.DeployChainCodeOutput
+	37, // 93: fabric.v1.Fabric.CreateChannel:output_type -> fabric.v1.CreateChannelOutput
+	39, // 94: fabric.v1.Fabric.AddOrdererToChannel:output_type -> fabric.v1.AddOrdererToChannelOutput
+	41, // 95: fabric.v1.Fabric.AddPeerToChannel:output_type -> fabric.v1.AddPeerToChannelOutput
+	43, // 96: fabric.v1.Fabric.JoinOrdererToChannel:output_type -> fabric.v1.JoinOrdererToChannelOutput
+	45, // 97: fabric.v1.Fabric.JoinPeerToChannel:output_type -> fabric.v1.JoinPeerToChannelOutput
+	47, // 98: fabric.v1.Fabric.SetAnchorPeer:output_type -> fabric.v1.SetAnchorPeerOutput
+	49, // 99: fabric.v1.Fabric.AddOrdererToConsenterSet:output_type -> fabric.v1.AddOrdererToConsenterSetOutput
+	51, // 100: fabric.v1.Fabric.AddOrgToChannel:output_type -> fabric.v1.AddOrgToChannelOutput
+	53, // 101: fabric.v1.Fabric.UpdateChannelConfig:output_type -> fabric.v1.UpdateChannelConfigOutput
+	21, // 102: fabric.v1.FabricActivities.RegisterIdentity:output_type -> fabric.v1.RegisterIdentityOutput
+	23, // 103: fabric.v1.FabricActivities.EnrollIdentity:output_type -> fabric.v1.EnrollIdentityOutput
+	25, // 104: fabric.v1.FabricActivities.RevokeIdentity:output_type -> fabric.v1.RevokeIdentityOutput
+	27, // 105: fabric.v1.FabricActivities.BootstrapEnrollIdentity:output_type -> fabric.v1.BootstrapEnrollIdentityOutput
+	55, // 106: fabric.v1.FabricActivities.GenerateConfigTx:output_type -> fabric.v1.GenerateConfigTxOutput
+	57, // 107: fabric.v1.FabricActivities.GenerateGenesisBlock:output_type -> fabric.v1.GenerateGenesisBlockOutput
+	59, // 108: fabric.v1.FabricActivities.OsnadminChannelJoin:output_type -> fabric.v1.OsnadminChannelJoinOutput
+	61, // 109: fabric.v1.FabricActivities.WaitForOrdererActive:output_type -> fabric.v1.WaitForOrdererActiveOutput
+	63, // 110: fabric.v1.FabricActivities.PeerChannelFetch:output_type -> fabric.v1.PeerChannelFetchOutput
+	65, // 111: fabric.v1.FabricActivities.PeerChannelJoin:output_type -> fabric.v1.PeerChannelJoinOutput
+	67, // 112: fabric.v1.FabricActivities.FetchChannelConfig:output_type -> fabric.v1.FetchChannelConfigOutput
+	69, // 113: fabric.v1.FabricActivities.ComputeConfigUpdate:output_type -> fabric.v1.ComputeConfigUpdateOutput
+	71, // 114: fabric.v1.FabricActivities.SignConfigUpdate:output_type -> fabric.v1.SignConfigUpdateOutput
+	73, // 115: fabric.v1.FabricActivities.SubmitChannelUpdate:output_type -> fabric.v1.SubmitChannelUpdateOutput
+	75, // 116: fabric.v1.FabricActivities.GenerateOrgDefinition:output_type -> fabric.v1.GenerateOrgDefinitionOutput
+	77, // 117: fabric.v1.FabricActivities.CollectSignatures:output_type -> fabric.v1.CollectSignaturesOutput
+	80, // [80:118] is the sub-list for method output_type
+	42, // [42:80] is the sub-list for method input_type
 	42, // [42:42] is the sub-list for extension type_name
 	42, // [42:42] is the sub-list for extension extendee
 	0,  // [0:42] is the sub-list for field type_name
@@ -2316,7 +3975,7 @@ func file_fabric_v1_fabric_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_fabric_v1_fabric_proto_rawDesc), len(file_fabric_v1_fabric_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   39,
+			NumMessages:   81,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

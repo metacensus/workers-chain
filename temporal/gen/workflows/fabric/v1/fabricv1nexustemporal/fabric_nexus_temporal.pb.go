@@ -2,7 +2,7 @@
 // versions:
 //
 //	protoc-gen-go-nexus-temporal dev (latest)
-//	go go1.25.5
+//	go go1.26.1
 //	protoc (unknown)
 //
 // source: fabric/v1/fabric.proto
@@ -307,6 +307,204 @@ func (c *FabricNexusClient) DeployChainCodeAsync(ctx workflow.Context, input *v1
 func (c *FabricNexusClient) DeployChainCode(ctx workflow.Context, input *v1.DeployChainCodeInput, options workflow.NexusOperationOptions) (*v1.DeployChainCodeOutput, error) {
 	var output v1.DeployChainCodeOutput
 	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricDeployChainCodeOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type CreateChannelFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *CreateChannelFuture) GetTyped(ctx workflow.Context) (*v1.CreateChannelOutput, error) {
+	var output v1.CreateChannelOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) CreateChannelAsync(ctx workflow.Context, input *v1.CreateChannelInput, options workflow.NexusOperationOptions) CreateChannelFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricCreateChannelOperationName, input, options)
+	return CreateChannelFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) CreateChannel(ctx workflow.Context, input *v1.CreateChannelInput, options workflow.NexusOperationOptions) (*v1.CreateChannelOutput, error) {
+	var output v1.CreateChannelOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricCreateChannelOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type AddOrdererToChannelFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *AddOrdererToChannelFuture) GetTyped(ctx workflow.Context) (*v1.AddOrdererToChannelOutput, error) {
+	var output v1.AddOrdererToChannelOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) AddOrdererToChannelAsync(ctx workflow.Context, input *v1.AddOrdererToChannelInput, options workflow.NexusOperationOptions) AddOrdererToChannelFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricAddOrdererToChannelOperationName, input, options)
+	return AddOrdererToChannelFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) AddOrdererToChannel(ctx workflow.Context, input *v1.AddOrdererToChannelInput, options workflow.NexusOperationOptions) (*v1.AddOrdererToChannelOutput, error) {
+	var output v1.AddOrdererToChannelOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricAddOrdererToChannelOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type AddPeerToChannelFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *AddPeerToChannelFuture) GetTyped(ctx workflow.Context) (*v1.AddPeerToChannelOutput, error) {
+	var output v1.AddPeerToChannelOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) AddPeerToChannelAsync(ctx workflow.Context, input *v1.AddPeerToChannelInput, options workflow.NexusOperationOptions) AddPeerToChannelFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricAddPeerToChannelOperationName, input, options)
+	return AddPeerToChannelFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) AddPeerToChannel(ctx workflow.Context, input *v1.AddPeerToChannelInput, options workflow.NexusOperationOptions) (*v1.AddPeerToChannelOutput, error) {
+	var output v1.AddPeerToChannelOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricAddPeerToChannelOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type JoinOrdererToChannelFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *JoinOrdererToChannelFuture) GetTyped(ctx workflow.Context) (*v1.JoinOrdererToChannelOutput, error) {
+	var output v1.JoinOrdererToChannelOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) JoinOrdererToChannelAsync(ctx workflow.Context, input *v1.JoinOrdererToChannelInput, options workflow.NexusOperationOptions) JoinOrdererToChannelFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricJoinOrdererToChannelOperationName, input, options)
+	return JoinOrdererToChannelFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) JoinOrdererToChannel(ctx workflow.Context, input *v1.JoinOrdererToChannelInput, options workflow.NexusOperationOptions) (*v1.JoinOrdererToChannelOutput, error) {
+	var output v1.JoinOrdererToChannelOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricJoinOrdererToChannelOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type JoinPeerToChannelFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *JoinPeerToChannelFuture) GetTyped(ctx workflow.Context) (*v1.JoinPeerToChannelOutput, error) {
+	var output v1.JoinPeerToChannelOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) JoinPeerToChannelAsync(ctx workflow.Context, input *v1.JoinPeerToChannelInput, options workflow.NexusOperationOptions) JoinPeerToChannelFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricJoinPeerToChannelOperationName, input, options)
+	return JoinPeerToChannelFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) JoinPeerToChannel(ctx workflow.Context, input *v1.JoinPeerToChannelInput, options workflow.NexusOperationOptions) (*v1.JoinPeerToChannelOutput, error) {
+	var output v1.JoinPeerToChannelOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricJoinPeerToChannelOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type SetAnchorPeerFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *SetAnchorPeerFuture) GetTyped(ctx workflow.Context) (*v1.SetAnchorPeerOutput, error) {
+	var output v1.SetAnchorPeerOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) SetAnchorPeerAsync(ctx workflow.Context, input *v1.SetAnchorPeerInput, options workflow.NexusOperationOptions) SetAnchorPeerFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricSetAnchorPeerOperationName, input, options)
+	return SetAnchorPeerFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) SetAnchorPeer(ctx workflow.Context, input *v1.SetAnchorPeerInput, options workflow.NexusOperationOptions) (*v1.SetAnchorPeerOutput, error) {
+	var output v1.SetAnchorPeerOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricSetAnchorPeerOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type AddOrdererToConsenterSetFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *AddOrdererToConsenterSetFuture) GetTyped(ctx workflow.Context) (*v1.AddOrdererToConsenterSetOutput, error) {
+	var output v1.AddOrdererToConsenterSetOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) AddOrdererToConsenterSetAsync(ctx workflow.Context, input *v1.AddOrdererToConsenterSetInput, options workflow.NexusOperationOptions) AddOrdererToConsenterSetFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricAddOrdererToConsenterSetOperationName, input, options)
+	return AddOrdererToConsenterSetFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) AddOrdererToConsenterSet(ctx workflow.Context, input *v1.AddOrdererToConsenterSetInput, options workflow.NexusOperationOptions) (*v1.AddOrdererToConsenterSetOutput, error) {
+	var output v1.AddOrdererToConsenterSetOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricAddOrdererToConsenterSetOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type AddOrgToChannelFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *AddOrgToChannelFuture) GetTyped(ctx workflow.Context) (*v1.AddOrgToChannelOutput, error) {
+	var output v1.AddOrgToChannelOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) AddOrgToChannelAsync(ctx workflow.Context, input *v1.AddOrgToChannelInput, options workflow.NexusOperationOptions) AddOrgToChannelFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricAddOrgToChannelOperationName, input, options)
+	return AddOrgToChannelFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) AddOrgToChannel(ctx workflow.Context, input *v1.AddOrgToChannelInput, options workflow.NexusOperationOptions) (*v1.AddOrgToChannelOutput, error) {
+	var output v1.AddOrgToChannelOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricAddOrgToChannelOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
+type UpdateChannelConfigFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *UpdateChannelConfigFuture) GetTyped(ctx workflow.Context) (*v1.UpdateChannelConfigOutput, error) {
+	var output v1.UpdateChannelConfigOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) UpdateChannelConfigAsync(ctx workflow.Context, input *v1.UpdateChannelConfigInput, options workflow.NexusOperationOptions) UpdateChannelConfigFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricUpdateChannelConfigOperationName, input, options)
+	return UpdateChannelConfigFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) UpdateChannelConfig(ctx workflow.Context, input *v1.UpdateChannelConfigInput, options workflow.NexusOperationOptions) (*v1.UpdateChannelConfigOutput, error) {
+	var output v1.UpdateChannelConfigOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricUpdateChannelConfigOperationName, input, options)
 	err := fut.Get(ctx, &output)
 	return &output, err
 }
