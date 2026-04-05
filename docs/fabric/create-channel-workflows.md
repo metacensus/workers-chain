@@ -15,7 +15,7 @@ This document outlines workflows for creating Fabric channels and joining nodes.
 
 ---
 
-## Key Decisions 
+## Key Decisions
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
