@@ -130,8 +130,3 @@ func (a *Activities) StoreCertificate(ctx context.Context, req *pb.StoreCertific
 
 	return &pb.StoreCertificateOutput{CertRef: certRef}, nil
 }
-
-// StoreGenesisBlock stores a channel genesis block in Vault for cross-org access
-func (a *Activities) StoreGenesisBlock(ctx context.Context, req *pb.StoreGenesisBlockInput) (*pb.StoreGenesisBlockOutput, error) {
-	return &pb.StoreGenesisBlockOutput{}, nil
-}

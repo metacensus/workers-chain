@@ -7,7 +7,6 @@ import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
-	"go.temporal.io/sdk/testsuite"
 )
 
 // TODO: Implement proper tests with mocked CA client
@@ -128,44 +127,6 @@ func TestActivities_RevokeIdentity(t *testing.T) {
 			}
 			if got == nil && tt.want != nil {
 				t.Errorf("RevokeIdentity() got = nil, want non-nil")
-			}
-		})
-	}
-}
-
-func TestChannelActivityStubs(t *testing.T) {
-	orgConfig := config.OrgConfig{OrgID: "test-org"}
-	fabricConfig := fabricconfig.NewFabricConfig(orgConfig)
-	activities := NewActivities(nil, nil, fabricConfig)
-
-	testSuite := &testsuite.WorkflowTestSuite{}
-
-	tests := []struct {
-		name     string
-		activity interface{}
-		input    interface{}
-	}{
-		{"GenerateConfigTx", activities.GenerateConfigTx, &pb.GenerateConfigTxInput{}},
-		{"GenerateGenesisBlock", activities.GenerateGenesisBlock, &pb.GenerateGenesisBlockInput{}},
-		{"OsnadminChannelJoin", activities.OsnadminChannelJoin, &pb.OsnadminChannelJoinInput{}},
-		{"WaitForOrdererActive", activities.WaitForOrdererActive, &pb.WaitForOrdererActiveInput{}},
-		{"PeerChannelFetch", activities.PeerChannelFetch, &pb.PeerChannelFetchInput{}},
-		{"PeerChannelJoin", activities.PeerChannelJoin, &pb.PeerChannelJoinInput{}},
-		{"FetchChannelConfig", activities.FetchChannelConfig, &pb.FetchChannelConfigInput{}},
-		{"ComputeConfigUpdate", activities.ComputeConfigUpdate, &pb.ComputeConfigUpdateInput{}},
-		{"SignConfigUpdate", activities.SignConfigUpdate, &pb.SignConfigUpdateInput{}},
-		{"SubmitChannelUpdate", activities.SubmitChannelUpdate, &pb.SubmitChannelUpdateInput{}},
-		{"GenerateOrgDefinition", activities.GenerateOrgDefinition, &pb.GenerateOrgDefinitionInput{}},
-		{"CollectSignatures", activities.CollectSignatures, &pb.CollectSignaturesInput{}},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			env := testSuite.NewTestActivityEnvironment()
-			env.RegisterActivity(tt.activity)
-			_, err := env.ExecuteActivity(tt.activity, tt.input)
-			if err != nil {
-				t.Fatalf("stub activity %s returned unexpected error: %v", tt.name, err)
 			}
 		})
 	}

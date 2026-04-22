@@ -269,9 +269,6 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 
 	// Step 2: Generate PostgreSQL credentials
 	credentialsRef := certStore.VaultAdminRef()
-	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
-		SecretRef: credentialsRef,
-		Username:  "admin",
 	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate postgres credentials: %w", err)
@@ -376,16 +373,10 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 		logger.Info("Creating self-signed signing certificate", "ca", caConfig.Description())
 		certValidityDuration := 15 * 365 * 24 * time.Hour
 
-		err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
-			SecretRef: caConfig.VaultSigningRef(),
-		}).Get(ctx, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate signing key pair: %w", err)
 		}
 
-		err = workflow.ExecuteActivity(activityCtx, secretspb.CreateSelfSignedCertificateActivityName, &secretspb.CreateSelfSignedCertificateInput{
-			KeyRef:             caConfig.VaultSigningRef(),
-			CertRef:            caConfig.VaultSigningRef(),
 			CommonName:         caConfig.ComponentName(),
 			Organization:       w.fabricConfig.OrgID,
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
@@ -434,16 +425,10 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 		logger.Info("Creating self-signed TLS certificate", "ca", caConfig.Description())
 		certValidityDuration := 15 * 365 * 24 * time.Hour
 
-		err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
-			SecretRef: caConfig.VaultTLSRef(),
-		}).Get(ctx, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate TLS key pair: %w", err)
 		}
 
-		err = workflow.ExecuteActivity(activityCtx, secretspb.CreateSelfSignedCertificateActivityName, &secretspb.CreateSelfSignedCertificateInput{
-			KeyRef:             caConfig.VaultTLSRef(),
-			CertRef:            caConfig.VaultTLSRef(),
 			CommonName:         caConfig.ComponentName(),
 			Organization:       w.fabricConfig.OrgID,
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
@@ -482,9 +467,6 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 
 	// Step 5: Generate bootstrap admin credentials (username/password)
 	logger.Info("Generating bootstrap admin credentials", "ca", caConfig.Description())
-	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
-		SecretRef: caConfig.VaultBootstrapAdminCredentialsRef(),
-		Username:  "bootstrap-admin",
 	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate bootstrap admin credentials: %w", err)
@@ -604,35 +586,23 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
 	// Create the database
-	err = workflow.ExecuteActivity(activityCtx, postgrespb.CreateDatabaseActivityName, &postgrespb.CreateDatabaseInput{
-		DatabaseName: caConfig.DatabaseName(),
-	}).Get(activityCtx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database: %w", err)
 	}
 
 	// Generate credentials
 	credentialsRef := caConfig.VaultDatabaseUserRef()
-	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
-		SecretRef: credentialsRef,
-		Username:  caConfig.DatabaseUsername(),
 	}).Get(activityCtx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate credentials: %w", err)
 	}
 
 	// Create user
-	err = workflow.ExecuteActivity(activityCtx, postgrespb.CreateUserActivityName, &postgrespb.CreateUserInput{
-		CredentialsRef: credentialsRef,
-	}).Get(activityCtx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
 	// Grant privileges
-	err = workflow.ExecuteActivity(activityCtx, postgrespb.GrantPrivilegesActivityName, &postgrespb.GrantPrivilegesInput{
-		Username:     caConfig.DatabaseUsername(),
-		DatabaseName: caConfig.DatabaseName(),
 		Privileges:   []postgrespb.Privilege{postgrespb.Privilege_PRIVILEGE_ALL},
 	}).Get(activityCtx, nil)
 	if err != nil {
@@ -702,9 +672,6 @@ func (w *createCertificateWorkflow) Execute(ctx workflow.Context) (*pb.CreateCer
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
 	// Step 1: Generate key pair
-	err := workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
-		SecretRef: req.GetStorageRef(),
-	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate key pair: %w", err)
 	}
@@ -722,9 +689,6 @@ func (w *createCertificateWorkflow) Execute(ctx workflow.Context) (*pb.CreateCer
 	}
 
 	var registerOutput pb.RegisterIdentityOutput
-	err = workflow.ExecuteActivity(activityCtx, pb.RegisterIdentityActivityName, &pb.RegisterIdentityInput{
-		CaRef:               issuerRef,
-		IdentityName:        identityName,
 		Affiliation:         "",
 		Attributes:          req.GetAttributes(),
 		IdentityType:        identityType,
@@ -736,9 +700,6 @@ func (w *createCertificateWorkflow) Execute(ctx workflow.Context) (*pb.CreateCer
 
 	// Step 3: Enroll identity with CA
 	var enrollOutput pb.EnrollIdentityOutput
-	err = workflow.ExecuteActivity(activityCtx, pb.EnrollIdentityActivityName, &pb.EnrollIdentityInput{
-		CaRef:            issuerRef,
-		IdentityName:     identityName,
 		EnrollmentSecret: registerOutput.GetEnrollmentSecret(),
 		KeyRef:           req.GetStorageRef(),
 		Subject:          subject,
@@ -828,17 +789,11 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
 	// Create keypair for signing identity
-	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
-		SecretRef: caConfig.VaultBootstrapAdminSigningRef(),
-	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate signing key pair: %w", err)
 	}
 
 	// Bootstrap enroll signing identity from this CA
-	err = workflow.ExecuteActivity(activityCtx, pb.BootstrapEnrollIdentityActivityName, &pb.BootstrapEnrollIdentityInput{
-		CaUrl:                   caConfig.URL(),
-		BootstrapCredentialsRef: caConfig.VaultBootstrapAdminCredentialsRef(),
 		KeyRef:                  caConfig.VaultBootstrapAdminSigningRef(),
 		CertRef:                 caConfig.VaultBootstrapAdminSigningRef(),
 		Subject: &pb.CertificateSubject{
@@ -854,9 +809,6 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 	}
 
 	// Create keypair for TLS client cert
-	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
-		SecretRef: caConfig.VaultBootstrapAdminTLSRef(),
-	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate TLS key pair: %w", err)
 	}
@@ -864,9 +816,6 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 	// Bootstrap enroll TLS identity from the appropriate CA
 	// Use BootstrapAdminTLSCommonName() for consistency with admin naming pattern
 	tlsIssuer := caConfig.AdminTLSIssuer()
-	err = workflow.ExecuteActivity(activityCtx, pb.BootstrapEnrollIdentityActivityName, &pb.BootstrapEnrollIdentityInput{
-		CaUrl:                   tlsIssuer.URL(),
-		BootstrapCredentialsRef: tlsIssuer.VaultBootstrapAdminCredentialsRef(),
 		KeyRef:                  caConfig.VaultBootstrapAdminTLSRef(),
 		CertRef:                 caConfig.VaultBootstrapAdminTLSRef(),
 		Subject: &pb.CertificateSubject{
@@ -1171,9 +1120,6 @@ func (w *deployCouchDbWorkflow) Execute(ctx workflow.Context) (*pb.DeployCouchDb
 
 	// Step 2: Generate CouchDB admin credentials
 	credentialsRef := couchDbConfig.VaultAdminRef()
-	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
-		SecretRef: credentialsRef,
-		Username:  "admin",
 	}).Get(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to generate couchdb credentials: %w", ErrDeployCouchDB, err)
@@ -1463,17 +1409,8 @@ func (w *createChannelWorkflow) Execute(ctx workflow.Context) (*pb.CreateChannel
 	}
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
-	if err := workflow.ExecuteActivity(activityCtx, pb.GenerateConfigTxActivityName, &pb.GenerateConfigTxInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: generate configtx: %w", ErrCreateChannel, err)
-	}
 
-	if err := workflow.ExecuteActivity(activityCtx, pb.GenerateGenesisBlockActivityName, &pb.GenerateGenesisBlockInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: generate genesis block: %w", ErrCreateChannel, err)
-	}
 
-	if err := workflow.ExecuteActivity(activityCtx, secretspb.StoreGenesisBlockActivityName, &secretspb.StoreGenesisBlockInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: store genesis block: %w", ErrCreateChannel, err)
-	}
 
 	// Join orderers sequentially
 	if _, err := pb.JoinOrdererToChannelChild(ctx, &pb.JoinOrdererToChannelInput{}); err != nil {
@@ -1512,9 +1449,6 @@ func (w *addOrdererToChannelWorkflow) Execute(ctx workflow.Context) (*pb.AddOrde
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
 	// Fetch latest config block (NOT genesis) for follower sync
-	if err := workflow.ExecuteActivity(activityCtx, pb.PeerChannelFetchActivityName, &pb.PeerChannelFetchInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: fetch config block: %w", ErrAddOrdererToChannel, err)
-	}
 
 	// Join as follower; polls until synced
 	if _, err := pb.JoinOrdererToChannelChild(ctx, &pb.JoinOrdererToChannelInput{}); err != nil {
@@ -1572,13 +1506,7 @@ func (w *joinOrdererToChannelWorkflow) Execute(ctx workflow.Context) (*pb.JoinOr
 	}
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
-	if err := workflow.ExecuteActivity(activityCtx, pb.OsnadminChannelJoinActivityName, &pb.OsnadminChannelJoinInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: osnadmin join: %w", ErrJoinOrdererToChannel, err)
-	}
 
-	if err := workflow.ExecuteActivity(activityCtx, pb.WaitForOrdererActiveActivityName, &pb.WaitForOrdererActiveInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: wait for active: %w", ErrJoinOrdererToChannel, err)
-	}
 
 	return &pb.JoinOrdererToChannelOutput{}, nil
 }
@@ -1601,13 +1529,7 @@ func (w *joinPeerToChannelWorkflow) Execute(ctx workflow.Context) (*pb.JoinPeerT
 	}
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
-	if err := workflow.ExecuteActivity(activityCtx, pb.PeerChannelFetchActivityName, &pb.PeerChannelFetchInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: fetch block: %w", ErrJoinPeerToChannel, err)
-	}
 
-	if err := workflow.ExecuteActivity(activityCtx, pb.PeerChannelJoinActivityName, &pb.PeerChannelJoinInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: join channel: %w", ErrJoinPeerToChannel, err)
-	}
 
 	return &pb.JoinPeerToChannelOutput{}, nil
 }
@@ -1654,9 +1576,6 @@ func (w *addOrdererToConsenterSetWorkflow) Execute(ctx workflow.Context) (*pb.Ad
 		return nil, fmt.Errorf("%w: update config: %w", ErrAddOrdererToConsenterSet, err)
 	}
 
-	if err := workflow.ExecuteActivity(activityCtx, pb.WaitForOrdererActiveActivityName, &pb.WaitForOrdererActiveInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: wait for active: %w", ErrAddOrdererToConsenterSet, err)
-	}
 
 	return &pb.AddOrdererToConsenterSetOutput{}, nil
 }
@@ -1679,17 +1598,11 @@ func (w *addOrgToChannelWorkflow) Execute(ctx workflow.Context) (*pb.AddOrgToCha
 	}
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
-	if err := workflow.ExecuteActivity(activityCtx, pb.GenerateOrgDefinitionActivityName, &pb.GenerateOrgDefinitionInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: generate org definition: %w", ErrAddOrgToChannel, err)
-	}
 
 	if _, err := pb.UpdateChannelConfigChild(ctx, &pb.UpdateChannelConfigInput{}); err != nil {
 		return nil, fmt.Errorf("%w: update config: %w", ErrAddOrgToChannel, err)
 	}
 
-	if err := workflow.ExecuteActivity(activityCtx, pb.CollectSignaturesActivityName, &pb.CollectSignaturesInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: collect signatures: %w", ErrAddOrgToChannel, err)
-	}
 
 	return &pb.AddOrgToChannelOutput{}, nil
 }
@@ -1712,21 +1625,9 @@ func (w *updateChannelConfigWorkflow) Execute(ctx workflow.Context) (*pb.UpdateC
 	}
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
 
-	if err := workflow.ExecuteActivity(activityCtx, pb.FetchChannelConfigActivityName, &pb.FetchChannelConfigInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: fetch config: %w", ErrUpdateChannelConfig, err)
-	}
 
-	if err := workflow.ExecuteActivity(activityCtx, pb.ComputeConfigUpdateActivityName, &pb.ComputeConfigUpdateInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: compute update: %w", ErrUpdateChannelConfig, err)
-	}
 
-	if err := workflow.ExecuteActivity(activityCtx, pb.SignConfigUpdateActivityName, &pb.SignConfigUpdateInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: sign update: %w", ErrUpdateChannelConfig, err)
-	}
 
-	if err := workflow.ExecuteActivity(activityCtx, pb.SubmitChannelUpdateActivityName, &pb.SubmitChannelUpdateInput{}).Get(ctx, nil); err != nil {
-		return nil, fmt.Errorf("%w: submit update: %w", ErrUpdateChannelConfig, err)
-	}
 
 	return &pb.UpdateChannelConfigOutput{}, nil
 }

@@ -68,18 +68,6 @@
         - [fabric.v1.EnrollIdentity](#fabric-v1-enrollidentity-activity)
         - [fabric.v1.RevokeIdentity](#fabric-v1-revokeidentity-activity)
         - [fabric.v1.BootstrapEnrollIdentity](#fabric-v1-bootstrapenrollidentity-activity)
-        - [fabric.v1.GenerateConfigTx](#fabric-v1-generateconfigtx-activity)
-        - [fabric.v1.GenerateGenesisBlock](#fabric-v1-generategenesisblock-activity)
-        - [fabric.v1.OsnadminChannelJoin](#fabric-v1-osnadminchanneljoin-activity)
-        - [fabric.v1.WaitForOrdererActive](#fabric-v1-waitforordereractive-activity)
-        - [fabric.v1.PeerChannelFetch](#fabric-v1-peerchannelfetch-activity)
-        - [fabric.v1.PeerChannelJoin](#fabric-v1-peerchanneljoin-activity)
-        - [fabric.v1.FetchChannelConfig](#fabric-v1-fetchchannelconfig-activity)
-        - [fabric.v1.ComputeConfigUpdate](#fabric-v1-computeconfigupdate-activity)
-        - [fabric.v1.SignConfigUpdate](#fabric-v1-signconfigupdate-activity)
-        - [fabric.v1.SubmitChannelUpdate](#fabric-v1-submitchannelupdate-activity)
-        - [fabric.v1.GenerateOrgDefinition](#fabric-v1-generateorgdefinition-activity)
-        - [fabric.v1.CollectSignatures](#fabric-v1-collectsignatures-activity)
   - Messages
     - [fabric.v1.AddOrdererToChannelInput](#fabric-v1-addorderertochannelinput)
     - [fabric.v1.AddOrdererToChannelOutput](#fabric-v1-addorderertochanneloutput)
@@ -97,10 +85,6 @@
     - [fabric.v1.BootstrapShardOutput](#fabric-v1-bootstrapshardoutput)
     - [fabric.v1.CertificateAuthorityRef](#fabric-v1-certificateauthorityref)
     - [fabric.v1.CertificateSubject](#fabric-v1-certificatesubject)
-    - [fabric.v1.CollectSignaturesInput](#fabric-v1-collectsignaturesinput)
-    - [fabric.v1.CollectSignaturesOutput](#fabric-v1-collectsignaturesoutput)
-    - [fabric.v1.ComputeConfigUpdateInput](#fabric-v1-computeconfigupdateinput)
-    - [fabric.v1.ComputeConfigUpdateOutput](#fabric-v1-computeconfigupdateoutput)
     - [fabric.v1.CreateAdminInput](#fabric-v1-createadmininput)
     - [fabric.v1.CreateAdminOutput](#fabric-v1-createadminoutput)
     - [fabric.v1.CreateBootstrapAdminInput](#fabric-v1-createbootstrapadmininput)
@@ -129,24 +113,10 @@
     - [fabric.v1.DeployPeerOutput](#fabric-v1-deploypeeroutput)
     - [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
     - [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
-    - [fabric.v1.FetchChannelConfigInput](#fabric-v1-fetchchannelconfiginput)
-    - [fabric.v1.FetchChannelConfigOutput](#fabric-v1-fetchchannelconfigoutput)
-    - [fabric.v1.GenerateConfigTxInput](#fabric-v1-generateconfigtxinput)
-    - [fabric.v1.GenerateConfigTxOutput](#fabric-v1-generateconfigtxoutput)
-    - [fabric.v1.GenerateGenesisBlockInput](#fabric-v1-generategenesisblockinput)
-    - [fabric.v1.GenerateGenesisBlockOutput](#fabric-v1-generategenesisblockoutput)
-    - [fabric.v1.GenerateOrgDefinitionInput](#fabric-v1-generateorgdefinitioninput)
-    - [fabric.v1.GenerateOrgDefinitionOutput](#fabric-v1-generateorgdefinitionoutput)
     - [fabric.v1.JoinOrdererToChannelInput](#fabric-v1-joinorderertochannelinput)
     - [fabric.v1.JoinOrdererToChannelOutput](#fabric-v1-joinorderertochanneloutput)
     - [fabric.v1.JoinPeerToChannelInput](#fabric-v1-joinpeertochannelinput)
     - [fabric.v1.JoinPeerToChannelOutput](#fabric-v1-joinpeertochanneloutput)
-    - [fabric.v1.OsnadminChannelJoinInput](#fabric-v1-osnadminchanneljoininput)
-    - [fabric.v1.OsnadminChannelJoinOutput](#fabric-v1-osnadminchanneljoinoutput)
-    - [fabric.v1.PeerChannelFetchInput](#fabric-v1-peerchannelfetchinput)
-    - [fabric.v1.PeerChannelFetchOutput](#fabric-v1-peerchannelfetchoutput)
-    - [fabric.v1.PeerChannelJoinInput](#fabric-v1-peerchanneljoininput)
-    - [fabric.v1.PeerChannelJoinOutput](#fabric-v1-peerchanneljoinoutput)
     - [fabric.v1.RegisterIdentityInput](#fabric-v1-registeridentityinput)
     - [fabric.v1.RegisterIdentityInput.AttributesEntry](#fabric-v1-registeridentityinput-attributesentry)
     - [fabric.v1.RegisterIdentityOutput](#fabric-v1-registeridentityoutput)
@@ -154,14 +124,8 @@
     - [fabric.v1.RevokeIdentityOutput](#fabric-v1-revokeidentityoutput)
     - [fabric.v1.SetAnchorPeerInput](#fabric-v1-setanchorpeerinput)
     - [fabric.v1.SetAnchorPeerOutput](#fabric-v1-setanchorpeeroutput)
-    - [fabric.v1.SignConfigUpdateInput](#fabric-v1-signconfigupdateinput)
-    - [fabric.v1.SignConfigUpdateOutput](#fabric-v1-signconfigupdateoutput)
-    - [fabric.v1.SubmitChannelUpdateInput](#fabric-v1-submitchannelupdateinput)
-    - [fabric.v1.SubmitChannelUpdateOutput](#fabric-v1-submitchannelupdateoutput)
     - [fabric.v1.UpdateChannelConfigInput](#fabric-v1-updatechannelconfiginput)
     - [fabric.v1.UpdateChannelConfigOutput](#fabric-v1-updatechannelconfigoutput)
-    - [fabric.v1.WaitForOrdererActiveInput](#fabric-v1-waitforordereractiveinput)
-    - [fabric.v1.WaitForOrdererActiveOutput](#fabric-v1-waitforordereractiveoutput)
 - [helm.v1](#helm-v1)
   - Services
     - [helm.v1.Helm](#helm-v1-helm)
@@ -244,7 +208,6 @@
         - [secrets.v1.CreateKeyPair](#secrets-v1-createkeypair-activity)
         - [secrets.v1.CreateSelfSignedCertificate](#secrets-v1-createselfsignedcertificate-activity)
         - [secrets.v1.StoreCertificate](#secrets-v1-storecertificate-activity)
-        - [secrets.v1.StoreGenesisBlock](#secrets-v1-storegenesisblock-activity)
   - Messages
     - [secrets.v1.CreateAccessInput](#secrets-v1-createaccessinput)
     - [secrets.v1.CreateAccessOutput](#secrets-v1-createaccessoutput)
@@ -257,8 +220,6 @@
     - [secrets.v1.SecretRef](#secrets-v1-secretref)
     - [secrets.v1.StoreCertificateInput](#secrets-v1-storecertificateinput)
     - [secrets.v1.StoreCertificateOutput](#secrets-v1-storecertificateoutput)
-    - [secrets.v1.StoreGenesisBlockInput](#secrets-v1-storegenesisblockinput)
-    - [secrets.v1.StoreGenesisBlockOutput](#secrets-v1-storegenesisblockoutput)
 - [temporal.v1](#temporal-v1)
   - Services
     - [temporal.v1.Admin](#temporal-v1-admin)
@@ -2680,199 +2641,7 @@ json_name: CertRef
 go_name: CertRef
 go_tags: json:"CertRef" validate:"required"</pre></td>
 </tr>
-</table> 
-
----
-<a name="fabric-v1-generateconfigtx-activity"></a>
-### fabric.v1.GenerateConfigTx
-
-<pre>
-GenerateConfigTx generates a configtx.yaml from org definitions
-</pre>
-
-**Input:** [fabric.v1.GenerateConfigTxInput](#fabric-v1-generateconfigtxinput)
-
-
-
-**Output:** [fabric.v1.GenerateConfigTxOutput](#fabric-v1-generateconfigtxoutput)
-
- 
-
----
-<a name="fabric-v1-generategenesisblock-activity"></a>
-### fabric.v1.GenerateGenesisBlock
-
-<pre>
-GenerateGenesisBlock creates a channel genesis block using configtxgen
-</pre>
-
-**Input:** [fabric.v1.GenerateGenesisBlockInput](#fabric-v1-generategenesisblockinput)
-
-
-
-**Output:** [fabric.v1.GenerateGenesisBlockOutput](#fabric-v1-generategenesisblockoutput)
-
- 
-
----
-<a name="fabric-v1-osnadminchanneljoin-activity"></a>
-### fabric.v1.OsnadminChannelJoin
-
-<pre>
-OsnadminChannelJoin joins an orderer to a channel via osnadmin channel join
-</pre>
-
-**Input:** [fabric.v1.OsnadminChannelJoinInput](#fabric-v1-osnadminchanneljoininput)
-
-
-
-**Output:** [fabric.v1.OsnadminChannelJoinOutput](#fabric-v1-osnadminchanneljoinoutput)
-
- 
-
----
-<a name="fabric-v1-waitforordereractive-activity"></a>
-### fabric.v1.WaitForOrdererActive
-
-<pre>
-WaitForOrdererActive polls osnadmin channel list until orderer status is "active"
-</pre>
-
-**Input:** [fabric.v1.WaitForOrdererActiveInput](#fabric-v1-waitforordereractiveinput)
-
-
-
-**Output:** [fabric.v1.WaitForOrdererActiveOutput](#fabric-v1-waitforordereractiveoutput)
-
- 
-
----
-<a name="fabric-v1-peerchannelfetch-activity"></a>
-### fabric.v1.PeerChannelFetch
-
-<pre>
-PeerChannelFetch fetches a block from an orderer using peer channel fetch
-</pre>
-
-**Input:** [fabric.v1.PeerChannelFetchInput](#fabric-v1-peerchannelfetchinput)
-
-
-
-**Output:** [fabric.v1.PeerChannelFetchOutput](#fabric-v1-peerchannelfetchoutput)
-
- 
-
----
-<a name="fabric-v1-peerchanneljoin-activity"></a>
-### fabric.v1.PeerChannelJoin
-
-<pre>
-PeerChannelJoin joins a peer to a channel using peer channel join
-</pre>
-
-**Input:** [fabric.v1.PeerChannelJoinInput](#fabric-v1-peerchanneljoininput)
-
-
-
-**Output:** [fabric.v1.PeerChannelJoinOutput](#fabric-v1-peerchanneljoinoutput)
-
- 
-
----
-<a name="fabric-v1-fetchchannelconfig-activity"></a>
-### fabric.v1.FetchChannelConfig
-
-<pre>
-FetchChannelConfig fetches and decodes the current channel configuration
-</pre>
-
-**Input:** [fabric.v1.FetchChannelConfigInput](#fabric-v1-fetchchannelconfiginput)
-
-
-
-**Output:** [fabric.v1.FetchChannelConfigOutput](#fabric-v1-fetchchannelconfigoutput)
-
- 
-
----
-<a name="fabric-v1-computeconfigupdate-activity"></a>
-### fabric.v1.ComputeConfigUpdate
-
-<pre>
-ComputeConfigUpdate computes the config delta between original and modified configs
-</pre>
-
-**Input:** [fabric.v1.ComputeConfigUpdateInput](#fabric-v1-computeconfigupdateinput)
-
-
-
-**Output:** [fabric.v1.ComputeConfigUpdateOutput](#fabric-v1-computeconfigupdateoutput)
-
- 
-
----
-<a name="fabric-v1-signconfigupdate-activity"></a>
-### fabric.v1.SignConfigUpdate
-
-<pre>
-SignConfigUpdate signs a channel config update using peer channel signconfigtx
-</pre>
-
-**Input:** [fabric.v1.SignConfigUpdateInput](#fabric-v1-signconfigupdateinput)
-
-
-
-**Output:** [fabric.v1.SignConfigUpdateOutput](#fabric-v1-signconfigupdateoutput)
-
- 
-
----
-<a name="fabric-v1-submitchannelupdate-activity"></a>
-### fabric.v1.SubmitChannelUpdate
-
-<pre>
-SubmitChannelUpdate wraps a config update in an envelope and submits it
-</pre>
-
-**Input:** [fabric.v1.SubmitChannelUpdateInput](#fabric-v1-submitchannelupdateinput)
-
-
-
-**Output:** [fabric.v1.SubmitChannelUpdateOutput](#fabric-v1-submitchannelupdateoutput)
-
- 
-
----
-<a name="fabric-v1-generateorgdefinition-activity"></a>
-### fabric.v1.GenerateOrgDefinition
-
-<pre>
-GenerateOrgDefinition creates an org MSP definition for channel config
-</pre>
-
-**Input:** [fabric.v1.GenerateOrgDefinitionInput](#fabric-v1-generateorgdefinitioninput)
-
-
-
-**Output:** [fabric.v1.GenerateOrgDefinitionOutput](#fabric-v1-generateorgdefinitionoutput)
-
- 
-
----
-<a name="fabric-v1-collectsignatures-activity"></a>
-### fabric.v1.CollectSignatures
-
-<pre>
-CollectSignatures gathers required signatures from channel admin orgs
-</pre>
-
-**Input:** [fabric.v1.CollectSignaturesInput](#fabric-v1-collectsignaturesinput)
-
-
-
-**Output:** [fabric.v1.CollectSignaturesOutput](#fabric-v1-collectsignaturesoutput)
-
-   
+</table>   
 
 <a name="fabric-v1-messages"></a>
 ## Messages
@@ -3162,26 +2931,6 @@ go_name: OrganizationalUnit
 go_tags: json:"OrganizationalUnit"</pre></td>
 </tr>
 </table>
-
-
-
-<a name="fabric-v1-collectsignaturesinput"></a>
-### fabric.v1.CollectSignaturesInput
-
-
-
-<a name="fabric-v1-collectsignaturesoutput"></a>
-### fabric.v1.CollectSignaturesOutput
-
-
-
-<a name="fabric-v1-computeconfigupdateinput"></a>
-### fabric.v1.ComputeConfigUpdateInput
-
-
-
-<a name="fabric-v1-computeconfigupdateoutput"></a>
-### fabric.v1.ComputeConfigUpdateOutput
 
 
 
@@ -4019,46 +3768,6 @@ go_tags: json:"CertRef" validate:"required"</pre></td>
 
 
 
-<a name="fabric-v1-fetchchannelconfiginput"></a>
-### fabric.v1.FetchChannelConfigInput
-
-
-
-<a name="fabric-v1-fetchchannelconfigoutput"></a>
-### fabric.v1.FetchChannelConfigOutput
-
-
-
-<a name="fabric-v1-generateconfigtxinput"></a>
-### fabric.v1.GenerateConfigTxInput
-
-
-
-<a name="fabric-v1-generateconfigtxoutput"></a>
-### fabric.v1.GenerateConfigTxOutput
-
-
-
-<a name="fabric-v1-generategenesisblockinput"></a>
-### fabric.v1.GenerateGenesisBlockInput
-
-
-
-<a name="fabric-v1-generategenesisblockoutput"></a>
-### fabric.v1.GenerateGenesisBlockOutput
-
-
-
-<a name="fabric-v1-generateorgdefinitioninput"></a>
-### fabric.v1.GenerateOrgDefinitionInput
-
-
-
-<a name="fabric-v1-generateorgdefinitionoutput"></a>
-### fabric.v1.GenerateOrgDefinitionOutput
-
-
-
 <a name="fabric-v1-joinorderertochannelinput"></a>
 ### fabric.v1.JoinOrdererToChannelInput
 
@@ -4076,36 +3785,6 @@ go_tags: json:"CertRef" validate:"required"</pre></td>
 
 <a name="fabric-v1-joinpeertochanneloutput"></a>
 ### fabric.v1.JoinPeerToChannelOutput
-
-
-
-<a name="fabric-v1-osnadminchanneljoininput"></a>
-### fabric.v1.OsnadminChannelJoinInput
-
-
-
-<a name="fabric-v1-osnadminchanneljoinoutput"></a>
-### fabric.v1.OsnadminChannelJoinOutput
-
-
-
-<a name="fabric-v1-peerchannelfetchinput"></a>
-### fabric.v1.PeerChannelFetchInput
-
-
-
-<a name="fabric-v1-peerchannelfetchoutput"></a>
-### fabric.v1.PeerChannelFetchOutput
-
-
-
-<a name="fabric-v1-peerchanneljoininput"></a>
-### fabric.v1.PeerChannelJoinInput
-
-
-
-<a name="fabric-v1-peerchanneljoinoutput"></a>
-### fabric.v1.PeerChannelJoinOutput
 
 
 
@@ -4321,26 +4000,6 @@ go_name: Revoked</pre></td>
 
 
 
-<a name="fabric-v1-signconfigupdateinput"></a>
-### fabric.v1.SignConfigUpdateInput
-
-
-
-<a name="fabric-v1-signconfigupdateoutput"></a>
-### fabric.v1.SignConfigUpdateOutput
-
-
-
-<a name="fabric-v1-submitchannelupdateinput"></a>
-### fabric.v1.SubmitChannelUpdateInput
-
-
-
-<a name="fabric-v1-submitchannelupdateoutput"></a>
-### fabric.v1.SubmitChannelUpdateOutput
-
-
-
 <a name="fabric-v1-updatechannelconfiginput"></a>
 ### fabric.v1.UpdateChannelConfigInput
 
@@ -4348,16 +4007,6 @@ go_name: Revoked</pre></td>
 
 <a name="fabric-v1-updatechannelconfigoutput"></a>
 ### fabric.v1.UpdateChannelConfigOutput
-
-
-
-<a name="fabric-v1-waitforordereractiveinput"></a>
-### fabric.v1.WaitForOrdererActiveInput
-
-
-
-<a name="fabric-v1-waitforordereractiveoutput"></a>
-### fabric.v1.WaitForOrdererActiveOutput
 
 
 
@@ -7030,23 +6679,7 @@ json_name: CertRef
 go_name: CertRef
 go_tags: json:"CertRef" validate:"required"</pre></td>
 </tr>
-</table> 
-
----
-<a name="secrets-v1-storegenesisblock-activity"></a>
-### secrets.v1.StoreGenesisBlock
-
-<pre>
-StoreGenesisBlock stores a channel genesis block in Vault for cross-org access
-</pre>
-
-**Input:** [secrets.v1.StoreGenesisBlockInput](#secrets-v1-storegenesisblockinput)
-
-
-
-**Output:** [secrets.v1.StoreGenesisBlockOutput](#secrets-v1-storegenesisblockoutput)
-
-   
+</table>   
 
 <a name="secrets-v1-messages"></a>
 ## Messages
@@ -7482,16 +7115,6 @@ go_name: CertRef
 go_tags: json:"CertRef" validate:"required"</pre></td>
 </tr>
 </table>
-
-
-
-<a name="secrets-v1-storegenesisblockinput"></a>
-### secrets.v1.StoreGenesisBlockInput
-
-
-
-<a name="secrets-v1-storegenesisblockoutput"></a>
-### secrets.v1.StoreGenesisBlockOutput
 
 
 
