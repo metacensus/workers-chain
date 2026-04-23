@@ -340,7 +340,6 @@ service FabricActivities {
       schedule_to_close_timeout: {seconds: 60}
     };
   }
-
 }
 
 // ==================== BootstrapShard Workflow Messages ====================
@@ -942,4 +941,3 @@ message AddOrgToChannelOutput {}
 message UpdateChannelConfigInput {}
 
 message UpdateChannelConfigOutput {}
-
