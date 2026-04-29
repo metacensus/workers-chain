@@ -212,7 +212,7 @@ service Fabric {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.CreateChannel"
       id: 'fabric/create-channel'
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
     };
   }
 
@@ -222,7 +222,7 @@ service Fabric {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.AddOrdererToChannel"
       id: 'fabric/add-orderer-to-channel'
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
     };
   }
 
@@ -232,7 +232,7 @@ service Fabric {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.AddPeerToChannel"
       id: 'fabric/add-peer-to-channel'
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
     };
   }
 
@@ -242,7 +242,7 @@ service Fabric {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.JoinOrdererToChannel"
       id: 'fabric/join-orderer-to-channel'
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
     };
   }
 
@@ -252,7 +252,7 @@ service Fabric {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.JoinPeerToChannel"
       id: 'fabric/join-peer-to-channel'
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
     };
   }
 
@@ -262,7 +262,7 @@ service Fabric {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.SetAnchorPeer"
       id: 'fabric/set-anchor-peer'
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
     };
   }
 
@@ -272,7 +272,7 @@ service Fabric {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.AddOrdererToConsenterSet"
       id: 'fabric/add-orderer-to-consenter-set'
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
     };
   }
 
@@ -282,7 +282,7 @@ service Fabric {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.AddOrgToChannel"
       id: 'fabric/add-org-to-channel'
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
     };
   }
 
@@ -292,7 +292,7 @@ service Fabric {
     option (temporal.v1.workflow) = {
       name: "fabric.v1.UpdateChannelConfig"
       id: 'fabric/update-channel-config'
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
     };
   }
 }
