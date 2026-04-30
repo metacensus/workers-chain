@@ -2806,7 +2806,7 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\x14AddOrgToChannelInput\"\x17\n" +
 	"\x15AddOrgToChannelOutput\"\x1a\n" +
 	"\x18UpdateChannelConfigInput\"\x1b\n" +
-	"\x19UpdateChannelConfigOutput2\xe8\x1d\n" +
+	"\x19UpdateChannelConfigOutput2\x83\x1e\n" +
 	"\x06Fabric\x12\x8b\x01\n" +
 	"\x0eBootstrapShard\x12\x1e.fabric.v1.BootstrapShardInput\x1a\x1f.fabric.v1.BootstrapShardOutput\"8\x8a\xc4\x034*\x16fabric/bootstrap-shard0\x01r\x18fabric.v1.BootstrapShard\x12\xe1\x01\n" +
 	"\x1fBootstrapCertificateAuthorities\x12/.fabric.v1.BootstrapCertificateAuthoritiesInput\x1a0.fabric.v1.BootstrapCertificateAuthoritiesOutput\"[\x8a\xc4\x03W*(fabric/bootstrap-certificate-authorities0\x01r)fabric.v1.BootstrapCertificateAuthorities\x12\xb4\x01\n" +
@@ -2821,16 +2821,16 @@ const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\n" +
 	"DeployPeer\x12\x1a.fabric.v1.DeployPeerInput\x1a\x1b.fabric.v1.DeployPeerOutput\"=\x8a\xc4\x039*\x1ffabric/deploy-peer/${! PeerId }0\x01r\x14fabric.v1.DeployPeer\x12\x96\x01\n" +
 	"\rDeployOrderer\x12\x1d.fabric.v1.DeployOrdererInput\x1a\x1e.fabric.v1.DeployOrdererOutput\"F\x8a\xc4\x03B*%fabric/deploy-orderer/${! OrdererId }0\x01r\x17fabric.v1.DeployOrderer\x12\xa2\x01\n" +
-	"\x0fDeployChainCode\x12\x1f.fabric.v1.DeployChainCodeInput\x1a .fabric.v1.DeployChainCodeOutput\"L\x8a\xc4\x03H*)fabric/deploy-chaincode/${! ChainCodeId }0\x01r\x19fabric.v1.DeployChainCode\x12\x86\x01\n" +
-	"\rCreateChannel\x12\x1d.fabric.v1.CreateChannelInput\x1a\x1e.fabric.v1.CreateChannelOutput\"6\x8a\xc4\x032*\x15fabric/create-channel0\x01r\x17fabric.v1.CreateChannel\x12\xa6\x01\n" +
-	"\x13AddOrdererToChannel\x12#.fabric.v1.AddOrdererToChannelInput\x1a$.fabric.v1.AddOrdererToChannelOutput\"D\x8a\xc4\x03@*\x1dfabric/add-orderer-to-channel0\x01r\x1dfabric.v1.AddOrdererToChannel\x12\x97\x01\n" +
-	"\x10AddPeerToChannel\x12 .fabric.v1.AddPeerToChannelInput\x1a!.fabric.v1.AddPeerToChannelOutput\">\x8a\xc4\x03:*\x1afabric/add-peer-to-channel0\x01r\x1afabric.v1.AddPeerToChannel\x12\xab\x01\n" +
-	"\x14JoinOrdererToChannel\x12$.fabric.v1.JoinOrdererToChannelInput\x1a%.fabric.v1.JoinOrdererToChannelOutput\"F\x8a\xc4\x03B*\x1efabric/join-orderer-to-channel0\x01r\x1efabric.v1.JoinOrdererToChannel\x12\x9c\x01\n" +
-	"\x11JoinPeerToChannel\x12!.fabric.v1.JoinPeerToChannelInput\x1a\".fabric.v1.JoinPeerToChannelOutput\"@\x8a\xc4\x03<*\x1bfabric/join-peer-to-channel0\x01r\x1bfabric.v1.JoinPeerToChannel\x12\x87\x01\n" +
-	"\rSetAnchorPeer\x12\x1d.fabric.v1.SetAnchorPeerInput\x1a\x1e.fabric.v1.SetAnchorPeerOutput\"7\x8a\xc4\x033*\x16fabric/set-anchor-peer0\x01r\x17fabric.v1.SetAnchorPeer\x12\xc0\x01\n" +
-	"\x18AddOrdererToConsenterSet\x12(.fabric.v1.AddOrdererToConsenterSetInput\x1a).fabric.v1.AddOrdererToConsenterSetOutput\"O\x8a\xc4\x03K*#fabric/add-orderer-to-consenter-set0\x01r\"fabric.v1.AddOrdererToConsenterSet\x12\x92\x01\n" +
-	"\x0fAddOrgToChannel\x12\x1f.fabric.v1.AddOrgToChannelInput\x1a .fabric.v1.AddOrgToChannelOutput\"<\x8a\xc4\x038*\x19fabric/add-org-to-channel0\x01r\x19fabric.v1.AddOrgToChannel\x12\xa5\x01\n" +
-	"\x13UpdateChannelConfig\x12#.fabric.v1.UpdateChannelConfigInput\x1a$.fabric.v1.UpdateChannelConfigOutput\"C\x8a\xc4\x03?*\x1cfabric/update-channel-config0\x01r\x1dfabric.v1.UpdateChannelConfig\x1a\x1e\x8a\xc4\x03\a\n" +
+	"\x0fDeployChainCode\x12\x1f.fabric.v1.DeployChainCodeInput\x1a .fabric.v1.DeployChainCodeOutput\"L\x8a\xc4\x03H*)fabric/deploy-chaincode/${! ChainCodeId }0\x01r\x19fabric.v1.DeployChainCode\x12\x89\x01\n" +
+	"\rCreateChannel\x12\x1d.fabric.v1.CreateChannelInput\x1a\x1e.fabric.v1.CreateChannelOutput\"9\x8a\xc4\x035*\x15fabric/create-channel0\x02r\x17fabric.v1.CreateChannel\xa0\x01\x02\x12\xa9\x01\n" +
+	"\x13AddOrdererToChannel\x12#.fabric.v1.AddOrdererToChannelInput\x1a$.fabric.v1.AddOrdererToChannelOutput\"G\x8a\xc4\x03C*\x1dfabric/add-orderer-to-channel0\x02r\x1dfabric.v1.AddOrdererToChannel\xa0\x01\x02\x12\x9a\x01\n" +
+	"\x10AddPeerToChannel\x12 .fabric.v1.AddPeerToChannelInput\x1a!.fabric.v1.AddPeerToChannelOutput\"A\x8a\xc4\x03=*\x1afabric/add-peer-to-channel0\x02r\x1afabric.v1.AddPeerToChannel\xa0\x01\x02\x12\xae\x01\n" +
+	"\x14JoinOrdererToChannel\x12$.fabric.v1.JoinOrdererToChannelInput\x1a%.fabric.v1.JoinOrdererToChannelOutput\"I\x8a\xc4\x03E*\x1efabric/join-orderer-to-channel0\x02r\x1efabric.v1.JoinOrdererToChannel\xa0\x01\x02\x12\x9f\x01\n" +
+	"\x11JoinPeerToChannel\x12!.fabric.v1.JoinPeerToChannelInput\x1a\".fabric.v1.JoinPeerToChannelOutput\"C\x8a\xc4\x03?*\x1bfabric/join-peer-to-channel0\x02r\x1bfabric.v1.JoinPeerToChannel\xa0\x01\x02\x12\x8a\x01\n" +
+	"\rSetAnchorPeer\x12\x1d.fabric.v1.SetAnchorPeerInput\x1a\x1e.fabric.v1.SetAnchorPeerOutput\":\x8a\xc4\x036*\x16fabric/set-anchor-peer0\x02r\x17fabric.v1.SetAnchorPeer\xa0\x01\x02\x12\xc3\x01\n" +
+	"\x18AddOrdererToConsenterSet\x12(.fabric.v1.AddOrdererToConsenterSetInput\x1a).fabric.v1.AddOrdererToConsenterSetOutput\"R\x8a\xc4\x03N*#fabric/add-orderer-to-consenter-set0\x02r\"fabric.v1.AddOrdererToConsenterSet\xa0\x01\x02\x12\x95\x01\n" +
+	"\x0fAddOrgToChannel\x12\x1f.fabric.v1.AddOrgToChannelInput\x1a .fabric.v1.AddOrgToChannelOutput\"?\x8a\xc4\x03;*\x19fabric/add-org-to-channel0\x02r\x19fabric.v1.AddOrgToChannel\xa0\x01\x02\x12\xa8\x01\n" +
+	"\x13UpdateChannelConfig\x12#.fabric.v1.UpdateChannelConfigInput\x1a$.fabric.v1.UpdateChannelConfigOutput\"F\x8a\xc4\x03B*\x1cfabric/update-channel-config0\x02r\x1dfabric.v1.UpdateChannelConfig\xa0\x01\x02\x1a\x1e\x8a\xc4\x03\a\n" +
 	"\x05infraʂ\x04\x0f\x12\rnexus-enabled2\xa8\x04\n" +
 	"\x10FabricActivities\x12}\n" +
 	"\x10RegisterIdentity\x12 .fabric.v1.RegisterIdentityInput\x1a!.fabric.v1.RegisterIdentityOutput\"$\x92\xc4\x03 \x12\x02\b<:\x1afabric.v1.RegisterIdentity\x12u\n" +

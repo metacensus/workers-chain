@@ -2027,7 +2027,7 @@ Generates genesis block, joins orderers and peers, sets anchor peers
 <table>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/create-channel</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
 </table>
 
 ---
@@ -2052,7 +2052,7 @@ Fetches latest config block, joins as follower, then promotes to consenter
 <table>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/add-orderer-to-channel</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
 </table>
 
 ---
@@ -2077,7 +2077,7 @@ Optionally adds the org to the channel first if not already a member
 <table>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/add-peer-to-channel</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
 </table>
 
 ---
@@ -2102,7 +2102,7 @@ Handles both genesis-based (consenter) and config-block-based (follower) joins
 <table>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/join-orderer-to-channel</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
 </table>
 
 ---
@@ -2127,7 +2127,7 @@ Fetches the oldest block from an orderer and joins the peer
 <table>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/join-peer-to-channel</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
 </table>
 
 ---
@@ -2152,7 +2152,7 @@ Uses UpdateChannelConfig to modify the channel's Application group
 <table>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/set-anchor-peer</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
 </table>
 
 ---
@@ -2177,7 +2177,7 @@ via a channel config update to the ConsensusType metadata
 <table>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/add-orderer-to-consenter-set</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
 </table>
 
 ---
@@ -2202,7 +2202,7 @@ Requires signatures from a majority of existing channel admins
 <table>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/add-org-to-channel</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
 </table>
 
 ---
@@ -2227,7 +2227,7 @@ Fetches current config, computes delta, collects signatures, and submits update
 <table>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/update-channel-config</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
 </table>     
 
 <a name="fabric-v1-fabricactivities"></a>

@@ -1419,10 +1419,12 @@ func (o *AddOrdererToChannelOptions) Build(req protoreflect.Message) (client.Sta
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
 		opts.WorkflowIDConflictPolicy = v
+	} else if opts.WorkflowIDConflictPolicy == enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = enumsv1.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -1602,10 +1604,12 @@ func (o *AddOrdererToConsenterSetOptions) Build(req protoreflect.Message) (clien
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
 		opts.WorkflowIDConflictPolicy = v
+	} else if opts.WorkflowIDConflictPolicy == enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = enumsv1.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -1785,10 +1789,12 @@ func (o *AddOrgToChannelOptions) Build(req protoreflect.Message) (client.StartWo
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
 		opts.WorkflowIDConflictPolicy = v
+	} else if opts.WorkflowIDConflictPolicy == enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = enumsv1.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -1968,10 +1974,12 @@ func (o *AddPeerToChannelOptions) Build(req protoreflect.Message) (client.StartW
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
 		opts.WorkflowIDConflictPolicy = v
+	} else if opts.WorkflowIDConflictPolicy == enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = enumsv1.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -3249,10 +3257,12 @@ func (o *CreateChannelOptions) Build(req protoreflect.Message) (client.StartWork
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
 		opts.WorkflowIDConflictPolicy = v
+	} else if opts.WorkflowIDConflictPolicy == enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = enumsv1.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -4713,10 +4723,12 @@ func (o *JoinOrdererToChannelOptions) Build(req protoreflect.Message) (client.St
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
 		opts.WorkflowIDConflictPolicy = v
+	} else if opts.WorkflowIDConflictPolicy == enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = enumsv1.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -4896,10 +4908,12 @@ func (o *JoinPeerToChannelOptions) Build(req protoreflect.Message) (client.Start
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
 		opts.WorkflowIDConflictPolicy = v
+	} else if opts.WorkflowIDConflictPolicy == enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = enumsv1.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -5079,10 +5093,12 @@ func (o *SetAnchorPeerOptions) Build(req protoreflect.Message) (client.StartWork
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
 		opts.WorkflowIDConflictPolicy = v
+	} else if opts.WorkflowIDConflictPolicy == enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = enumsv1.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -5262,10 +5278,12 @@ func (o *UpdateChannelConfigOptions) Build(req protoreflect.Message) (client.Sta
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
 		opts.WorkflowIDConflictPolicy = v
+	} else if opts.WorkflowIDConflictPolicy == enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = enumsv1.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -6041,7 +6059,7 @@ func (o *AddOrdererToChannelChildOptions) Build(ctx workflow.Context, req protor
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -6315,7 +6333,7 @@ func (o *AddOrdererToConsenterSetChildOptions) Build(ctx workflow.Context, req p
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -6589,7 +6607,7 @@ func (o *AddOrgToChannelChildOptions) Build(ctx workflow.Context, req protorefle
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -6863,7 +6881,7 @@ func (o *AddPeerToChannelChildOptions) Build(ctx workflow.Context, req protorefl
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -8802,7 +8820,7 @@ func (o *CreateChannelChildOptions) Build(ctx workflow.Context, req protoreflect
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -11003,7 +11021,7 @@ func (o *JoinOrdererToChannelChildOptions) Build(ctx workflow.Context, req proto
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -11277,7 +11295,7 @@ func (o *JoinPeerToChannelChildOptions) Build(ctx workflow.Context, req protoref
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -11551,7 +11569,7 @@ func (o *SetAnchorPeerChildOptions) Build(ctx workflow.Context, req protoreflect
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -11825,7 +11843,7 @@ func (o *UpdateChannelConfigChildOptions) Build(ctx workflow.Context, req protor
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
