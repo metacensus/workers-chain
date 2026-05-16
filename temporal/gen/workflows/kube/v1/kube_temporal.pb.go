@@ -25,6 +25,7 @@ const (
 	ApplyActivityName     = "kube.v1.Apply"
 	CreateActivityName    = "kube.v1.Create"
 	DeleteActivityName    = "kube.v1.Delete"
+	ExecPodActivityName   = "kube.v1.ExecPod"
 	GetStatusActivityName = "kube.v1.GetStatus"
 	UpdateActivityName    = "kube.v1.Update"
 )
@@ -40,6 +41,9 @@ type KubernetesActivities interface {
 	// Delete removes resources from the cluster
 	Delete(ctx context.Context, req *DeleteInput) (*DeleteOutput, error)
 
+	// ExecPod executes a command in a pod container
+	ExecPod(ctx context.Context, req *ExecPodInput) (*ExecPodOutput, error)
+
 	// GetStatus retrieves the current status of deployed resources
 	GetStatus(ctx context.Context, req *GetStatusInput) (*GetStatusOutput, error)
 
@@ -52,6 +56,7 @@ func RegisterKubernetesActivities(r worker.ActivityRegistry, activities Kubernet
 	RegisterApplyActivity(r, activities.Apply)
 	RegisterCreateActivity(r, activities.Create)
 	RegisterDeleteActivity(r, activities.Delete)
+	RegisterExecPodActivity(r, activities.ExecPod)
 	RegisterGetStatusActivity(r, activities.GetStatus)
 	RegisterUpdateActivity(r, activities.Update)
 }
@@ -832,6 +837,266 @@ func (o *DeleteLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration)
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
 func (o *DeleteLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *DeleteLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterExecPodActivity registers a kube.v1.ExecPod activity
+func RegisterExecPodActivity(r worker.ActivityRegistry, fn func(context.Context, *ExecPodInput) (*ExecPodOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: ExecPodActivityName,
+	})
+}
+
+// ExecPodFuture describes a(n) kube.v1.ExecPod activity execution
+type ExecPodFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *ExecPodFuture) Get(ctx workflow.Context) (*ExecPodOutput, error) {
+	var resp ExecPodOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *ExecPodFuture) Select(sel workflow.Selector, fn func(*ExecPodFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// ExecPod executes a command in a pod container
+func ExecPod(ctx workflow.Context, req *ExecPodInput, options ...*ExecPodActivityOptions) (*ExecPodOutput, error) {
+	return ExecPodAsync(ctx, req, options...).Get(ctx)
+}
+
+// ExecPod executes a command in a pod container
+func ExecPodAsync(ctx workflow.Context, req *ExecPodInput, options ...*ExecPodActivityOptions) *ExecPodFuture {
+	var o *ExecPodActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewExecPodActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &ExecPodFuture{Future: errF}
+	}
+	activity := ExecPodActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &ExecPodFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// ExecPod executes a command in a pod container
+func ExecPodLocal(ctx workflow.Context, req *ExecPodInput, options ...*ExecPodLocalActivityOptions) (*ExecPodOutput, error) {
+	return ExecPodLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// ExecPod executes a command in a pod container
+func ExecPodLocalAsync(ctx workflow.Context, req *ExecPodInput, options ...*ExecPodLocalActivityOptions) *ExecPodFuture {
+	var o *ExecPodLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewExecPodLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &ExecPodFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = ExecPodActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &ExecPodFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// ExecPodActivityOptions provides configuration for a(n) kube.v1.ExecPod activity
+type ExecPodActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewExecPodActivityOptions initializes a new ExecPodActivityOptions value
+func NewExecPodActivityOptions() *ExecPodActivityOptions {
+	return &ExecPodActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *ExecPodActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = KubernetesTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *ExecPodActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *ExecPodActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *ExecPodActivityOptions) WithDataConverter(dc converter.DataConverter) *ExecPodActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *ExecPodActivityOptions) WithHeartbeatTimeout(d time.Duration) *ExecPodActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *ExecPodActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *ExecPodActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *ExecPodActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *ExecPodActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *ExecPodActivityOptions) WithScheduleToStartTimeout(d time.Duration) *ExecPodActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *ExecPodActivityOptions) WithStartToCloseTimeout(d time.Duration) *ExecPodActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *ExecPodActivityOptions) WithTaskQueue(tq string) *ExecPodActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *ExecPodActivityOptions) WithWaitForCancellation(wait bool) *ExecPodActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// ExecPodLocalActivityOptions provides configuration for a(n) kube.v1.ExecPod activity
+type ExecPodLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *ExecPodInput) (*ExecPodOutput, error)
+}
+
+// NewExecPodLocalActivityOptions initializes a new ExecPodLocalActivityOptions value
+func NewExecPodLocalActivityOptions() *ExecPodLocalActivityOptions {
+	return &ExecPodLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *ExecPodLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 300000000000 // 5 minutes
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom kube.v1.ExecPod implementation
+func (o *ExecPodLocalActivityOptions) Local(fn func(context.Context, *ExecPodInput) (*ExecPodOutput, error)) *ExecPodLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *ExecPodLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *ExecPodLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *ExecPodLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *ExecPodLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *ExecPodLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *ExecPodLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *ExecPodLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *ExecPodLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *ExecPodLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *ExecPodLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }

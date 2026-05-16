@@ -59,4 +59,3 @@ func NewCouchDbValues(couchDbConfig fabricconfig.CouchDbConfig) *CouchDbValues {
 		CommonLabels: DefaultCommonLabels(),
 	}
 }
-

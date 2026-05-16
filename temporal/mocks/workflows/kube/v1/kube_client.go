@@ -169,6 +169,84 @@ func (_c *MockKubeClient_DeleteResource_Call) RunAndReturn(run func(context.Cont
 	return _c
 }
 
+// ExecPod provides a mock function with given fields: ctx, id, container, command, stdin
+func (_m *MockKubeClient) ExecPod(ctx context.Context, id *kubev1.ContainerIdentifier, container string, command []string, stdin []byte) ([]byte, []byte, int32, error) {
+	ret := _m.Called(ctx, id, container, command, stdin)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExecPod")
+	}
+
+	var r0 []byte
+	var r1 []byte
+	var r2 int32
+	var r3 error
+	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.ContainerIdentifier, string, []string, []byte) ([]byte, []byte, int32, error)); ok {
+		return rf(ctx, id, container, command, stdin)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *kubev1.ContainerIdentifier, string, []string, []byte) []byte); ok {
+		r0 = rf(ctx, id, container, command, stdin)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *kubev1.ContainerIdentifier, string, []string, []byte) []byte); ok {
+		r1 = rf(ctx, id, container, command, stdin)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).([]byte)
+		}
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, *kubev1.ContainerIdentifier, string, []string, []byte) int32); ok {
+		r2 = rf(ctx, id, container, command, stdin)
+	} else {
+		r2 = ret.Get(2).(int32)
+	}
+
+	if rf, ok := ret.Get(3).(func(context.Context, *kubev1.ContainerIdentifier, string, []string, []byte) error); ok {
+		r3 = rf(ctx, id, container, command, stdin)
+	} else {
+		r3 = ret.Error(3)
+	}
+
+	return r0, r1, r2, r3
+}
+
+// MockKubeClient_ExecPod_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExecPod'
+type MockKubeClient_ExecPod_Call struct {
+	*mock.Call
+}
+
+// ExecPod is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id *kubev1.ContainerIdentifier
+//   - container string
+//   - command []string
+//   - stdin []byte
+func (_e *MockKubeClient_Expecter) ExecPod(ctx interface{}, id interface{}, container interface{}, command interface{}, stdin interface{}) *MockKubeClient_ExecPod_Call {
+	return &MockKubeClient_ExecPod_Call{Call: _e.mock.On("ExecPod", ctx, id, container, command, stdin)}
+}
+
+func (_c *MockKubeClient_ExecPod_Call) Run(run func(ctx context.Context, id *kubev1.ContainerIdentifier, container string, command []string, stdin []byte)) *MockKubeClient_ExecPod_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*kubev1.ContainerIdentifier), args[2].(string), args[3].([]string), args[4].([]byte))
+	})
+	return _c
+}
+
+func (_c *MockKubeClient_ExecPod_Call) Return(stdout []byte, stderr []byte, exitCode int32, err error) *MockKubeClient_ExecPod_Call {
+	_c.Call.Return(stdout, stderr, exitCode, err)
+	return _c
+}
+
+func (_c *MockKubeClient_ExecPod_Call) RunAndReturn(run func(context.Context, *kubev1.ContainerIdentifier, string, []string, []byte) ([]byte, []byte, int32, error)) *MockKubeClient_ExecPod_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetResourceStatus provides a mock function with given fields: ctx, id
 func (_m *MockKubeClient) GetResourceStatus(ctx context.Context, id *kubev1.ResourceIdentifier) (*kube.ResourceStatus, error) {
 	ret := _m.Called(ctx, id)

@@ -59,6 +59,15 @@ service Kubernetes {
       schedule_to_close_timeout: {seconds: 60}
     };
   }
+
+  // ExecPod executes a command in a pod container
+  rpc ExecPod(ExecPodInput) returns (ExecPodOutput) {
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "kube.v1.ExecPod"
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
+    };
+  }
 }
 
 // Resource represents a single Kubernetes resource as YAML
@@ -412,5 +421,78 @@ message ResourceStatus {
   string message = 7 [
     json_name = "Message",
     (go.field).tags = 'json:"Message,omitempty" validate:"omitempty"'
+  ];
+}
+
+// ContainerIdentifier uniquely identifies a pod (namespace + pod name)
+// Used by ExecPod and future pod-specific operations (e.g. logs, copy)
+message ContainerIdentifier {
+  // namespace is the namespace containing the pod
+  string namespace = 1 [
+    json_name = "Namespace",
+    (go.field).tags = 'json:"Namespace" validate:"required"'
+  ];
+
+  // name is the pod name
+  string name = 2 [
+    json_name = "Name",
+    (go.field).tags = 'json:"Name" validate:"required"'
+  ];
+}
+
+// ExecPodInput defines inputs for executing a command in a pod
+message ExecPodInput {
+  // container_id identifies the pod to execute the command in
+  ContainerIdentifier container_id = 1 [
+    json_name = "ContainerId",
+    (go.field).tags = 'json:"ContainerId" validate:"required"'
+  ];
+
+  // container is the name of the container in the pod
+  // Must be explicitly specified
+  string container = 2 [
+    json_name = "Container",
+    (go.field).tags = 'json:"Container" validate:"required"'
+  ];
+
+  // command is the command and arguments to execute
+  // Example: ["sh", "-c", "echo hello"]
+  repeated string command = 3 [
+    json_name = "Command",
+    (go.field).tags = 'json:"Command" validate:"required"'
+  ];
+
+  // stdin is optional input to send to the command
+  bytes stdin = 4 [
+    json_name = "Stdin",
+    (go.field).tags = 'json:"Stdin,omitempty" validate:"omitempty"'
+  ];
+}
+
+// ExecPodOutput represents the result of executing a command in a pod
+message ExecPodOutput {
+  // stdout is the standard output from the command
+  bytes stdout = 1 [
+    json_name = "Stdout",
+    (go.field).tags = 'json:"Stdout,omitempty" validate:"omitempty"'
+  ];
+
+  // stderr is the standard error output from the command
+  bytes stderr = 2 [
+    json_name = "Stderr",
+    (go.field).tags = 'json:"Stderr,omitempty" validate:"omitempty"'
+  ];
+
+  // exit_code is the exit code of the command
+  // 0 indicates success, non-zero indicates failure
+  int32 exit_code = 3 [
+    json_name = "ExitCode",
+    (go.field).tags = 'json:"ExitCode" validate:"required"'
+  ];
+
+  // error_message contains error details if execution failed
+  string error_message = 4 [
+    json_name = "ErrorMessage",
+    (go.field).tags = 'json:"ErrorMessage,omitempty" validate:"omitempty"'
   ];
 }

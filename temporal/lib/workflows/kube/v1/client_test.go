@@ -78,31 +78,28 @@ invalid: yaml: syntax:
 		t.Run(tt.name, func(t *testing.T) {
 			decoder := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 			obj := &unstructured.Unstructured{}
-
 			_, gvk, err := decoder.Decode(tt.manifest, nil, obj)
 
 			if tt.expectErr {
 				if err == nil {
-					t.Fatalf("expected error, got nil")
+					t.Fatal("expected error, got nil")
 				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-
-				// Verify resource identifier fields individually (protobuf structs can't be compared directly)
-				if got := gvk.GroupVersion().String(); got != tt.expectAPIVer {
-					t.Errorf("apiVersion mismatch: got %q, want %q", got, tt.expectAPIVer)
-				}
-				if got := gvk.Kind; got != tt.expectKind {
-					t.Errorf("kind mismatch: got %q, want %q", got, tt.expectKind)
-				}
-				if got := obj.GetName(); got != tt.expectName {
-					t.Errorf("name mismatch: got %q, want %q", got, tt.expectName)
-				}
-				if got := obj.GetNamespace(); got != tt.expectNamespace {
-					t.Errorf("namespace mismatch: got %q, want %q", got, tt.expectNamespace)
-				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := gvk.GroupVersion().String(); got != tt.expectAPIVer {
+				t.Errorf("apiVersion mismatch: got %q, want %q", got, tt.expectAPIVer)
+			}
+			if got := gvk.Kind; got != tt.expectKind {
+				t.Errorf("kind mismatch: got %q, want %q", got, tt.expectKind)
+			}
+			if got := obj.GetName(); got != tt.expectName {
+				t.Errorf("name mismatch: got %q, want %q", got, tt.expectName)
+			}
+			if got := obj.GetNamespace(); got != tt.expectNamespace {
+				t.Errorf("namespace mismatch: got %q, want %q", got, tt.expectNamespace)
 			}
 		})
 	}
