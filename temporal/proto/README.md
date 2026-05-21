@@ -53,6 +53,15 @@
         - [fabric.v1.DeployPeer](#fabric-v1-deploypeer-workflow)
         - [fabric.v1.DeployOrderer](#fabric-v1-deployorderer-workflow)
         - [fabric.v1.DeployChainCode](#fabric-v1-deploychaincode-workflow)
+        - [fabric.v1.CreateChannel](#fabric-v1-createchannel-workflow)
+        - [fabric.v1.AddOrdererToChannel](#fabric-v1-addorderertochannel-workflow)
+        - [fabric.v1.AddPeerToChannel](#fabric-v1-addpeertochannel-workflow)
+        - [fabric.v1.JoinOrdererToChannel](#fabric-v1-joinorderertochannel-workflow)
+        - [fabric.v1.JoinPeerToChannel](#fabric-v1-joinpeertochannel-workflow)
+        - [fabric.v1.SetAnchorPeer](#fabric-v1-setanchorpeer-workflow)
+        - [fabric.v1.AddOrdererToConsenterSet](#fabric-v1-addorderertoconsenterset-workflow)
+        - [fabric.v1.AddOrgToChannel](#fabric-v1-addorgtochannel-workflow)
+        - [fabric.v1.UpdateChannelConfig](#fabric-v1-updatechannelconfig-workflow)
     - [fabric.v1.FabricActivities](#fabric-v1-fabricactivities)
       - [Activities](#fabric-v1-fabricactivities-activities)
         - [fabric.v1.RegisterIdentity](#fabric-v1-registeridentity-activity)
@@ -60,6 +69,14 @@
         - [fabric.v1.RevokeIdentity](#fabric-v1-revokeidentity-activity)
         - [fabric.v1.BootstrapEnrollIdentity](#fabric-v1-bootstrapenrollidentity-activity)
   - Messages
+    - [fabric.v1.AddOrdererToChannelInput](#fabric-v1-addorderertochannelinput)
+    - [fabric.v1.AddOrdererToChannelOutput](#fabric-v1-addorderertochanneloutput)
+    - [fabric.v1.AddOrdererToConsenterSetInput](#fabric-v1-addorderertoconsentersetinput)
+    - [fabric.v1.AddOrdererToConsenterSetOutput](#fabric-v1-addorderertoconsentersetoutput)
+    - [fabric.v1.AddOrgToChannelInput](#fabric-v1-addorgtochannelinput)
+    - [fabric.v1.AddOrgToChannelOutput](#fabric-v1-addorgtochanneloutput)
+    - [fabric.v1.AddPeerToChannelInput](#fabric-v1-addpeertochannelinput)
+    - [fabric.v1.AddPeerToChannelOutput](#fabric-v1-addpeertochanneloutput)
     - [fabric.v1.BootstrapCertificateAuthoritiesInput](#fabric-v1-bootstrapcertificateauthoritiesinput)
     - [fabric.v1.BootstrapCertificateAuthoritiesOutput](#fabric-v1-bootstrapcertificateauthoritiesoutput)
     - [fabric.v1.BootstrapEnrollIdentityInput](#fabric-v1-bootstrapenrollidentityinput)
@@ -77,6 +94,8 @@
     - [fabric.v1.CreateCertificateInput](#fabric-v1-createcertificateinput)
     - [fabric.v1.CreateCertificateInput.AttributesEntry](#fabric-v1-createcertificateinput-attributesentry)
     - [fabric.v1.CreateCertificateOutput](#fabric-v1-createcertificateoutput)
+    - [fabric.v1.CreateChannelInput](#fabric-v1-createchannelinput)
+    - [fabric.v1.CreateChannelOutput](#fabric-v1-createchanneloutput)
     - [fabric.v1.CreateIdentityInput](#fabric-v1-createidentityinput)
     - [fabric.v1.CreateIdentityInput.AttributesEntry](#fabric-v1-createidentityinput-attributesentry)
     - [fabric.v1.CreateIdentityOutput](#fabric-v1-createidentityoutput)
@@ -94,11 +113,19 @@
     - [fabric.v1.DeployPeerOutput](#fabric-v1-deploypeeroutput)
     - [fabric.v1.EnrollIdentityInput](#fabric-v1-enrollidentityinput)
     - [fabric.v1.EnrollIdentityOutput](#fabric-v1-enrollidentityoutput)
+    - [fabric.v1.JoinOrdererToChannelInput](#fabric-v1-joinorderertochannelinput)
+    - [fabric.v1.JoinOrdererToChannelOutput](#fabric-v1-joinorderertochanneloutput)
+    - [fabric.v1.JoinPeerToChannelInput](#fabric-v1-joinpeertochannelinput)
+    - [fabric.v1.JoinPeerToChannelOutput](#fabric-v1-joinpeertochanneloutput)
     - [fabric.v1.RegisterIdentityInput](#fabric-v1-registeridentityinput)
     - [fabric.v1.RegisterIdentityInput.AttributesEntry](#fabric-v1-registeridentityinput-attributesentry)
     - [fabric.v1.RegisterIdentityOutput](#fabric-v1-registeridentityoutput)
     - [fabric.v1.RevokeIdentityInput](#fabric-v1-revokeidentityinput)
     - [fabric.v1.RevokeIdentityOutput](#fabric-v1-revokeidentityoutput)
+    - [fabric.v1.SetAnchorPeerInput](#fabric-v1-setanchorpeerinput)
+    - [fabric.v1.SetAnchorPeerOutput](#fabric-v1-setanchorpeeroutput)
+    - [fabric.v1.UpdateChannelConfigInput](#fabric-v1-updatechannelconfiginput)
+    - [fabric.v1.UpdateChannelConfigOutput](#fabric-v1-updatechannelconfigoutput)
 - [helm.v1](#helm-v1)
   - Services
     - [helm.v1.Helm](#helm-v1-helm)
@@ -1976,6 +2003,231 @@ go_tags: json:"ChainCodeId" validate:"required"</pre></td>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/deploy-chaincode/${! ChainCodeId }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-createchannel-workflow"></a>
+### fabric.v1.CreateChannel
+
+<pre>
+CreateChannel orchestrates creation of a new Fabric channel
+Generates genesis block, joins orderers and peers, sets anchor peers
+</pre>
+
+**Input:** [fabric.v1.CreateChannelInput](#fabric-v1-createchannelinput)
+
+
+
+**Output:** [fabric.v1.CreateChannelOutput](#fabric-v1-createchanneloutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/create-channel</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-addorderertochannel-workflow"></a>
+### fabric.v1.AddOrdererToChannel
+
+<pre>
+AddOrdererToChannel adds a new orderer to an existing channel
+Fetches latest config block, joins as follower, then promotes to consenter
+</pre>
+
+**Input:** [fabric.v1.AddOrdererToChannelInput](#fabric-v1-addorderertochannelinput)
+
+
+
+**Output:** [fabric.v1.AddOrdererToChannelOutput](#fabric-v1-addorderertochanneloutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/add-orderer-to-channel</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-addpeertochannel-workflow"></a>
+### fabric.v1.AddPeerToChannel
+
+<pre>
+AddPeerToChannel adds a new peer to an existing channel
+Optionally adds the org to the channel first if not already a member
+</pre>
+
+**Input:** [fabric.v1.AddPeerToChannelInput](#fabric-v1-addpeertochannelinput)
+
+
+
+**Output:** [fabric.v1.AddPeerToChannelOutput](#fabric-v1-addpeertochanneloutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/add-peer-to-channel</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-joinorderertochannel-workflow"></a>
+### fabric.v1.JoinOrdererToChannel
+
+<pre>
+JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+Handles both genesis-based (consenter) and config-block-based (follower) joins
+</pre>
+
+**Input:** [fabric.v1.JoinOrdererToChannelInput](#fabric-v1-joinorderertochannelinput)
+
+
+
+**Output:** [fabric.v1.JoinOrdererToChannelOutput](#fabric-v1-joinorderertochanneloutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/join-orderer-to-channel</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-joinpeertochannel-workflow"></a>
+### fabric.v1.JoinPeerToChannel
+
+<pre>
+JoinPeerToChannel joins a peer node to a channel
+Fetches the oldest block from an orderer and joins the peer
+</pre>
+
+**Input:** [fabric.v1.JoinPeerToChannelInput](#fabric-v1-joinpeertochannelinput)
+
+
+
+**Output:** [fabric.v1.JoinPeerToChannelOutput](#fabric-v1-joinpeertochanneloutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/join-peer-to-channel</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-setanchorpeer-workflow"></a>
+### fabric.v1.SetAnchorPeer
+
+<pre>
+SetAnchorPeer configures the anchor peer for an org on a channel
+Uses UpdateChannelConfig to modify the channel's Application group
+</pre>
+
+**Input:** [fabric.v1.SetAnchorPeerInput](#fabric-v1-setanchorpeerinput)
+
+
+
+**Output:** [fabric.v1.SetAnchorPeerOutput](#fabric-v1-setanchorpeeroutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/set-anchor-peer</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-addorderertoconsenterset-workflow"></a>
+### fabric.v1.AddOrdererToConsenterSet
+
+<pre>
+AddOrdererToConsenterSet promotes an orderer from follower to consenter
+via a channel config update to the ConsensusType metadata
+</pre>
+
+**Input:** [fabric.v1.AddOrdererToConsenterSetInput](#fabric-v1-addorderertoconsentersetinput)
+
+
+
+**Output:** [fabric.v1.AddOrdererToConsenterSetOutput](#fabric-v1-addorderertoconsentersetoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/add-orderer-to-consenter-set</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-addorgtochannel-workflow"></a>
+### fabric.v1.AddOrgToChannel
+
+<pre>
+AddOrgToChannel adds a new organization to an existing channel
+Requires signatures from a majority of existing channel admins
+</pre>
+
+**Input:** [fabric.v1.AddOrgToChannelInput](#fabric-v1-addorgtochannelinput)
+
+
+
+**Output:** [fabric.v1.AddOrgToChannelOutput](#fabric-v1-addorgtochanneloutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/add-org-to-channel</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
+</table>
+
+---
+<a name="fabric-v1-updatechannelconfig-workflow"></a>
+### fabric.v1.UpdateChannelConfig
+
+<pre>
+UpdateChannelConfig is the common pattern for all channel configuration changes
+Fetches current config, computes delta, collects signatures, and submits update
+</pre>
+
+**Input:** [fabric.v1.UpdateChannelConfigInput](#fabric-v1-updatechannelconfiginput)
+
+
+
+**Output:** [fabric.v1.UpdateChannelConfigOutput](#fabric-v1-updatechannelconfigoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/update-channel-config</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
 </table>     
 
 <a name="fabric-v1-fabricactivities"></a>
@@ -2393,6 +2645,46 @@ go_tags: json:"CertRef" validate:"required"</pre></td>
 
 <a name="fabric-v1-messages"></a>
 ## Messages
+
+<a name="fabric-v1-addorderertochannelinput"></a>
+### fabric.v1.AddOrdererToChannelInput
+
+
+
+<a name="fabric-v1-addorderertochanneloutput"></a>
+### fabric.v1.AddOrdererToChannelOutput
+
+
+
+<a name="fabric-v1-addorderertoconsentersetinput"></a>
+### fabric.v1.AddOrdererToConsenterSetInput
+
+
+
+<a name="fabric-v1-addorderertoconsentersetoutput"></a>
+### fabric.v1.AddOrdererToConsenterSetOutput
+
+
+
+<a name="fabric-v1-addorgtochannelinput"></a>
+### fabric.v1.AddOrgToChannelInput
+
+
+
+<a name="fabric-v1-addorgtochanneloutput"></a>
+### fabric.v1.AddOrgToChannelOutput
+
+
+
+<a name="fabric-v1-addpeertochannelinput"></a>
+### fabric.v1.AddPeerToChannelInput
+
+
+
+<a name="fabric-v1-addpeertochanneloutput"></a>
+### fabric.v1.AddPeerToChannelOutput
+
+
 
 <a name="fabric-v1-bootstrapcertificateauthoritiesinput"></a>
 ### fabric.v1.BootstrapCertificateAuthoritiesInput
@@ -2980,6 +3272,16 @@ go_tags: json:"CredentialsRef" validate:"required"</pre></td>
 
 
 
+<a name="fabric-v1-createchannelinput"></a>
+### fabric.v1.CreateChannelInput
+
+
+
+<a name="fabric-v1-createchanneloutput"></a>
+### fabric.v1.CreateChannelOutput
+
+
+
 <a name="fabric-v1-createidentityinput"></a>
 ### fabric.v1.CreateIdentityInput
 
@@ -3466,6 +3768,26 @@ go_tags: json:"CertRef" validate:"required"</pre></td>
 
 
 
+<a name="fabric-v1-joinorderertochannelinput"></a>
+### fabric.v1.JoinOrdererToChannelInput
+
+
+
+<a name="fabric-v1-joinorderertochanneloutput"></a>
+### fabric.v1.JoinOrdererToChannelOutput
+
+
+
+<a name="fabric-v1-joinpeertochannelinput"></a>
+### fabric.v1.JoinPeerToChannelInput
+
+
+
+<a name="fabric-v1-joinpeertochanneloutput"></a>
+### fabric.v1.JoinPeerToChannelOutput
+
+
+
 <a name="fabric-v1-registeridentityinput"></a>
 ### fabric.v1.RegisterIdentityInput
 
@@ -3665,6 +3987,26 @@ json_name: Revoked
 go_name: Revoked</pre></td>
 </tr>
 </table>
+
+
+
+<a name="fabric-v1-setanchorpeerinput"></a>
+### fabric.v1.SetAnchorPeerInput
+
+
+
+<a name="fabric-v1-setanchorpeeroutput"></a>
+### fabric.v1.SetAnchorPeerOutput
+
+
+
+<a name="fabric-v1-updatechannelconfiginput"></a>
+### fabric.v1.UpdateChannelConfigInput
+
+
+
+<a name="fabric-v1-updatechannelconfigoutput"></a>
+### fabric.v1.UpdateChannelConfigOutput
 
 
 

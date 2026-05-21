@@ -203,6 +203,107 @@ service Fabric {
       id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
     };
   }
+
+  // ==================== Channel Workflows ====================
+
+  // CreateChannel orchestrates creation of a new Fabric channel
+  // Generates genesis block, joins orderers and peers, sets anchor peers
+  rpc CreateChannel(CreateChannelInput) returns (CreateChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.CreateChannel"
+      id: 'fabric/create-channel'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // AddOrdererToChannel adds a new orderer to an existing channel
+  // Fetches latest config block, joins as follower, then promotes to consenter
+  rpc AddOrdererToChannel(AddOrdererToChannelInput) returns (AddOrdererToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.AddOrdererToChannel"
+      id: 'fabric/add-orderer-to-channel'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // AddPeerToChannel adds a new peer to an existing channel
+  // Optionally adds the org to the channel first if not already a member
+  rpc AddPeerToChannel(AddPeerToChannelInput) returns (AddPeerToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.AddPeerToChannel"
+      id: 'fabric/add-peer-to-channel'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+  // Handles both genesis-based (consenter) and config-block-based (follower) joins
+  rpc JoinOrdererToChannel(JoinOrdererToChannelInput) returns (JoinOrdererToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.JoinOrdererToChannel"
+      id: 'fabric/join-orderer-to-channel'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // JoinPeerToChannel joins a peer node to a channel
+  // Fetches the oldest block from an orderer and joins the peer
+  rpc JoinPeerToChannel(JoinPeerToChannelInput) returns (JoinPeerToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.JoinPeerToChannel"
+      id: 'fabric/join-peer-to-channel'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // SetAnchorPeer configures the anchor peer for an org on a channel
+  // Uses UpdateChannelConfig to modify the channel's Application group
+  rpc SetAnchorPeer(SetAnchorPeerInput) returns (SetAnchorPeerOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.SetAnchorPeer"
+      id: 'fabric/set-anchor-peer'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // AddOrdererToConsenterSet promotes an orderer from follower to consenter
+  // via a channel config update to the ConsensusType metadata
+  rpc AddOrdererToConsenterSet(AddOrdererToConsenterSetInput) returns (AddOrdererToConsenterSetOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.AddOrdererToConsenterSet"
+      id: 'fabric/add-orderer-to-consenter-set'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // AddOrgToChannel adds a new organization to an existing channel
+  // Requires signatures from a majority of existing channel admins
+  rpc AddOrgToChannel(AddOrgToChannelInput) returns (AddOrgToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.AddOrgToChannel"
+      id: 'fabric/add-org-to-channel'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // UpdateChannelConfig is the common pattern for all channel configuration changes
+  // Fetches current config, computes delta, collects signatures, and submits update
+  rpc UpdateChannelConfig(UpdateChannelConfigInput) returns (UpdateChannelConfigOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.UpdateChannelConfig"
+      id: 'fabric/update-channel-config'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
 }
 
 // FabricActivities service defines activities for Fabric CA operations
@@ -795,3 +896,57 @@ message DeployChainCodeInput {
 message DeployChainCodeOutput {
   // Empty for now
 }
+
+// ==================== CreateChannel Workflow Messages ====================
+
+message CreateChannelInput {}
+
+message CreateChannelOutput {}
+
+// ==================== AddOrdererToChannel Workflow Messages ====================
+
+message AddOrdererToChannelInput {}
+
+message AddOrdererToChannelOutput {}
+
+// ==================== AddPeerToChannel Workflow Messages ====================
+
+message AddPeerToChannelInput {}
+
+message AddPeerToChannelOutput {}
+
+// ==================== JoinOrdererToChannel Workflow Messages ====================
+
+message JoinOrdererToChannelInput {}
+
+message JoinOrdererToChannelOutput {}
+
+// ==================== JoinPeerToChannel Workflow Messages ====================
+
+message JoinPeerToChannelInput {}
+
+message JoinPeerToChannelOutput {}
+
+// ==================== SetAnchorPeer Workflow Messages ====================
+
+message SetAnchorPeerInput {}
+
+message SetAnchorPeerOutput {}
+
+// ==================== AddOrdererToConsenterSet Workflow Messages ====================
+
+message AddOrdererToConsenterSetInput {}
+
+message AddOrdererToConsenterSetOutput {}
+
+// ==================== AddOrgToChannel Workflow Messages ====================
+
+message AddOrgToChannelInput {}
+
+message AddOrgToChannelOutput {}
+
+// ==================== UpdateChannelConfig Workflow Messages ====================
+
+message UpdateChannelConfigInput {}
+
+message UpdateChannelConfigOutput {}
