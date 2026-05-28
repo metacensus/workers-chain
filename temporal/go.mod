@@ -4,14 +4,21 @@ go 1.25.5
 
 replace github.com/hyperledger/fabric-ca => github.com/jmbarzee/fabric-ca v0.0.0-20260103183611-bf716f732fbc
 
+tool (
+	github.com/alta/protopatch/cmd/protoc-gen-go-patch
+	github.com/bergundy/protoc-gen-go-nexus-temporal/cmd/protoc-gen-go-nexus-temporal
+	github.com/bergundy/protoc-gen-go-nexus/cmd/protoc-gen-go-nexus
+	github.com/cludden/protoc-gen-go-temporal/cmd/protoc-gen-go_temporal
+	github.com/vektra/mockery/v2
+	google.golang.org/protobuf/cmd/protoc-gen-go
+)
+
 require (
 	github.com/alta/protopatch v0.5.3
 	github.com/aws/aws-sdk-go-v2 v1.39.3
 	github.com/aws/aws-sdk-go-v2/config v1.31.13
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.88.5
 	github.com/bergundy/nexus-proto-annotations v0.1.0
-	github.com/bergundy/protoc-gen-go-nexus v0.0.9
-	github.com/bergundy/protoc-gen-go-nexus-temporal v0.0.4
 	github.com/cludden/protoc-gen-go-temporal v1.17.7
 	github.com/hyperledger/fabric-ca v1.5.13
 	github.com/hyperledger/fabric-lib-go v1.1.2
@@ -19,7 +26,6 @@ require (
 	github.com/spf13/viper v1.20.0
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.39.0
-	github.com/vektra/mockery/v2 v2.53.5
 	go.temporal.io/api v1.58.0
 	go.temporal.io/sdk v1.34.0
 	go.uber.org/fx v1.24.0
@@ -67,6 +73,8 @@ require (
 	github.com/aws/smithy-go v1.23.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bergundy/protoc-gen-go-nexus v0.0.9 // indirect
+	github.com/bergundy/protoc-gen-go-nexus-temporal v0.0.4 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
@@ -96,6 +104,7 @@ require (
 	github.com/evanphx/json-patch v5.9.11+incompatible // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f // indirect
 	github.com/fatih/color v1.15.0 // indirect
+	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/generikvault/gvalstrings v0.0.0-20180926130504-471f38f0112a // indirect
@@ -129,10 +138,12 @@ require (
 	github.com/gosuri/uitable v0.0.4 // indirect
 	github.com/grantae/certinfo v0.0.0-20170412194111-59d56a35515b // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
+	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/hyperledger/fabric-amcl v0.0.0-20230602173724-9e02669dceb2 // indirect
+	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -160,6 +171,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.26 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
+	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
@@ -205,6 +217,7 @@ require (
 	github.com/tilinna/z85 v1.0.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
+	github.com/vektra/mockery/v2 v2.53.5 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/weppos/publicsuffix-go v0.5.0 // indirect
