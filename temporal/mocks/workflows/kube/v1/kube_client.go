@@ -7,7 +7,9 @@ import (
 
 	kubev1 "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
 	kube "github.com/metacensus/infra/temporal/lib/workflows/kube/v1"
+
 	mock "github.com/stretchr/testify/mock"
+
 	unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
