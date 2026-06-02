@@ -5,7 +5,6 @@ package clusterfabricv1
 import (
 	clusterfabricv1 "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	mock "github.com/stretchr/testify/mock"
-
 	workflow "go.temporal.io/sdk/workflow"
 )
 
