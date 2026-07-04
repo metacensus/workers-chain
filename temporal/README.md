@@ -2,7 +2,8 @@
 
 **Canonical home** for Temporal package layout, workflow modules, and registration rules.
 
-**Code placement** (repo-wide layer model): [core/README.md](../core/README.md#architecture--layer-placement)
+**Temporal code placement:** this README. **Core Go placement** (API, chaincode, fabric client):
+[core/README.md](../core/README.md#architecture--layer-placement)
 
 ## Pattern: Proto-Framework-Implementation (PFI)
 
