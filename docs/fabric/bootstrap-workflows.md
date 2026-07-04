@@ -2,7 +2,7 @@
 
 **Status Legend:**
 - ✅ Implemented
-- 🟡 Partial  
+- 🟡 Partial
 - ❌ Not Started
 
 ---
@@ -11,7 +11,7 @@
 
 This document outlines the complete execution flow for deploying a Fabric organization. It shows the hierarchy of workflows and activities across two worker types, the call sequence via task queue routing, dependency chains, architecture, security boundaries, and implementation status.
 
-**Visual Workflow Tree:** See [`Fabric Shard Bootstrap Workflows.txt`](Fabric%20Shard%20Bootstrap%20Workflows.txt) for the complete hierarchical structure.
+**Visual Workflow Tree:** See [`bootstrap-workflows.svg`](./bootstrap-workflows.svg) for the hierarchical structure.
 
 ---
 
@@ -35,7 +35,7 @@ This document outlines the complete execution flow for deploying a Fabric organi
 - **Nexus Calls:** Calls `CreateScopedIdentityAccess` and `IssueTlsCertificate` in "infra" namespace via Nexus
 - **Responsibilities:** Fabric deployment, identity provisioning, certificate management
 
-**Isolation Strategy:** 
+**Isolation Strategy:**
 - Temporal namespace boundaries provide workflow history isolation
 - Single task queue per namespace (no routing complexity)
 - Cross-namespace calls use Temporal Nexus (org → central for policy creation)
@@ -400,10 +400,9 @@ Workflow: temporal.v1.CreateNamespace ✅
 
 ## See Also
 
-- [`Fabric Shard Bootstrap Workflows.txt`](Fabric%20Shard%20Bootstrap%20Workflows.txt) - Complete workflow tree visualization
-- [`FABRIC_CERTIFICATE_ARCHITECTURE.md`](FABRIC_CERTIFICATE_ARCHITECTURE.md) - Architecture and design decisions
-- [`DEPLOYMENT_WORKFLOW_EXECUTION_TREE.md`](DEPLOYMENT_WORKFLOW_EXECUTION_TREE.md) - Detailed execution tree (now merged into this document)
-- [`Fabric Certs.csv`](Fabric%20Certs.csv) - Certificate matrix
+- [`bootstrap-workflows.svg`](./bootstrap-workflows.svg) — Workflow tree visualization
+- [`cert-design.md`](./cert-design.md) — Certificate architecture and design decisions
+- [`create-channel-workflows.md`](./create-channel-workflows.md) — Channel creation workflow details
 
 ---
 
