@@ -1,5 +1,9 @@
 # Temporal Workflows
 
+**Code placement:** Workflows and activities belong in `temporal/`. See
+[core/README.md](../core/README.md#architecture--layer-placement) for the full layer model and
+dependency rules.
+
 ## Pattern: Proto-Framework-Implementation (PFI)
 
 Protobuf definitions generate framework, implementation provides logic.
@@ -19,7 +23,7 @@ temporal/
 │
 └── lib/workflows/<service>/<version>/
     ├── workflows.go             # Workflow implementations
-    ├── activities.go            # Activity implementations  
+    ├── activities.go            # Activity implementations
     ├── client.go                # External system client (may be different or unnecessary)
     ├── fx.go                    # Dependency injection
     ├── workflows_test.go        # Unit (mock activities)
@@ -115,4 +119,3 @@ This design:
 - Destroy + redeploy for immutable workloads
 
 See reference implementation: `workflows/terraform/v1/`
-
