@@ -7,6 +7,7 @@ import (
 // CertificateAuthorityValues represents the Helm values for a certificate authority deployment
 type CertificateAuthorityValues struct {
 	Org            string
+	Namespace      string
 	CertType       string
 	CaId           string
 	Image          ImageConfig
@@ -62,9 +63,10 @@ func NewCertificateAuthorityValues(caConfig fabricconfig.CertificateAuthorityCon
 	certStoreConfig := fabricconfig.NewCertificateStoreConfig(caConfig.OwnerConfig)
 
 	return &CertificateAuthorityValues{
-		Org:      caConfig.OwnerID(),
-		CertType: caConfig.CertType(),
-		CaId:     caConfig.CAID(),
+		Org:       caConfig.OwnerID(),
+		Namespace: caConfig.KubernetesNamespace(),
+		CertType:  caConfig.CertType(),
+		CaId:      caConfig.CAID(),
 		Image: ImageConfig{
 			Repository: "hyperledger/fabric-ca",
 			Tag:        "1.5",

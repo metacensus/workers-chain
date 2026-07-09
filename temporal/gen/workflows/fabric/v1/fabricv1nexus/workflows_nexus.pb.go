@@ -20,6 +20,11 @@ import (
 // FabricServiceName defines the fully-qualified name for the fabric.v1.Fabric service.
 const FabricServiceName = "fabric.v1.Fabric"
 
+// FabricBootstrapFabricOperationName defines the fully-qualified name for the BootstrapFabric operation.
+const FabricBootstrapFabricOperationName = "BootstrapFabric"
+
+var FabricBootstrapFabricOperation = nexus.NewOperationReference[*v1.BootstrapFabricInput, *v1.BootstrapFabricOutput](FabricBootstrapFabricOperationName)
+
 // FabricBootstrapShardOperationName defines the fully-qualified name for the BootstrapShard operation.
 const FabricBootstrapShardOperationName = "BootstrapShard"
 
@@ -86,6 +91,7 @@ const FabricDeployChainCodeOperationName = "DeployChainCode"
 var FabricDeployChainCodeOperation = nexus.NewOperationReference[*v1.DeployChainCodeInput, *v1.DeployChainCodeOutput](FabricDeployChainCodeOperationName)
 
 type FabricNexusHandler interface {
+	BootstrapFabric(name string) nexus.Operation[*v1.BootstrapFabricInput, *v1.BootstrapFabricOutput]
 	BootstrapShard(name string) nexus.Operation[*v1.BootstrapShardInput, *v1.BootstrapShardOutput]
 	BootstrapTlsCertificateAuthorities(name string) nexus.Operation[*v1.BootstrapTlsCertificateAuthoritiesInput, *v1.BootstrapTlsCertificateAuthoritiesOutput]
 	BootstrapOrgCertificateAuthorities(name string) nexus.Operation[*v1.BootstrapOrgCertificateAuthoritiesInput, *v1.BootstrapOrgCertificateAuthoritiesOutput]
@@ -103,7 +109,7 @@ type FabricNexusHandler interface {
 
 func NewFabricNexusService(h FabricNexusHandler) (*nexus.Service, error) {
 	svc := nexus.NewService(FabricServiceName)
-	err := svc.Register(h.BootstrapShard(FabricBootstrapShardOperationName), h.BootstrapTlsCertificateAuthorities(FabricBootstrapTlsCertificateAuthoritiesOperationName), h.BootstrapOrgCertificateAuthorities(FabricBootstrapOrgCertificateAuthoritiesOperationName), h.DeployCertificateStore(FabricDeployCertificateStoreOperationName), h.DeployTlsRootCertificateAuthority(FabricDeployTlsRootCertificateAuthorityOperationName), h.DeployTlsIntermediateCertificateAuthority(FabricDeployTlsIntermediateCertificateAuthorityOperationName), h.DeployOrgRootCertificateAuthority(FabricDeployOrgRootCertificateAuthorityOperationName), h.DeployOrgIntermediateCertificateAuthority(FabricDeployOrgIntermediateCertificateAuthorityOperationName), h.CreateCertificateDatabase(FabricCreateCertificateDatabaseOperationName), h.DeployCouchDb(FabricDeployCouchDbOperationName), h.DeployPeer(FabricDeployPeerOperationName), h.DeployOrderer(FabricDeployOrdererOperationName), h.DeployChainCode(FabricDeployChainCodeOperationName))
+	err := svc.Register(h.BootstrapFabric(FabricBootstrapFabricOperationName), h.BootstrapShard(FabricBootstrapShardOperationName), h.BootstrapTlsCertificateAuthorities(FabricBootstrapTlsCertificateAuthoritiesOperationName), h.BootstrapOrgCertificateAuthorities(FabricBootstrapOrgCertificateAuthoritiesOperationName), h.DeployCertificateStore(FabricDeployCertificateStoreOperationName), h.DeployTlsRootCertificateAuthority(FabricDeployTlsRootCertificateAuthorityOperationName), h.DeployTlsIntermediateCertificateAuthority(FabricDeployTlsIntermediateCertificateAuthorityOperationName), h.DeployOrgRootCertificateAuthority(FabricDeployOrgRootCertificateAuthorityOperationName), h.DeployOrgIntermediateCertificateAuthority(FabricDeployOrgIntermediateCertificateAuthorityOperationName), h.CreateCertificateDatabase(FabricCreateCertificateDatabaseOperationName), h.DeployCouchDb(FabricDeployCouchDbOperationName), h.DeployPeer(FabricDeployPeerOperationName), h.DeployOrderer(FabricDeployOrdererOperationName), h.DeployChainCode(FabricDeployChainCodeOperationName))
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +117,20 @@ func NewFabricNexusService(h FabricNexusHandler) (*nexus.Service, error) {
 }
 
 type UnimplementedFabricNexusHandler struct{}
+type unimplementedFabricBootstrapFabric struct {
+	nexus.UnimplementedOperation[*v1.BootstrapFabricInput, *v1.BootstrapFabricOutput]
+	name string
+}
+
+func (h *unimplementedFabricBootstrapFabric) Name() string {
+	return h.name
+}
+func (h *UnimplementedFabricNexusHandler) BootstrapFabric(name string) nexus.Operation[*v1.BootstrapFabricInput, *v1.BootstrapFabricOutput] {
+	return &unimplementedFabricBootstrapFabric{
+		name: name,
+	}
+}
+
 type unimplementedFabricBootstrapShard struct {
 	nexus.UnimplementedOperation[*v1.BootstrapShardInput, *v1.BootstrapShardOutput]
 	name string

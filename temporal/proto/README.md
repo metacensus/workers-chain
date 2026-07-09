@@ -78,6 +78,7 @@
   - Services
     - [fabric.v1.Fabric](#fabric-v1-fabric)
       - [Workflows](#fabric-v1-fabric-workflows)
+        - [fabric.v1.BootstrapFabric](#fabric-v1-bootstrapfabric-workflow)
         - [fabric.v1.BootstrapShard](#fabric-v1-bootstrapshard-workflow)
         - [fabric.v1.BootstrapTlsCertificateAuthorities](#fabric-v1-bootstraptlscertificateauthorities-workflow)
         - [fabric.v1.BootstrapOrgCertificateAuthorities](#fabric-v1-bootstraporgcertificateauthorities-workflow)
@@ -92,6 +93,8 @@
         - [fabric.v1.DeployOrderer](#fabric-v1-deployorderer-workflow)
         - [fabric.v1.DeployChainCode](#fabric-v1-deploychaincode-workflow)
   - Messages
+    - [fabric.v1.BootstrapFabricInput](#fabric-v1-bootstrapfabricinput)
+    - [fabric.v1.BootstrapFabricOutput](#fabric-v1-bootstrapfabricoutput)
     - [fabric.v1.BootstrapOrgCertificateAuthoritiesInput](#fabric-v1-bootstraporgcertificateauthoritiesinput)
     - [fabric.v1.BootstrapOrgCertificateAuthoritiesOutput](#fabric-v1-bootstraporgcertificateauthoritiesoutput)
     - [fabric.v1.BootstrapShardInput](#fabric-v1-bootstrapshardinput)
@@ -867,7 +870,7 @@ go_tags: json:"Deployment" validate:"required"</pre></td>
 <td>string</td>
 <td><pre>
 org is the organization identifier (e.g., "org1", "acme-corp")
-Used to derive namespace names: Temporal namespace "fabric-{org}", K8s namespace "fabric-{org}"<br>
+Used to derive namespace names: Temporal namespace "fabric-shard-{org}", K8s namespace "fabric-shard-{org}"<br>
 
 json_name: Org
 go_name: Org
@@ -973,7 +976,7 @@ go_tags: json:"Deployment" validate:"required"</pre></td>
 <td>string</td>
 <td><pre>
 org is the organization identifier (e.g., "org1", "acme-corp")
-Used to derive namespace names: Temporal namespace "fabric-{org}", K8s namespace "fabric-{org}"<br>
+Used to derive namespace names: Temporal namespace "fabric-shard-{org}", K8s namespace "fabric-shard-{org}"<br>
 
 json_name: Org
 go_name: Org
@@ -1033,7 +1036,7 @@ This workflow combines Helm chart rendering with Kubernetes resource application
 <td><pre>
 is_operator indicates whether this is the operator namespace
 When true, network policies will be created to allow cross-namespace
-access from fabric org namespaces to TLS CA services on port 7054<br>
+access from fabric shard namespaces to TLS CA services on port 7054<br>
 
 json_name: IsOperator
 go_name: IsOperator
@@ -1042,8 +1045,9 @@ go_tags: json:"IsOperator,omitempty"</pre></td>
 <td>org</td>
 <td>string</td>
 <td><pre>
-org is the organization identifier (e.g., "org1")
-The namespace will be named "fabric-{org}"<br>
+org is the owner identifier: an organization (e.g., "org1") or, when
+is_operator is true, the operator (e.g., "metacensus").
+Org namespaces are named "fabric-shard-{org}"; the operator namespace is "fabric".<br>
 
 json_name: Org
 go_name: Org
@@ -1063,7 +1067,7 @@ go_tags: json:"Org" validate:"required"</pre></td>
 <td>namespace_name</td>
 <td>string</td>
 <td><pre>
-namespace_name is the created namespace (e.g., "fabric-org1")<br>
+namespace_name is the created namespace (e.g., "fabric-shard-org1" or "fabric")<br>
 
 json_name: NamespaceName
 go_name: NamespaceName
@@ -1098,9 +1102,22 @@ then applies the resulting resources to the cluster
 <th>Description</th>
 </tr>
 <tr>
+<td>is_operator</td>
+<td>bool</td>
+<td><pre>
+is_operator selects operator-owned naming (namespace "fabric") instead of
+org-owned naming (namespace "fabric-shard-{org}")<br>
+
+json_name: IsOperator
+go_name: IsOperator
+go_tags: json:"IsOperator,omitempty"</pre></td>
+</tr><tr>
 <td>org</td>
 <td>string</td>
 <td><pre>
+org is the owner identifier: an organization or, when is_operator is true,
+the operator.<br>
+
 json_name: Org
 go_name: Org
 go_tags: json:"Org" validate:"required"</pre></td>
@@ -1142,21 +1159,33 @@ This workflow renders a Helm chart with provided values and applies it to the cl
 <td><pre>
 component specifies which type of deployment to create
 Currently supported:
-  - "worker": Fabric worker deployment
+  - "worker": Fabric worker deployment (shared fabric worker when is_operator,
+      otherwise a per-org shard worker)
   - "certificate-store": PostgreSQL certificate store
   - "certificate-authority-{certType}-{caID}": Certificate Authority
-      where certType is "tls" or "org", and caID is "root", "v1", "v2", etc.
-      Examples: "certificate-authority-tls-root", "certificate-authority-org-v1"
-Future components: "peer", "orderer", "couchdb"<br>
+      where certType is "tls" or "org", and caID is "root" or "int".
+      Examples: "certificate-authority-tls-root", "certificate-authority-org-int"
+  - "couchdb-{peerId}", "peer{id}", "orderer{id}"<br>
 
 json_name: Component
 go_name: Component
 go_tags: json:"Component" validate:"required"</pre></td>
 </tr><tr>
+<td>is_operator</td>
+<td>bool</td>
+<td><pre>
+is_operator selects operator-owned naming (namespace "fabric") instead of
+org-owned naming (namespace "fabric-shard-{org}")<br>
+
+json_name: IsOperator
+go_name: IsOperator
+go_tags: json:"IsOperator,omitempty"</pre></td>
+</tr><tr>
 <td>org</td>
 <td>string</td>
 <td><pre>
-org is the organization identifier (e.g., "org1")
+org is the owner identifier: an organization (e.g., "org1") or, when
+is_operator is true, the operator (e.g., "metacensus").
 Used to derive namespace names, service account names, etc.<br>
 
 json_name: Org
@@ -1211,21 +1240,33 @@ go_tags: json:"DeploymentName" validate:"required"</pre></td>
 <td><pre>
 component specifies which type of deployment to create
 Currently supported:
-  - "worker": Fabric worker deployment
+  - "worker": Fabric worker deployment (shared fabric worker when is_operator,
+      otherwise a per-org shard worker)
   - "certificate-store": PostgreSQL certificate store
   - "certificate-authority-{certType}-{caID}": Certificate Authority
-      where certType is "tls" or "org", and caID is "root", "v1", "v2", etc.
-      Examples: "certificate-authority-tls-root", "certificate-authority-org-v1"
-Future components: "peer", "orderer", "couchdb"<br>
+      where certType is "tls" or "org", and caID is "root" or "int".
+      Examples: "certificate-authority-tls-root", "certificate-authority-org-int"
+  - "couchdb-{peerId}", "peer{id}", "orderer{id}"<br>
 
 json_name: Component
 go_name: Component
 go_tags: json:"Component" validate:"required"</pre></td>
 </tr><tr>
+<td>is_operator</td>
+<td>bool</td>
+<td><pre>
+is_operator selects operator-owned naming (namespace "fabric") instead of
+org-owned naming (namespace "fabric-shard-{org}")<br>
+
+json_name: IsOperator
+go_name: IsOperator
+go_tags: json:"IsOperator,omitempty"</pre></td>
+</tr><tr>
 <td>org</td>
 <td>string</td>
 <td><pre>
-org is the organization identifier (e.g., "org1")
+org is the owner identifier: an organization (e.g., "org1") or, when
+is_operator is true, the operator (e.g., "metacensus").
 Used to derive namespace names, service account names, etc.<br>
 
 json_name: Org
@@ -1274,7 +1315,7 @@ go_tags: json:"DeploymentName" validate:"required"</pre></td>
 <td><pre>
 is_operator indicates whether this is the operator namespace
 When true, network policies will be created to allow cross-namespace
-access from fabric org namespaces to TLS CA services on port 7054<br>
+access from fabric shard namespaces to TLS CA services on port 7054<br>
 
 json_name: IsOperator
 go_name: IsOperator
@@ -1283,8 +1324,9 @@ go_tags: json:"IsOperator,omitempty"</pre></td>
 <td>org</td>
 <td>string</td>
 <td><pre>
-org is the organization identifier (e.g., "org1")
-The namespace will be named "fabric-{org}"<br>
+org is the owner identifier: an organization (e.g., "org1") or, when
+is_operator is true, the operator (e.g., "metacensus").
+Org namespaces are named "fabric-shard-{org}"; the operator namespace is "fabric".<br>
 
 json_name: Org
 go_name: Org
@@ -1307,7 +1349,7 @@ go_tags: json:"Org" validate:"required"</pre></td>
 <td>namespace_name</td>
 <td>string</td>
 <td><pre>
-namespace_name is the created namespace (e.g., "fabric-org1")<br>
+namespace_name is the created namespace (e.g., "fabric-shard-org1" or "fabric")<br>
 
 json_name: NamespaceName
 go_name: NamespaceName
@@ -1327,9 +1369,22 @@ go_tags: json:"NamespaceName" validate:"required"</pre></td>
 <th>Description</th>
 </tr>
 <tr>
+<td>is_operator</td>
+<td>bool</td>
+<td><pre>
+is_operator selects operator-owned naming (namespace "fabric") instead of
+org-owned naming (namespace "fabric-shard-{org}")<br>
+
+json_name: IsOperator
+go_name: IsOperator
+go_tags: json:"IsOperator,omitempty"</pre></td>
+</tr><tr>
 <td>org</td>
 <td>string</td>
 <td><pre>
+org is the owner identifier: an organization or, when is_operator is true,
+the operator.<br>
+
 json_name: Org
 go_name: Org
 go_tags: json:"Org" validate:"required"</pre></td>
@@ -1711,7 +1766,7 @@ go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
 <td>ca_url</td>
 <td>string</td>
 <td><pre>
-ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric-org1.svc.cluster.local:7054")<br>
+ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric.svc.cluster.local:7054")<br>
 
 json_name: CaUrl
 go_name: CaUrl
@@ -2324,7 +2379,7 @@ go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
 <td>ca_url</td>
 <td>string</td>
 <td><pre>
-ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric-org1.svc.cluster.local:7054")<br>
+ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric.svc.cluster.local:7054")<br>
 
 json_name: CaUrl
 go_name: CaUrl
@@ -3348,12 +3403,76 @@ go_name: Revoked</pre></td>
 ## fabric.v1.Fabric
 
 <pre>
-Fabric service defines workflows for manipulating a Fabric shard
-These workflows run on the fabric worker in the org-specific Temporal namespace
+Fabric service defines workflows for deploying Fabric infrastructure.
+Shared (operator-owned) workflows run on the fabric worker in the "fabric"
+Temporal namespace; per-org workflows run on shard workers in
+"fabric-shard-{org}" Temporal namespaces.
 </pre>
 
 <a name="fabric-v1-fabric-workflows"></a>
 ### Workflows
+
+---
+<a name="fabric-v1-bootstrapfabric-workflow"></a>
+### fabric.v1.BootstrapFabric
+
+<pre>
+BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
+This workflow runs on the fabric worker in the "fabric" Temporal namespace and
+deploys the certificate store and shared TLS certificate authority chain.
+Called via Nexus from the central infra worker during InitFabric.
+</pre>
+
+**Input:** [fabric.v1.BootstrapFabricInput](#fabric-v1-bootstrapfabricinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier (operator)
+The certificate store and TLS CAs are created in the operator's namespace<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_intermediate_validity</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+tls_intermediate_validity specifies how long the TLS Intermediate CA certificates are valid<br>
+
+json_name: TlsIntermediateValidity
+go_name: TlsIntermediateValidity
+go_tags: json:"TlsIntermediateValidity,omitempty"</pre></td>
+</tr><tr>
+<td>tls_root_validity</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+tls_root_validity specifies how long the TLS Root CA certificates are valid<br>
+
+json_name: TlsRootValidity
+go_name: TlsRootValidity
+go_tags: json:"TlsRootValidity,omitempty"</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.v1.BootstrapFabricOutput](#fabric-v1-bootstrapfabricoutput)
+
+
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>id</td><td><pre><code>fabric/bootstrap-fabric</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+</table>
 
 ---
 <a name="fabric-v1-bootstrapshard-workflow"></a>
@@ -3361,8 +3480,9 @@ These workflows run on the fabric worker in the org-specific Temporal namespace
 
 <pre>
 BootstrapShard is the entry point for Phase 2 of shard initialization
-This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
-and deploys all Fabric components (CAs, peers, orderers) for the organization.
+This workflow runs on the shard worker in the org's Temporal namespace
+(e.g., "fabric-shard-org1") and deploys all Fabric components
+(CAs, peers, orderers) for the organization.
 Called via Nexus from the central worker after Phase 1 completes
 </pre>
 
@@ -4059,6 +4179,61 @@ go_tags: json:"Org" validate:"required"</pre></td>
 <a name="fabric-v1-messages"></a>
 ## Messages
 
+<a name="fabric-v1-bootstrapfabricinput"></a>
+### fabric.v1.BootstrapFabricInput
+
+<pre>
+BootstrapFabricInput specifies parameters for bootstrapping shared Fabric infrastructure
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>org</td>
+<td>string</td>
+<td><pre>
+org is the owner identifier (operator)
+The certificate store and TLS CAs are created in the operator's namespace<br>
+
+json_name: Org
+go_name: Org
+go_tags: json:"Org" validate:"required"</pre></td>
+</tr><tr>
+<td>tls_intermediate_validity</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+tls_intermediate_validity specifies how long the TLS Intermediate CA certificates are valid<br>
+
+json_name: TlsIntermediateValidity
+go_name: TlsIntermediateValidity
+go_tags: json:"TlsIntermediateValidity,omitempty"</pre></td>
+</tr><tr>
+<td>tls_root_validity</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+tls_root_validity specifies how long the TLS Root CA certificates are valid<br>
+
+json_name: TlsRootValidity
+go_name: TlsRootValidity
+go_tags: json:"TlsRootValidity,omitempty"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-bootstrapfabricoutput"></a>
+### fabric.v1.BootstrapFabricOutput
+
+<pre>
+BootstrapFabricOutput indicates the result of shared Fabric infrastructure bootstrapping
+</pre>
+
+
+
 <a name="fabric-v1-bootstraporgcertificateauthoritiesinput"></a>
 ### fabric.v1.BootstrapOrgCertificateAuthoritiesInput
 
@@ -4243,7 +4418,7 @@ go_tags: json:"CertType" validate:"required,oneof=tls org"</pre></td>
 <td>id</td>
 <td>string</td>
 <td><pre>
-id identifies the CA within its chain ("root" or version like "v1")<br>
+id identifies the CA within its chain ("root" or "int")<br>
 
 json_name: Id
 go_name: Id
@@ -7969,7 +8144,7 @@ go_tags: json:"CertRef" validate:"required"</pre></td>
 SecretRef is a backend-agnostic reference to a secret.
 The ref field is a structured object interpreted based on type.
 Examples:
-  - type: "vault", ref: {path: "fabric/org1/ca/tls/root/admin", version: 1}
+  - type: "vault", ref: {path: "fabric/shard/org1/ca/tls/root/admin", version: 1}
   - type: "k8s", ref: {namespace: "default", name: "my-secret", key: "password"}
 </pre>
 
@@ -8110,7 +8285,7 @@ and requires polling to verify the namespace is active before returning.
 <td>name</td>
 <td>string</td>
 <td><pre>
-name is the name of the namespace to create (e.g., "fabric-org1", "tenant-acme")
+name is the name of the namespace to create (e.g., "fabric-shard-org1", "tenant-acme")
 This will be used as the workflow ID to ensure idempotency<br>
 
 json_name: Name
@@ -8432,7 +8607,7 @@ CreateNamespaceInput specifies parameters for creating a Temporal namespace
 <td>name</td>
 <td>string</td>
 <td><pre>
-name is the name of the namespace to create (e.g., "fabric-org1", "tenant-acme")
+name is the name of the namespace to create (e.g., "fabric-shard-org1", "tenant-acme")
 This will be used as the workflow ID to ensure idempotency<br>
 
 json_name: Name

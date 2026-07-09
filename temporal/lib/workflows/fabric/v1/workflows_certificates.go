@@ -14,21 +14,6 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-// computeTLSCommonName returns the CN for a TLS certificate, adding "-tls" suffix
-// when both signing and TLS certs come from the same CA to avoid registration collision.
-func computeTLSCommonName(baseName string, signingIssuerRef, tlsIssuerRef *pb.CertificateAuthorityRef) string {
-	// Self-signed cases: no collision (not registering with a CA)
-	if signingIssuerRef == nil || tlsIssuerRef == nil {
-		return baseName
-	}
-	// Same CA issues both - need different identity name
-	if signingIssuerRef.GetCertType() == tlsIssuerRef.GetCertType() &&
-		signingIssuerRef.GetId() == tlsIssuerRef.GetId() {
-		return baseName + "-tls"
-	}
-	return baseName
-}
-
 func (w *Workflows) CreateCertificateDatabase(ctx workflow.Context, input *pb.CreateCertificateDatabaseWorkflowInput) (pb.CreateCertificateDatabaseWorkflow, error) {
 	return newCreateCertificateDatabaseWorkflow(input)
 }

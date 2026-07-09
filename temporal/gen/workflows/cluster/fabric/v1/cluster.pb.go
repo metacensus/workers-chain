@@ -25,12 +25,13 @@ const (
 
 type CreateNamespaceInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// org is the organization identifier (e.g., "org1")
-	// The namespace will be named "fabric-{org}"
+	// org is the owner identifier: an organization (e.g., "org1") or, when
+	// is_operator is true, the operator (e.g., "metacensus").
+	// Org namespaces are named "fabric-shard-{org}"; the operator namespace is "fabric".
 	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
 	// is_operator indicates whether this is the operator namespace
 	// When true, network policies will be created to allow cross-namespace
-	// access from fabric org namespaces to TLS CA services on port 7054
+	// access from fabric shard namespaces to TLS CA services on port 7054
 	IsOperator    bool `protobuf:"varint,2,opt,name=is_operator,json=IsOperator,proto3" json:"IsOperator,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -82,7 +83,7 @@ func (x *CreateNamespaceInput) GetIsOperator() bool {
 
 type CreateNamespaceOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// namespace_name is the created namespace (e.g., "fabric-org1")
+	// namespace_name is the created namespace (e.g., "fabric-shard-org1" or "fabric")
 	NamespaceName string `protobuf:"bytes,1,opt,name=namespace_name,json=NamespaceName,proto3" json:"NamespaceName" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -126,8 +127,13 @@ func (x *CreateNamespaceOutput) GetNamespaceName() string {
 }
 
 type CreateServiceAccountInput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Org           string                 `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// org is the owner identifier: an organization or, when is_operator is true,
+	// the operator.
+	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
+	// is_operator selects operator-owned naming (namespace "fabric") instead of
+	// org-owned naming (namespace "fabric-shard-{org}")
+	IsOperator    bool `protobuf:"varint,2,opt,name=is_operator,json=IsOperator,proto3" json:"IsOperator,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -169,6 +175,13 @@ func (x *CreateServiceAccountInput) GetOrg() string {
 	return ""
 }
 
+func (x *CreateServiceAccountInput) GetIsOperator() bool {
+	if x != nil {
+		return x.IsOperator
+	}
+	return false
+}
+
 type CreateServiceAccountOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -207,19 +220,23 @@ func (*CreateServiceAccountOutput) Descriptor() ([]byte, []int) {
 
 type CreateDeploymentInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// org is the organization identifier (e.g., "org1")
+	// org is the owner identifier: an organization (e.g., "org1") or, when
+	// is_operator is true, the operator (e.g., "metacensus").
 	// Used to derive namespace names, service account names, etc.
 	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
 	// component specifies which type of deployment to create
 	// Currently supported:
-	//   - "worker": Fabric worker deployment
+	//   - "worker": Fabric worker deployment (shared fabric worker when is_operator,
+	//     otherwise a per-org shard worker)
 	//   - "certificate-store": PostgreSQL certificate store
 	//   - "certificate-authority-{certType}-{caID}": Certificate Authority
-	//     where certType is "tls" or "org", and caID is "root", "v1", "v2", etc.
-	//     Examples: "certificate-authority-tls-root", "certificate-authority-org-v1"
-	//
-	// Future components: "peer", "orderer", "couchdb"
-	Component     string `protobuf:"bytes,2,opt,name=component,json=Component,proto3" json:"Component" validate:"required"`
+	//     where certType is "tls" or "org", and caID is "root" or "int".
+	//     Examples: "certificate-authority-tls-root", "certificate-authority-org-int"
+	//   - "couchdb-{peerId}", "peer{id}", "orderer{id}"
+	Component string `protobuf:"bytes,2,opt,name=component,json=Component,proto3" json:"Component" validate:"required"`
+	// is_operator selects operator-owned naming (namespace "fabric") instead of
+	// org-owned naming (namespace "fabric-shard-{org}")
+	IsOperator    bool `protobuf:"varint,3,opt,name=is_operator,json=IsOperator,proto3" json:"IsOperator,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -266,6 +283,13 @@ func (x *CreateDeploymentInput) GetComponent() string {
 		return x.Component
 	}
 	return ""
+}
+
+func (x *CreateDeploymentInput) GetIsOperator() bool {
+	if x != nil {
+		return x.IsOperator
+	}
+	return false
 }
 
 type CreateDeploymentOutput struct {
@@ -323,13 +347,17 @@ const file_cluster_fabric_v1_cluster_proto_rawDesc = "" +
 	"\vis_operator\x18\x02 \x01(\bB\"ʵ\x03\x1e\xa2\x01\x1bjson:\"IsOperator,omitempty\"R\n" +
 	"IsOperator\"o\n" +
 	"\x15CreateNamespaceOutput\x12V\n" +
-	"\x0enamespace_name\x18\x01 \x01(\tB/ʵ\x03+\xa2\x01(json:\"NamespaceName\" validate:\"required\"R\rNamespaceName\"T\n" +
+	"\x0enamespace_name\x18\x01 \x01(\tB/ʵ\x03+\xa2\x01(json:\"NamespaceName\" validate:\"required\"R\rNamespaceName\"\x99\x01\n" +
 	"\x19CreateServiceAccountInput\x127\n" +
-	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\"\x1c\n" +
-	"\x1aCreateServiceAccountOutput\"\x9b\x01\n" +
+	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12C\n" +
+	"\vis_operator\x18\x02 \x01(\bB\"ʵ\x03\x1e\xa2\x01\x1bjson:\"IsOperator,omitempty\"R\n" +
+	"IsOperator\"\x1c\n" +
+	"\x1aCreateServiceAccountOutput\"\xe0\x01\n" +
 	"\x15CreateDeploymentInput\x127\n" +
 	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12I\n" +
-	"\tcomponent\x18\x02 \x01(\tB+ʵ\x03'\xa2\x01$json:\"Component\" validate:\"required\"R\tComponent\"s\n" +
+	"\tcomponent\x18\x02 \x01(\tB+ʵ\x03'\xa2\x01$json:\"Component\" validate:\"required\"R\tComponent\x12C\n" +
+	"\vis_operator\x18\x03 \x01(\bB\"ʵ\x03\x1e\xa2\x01\x1bjson:\"IsOperator,omitempty\"R\n" +
+	"IsOperator\"s\n" +
 	"\x16CreateDeploymentOutput\x12Y\n" +
 	"\x0fdeployment_name\x18\x01 \x01(\tB0ʵ\x03,\xa2\x01)json:\"DeploymentName\" validate:\"required\"R\x0eDeploymentName2\xfc\x04\n" +
 	"\aCluster\x12\xba\x01\n" +

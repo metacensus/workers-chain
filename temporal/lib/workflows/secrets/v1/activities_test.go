@@ -86,7 +86,7 @@ func TestCreatePasswordActivity(t *testing.T) {
 		{
 			name: "success - creates password with username",
 			input: &pb.CreatePasswordInput{
-				SecretRef: testSecretRef("fabric/org1/admin"),
+				SecretRef: testSecretRef("fabric/shard/org1/admin"),
 				Username:  "admin",
 			},
 			expectErr: false,
@@ -94,7 +94,7 @@ func TestCreatePasswordActivity(t *testing.T) {
 		{
 			name: "success - creates password with empty username",
 			input: &pb.CreatePasswordInput{
-				SecretRef: testSecretRef("fabric/org1/service"),
+				SecretRef: testSecretRef("fabric/shard/org1/service"),
 				Username:  "",
 			},
 			expectErr: false,
@@ -103,7 +103,7 @@ func TestCreatePasswordActivity(t *testing.T) {
 		{
 			name: "error - provider connection refused",
 			input: &pb.CreatePasswordInput{
-				SecretRef: testSecretRef("fabric/org1/admin"),
+				SecretRef: testSecretRef("fabric/shard/org1/admin"),
 				Username:  "admin",
 			},
 			providerErr: errProviderConnectionRefused,
@@ -112,7 +112,7 @@ func TestCreatePasswordActivity(t *testing.T) {
 		{
 			name: "error - provider forbidden",
 			input: &pb.CreatePasswordInput{
-				SecretRef: testSecretRef("fabric/org1/admin"),
+				SecretRef: testSecretRef("fabric/shard/org1/admin"),
 				Username:  "admin",
 			},
 			providerErr: errProviderForbidden,
@@ -184,7 +184,7 @@ func TestCreateKeyPairActivity(t *testing.T) {
 		{
 			name: "success - creates key pair",
 			input: &pb.CreateKeyPairInput{
-				SecretRef: testSecretRef("fabric/org1/ca/key"),
+				SecretRef: testSecretRef("fabric/shard/org1/ca/key"),
 			},
 			expectErr: false,
 		},
@@ -192,7 +192,7 @@ func TestCreateKeyPairActivity(t *testing.T) {
 		{
 			name: "error - provider connection refused",
 			input: &pb.CreateKeyPairInput{
-				SecretRef: testSecretRef("fabric/org1/ca/key"),
+				SecretRef: testSecretRef("fabric/shard/org1/ca/key"),
 			},
 			providerErr: errProviderConnectionRefused,
 			expectErr:   true,
@@ -200,7 +200,7 @@ func TestCreateKeyPairActivity(t *testing.T) {
 		{
 			name: "error - provider forbidden",
 			input: &pb.CreateKeyPairInput{
-				SecretRef: testSecretRef("fabric/org1/ca/key"),
+				SecretRef: testSecretRef("fabric/shard/org1/ca/key"),
 			},
 			providerErr: errProviderForbidden,
 			expectErr:   true,
@@ -270,7 +270,7 @@ func TestCreateSelfSignedCertificateActivity(t *testing.T) {
 			name: "error - missing key_ref",
 			input: &pb.CreateSelfSignedCertificateInput{
 				KeyRef:           nil,
-				CertRef:          testSecretRef("fabric/org1/ca/cert"),
+				CertRef:          testSecretRef("fabric/shard/org1/ca/cert"),
 				CommonName:       "org1-ca",
 				Organization:     "org1",
 				ValidityDuration: durationpb.New(365 * 24 * time.Hour),
@@ -282,7 +282,7 @@ func TestCreateSelfSignedCertificateActivity(t *testing.T) {
 		{
 			name: "error - missing cert_ref",
 			input: &pb.CreateSelfSignedCertificateInput{
-				KeyRef:           testSecretRef("fabric/org1/ca/key"),
+				KeyRef:           testSecretRef("fabric/shard/org1/ca/key"),
 				CertRef:          nil,
 				CommonName:       "org1-ca",
 				Organization:     "org1",
@@ -296,8 +296,8 @@ func TestCreateSelfSignedCertificateActivity(t *testing.T) {
 		{
 			name: "success - creates certificate with all params",
 			input: &pb.CreateSelfSignedCertificateInput{
-				KeyRef:             testSecretRef("fabric/org1/ca/key"),
-				CertRef:            testSecretRef("fabric/org1/ca/cert"),
+				KeyRef:             testSecretRef("fabric/shard/org1/ca/key"),
+				CertRef:            testSecretRef("fabric/shard/org1/ca/cert"),
 				CommonName:         "org1-ca",
 				Organization:       "org1",
 				OrganizationalUnit: "fabric",
@@ -313,8 +313,8 @@ func TestCreateSelfSignedCertificateActivity(t *testing.T) {
 		{
 			name: "success - creates certificate with minimal params",
 			input: &pb.CreateSelfSignedCertificateInput{
-				KeyRef:           testSecretRef("fabric/org1/ca/key"),
-				CertRef:          testSecretRef("fabric/org1/ca/cert"),
+				KeyRef:           testSecretRef("fabric/shard/org1/ca/key"),
+				CertRef:          testSecretRef("fabric/shard/org1/ca/cert"),
 				CommonName:       "org1-ca",
 				Organization:     "org1",
 				ValidityDuration: durationpb.New(30 * 24 * time.Hour),
@@ -328,8 +328,8 @@ func TestCreateSelfSignedCertificateActivity(t *testing.T) {
 		{
 			name: "error - provider fetch fails",
 			input: &pb.CreateSelfSignedCertificateInput{
-				KeyRef:           testSecretRef("fabric/org1/ca/key"),
-				CertRef:          testSecretRef("fabric/org1/ca/cert"),
+				KeyRef:           testSecretRef("fabric/shard/org1/ca/key"),
+				CertRef:          testSecretRef("fabric/shard/org1/ca/cert"),
 				CommonName:       "org1-ca",
 				Organization:     "org1",
 				ValidityDuration: durationpb.New(365 * 24 * time.Hour),
@@ -342,8 +342,8 @@ func TestCreateSelfSignedCertificateActivity(t *testing.T) {
 		{
 			name: "error - invalid key pair in secret",
 			input: &pb.CreateSelfSignedCertificateInput{
-				KeyRef:           testSecretRef("fabric/org1/ca/key"),
-				CertRef:          testSecretRef("fabric/org1/ca/cert"),
+				KeyRef:           testSecretRef("fabric/shard/org1/ca/key"),
+				CertRef:          testSecretRef("fabric/shard/org1/ca/cert"),
 				CommonName:       "org1-ca",
 				Organization:     "org1",
 				ValidityDuration: durationpb.New(365 * 24 * time.Hour),
@@ -356,8 +356,8 @@ func TestCreateSelfSignedCertificateActivity(t *testing.T) {
 		{
 			name: "error - provider store fails",
 			input: &pb.CreateSelfSignedCertificateInput{
-				KeyRef:           testSecretRef("fabric/org1/ca/key"),
-				CertRef:          testSecretRef("fabric/org1/ca/cert"),
+				KeyRef:           testSecretRef("fabric/shard/org1/ca/key"),
+				CertRef:          testSecretRef("fabric/shard/org1/ca/cert"),
 				CommonName:       "org1-ca",
 				Organization:     "org1",
 				ValidityDuration: durationpb.New(365 * 24 * time.Hour),
@@ -439,7 +439,7 @@ func TestStoreCertificateActivity(t *testing.T) {
 		{
 			name: "success - stores certificate",
 			input: &pb.StoreCertificateInput{
-				CertRef:        testSecretRef("fabric/org1/peer/tls-cert"),
+				CertRef:        testSecretRef("fabric/shard/org1/peer/tls-cert"),
 				CertificatePem: []byte("-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----"),
 			},
 			expectErr: false,
@@ -447,7 +447,7 @@ func TestStoreCertificateActivity(t *testing.T) {
 		{
 			name: "success - stores certificate with empty PEM",
 			input: &pb.StoreCertificateInput{
-				CertRef:        testSecretRef("fabric/org1/peer/tls-cert"),
+				CertRef:        testSecretRef("fabric/shard/org1/peer/tls-cert"),
 				CertificatePem: []byte{},
 			},
 			expectErr: false,
@@ -456,7 +456,7 @@ func TestStoreCertificateActivity(t *testing.T) {
 		{
 			name: "error - provider connection refused",
 			input: &pb.StoreCertificateInput{
-				CertRef:        testSecretRef("fabric/org1/peer/tls-cert"),
+				CertRef:        testSecretRef("fabric/shard/org1/peer/tls-cert"),
 				CertificatePem: []byte("-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----"),
 			},
 			providerErr: errProviderConnectionRefused,
@@ -465,7 +465,7 @@ func TestStoreCertificateActivity(t *testing.T) {
 		{
 			name: "error - provider forbidden",
 			input: &pb.StoreCertificateInput{
-				CertRef:        testSecretRef("fabric/org1/peer/tls-cert"),
+				CertRef:        testSecretRef("fabric/shard/org1/peer/tls-cert"),
 				CertificatePem: []byte("-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----"),
 			},
 			providerErr: errProviderForbidden,

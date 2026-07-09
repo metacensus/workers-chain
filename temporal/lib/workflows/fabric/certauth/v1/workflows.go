@@ -14,22 +14,11 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-// Sentinel errors for fabric workflows
+// Sentinel errors for certificate authority workflows
 var (
-	ErrInvalidInput               = errors.New("invalid input")
-	ErrDeployCouchDB              = errors.New("deploy couchdb")
-	ErrDeployPeer                 = errors.New("deploy peer")
-	ErrDeployOrderer              = errors.New("deploy orderer")
-	ErrDeployChainCode            = errors.New("deploy chaincode")
-	ErrDeployCertificateStore     = errors.New("deploy certificate store")
-	ErrCreateCertificateDatabase  = errors.New("create certificate database")
-	ErrDeployCertificateAuthority = errors.New("deploy certificate authority")
-	ErrCreateCertificate          = errors.New("create certificate")
-	ErrCreateBootstrapAdmin       = errors.New("create bootstrap admin")
-	ErrCreateAdmin                = errors.New("create admin")
-	ErrCreateIdentity             = errors.New("create identity")
-	ErrCreateAccess               = errors.New("create access")
-	ErrInvalidCertType            = errors.New("invalid cert type")
+	ErrInvalidInput      = errors.New("invalid input")
+	ErrCreateCertificate = errors.New("create certificate")
+	ErrInvalidCertType   = errors.New("invalid cert type")
 )
 
 // Workflows implements the FabricWorkflows interface

@@ -14,11 +14,28 @@ type OwnerConfig interface {
 	// OwnerID returns the unique identifier for this owner (operator or org)
 	OwnerID() string
 	// KubernetesNamespace returns the Kubernetes namespace for this owner's resources
-	// Example: "fabric-metacensus" (operator) or "fabric-org1" (org)
+	// Example: "fabric" (operator) or "fabric-shard-org1" (org)
 	KubernetesNamespace() string
 	// VaultBasePath returns the base Vault path for this owner's secrets
-	// Example: "fabric/metacensus" (operator) or "fabric/org1" (org)
+	// Example: "fabric/metacensus" (operator) or "fabric/shard/org1" (org)
 	VaultBasePath() string
+}
+
+// WorkerOwnerConfig extends OwnerConfig with worker-specific naming.
+// Both OperatorConfig (shared fabric worker) and OrgConfig (shard workers)
+// implement this, letting cluster workflows provision either worker type.
+type WorkerOwnerConfig interface {
+	OwnerConfig
+	// TemporalNamespace returns the Temporal namespace the worker polls
+	TemporalNamespace() string
+	// WorkerServiceAccountName returns the Kubernetes service account name for the worker
+	WorkerServiceAccountName() string
+	// WorkerDeploymentName returns the Kubernetes deployment name for the worker
+	WorkerDeploymentName() string
+	// WorkerVaultPolicyName returns the Vault policy name for the worker
+	WorkerVaultPolicyName() string
+	// WorkerVaultAuthRole returns the Vault Kubernetes auth role for the worker
+	WorkerVaultAuthRole() string
 }
 
 // OperatorConfig implements OwnerConfig for operator-owned resources.
@@ -65,12 +82,24 @@ func NewOperatorConfig(operatorID string) OperatorConfig {
 	return OperatorConfig{operatorID: operatorID}
 }
 
-func (c OperatorConfig) OwnerID() string             { return c.operatorID }
-func (c OperatorConfig) KubernetesNamespace() string { return "fabric-" + c.operatorID }
-func (c OperatorConfig) VaultBasePath() string       { return "fabric/" + c.operatorID }
+func (c OperatorConfig) OwnerID() string { return c.operatorID }
+
+// KubernetesNamespace returns the shared "fabric" namespace where operator-owned
+// infrastructure (fabric worker, TLS CAs, certificate store) is deployed.
+func (c OperatorConfig) KubernetesNamespace() string { return "fabric" }
+
+// TemporalNamespace returns the shared "fabric" Temporal namespace the fabric worker polls.
+func (c OperatorConfig) TemporalNamespace() string { return "fabric" }
+
+func (c OperatorConfig) VaultBasePath() string { return "fabric/" + c.operatorID }
 
 // WorkerServiceAccountName returns the service account name for operator's fabric worker
 func (c OperatorConfig) WorkerServiceAccountName() string {
+	return "fabric-worker-" + c.operatorID
+}
+
+// WorkerDeploymentName returns the deployment name for operator's fabric worker
+func (c OperatorConfig) WorkerDeploymentName() string {
 	return "fabric-worker-" + c.operatorID
 }
 

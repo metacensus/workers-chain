@@ -4,6 +4,10 @@
 # Organization identifier (e.g., "org1", "acme-corp")
 org: "{{.Org}}"
 
+# Kubernetes namespace for this component
+# ("fabric" for operator-owned components, "fabric-shard-{org}" for org-owned)
+namespace: "{{.Namespace}}"
+
 # Certificate type and CA ID for naming
 certType: "{{.CertType}}"
 caId: "{{.CaId}}"

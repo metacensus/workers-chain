@@ -19,7 +19,7 @@ spec:
     - Ingress
   ingress:
     # Allow ingress from any namespace with app.kubernetes.io/part-of=fabric label
-    # This includes all fabric org namespaces (fabric-org1, fabric-org2, etc.)
+    # This includes all fabric shard namespaces (fabric-shard-org1, fabric-shard-org2, etc.)
     - from:
         - namespaceSelector:
             matchLabels:

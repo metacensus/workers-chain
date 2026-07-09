@@ -26,9 +26,10 @@ const (
 	// Fabric secret path structure
 	fabricSecretBase = "fabric"
 
-	// Nexus endpoint name for secrets.CreateAccess
+	// Nexus endpoint names
 	SecretsCreateAccessNexusEndpoint     = "secrets-CreateAccess"
 	FabricCreateCertificateNexusEndpoint = "fabric-CreateCertificate"
+	FabricBootstrapFabricNexusEndpoint   = "fabric-BootstrapFabric"
 )
 
 // Sentinel errors for workflows
@@ -37,12 +38,15 @@ var (
 	ErrCreateSecretsNexusEndpoint = errors.New("create secrets nexus endpoint")
 
 	// InitFabric errors
-	ErrNoCertificateAuthorities           = errors.New("no certificate authorities specified")
-	ErrBootstrapTlsCertificateAuthorities = errors.New("bootstrap TLS certificate authorities")
-	ErrCreateOperatorKubernetesNamespace  = errors.New("create operator kubernetes namespace")
-	ErrCreateOperatorServiceAccount       = errors.New("create operator service account")
-	ErrCreateOperatorVaultAccess          = errors.New("create operator vault access")
-	ErrCreateTLSCANexusEndpoint           = errors.New("create TLS CA nexus endpoint")
+	ErrNoCertificateAuthorities          = errors.New("no certificate authorities specified")
+	ErrCreateFabricTemporalNamespace     = errors.New("create fabric temporal namespace")
+	ErrCreateOperatorKubernetesNamespace = errors.New("create operator kubernetes namespace")
+	ErrCreateOperatorServiceAccount      = errors.New("create operator service account")
+	ErrCreateOperatorVaultAccess         = errors.New("create operator vault access")
+	ErrDeployFabricSharedWorker          = errors.New("deploy shared fabric worker")
+	ErrCreateTLSCANexusEndpoint          = errors.New("create TLS CA nexus endpoint")
+	ErrCreateBootstrapFabricEndpoint     = errors.New("create BootstrapFabric nexus endpoint")
+	ErrBootstrapFabric                   = errors.New("bootstrap fabric via nexus")
 
 	// InitFabricShard errors
 	ErrOrgRequired               = errors.New("org is required")
@@ -110,11 +114,11 @@ func (w *bootstrapInfraWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapInf
 }
 
 // buildTLSCertificateAuthorities creates the operator-owned TLS CA chain specification.
-// This defines the shared TLS certificate authorities (root + v1 intermediate) that will
+// This defines the shared TLS certificate authorities (root + intermediate) that will
 // be used by all Fabric organizations.
 func buildTLSCertificateAuthorities() []*fabricpb.CertificateAuthoritySpec {
 	tlsRootRef := &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "root"}
-	tlsIntRef := &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "v1"}
+	tlsIntRef := &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"}
 
 	// 15 year validity for CAs (standard for certificate authorities)
 	caValidity := 15 * 365 * 24 * time.Hour
@@ -127,7 +131,7 @@ func buildTLSCertificateAuthorities() []*fabricpb.CertificateAuthoritySpec {
 			TlsIssuer:        nil, // Self-signed
 			ValidityDuration: durationpb.New(caValidity),
 		},
-		// TLS Intermediate CA (v1): Signed by root, used to issue certificates
+		// TLS Intermediate CA: Signed by root, used to issue certificates
 		{
 			Self:             tlsIntRef,
 			SigningIssuer:    tlsRootRef, // Signed by root
@@ -164,8 +168,18 @@ func (w *initFabricWorkflow) validate() error {
 }
 
 // Execute orchestrates the initialization of operator-level Fabric infrastructure.
+// It provisions the shared "fabric" namespaces (Temporal and Kubernetes), deploys the
+// shared fabric worker, wires up the Nexus endpoints it serves, and then bootstraps
+// the shared infrastructure (certificate store + TLS CA chain) via Nexus.
 func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput, error) {
 	operatorCfg := config.GetOperator()
+
+	// Create the shared "fabric" Temporal namespace the fabric worker polls
+	if _, err := temporalpb.CreateNamespaceChild(ctx, &temporalpb.CreateNamespaceInput{
+		Name: operatorCfg.TemporalNamespace(),
+	}); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateFabricTemporalNamespace, err)
+	}
 
 	// Create Kubernetes namespace for operator with network policies
 	// IsOperator=true enables NetworkPolicy for cross-namespace TLS CA access
@@ -176,9 +190,10 @@ func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput
 		return nil, fmt.Errorf("%w: %w", ErrCreateOperatorKubernetesNamespace, err)
 	}
 
-	// Create service account for operator fabric components
+	// Create service account for the shared fabric worker
 	if _, err := clusterpb.CreateServiceAccountChild(ctx, &clusterpb.CreateServiceAccountInput{
-		Org: operatorCfg.OwnerID(),
+		Org:        operatorCfg.OwnerID(),
+		IsOperator: true,
 	}); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateOperatorServiceAccount, err)
 	}
@@ -194,18 +209,34 @@ func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput
 		return nil, fmt.Errorf("%w: %w", ErrCreateOperatorVaultAccess, err)
 	}
 
-	// Register Nexus endpoint for operator TLS CA certificate issuance
-	temporalCfg := config.GetTemporal()
+	// Deploy the shared fabric worker into the "fabric" namespace
+	if _, err := clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
+		Org:        operatorCfg.OwnerID(),
+		Component:  "worker",
+		IsOperator: true,
+	}); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrDeployFabricSharedWorker, err)
+	}
+
+	// Register Nexus endpoint for operator TLS CA certificate issuance,
+	// served by the fabric worker in the "fabric" Temporal namespace
 	if _, err := temporalpb.CreateNexusEndpoint(ctx, &temporalpb.CreateNexusEndpointInput{
 		Name:      FabricCreateCertificateNexusEndpoint,
-		Namespace: temporalCfg.Namespace,
+		Namespace: operatorCfg.TemporalNamespace(),
 		TaskQueue: "infra",
 	}); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateTLSCANexusEndpoint, err)
 	}
 
-	// Deploy certificate store and TLS CA chain
-	// Pass operator ID as the "org" since this is operator-owned infrastructure
+	// Register Nexus endpoint for BootstrapFabric, served by the fabric worker
+	if _, err := temporalpb.CreateNexusEndpoint(ctx, &temporalpb.CreateNexusEndpointInput{
+		Name:      FabricBootstrapFabricNexusEndpoint,
+		Namespace: operatorCfg.TemporalNamespace(),
+		TaskQueue: "infra",
+	}); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateBootstrapFabricEndpoint, err)
+	}
+
 	// Extract validity durations from the CA specs
 	var tlsRootValidity, tlsIntValidity *durationpb.Duration
 	for _, caSpec := range w.input.Req.GetCertificateAuthorities() {
@@ -218,12 +249,17 @@ func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput
 		}
 	}
 
-	if _, err := fabricpb.BootstrapTlsCertificateAuthoritiesChild(ctx, &fabricpb.BootstrapTlsCertificateAuthoritiesInput{
+	// Bootstrap shared infrastructure (certificate store + TLS CA chain) via Nexus,
+	// executed by the fabric worker in the "fabric" Temporal namespace
+	nexusClient := fabricv1nexustemporal.NewFabricNexusClient(FabricBootstrapFabricNexusEndpoint)
+	if _, err := nexusClient.BootstrapFabric(ctx, &fabricpb.BootstrapFabricInput{
 		Org:                     operatorCfg.OwnerID(),
 		TlsRootValidity:         tlsRootValidity,
 		TlsIntermediateValidity: tlsIntValidity,
+	}, workflow.NexusOperationOptions{
+		ScheduleToCloseTimeout: 30 * time.Minute,
 	}); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrBootstrapTlsCertificateAuthorities, err)
+		return nil, fmt.Errorf("%w: %w", ErrBootstrapFabric, err)
 	}
 
 	return &pb.InitFabricOutput{}, nil
@@ -231,12 +267,12 @@ func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput
 
 // buildOperatorVaultPolicy creates a Vault policy document for operator resources
 func buildOperatorVaultPolicy(operatorCfg config.OperatorConfig) *vaultpb.PolicyDocument {
-	dataPathPattern := path.Join(vaultSecretDataPrefix, fabricSecretBase, operatorCfg.OwnerID(), "*")
-	metadataPathPattern := path.Join(vaultSecretMetadataPrefix, fabricSecretBase, operatorCfg.OwnerID(), "*")
+	dataPathPattern := path.Join(vaultSecretDataPrefix, operatorCfg.VaultBasePath(), "*")
+	metadataPathPattern := path.Join(vaultSecretMetadataPrefix, operatorCfg.VaultBasePath(), "*")
 
-	// Allow writing certificates to all org namespaces (for TLS cert issuance via Nexus)
-	allOrgCertsPattern := path.Join(vaultSecretDataPrefix, fabricSecretBase, "*", "certs/*")
-	allOrgCertsMetadataPattern := path.Join(vaultSecretMetadataPrefix, fabricSecretBase, "*", "certs/*")
+	// Allow writing certificates to all shard paths (for TLS cert issuance via Nexus)
+	allOrgCertsPattern := path.Join(vaultSecretDataPrefix, fabricSecretBase, "shard", "*", "certs/*")
+	allOrgCertsMetadataPattern := path.Join(vaultSecretMetadataPrefix, fabricSecretBase, "shard", "*", "certs/*")
 
 	return &vaultpb.PolicyDocument{
 		Rules: []*vaultpb.PolicyRule{
@@ -370,10 +406,10 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 	return &pb.InitFabricShardOutput{}, nil
 }
 
-// buildFabricWorkerPolicy creates a Vault policy document for a fabric worker
+// buildFabricWorkerPolicy creates a Vault policy document for a shard worker
 func buildFabricWorkerPolicy(orgCfg config.OrgConfig) *vaultpb.PolicyDocument {
-	dataPathPattern := path.Join(vaultSecretDataPrefix, fabricSecretBase, orgCfg.OrgID, "*")
-	metadataPathPattern := path.Join(vaultSecretMetadataPrefix, fabricSecretBase, orgCfg.OrgID, "*")
+	dataPathPattern := path.Join(vaultSecretDataPrefix, orgCfg.VaultBasePath(), "*")
+	metadataPathPattern := path.Join(vaultSecretMetadataPrefix, orgCfg.VaultBasePath(), "*")
 
 	return &vaultpb.PolicyDocument{
 		Rules: []*vaultpb.PolicyRule{

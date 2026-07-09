@@ -7,6 +7,7 @@ import (
 // CouchDbValues represents the Helm values for a CouchDB deployment
 type CouchDbValues struct {
 	Org            string
+	Namespace      string
 	PeerId         string
 	Image          ImageConfig
 	Replicas       int
@@ -29,10 +30,11 @@ type CouchDbVaultConfig struct {
 // This ensures consistency between Helm values and workflow/activity configuration
 func NewCouchDbValues(couchDbConfig fabricconfig.CouchDbConfig) *CouchDbValues {
 	return &CouchDbValues{
-		Org:      couchDbConfig.OwnerID(),
-		PeerId:   couchDbConfig.PeerID(),
-		Image:    DefaultImageConfig("couchdb", ""),
-		Replicas: 1, // Single instance per peer
+		Org:       couchDbConfig.OwnerID(),
+		Namespace: couchDbConfig.KubernetesNamespace(),
+		PeerId:    couchDbConfig.PeerID(),
+		Image:     DefaultImageConfig("couchdb", ""),
+		Replicas:  1, // Single instance per peer
 		Vault: CouchDbVaultConfig{
 			RoleName:   couchDbConfig.AuthRoleName(),
 			SecretPath: "secret/data/" + couchDbConfig.VaultAdminRef().GetRef().Fields["path"].GetStringValue(),

@@ -1,9 +1,15 @@
 # Example values for Certificate Authority deployment
 
-org: "org1"
+# Owner identifier: the operator (e.g., "metacensus") for shared TLS CAs,
+# or the organization (e.g., "org1") for org CAs
+org: "metacensus"
+
+# Kubernetes namespace: "fabric" for operator-owned TLS CAs,
+# "fabric-shard-{org}" for org-owned CAs
+namespace: "fabric"
 
 certType: "tls"  # or "org"
-caId: "root"     # "root" for root CA, or "v1", "v2" for intermediates
+caId: "root"     # "root" for root CA, or "int" for intermediates
 
 image:
   repository: hyperledger/fabric-ca
@@ -13,22 +19,24 @@ image:
 replicas: 1
 
 database:
-  host: "certificate-store.fabric-org1.svc.cluster.local"
+  host: "certificate-store.fabric.svc.cluster.local"
   port: 5432
-  name: "fabric_org1_ca_tls_root"
+  name: "fabric_metacensus_ca_tls_root"
 
+# Vault paths follow the owner's tree: "fabric/{operator}/..." for operator-owned
+# TLS CAs (shown here), "fabric/shard/{org}/..." for org-owned CAs
 vault:
-  roleName: "fabric-org1-certificate-authority-tls-root"
+  roleName: "fabric-metacensus-certificate-authority-tls-root"
   # Keys (private) - separate paths for private keys
-  signingKeyPath: "secret/data/fabric/org1/keys/ca/tls/root/signing"
-  tlsKeyPath: "secret/data/fabric/org1/keys/ca/tls/root/tls"
+  signingKeyPath: "secret/data/fabric/metacensus/keys/ca/tls/root/signing"
+  tlsKeyPath: "secret/data/fabric/metacensus/keys/ca/tls/root/tls"
   # Certs (public) - separate paths for certificates + chains
-  signingCertPath: "secret/data/fabric/org1/certs/ca/tls/root/signing"
-  tlsCertPath: "secret/data/fabric/org1/certs/ca/tls/root/tls"
+  signingCertPath: "secret/data/fabric/metacensus/certs/ca/tls/root/signing"
+  tlsCertPath: "secret/data/fabric/metacensus/certs/ca/tls/root/tls"
   # Bootstrap admin credentials (username/password)
-  adminCredentialsPath: "secret/data/fabric/org1/keys/ca/tls/root/bootstrap-admin/credentials"
+  adminCredentialsPath: "secret/data/fabric/metacensus/keys/ca/tls/root/bootstrap-admin/credentials"
   # Database credentials (username/password)
-  dbCredentialsPath: "secret/data/fabric/org1/keys/ca/tls/root/certstore"
+  dbCredentialsPath: "secret/data/fabric/metacensus/keys/ca/tls/root/certstore"
 
 service:
   type: ClusterIP

@@ -4,6 +4,10 @@
 # Organization identifier (e.g., "org1", "acme-corp")
 org: "{{.Org}}"
 
+# Kubernetes namespace for this component
+# ("fabric" for operator-owned components, "fabric-shard-{org}" for org-owned)
+namespace: "{{.Namespace}}"
+
 # Peer identifier (e.g., "peer0", "peer1")
 peerId: "{{.PeerId}}"
 
@@ -21,14 +25,18 @@ msp:
   id: "{{.Msp.Id}}"
 
 # Vault configuration for CSI driver
+# Keys (private) and certs (public) live at separate paths.
+# CA trust-store paths point at root CA certs; TLS CA paths resolve to the
+# operator's shared Vault tree ("fabric/{operator}/..."), org CA paths to the
+# org's shard tree ("fabric/shard/{org}/...").
 vault:
   roleName: "{{.Vault.RoleName}}"
-  mspSigningPath: "{{.Vault.MspSigningPath}}"
+  mspSigningKeyPath: "{{.Vault.MspSigningKeyPath}}"
+  mspSigningCertPath: "{{.Vault.MspSigningCertPath}}"
   mspRootCaCertPath: "{{.Vault.MspRootCaCertPath}}"
-  mspIntCaCertPath: "{{.Vault.MspIntCaCertPath}}"
-  tlsPath: "{{.Vault.TlsPath}}"
+  tlsKeyPath: "{{.Vault.TlsKeyPath}}"
+  tlsCertPath: "{{.Vault.TlsCertPath}}"
   tlsRootCaCertPath: "{{.Vault.TlsRootCaCertPath}}"
-  tlsIntCaCertPath: "{{.Vault.TlsIntCaCertPath}}"
   couchdbPath: "{{.Vault.CouchdbPath}}"
 
 # Service configuration

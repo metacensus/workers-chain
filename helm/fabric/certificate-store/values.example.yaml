@@ -5,6 +5,8 @@
 # This should match the org portion of the namespace
 org: "example-org"
 
+namespace: "fabric-shard-example-org"
+
 # Container image configuration
 image:
   repository: postgres

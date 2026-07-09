@@ -73,8 +73,13 @@ func (w *createNamespaceWorkflow) validate() error {
 
 // Execute creates a Kubernetes namespace
 func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNamespaceOutput, error) {
-	orgCfg := config.OrgConfig{OrgID: w.input.Org}
-	values := helm.NewNamespaceValues(orgCfg, w.input.IsOperator)
+	// Operator-owned resources live in the shared "fabric" namespace;
+	// org-owned resources live in per-org "fabric-shard-{org}" namespaces.
+	var owner config.OwnerConfig = config.OrgConfig{OrgID: w.input.Org}
+	if w.input.IsOperator {
+		owner = config.NewOperatorConfig(w.input.Org)
+	}
+	values := helm.NewNamespaceValues(owner, w.input.IsOperator)
 	namespaceName := values.Name
 
 	// Convert Go struct to protobuf Struct
@@ -165,8 +170,13 @@ func (w *createServiceAccountWorkflow) validate() error {
 
 // Execute creates a Kubernetes service account
 func (w *createServiceAccountWorkflow) Execute(ctx workflow.Context) (*pb.CreateServiceAccountOutput, error) {
-	orgCfg := config.OrgConfig{OrgID: w.input.Org}
-	values := helm.NewServiceAccountValues(orgCfg)
+	// Operator-owned workers live in the shared "fabric" namespace;
+	// org-owned shard workers live in per-org "fabric-shard-{org}" namespaces.
+	var owner config.WorkerOwnerConfig = config.OrgConfig{OrgID: w.input.Org}
+	if w.input.IsOperator {
+		owner = config.NewOperatorConfig(w.input.Org)
+	}
+	values := helm.NewServiceAccountValues(owner)
 	namespaceName := values.Namespace
 
 	// Convert Go struct to protobuf Struct
@@ -271,10 +281,19 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 	case w.input.Component == componentWorker:
 		chartName = chartWorker
 		componentName = componentWorker
-		workerValues := helm.NewWorkerValues(*operatorCfg, orgCfg)
-		values = workerValues
-		namespaceName = orgCfg.KubernetesNamespace()
-		deploymentName = orgCfg.WorkerDeploymentName()
+		if w.input.IsOperator {
+			// Shared fabric worker in the operator-owned "fabric" namespace
+			workerValues := helm.NewOperatorWorkerValues(*operatorCfg)
+			values = workerValues
+			namespaceName = operatorCfg.KubernetesNamespace()
+			deploymentName = operatorCfg.WorkerDeploymentName()
+		} else {
+			// Per-org shard worker in the org's "fabric-shard-{org}" namespace
+			workerValues := helm.NewWorkerValues(*operatorCfg, orgCfg)
+			values = workerValues
+			namespaceName = orgCfg.KubernetesNamespace()
+			deploymentName = orgCfg.WorkerDeploymentName()
+		}
 	case w.input.Component == componentCertificateStore:
 		chartName = chartCertificateStore
 		componentName = componentCertificateStore
@@ -286,22 +305,31 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		deploymentName = componentCertificateStore // Matches helm chart: {{ include "certificate-store.name" . }}
 	case strings.HasPrefix(w.input.Component, componentCertificateAuthority):
 		// Certificate authority component names follow pattern: "certificate-authority-{certType}-{caID}"
-		// Examples: "certificate-authority-tls-root", "certificate-authority-org-v1"
+		// Examples: "certificate-authority-tls-root", "certificate-authority-org-int"
 		parts := strings.Split(w.input.Component, "-")
 		if len(parts) != 4 {
 			return nil, fmt.Errorf("invalid certificate authority component format: %s (expected: certificate-authority-{certType}-{caID})", w.input.Component)
 		}
 		certType := parts[2] // "tls" or "org"
-		caID := parts[3]     // "root", "v1", "v2", etc.
+		caID := parts[3]     // "root" or "int"
+		if certType != "tls" && certType != "org" {
+			return nil, fmt.Errorf("invalid cert type: %s (must be 'tls' or 'org')", certType)
+		}
 		caRef := &fabricv1.CertificateAuthorityRef{
 			CertType: certType,
 			Id:       caID,
 		}
 
+		// TLS CAs are operator-owned (shared infrastructure); Org CAs are org-owned
+		var caOwner config.OwnerConfig = orgCfg
+		if certType == "tls" {
+			caOwner = operatorCfg
+		}
+
 		chartName = chartCertificateAuthority
 		componentName = componentCertificateAuthority
 		// Create config objects to get consistent configuration values
-		caConfig := fabricconfig.NewCertificateAuthorityConfig(orgCfg, caRef)
+		caConfig := fabricconfig.NewCertificateAuthorityConfig(caOwner, caRef)
 		caValues := helm.NewCertificateAuthorityValues(caConfig)
 		values = caValues
 		namespaceName = caConfig.KubernetesNamespace()
@@ -334,9 +362,9 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		peerConfig := fabricconfig.NewPeerConfig(orgCfg, peerID)
 		// Construct CA configs for root CA certificates (trust stores)
 		// Intermediate CA certs are now included in the chain built at enrollment time
-
+		// TLS root CA is operator-owned (shared); org root CA is org-owned
 		orgRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, &fabricv1.CertificateAuthorityRef{CertType: "org", Id: "root"})
-		tlsRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, &fabricv1.CertificateAuthorityRef{CertType: "tls", Id: "root"})
+		tlsRootCA := fabricconfig.NewCertificateAuthorityConfig(operatorCfg, &fabricv1.CertificateAuthorityRef{CertType: "tls", Id: "root"})
 		peerValues := helm.NewPeerValues(peerConfig, orgRootCA, tlsRootCA)
 		values = peerValues
 		namespaceName = peerConfig.KubernetesNamespace()
@@ -352,8 +380,9 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		ordererConfig := fabricconfig.NewOrdererConfig(orgCfg, ordererID)
 		// Construct CA configs for root CA certificates (trust stores)
 		// Intermediate CA certs are now included in the chain built at enrollment time
+		// TLS root CA is operator-owned (shared); org root CA is org-owned
 		orgRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, &fabricv1.CertificateAuthorityRef{CertType: "org", Id: "root"})
-		tlsRootCA := fabricconfig.NewCertificateAuthorityConfig(orgCfg, &fabricv1.CertificateAuthorityRef{CertType: "tls", Id: "root"})
+		tlsRootCA := fabricconfig.NewCertificateAuthorityConfig(operatorCfg, &fabricv1.CertificateAuthorityRef{CertType: "tls", Id: "root"})
 		ordererValues := helm.NewOrdererValues(ordererConfig, orgRootCA, tlsRootCA)
 		values = ordererValues
 		namespaceName = ordererConfig.KubernetesNamespace()

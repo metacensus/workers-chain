@@ -37,7 +37,7 @@ var (
 
 // BootstrapClientConfig represents the configuration for username/password authentication
 type BootstrapClientConfig struct {
-	URL        string // CA server URL (e.g., "https://ca.fabric-org1.svc.cluster.local:7054")
+	URL        string // CA server URL (e.g., "https://ca.fabric-shard-org1.svc.cluster.local:7054")
 	Username   string // Username for authentication
 	Password   string // Password/secret for authentication
 	CAName     string // Optional CA name (for multi-CA servers)

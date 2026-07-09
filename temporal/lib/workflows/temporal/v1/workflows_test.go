@@ -26,42 +26,42 @@ func TestCreateNamespaceWorkflow(t *testing.T) {
 		{
 			name: "success - namespace becomes registered immediately",
 			input: &pb.CreateNamespaceInput{
-				Name:      "fabric-org1",
+				Name:      "fabric-shard-org1",
 				Retention: durationpb.New(30 * 24 * time.Hour),
 			},
 			registerErr: nil,
 			describeResponses: []*pb.DescribeNamespaceOutput{
 				{
-					Name:  "fabric-org1",
+					Name:  "fabric-shard-org1",
 					State: pb.NamespaceState_REGISTERED,
 				},
 			},
 			expectSuccess:     true,
-			expectedNamespace: "fabric-org1",
+			expectedNamespace: "fabric-shard-org1",
 		},
 		{
 			name: "success - namespace becomes registered after retries",
 			input: &pb.CreateNamespaceInput{
-				Name:      "fabric-org2",
+				Name:      "fabric-shard-org2",
 				Retention: nil, // Use default
 			},
 			registerErr: nil,
 			describeResponses: []*pb.DescribeNamespaceOutput{
 				{
-					Name:  "fabric-org2",
+					Name:  "fabric-shard-org2",
 					State: pb.NamespaceState_UNSPECIFIED,
 				},
 				{
-					Name:  "fabric-org2",
+					Name:  "fabric-shard-org2",
 					State: pb.NamespaceState_UNSPECIFIED,
 				},
 				{
-					Name:  "fabric-org2",
+					Name:  "fabric-shard-org2",
 					State: pb.NamespaceState_REGISTERED,
 				},
 			},
 			expectSuccess:     true,
-			expectedNamespace: "fabric-org2",
+			expectedNamespace: "fabric-shard-org2",
 		},
 		{
 			name: "failure - register namespace fails",

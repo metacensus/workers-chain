@@ -7,7 +7,7 @@ certificate-authority-{{ .Values.certType }}-{{ .Values.caId }}
 {{- end }}
 
 {{- define "certificate-authority.namespace" -}}
-fabric-{{ .Values.org }}
+{{ .Values.namespace }}
 {{- end }}
 
 {{- define "certificate-authority.serviceName" -}}

@@ -16,21 +16,27 @@ import (
 	"go.uber.org/fx"
 )
 
-// Module provides all dependencies for the fabric worker
+// Module provides all dependencies for the shared fabric worker.
+// The fabric worker is operator-owned (OPERATOR_ID only, no ORG_ID) and runs in
+// the shared "fabric" Temporal namespace. It owns the shared TLS certificate
+// authority chain and the certificate store, receives BootstrapFabric via Nexus
+// from the central infra worker, and serves CreateCertificate Nexus calls from
+// shard workers for cross-namespace TLS issuance.
 var Module = fx.Module("fabric",
-	// Load environment config
+	// Load environment config (operator-owned: no org config)
 	fx.Provide(
 		config.GetTemporal,
 		config.GetVault,
 		config.GetWorker,
 		config.GetKubernetes,
-		config.GetOrg,
 		config.GetOperator,
 	),
 
-	// Provide fabric-specific config (derived from environment config)
-	fx.Provide(func(orgCfg *config.OrgConfig) fabricconfig.CertificateStoreConfig {
-		return fabricconfig.NewCertificateStoreConfig(*orgCfg)
+	// Provide CertificateStoreConfig for postgres activities
+	// The fabric worker uses OperatorConfig because the certificate store and
+	// TLS CAs belong to the operator
+	fx.Provide(func(operatorConfig *config.OperatorConfig) fabricconfig.CertificateStoreConfig {
+		return fabricconfig.NewCertificateStoreConfig(operatorConfig)
 	}),
 
 	// Provide temporal worker
@@ -58,7 +64,11 @@ var Module = fx.Module("fabric",
 		clusterfabric.RegisterWorkflows,
 		certauth.RegisterActivities,
 		certauth.RegisterWorkflows,
+		// Handles CreateCertificate (and other CertificateAuthority) Nexus calls
+		// from shard workers
+		certauth.RegisterNexusService,
 		fabric.RegisterWorkflows,
+		// Handles BootstrapFabric Nexus calls from the central infra worker
 		fabric.RegisterNexusService,
 		postgres.RegisterActivities,
 	),

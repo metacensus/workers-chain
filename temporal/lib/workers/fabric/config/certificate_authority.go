@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	fabricv1 "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	kubev1 "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
@@ -25,6 +26,14 @@ const (
 	vaultSecretDataPrefix     = "secret/data"
 	vaultSecretMetadataPrefix = "secret/metadata"
 )
+
+// vaultPolicyPrefix flattens the owner's Vault base path into a policy-name prefix:
+// "fabric/shard/org1" → "fabric-shard-org1", "fabric/metacensus" → "fabric-metacensus".
+// This keeps component policy names aligned with the worker policy names
+// (see workerconfig OrgConfig.WorkerVaultPolicyName / OperatorConfig.WorkerVaultPolicyName).
+func vaultPolicyPrefix(owner OwnerConfig) string {
+	return strings.ReplaceAll(owner.VaultBasePath(), "/", "-")
+}
 
 // ============= Certificate Store Configuration =============
 
@@ -53,7 +62,7 @@ func (cs CertificateStoreConfig) ServiceAccountName() string {
 }
 
 // ServiceHost returns the DNS hostname for the certificate store service.
-// Example: "certificate-store.fabric-org1.svc.cluster.local"
+// Example: "certificate-store.fabric-shard-org1.svc.cluster.local"
 func (cs CertificateStoreConfig) ServiceHost() string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local", cs.ComponentName(), cs.KubernetesNamespace())
 }
@@ -84,9 +93,9 @@ func (cs CertificateStoreConfig) ResourceIdentifier() *kubev1.ResourceIdentifier
 // ------------ Vault Properties ------------
 
 // PolicyName returns the Vault policy name.
-// Example: "fabric-org1-certificate-store"
+// Example: "fabric-shard-org1-certificate-store" (org) or "fabric-metacensus-certificate-store" (operator)
 func (cs CertificateStoreConfig) PolicyName() string {
-	return fmt.Sprintf("fabric-%s-%s", cs.OwnerID(), cs.ComponentName())
+	return fmt.Sprintf("%s-%s", vaultPolicyPrefix(cs.OwnerConfig), cs.ComponentName())
 }
 
 // AuthRoleName returns the Vault Kubernetes auth role name.
@@ -96,27 +105,27 @@ func (cs CertificateStoreConfig) AuthRoleName() string {
 
 // VaultKeysBasePath returns the base Vault path for the certificate store's secrets.
 // The certificate store only has credentials, which are private, so they live under keys/.
-// Example: "fabric/org1/keys/certstore"
+// Example: "fabric/shard/org1/keys/certstore"
 func (cs CertificateStoreConfig) VaultKeysBasePath() string {
 	return fmt.Sprintf("%s/keys/certstore", cs.VaultBasePath())
 }
 
 // VaultAdminRef returns a SecretRef for the certificate store admin identity.
 // Stores {username, password} for postgres admin.
-// Example path: "fabric/org1/keys/certstore/admin"
+// Example path: "fabric/shard/org1/keys/certstore/admin"
 func (cs CertificateStoreConfig) VaultAdminRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(cs.VaultKeysBasePath() + "/admin")
 }
 
 // VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
 // Used in Vault policy documents with wildcard for all certificate store secrets.
-// Example: "secret/data/fabric/org1/keys/certstore/*"
+// Example: "secret/data/fabric/shard/org1/keys/certstore/*"
 func (cs CertificateStoreConfig) VaultDataPath() string {
 	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, cs.VaultKeysBasePath())
 }
 
 // VaultMetadataPath returns the Vault KV v2 metadata path pattern for policy rules.
-// Example: "secret/metadata/fabric/org1/keys/certstore/*"
+// Example: "secret/metadata/fabric/shard/org1/keys/certstore/*"
 func (cs CertificateStoreConfig) VaultMetadataPath() string {
 	return fmt.Sprintf("%s/%s/*", vaultSecretMetadataPrefix, cs.VaultKeysBasePath())
 }
@@ -154,12 +163,12 @@ func (cs CertificateStoreConfig) VaultPolicy() *vaultv1.PolicyDocument {
 type CertificateAuthorityConfig struct {
 	OwnerConfig        // embedded interface - methods promoted
 	certType    string // "tls" or "org"
-	caID        string // "root" for root CAs, or version ID (e.g., "v1") for intermediates
+	caID        string // "root" for root CAs, or "int" for intermediates
 }
 
 // NewCertificateAuthorityConfig creates a CertificateAuthorityConfig for the given owner.
 // certType should be "tls" or "org".
-// caID should be "root" for root CAs, or a version ID (e.g., "v1") for intermediates.
+// caID should be "root" for root CAs, or "int" for intermediates.
 func NewCertificateAuthorityConfig(owner OwnerConfig, ca_ref *fabricv1.CertificateAuthorityRef) CertificateAuthorityConfig {
 	certType := ca_ref.GetCertType()
 	if certType != "tls" && certType != "org" {
@@ -177,14 +186,14 @@ func NewCertificateAuthorityConfig(owner OwnerConfig, ca_ref *fabricv1.Certifica
 // ComponentName returns the base component name used in Helm charts and derived identifiers.
 // Examples:
 //   - Root TLS CA: "certificate-authority-tls-root"
-//   - Intermediate Org CA v1: "certificate-authority-org-v1"
+//   - Intermediate Org CA: "certificate-authority-org-int"
 func (ca CertificateAuthorityConfig) ComponentName() string {
 	return fmt.Sprintf("certificate-authority-%s-%s", ca.certType, ca.caID)
 }
 
 // URL returns the Fabric CA server URL for client connections.
 // Uses the Kubernetes service DNS name with the CA port (7054).
-// Example: "https://certificate-authority-tls-root.fabric-org1.svc.cluster.local:7054"
+// Example: "https://certificate-authority-tls-root.fabric-shard-org1.svc.cluster.local:7054"
 func (ca CertificateAuthorityConfig) URL() string {
 	return fmt.Sprintf("https://%s.%s.svc.cluster.local:7054",
 		ca.ComponentName(), ca.KubernetesNamespace())
@@ -229,7 +238,7 @@ func (ca CertificateAuthorityConfig) CertType() string {
 	return ca.certType
 }
 
-// CAID returns the CA identifier ("root" for root CAs, "v1", "v2", etc. for intermediates)
+// CAID returns the CA identifier ("root" for root CAs, "int" for intermediates)
 func (ca CertificateAuthorityConfig) CAID() string {
 	return ca.caID
 }
@@ -237,9 +246,10 @@ func (ca CertificateAuthorityConfig) CAID() string {
 // ------------ Vault Properties: Base Paths ------------
 
 // PolicyName returns the Vault policy name.
-// Example: "fabric-org1-certificate-authority-tls-root"
+// Example: "fabric-shard-org1-certificate-authority-org-int" (org)
+// or "fabric-metacensus-certificate-authority-tls-root" (operator)
 func (ca CertificateAuthorityConfig) PolicyName() string {
-	return fmt.Sprintf("fabric-%s-%s", ca.OwnerID(), ca.ComponentName())
+	return fmt.Sprintf("%s-%s", vaultPolicyPrefix(ca.OwnerConfig), ca.ComponentName())
 }
 
 // AuthRoleName returns the Vault Kubernetes auth role name.
@@ -248,13 +258,13 @@ func (ca CertificateAuthorityConfig) AuthRoleName() string {
 }
 
 // VaultKeysBasePath returns the base Vault path for this CA's private keys.
-// Example: "fabric/org1/keys/ca/tls/root"
+// Example: "fabric/shard/org1/keys/ca/tls/root"
 func (ca CertificateAuthorityConfig) VaultKeysBasePath() string {
 	return fmt.Sprintf("%s/keys/ca/%s/%s", ca.VaultBasePath(), ca.certType, ca.caID)
 }
 
 // VaultCertsBasePath returns the base Vault path for this CA's certificates.
-// Example: "fabric/org1/certs/ca/tls/root"
+// Example: "fabric/shard/org1/certs/ca/tls/root"
 func (ca CertificateAuthorityConfig) VaultCertsBasePath() string {
 	return fmt.Sprintf("%s/certs/ca/%s/%s", ca.VaultBasePath(), ca.certType, ca.caID)
 }
@@ -263,14 +273,14 @@ func (ca CertificateAuthorityConfig) VaultCertsBasePath() string {
 
 // VaultSigningKeyRef returns a SecretRef for the CA's signing private key.
 // Stores {private_key} for CA signing operations.
-// Example path: "fabric/org1/keys/ca/tls/root/signing"
+// Example path: "fabric/shard/org1/keys/ca/tls/root/signing"
 func (ca CertificateAuthorityConfig) VaultSigningKeyRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/signing")
 }
 
 // VaultTLSKeyRef returns a SecretRef for the CA's TLS private key.
 // Stores {private_key} for the CA's HTTPS endpoint.
-// Example path: "fabric/org1/keys/ca/tls/root/tls"
+// Example path: "fabric/shard/org1/keys/ca/tls/root/tls"
 func (ca CertificateAuthorityConfig) VaultTLSKeyRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/tls")
 }
@@ -279,14 +289,14 @@ func (ca CertificateAuthorityConfig) VaultTLSKeyRef() *secretsv1.SecretRef {
 
 // VaultSigningCertRef returns a SecretRef for the CA's signing certificate.
 // Stores {certificate, chain} for CA signing operations.
-// Example path: "fabric/org1/certs/ca/tls/root/signing"
+// Example path: "fabric/shard/org1/certs/ca/tls/root/signing"
 func (ca CertificateAuthorityConfig) VaultSigningCertRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(ca.VaultCertsBasePath() + "/signing")
 }
 
 // VaultTLSCertRef returns a SecretRef for the CA's TLS certificate.
 // Stores {certificate, chain} for the CA's HTTPS endpoint.
-// Example path: "fabric/org1/certs/ca/tls/root/tls"
+// Example path: "fabric/shard/org1/certs/ca/tls/root/tls"
 func (ca CertificateAuthorityConfig) VaultTLSCertRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(ca.VaultCertsBasePath() + "/tls")
 }
@@ -296,7 +306,7 @@ func (ca CertificateAuthorityConfig) VaultTLSCertRef() *secretsv1.SecretRef {
 // VaultDatabaseUserRef returns a SecretRef for the CA's database user identity.
 // Stores {username, password} for database access to the certificate store.
 // Each CA has its own database user for accessing the certificate store.
-// Example path: "fabric/org1/keys/ca/tls/root/certstore"
+// Example path: "fabric/shard/org1/keys/ca/tls/root/certstore"
 func (ca CertificateAuthorityConfig) VaultDatabaseUserRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/certstore")
 }
@@ -305,21 +315,21 @@ func (ca CertificateAuthorityConfig) VaultDatabaseUserRef() *secretsv1.SecretRef
 
 // VaultBootstrapAdminCredentialsRef returns a SecretRef for bootstrap admin username/password.
 // These credentials are used to initially authenticate with the CA.
-// Example path: "fabric/org1/keys/ca/tls/root/bootstrap-admin/credentials"
+// Example path: "fabric/shard/org1/keys/ca/tls/root/bootstrap-admin/credentials"
 func (ca CertificateAuthorityConfig) VaultBootstrapAdminCredentialsRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/bootstrap-admin/credentials")
 }
 
 // VaultBootstrapAdminSigningKeyRef returns a SecretRef for bootstrap admin's signing private key.
 // Stores {private_key} for the bootstrap admin's signing identity.
-// Example path: "fabric/org1/keys/ca/tls/root/bootstrap-admin/signing"
+// Example path: "fabric/shard/org1/keys/ca/tls/root/bootstrap-admin/signing"
 func (ca CertificateAuthorityConfig) VaultBootstrapAdminSigningKeyRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/bootstrap-admin/signing")
 }
 
 // VaultBootstrapAdminTLSKeyRef returns a SecretRef for bootstrap admin's TLS private key.
 // Stores {private_key} for the bootstrap admin's TLS client certificate.
-// Example path: "fabric/org1/keys/ca/tls/root/bootstrap-admin/tls"
+// Example path: "fabric/shard/org1/keys/ca/tls/root/bootstrap-admin/tls"
 func (ca CertificateAuthorityConfig) VaultBootstrapAdminTLSKeyRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/bootstrap-admin/tls")
 }
@@ -328,14 +338,14 @@ func (ca CertificateAuthorityConfig) VaultBootstrapAdminTLSKeyRef() *secretsv1.S
 
 // VaultBootstrapAdminSigningCertRef returns a SecretRef for bootstrap admin's signing certificate.
 // Stores {certificate, chain} for the bootstrap admin's signing identity.
-// Example path: "fabric/org1/certs/ca/tls/root/bootstrap-admin/signing"
+// Example path: "fabric/shard/org1/certs/ca/tls/root/bootstrap-admin/signing"
 func (ca CertificateAuthorityConfig) VaultBootstrapAdminSigningCertRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(ca.VaultCertsBasePath() + "/bootstrap-admin/signing")
 }
 
 // VaultBootstrapAdminTLSCertRef returns a SecretRef for bootstrap admin's TLS certificate.
 // Stores {certificate, chain} for the bootstrap admin's TLS client certificate.
-// Example path: "fabric/org1/certs/ca/tls/root/bootstrap-admin/tls"
+// Example path: "fabric/shard/org1/certs/ca/tls/root/bootstrap-admin/tls"
 func (ca CertificateAuthorityConfig) VaultBootstrapAdminTLSCertRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(ca.VaultCertsBasePath() + "/bootstrap-admin/tls")
 }
@@ -344,14 +354,14 @@ func (ca CertificateAuthorityConfig) VaultBootstrapAdminTLSCertRef() *secretsv1.
 
 // VaultAdminSigningKeyRef returns a SecretRef for the permanent admin's signing private key.
 // Stores {private_key} for the permanent admin's signing identity.
-// Example path: "fabric/org1/keys/ca/tls/root/admin/signing"
+// Example path: "fabric/shard/org1/keys/ca/tls/root/admin/signing"
 func (ca CertificateAuthorityConfig) VaultAdminSigningKeyRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/admin/signing")
 }
 
 // VaultAdminTLSKeyRef returns a SecretRef for the permanent admin's TLS private key.
 // Stores {private_key} for the permanent admin's TLS client certificate.
-// Example path: "fabric/org1/keys/ca/tls/root/admin/tls"
+// Example path: "fabric/shard/org1/keys/ca/tls/root/admin/tls"
 func (ca CertificateAuthorityConfig) VaultAdminTLSKeyRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(ca.VaultKeysBasePath() + "/admin/tls")
 }
@@ -360,14 +370,14 @@ func (ca CertificateAuthorityConfig) VaultAdminTLSKeyRef() *secretsv1.SecretRef 
 
 // VaultAdminSigningCertRef returns a SecretRef for the permanent admin's signing certificate.
 // Stores {certificate, chain} for the permanent admin's signing identity.
-// Example path: "fabric/org1/certs/ca/tls/root/admin/signing"
+// Example path: "fabric/shard/org1/certs/ca/tls/root/admin/signing"
 func (ca CertificateAuthorityConfig) VaultAdminSigningCertRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(ca.VaultCertsBasePath() + "/admin/signing")
 }
 
 // VaultAdminTLSCertRef returns a SecretRef for the permanent admin's TLS certificate.
 // Stores {certificate, chain} for the permanent admin's TLS client certificate.
-// Example path: "fabric/org1/certs/ca/tls/root/admin/tls"
+// Example path: "fabric/shard/org1/certs/ca/tls/root/admin/tls"
 func (ca CertificateAuthorityConfig) VaultAdminTLSCertRef() *secretsv1.SecretRef {
 	return secrets.NewVaultRef(ca.VaultCertsBasePath() + "/admin/tls")
 }
@@ -376,26 +386,26 @@ func (ca CertificateAuthorityConfig) VaultAdminTLSCertRef() *secretsv1.SecretRef
 
 // VaultKeysDataPath returns the Vault KV v2 data path pattern for this CA's private keys.
 // Used in Vault policy documents with wildcard for all CA key secrets.
-// Example: "secret/data/fabric/org1/keys/ca/tls/root/*"
+// Example: "secret/data/fabric/shard/org1/keys/ca/tls/root/*"
 func (ca CertificateAuthorityConfig) VaultKeysDataPath() string {
 	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, ca.VaultKeysBasePath())
 }
 
 // VaultKeysMetadataPath returns the Vault KV v2 metadata path pattern for this CA's private keys.
-// Example: "secret/metadata/fabric/org1/keys/ca/tls/root/*"
+// Example: "secret/metadata/fabric/shard/org1/keys/ca/tls/root/*"
 func (ca CertificateAuthorityConfig) VaultKeysMetadataPath() string {
 	return fmt.Sprintf("%s/%s/*", vaultSecretMetadataPrefix, ca.VaultKeysBasePath())
 }
 
 // VaultCertsDataPath returns the Vault KV v2 data path pattern for all certificates (public).
 // Used in Vault policy documents with wildcard for all certificate secrets.
-// Example: "secret/data/fabric/org1/certs/*"
+// Example: "secret/data/fabric/shard/org1/certs/*"
 func (ca CertificateAuthorityConfig) VaultCertsDataPath() string {
 	return fmt.Sprintf("%s/%s/certs/*", vaultSecretDataPrefix, ca.VaultBasePath())
 }
 
 // VaultCertsMetadataPath returns the Vault KV v2 metadata path pattern for all certificates.
-// Example: "secret/metadata/fabric/org1/certs/*"
+// Example: "secret/metadata/fabric/shard/org1/certs/*"
 func (ca CertificateAuthorityConfig) VaultCertsMetadataPath() string {
 	return fmt.Sprintf("%s/%s/certs/*", vaultSecretMetadataPrefix, ca.VaultBasePath())
 }
@@ -451,8 +461,8 @@ func (ca CertificateAuthorityConfig) VaultPolicy() *vaultv1.PolicyDocument {
 // DatabaseName returns the PostgreSQL database name for this CA.
 // Follows PostgreSQL naming conventions (lowercase, underscores, alphanumeric).
 // Examples:
-//   - Root TLS CA: "fabric_org1_ca_tls_root"
-//   - Intermediate Org CA v1: "fabric_org1_ca_org_v1"
+//   - Root TLS CA (operator-owned): "fabric_metacensus_ca_tls_root"
+//   - Intermediate Org CA (org-owned): "fabric_org1_ca_org_int"
 func (ca CertificateAuthorityConfig) DatabaseName() string {
 	// Sanitize for PostgreSQL: lowercase, replace hyphens with underscores
 	ownerID := sanitizeForPostgres(ca.OwnerID())
@@ -463,7 +473,7 @@ func (ca CertificateAuthorityConfig) DatabaseName() string {
 
 // DatabaseUsername returns the PostgreSQL username for this CA's database.
 // Each CA gets a dedicated user with access only to its database.
-// Example: "fabric_org1_ca_tls_root_user"
+// Example: "fabric_org1_ca_org_int_user"
 func (ca CertificateAuthorityConfig) DatabaseUsername() string {
 	return ca.DatabaseName() + "_user"
 }

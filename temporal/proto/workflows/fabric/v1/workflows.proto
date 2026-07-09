@@ -12,17 +12,32 @@ import "fabric/v1/fabric.proto";
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1";
 
 
-// Fabric service defines workflows for manipulating a Fabric shard
-// These workflows run on the fabric worker in the org-specific Temporal namespace
+// Fabric service defines workflows for deploying Fabric infrastructure.
+// Shared (operator-owned) workflows run on the fabric worker in the "fabric"
+// Temporal namespace; per-org workflows run on shard workers in
+// "fabric-shard-{org}" Temporal namespaces.
 service Fabric {
     // Enable Nexus for cross-namespace calls from central worker
     option (.nexus.v1.service).tags = "nexus-enabled";
     // Service-wide Temporal settings
     option (temporal.v1.service) = {task_queue: "infra"};
   
+    // BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
+    // This workflow runs on the fabric worker in the "fabric" Temporal namespace and
+    // deploys the certificate store and shared TLS certificate authority chain.
+    // Called via Nexus from the central infra worker during InitFabric.
+    rpc BootstrapFabric(BootstrapFabricInput) returns (BootstrapFabricOutput) {
+      option (temporal.v1.workflow) = {
+        name: "fabric.v1.BootstrapFabric"
+        id: 'fabric/bootstrap-fabric'
+        id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+      };
+    }
+  
     // BootstrapShard is the entry point for Phase 2 of shard initialization
-    // This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
-    // and deploys all Fabric components (CAs, peers, orderers) for the organization.
+    // This workflow runs on the shard worker in the org's Temporal namespace
+    // (e.g., "fabric-shard-org1") and deploys all Fabric components
+    // (CAs, peers, orderers) for the organization.
     // Called via Nexus from the central worker after Phase 1 completes
     rpc BootstrapShard(BootstrapShardInput) returns (BootstrapShardOutput) {
       option (temporal.v1.workflow) = {
@@ -153,6 +168,37 @@ service Fabric {
       };
     }
   }
+  // ==================== BootstrapFabric Workflow Messages ====================
+  
+  // BootstrapFabricInput specifies parameters for bootstrapping shared Fabric infrastructure
+  message BootstrapFabricInput {
+    // org is the owner identifier (operator)
+    // The certificate store and TLS CAs are created in the operator's namespace
+    string org = 1 [
+      json_name = "Org",
+      (go.field).tags = 'json:"Org" validate:"required"'
+    ];
+  
+    // tls_root_validity specifies how long the TLS Root CA certificates are valid
+    google.protobuf.Duration tls_root_validity = 2 [
+      json_name = "TlsRootValidity",
+      (go.field).tags = 'json:"TlsRootValidity,omitempty"'
+    ];
+  
+    // tls_intermediate_validity specifies how long the TLS Intermediate CA certificates are valid
+    google.protobuf.Duration tls_intermediate_validity = 3 [
+      json_name = "TlsIntermediateValidity",
+      (go.field).tags = 'json:"TlsIntermediateValidity,omitempty"'
+    ];
+  }
+  
+  // BootstrapFabricOutput indicates the result of shared Fabric infrastructure bootstrapping
+  message BootstrapFabricOutput {
+    // Empty for now
+  }
+  
+  // ==================== BootstrapShard Workflow Messages ====================
+  
   // BootstrapShardInput specifies the parameters for bootstrapping a Fabric shard
   message BootstrapShardInput {
     // org is the organization identifier (required)
@@ -247,29 +293,6 @@ service Fabric {
   
   // DeployCertificateStoreOutput indicates the result of certificate store deployment
   message DeployCertificateStoreOutput {
-    // Empty for now
-  }
-  
-  // ==================== DeployCertificateAuthority Workflow Messages ====================
-  
-  // DeployCertificateAuthorityInput specifies the parameters for deploying a CA
-  message DeployCertificateAuthorityInput {
-    // org is the owner identifier (operator or organization)
-    // The CA will be created in this owner's namespace
-    string org = 1 [
-      json_name = "Org",
-      (go.field).tags = 'json:"Org" validate:"required"'
-    ];
-  
-    // spec defines the CA to deploy (required)
-    CertificateAuthoritySpec spec = 2 [
-      json_name = "Spec",
-      (go.field).tags = 'json:"Spec" validate:"required"'
-    ];
-  }
-  
-  // DeployCertificateAuthorityOutput indicates the result of CA deployment
-  message DeployCertificateAuthorityOutput {
     // Empty for now
   }
   

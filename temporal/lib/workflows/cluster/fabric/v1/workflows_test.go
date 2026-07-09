@@ -3,17 +3,31 @@ package cluster
 import (
 	"context"
 	"errors"
+	"os"
 	"strings"
 	"testing"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
 	helmpb "github.com/metacensus/infra/temporal/gen/workflows/helm/v1"
 	kubepb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
+	workerconfig "github.com/metacensus/infra/temporal/lib/workers/config"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
+
+const testOperatorID = "testoperator"
+
+// TestMain initializes the global operator config required by CreateDeployment
+// (worker values and TLS CA owner selection derive from OperatorConfig)
+func TestMain(m *testing.M) {
+	os.Setenv("OPERATOR_ID", testOperatorID)
+	if err := workerconfig.InitializeOperator(); err != nil {
+		panic(err)
+	}
+	os.Exit(m.Run())
+}
 
 // =============================================================================
 // Constructor / Validation Tests
@@ -236,6 +250,7 @@ func TestCreateNamespaceWorkflow_Execute(t *testing.T) {
 	tests := []struct {
 		name           string
 		org            string
+		isOperator     bool
 		renderErr      error
 		renderFailures map[string]string
 		applyErr       error
@@ -248,7 +263,14 @@ func TestCreateNamespaceWorkflow_Execute(t *testing.T) {
 			name:          "success - namespace created",
 			org:           "testorg",
 			wantErr:       false,
-			wantNamespace: "fabric-testorg",
+			wantNamespace: "fabric-shard-testorg",
+		},
+		{
+			name:          "success - operator namespace created",
+			org:           testOperatorID,
+			isOperator:    true,
+			wantErr:       false,
+			wantNamespace: "fabric",
 		},
 		{
 			name:      "error - render chart fails",
@@ -325,7 +347,7 @@ func TestCreateNamespaceWorkflow_Execute(t *testing.T) {
 					return nil, err
 				}
 				return wf.Execute(ctx)
-			}, &pb.CreateNamespaceInput{Org: tt.org})
+			}, &pb.CreateNamespaceInput{Org: tt.org, IsOperator: tt.isOperator})
 
 			// Check results
 			err := env.GetWorkflowError()
@@ -468,6 +490,7 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 		name               string
 		org                string
 		component          string
+		isOperator         bool
 		renderErr          error
 		renderFailures     map[string]string
 		applyErr           error
@@ -477,11 +500,19 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 		wantDeploymentName string
 	}{
 		{
-			name:               "success - worker deployed",
+			name:               "success - shard worker deployed",
 			org:                "testorg",
 			component:          "worker",
 			wantErr:            false,
 			wantDeploymentName: "fabric-worker-testorg",
+		},
+		{
+			name:               "success - shared fabric worker deployed",
+			org:                testOperatorID,
+			component:          "worker",
+			isOperator:         true,
+			wantErr:            false,
+			wantDeploymentName: "fabric-worker-" + testOperatorID,
 		},
 		{
 			name:               "success - certificate-store deployed",
@@ -498,11 +529,11 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 			wantDeploymentName: "certificate-authority-tls-root",
 		},
 		{
-			name:               "success - certificate-authority-org-v1 deployed",
+			name:               "success - certificate-authority-org-int deployed",
 			org:                "testorg",
-			component:          "certificate-authority-org-v1",
+			component:          "certificate-authority-org-int",
 			wantErr:            false,
-			wantDeploymentName: "certificate-authority-org-v1",
+			wantDeploymentName: "certificate-authority-org-int",
 		},
 		{
 			name:               "success - couchdb-peer0 deployed",
@@ -639,7 +670,7 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 					return nil, err
 				}
 				return wf.Execute(ctx)
-			}, &pb.CreateDeploymentInput{Org: tt.org, Component: tt.component})
+			}, &pb.CreateDeploymentInput{Org: tt.org, Component: tt.component, IsOperator: tt.isOperator})
 
 			// Check results
 			err := env.GetWorkflowError()

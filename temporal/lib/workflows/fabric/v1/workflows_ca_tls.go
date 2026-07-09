@@ -10,6 +10,7 @@ import (
 	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
+	"github.com/metacensus/infra/temporal/lib/workflows/fabric/certauth/v1"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -296,7 +297,7 @@ func (w *deployTlsIntermediateCertificateAuthorityWorkflow) Execute(ctx workflow
 	}
 
 	tlsPurpose := fmt.Sprintf("tls-int-tls")
-	tlsCommonName := computeTLSCommonName(caConfig.ComponentName(), signingIssuerRef, tlsIssuerRef)
+	tlsCommonName := certauth.ComputeTLSCommonName(caConfig.ComponentName(), signingIssuerRef, tlsIssuerRef)
 	_, err = certauthpb.CreateCertificateChild(ctx, &certauthpb.CreateCertificateInput{
 		Org:       org,
 		IssuerRef: tlsIssuerRef,

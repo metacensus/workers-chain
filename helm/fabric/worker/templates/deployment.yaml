@@ -33,9 +33,12 @@ spec:
         # Operator configuration (shared infrastructure owner)
         - name: OPERATOR_ID
           value: {{ .Values.operator | quote }}
-        # Organization configuration
+        {{- if .Values.orgId }}
+        # Organization configuration (shard workers only; the shared fabric
+        # worker owns no organization and gets no ORG_ID)
         - name: ORG_ID
-          value: {{ .Values.org | quote }}
+          value: {{ .Values.orgId | quote }}
+        {{- end }}
         # Temporal configuration
         - name: TEMPORAL_ADDRESS
           value: {{ .Values.temporal.address | quote }}

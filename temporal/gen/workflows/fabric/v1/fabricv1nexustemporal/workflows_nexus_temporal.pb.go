@@ -25,6 +25,28 @@ func NewFabricNexusClient(endpoint string) *FabricNexusClient {
 	}
 }
 
+type BootstrapFabricFuture struct {
+	workflow.NexusOperationFuture
+}
+
+func (f *BootstrapFabricFuture) GetTyped(ctx workflow.Context) (*v1.BootstrapFabricOutput, error) {
+	var output v1.BootstrapFabricOutput
+	err := f.Get(ctx, &output)
+	return &output, err
+}
+func (c *FabricNexusClient) BootstrapFabricAsync(ctx workflow.Context, input *v1.BootstrapFabricInput, options workflow.NexusOperationOptions) BootstrapFabricFuture {
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricBootstrapFabricOperationName, input, options)
+	return BootstrapFabricFuture{
+		fut,
+	}
+}
+func (c *FabricNexusClient) BootstrapFabric(ctx workflow.Context, input *v1.BootstrapFabricInput, options workflow.NexusOperationOptions) (*v1.BootstrapFabricOutput, error) {
+	var output v1.BootstrapFabricOutput
+	fut := c.client.ExecuteOperation(ctx, fabricv1nexus.FabricBootstrapFabricOperationName, input, options)
+	err := fut.Get(ctx, &output)
+	return &output, err
+}
+
 type BootstrapShardFuture struct {
 	workflow.NexusOperationFuture
 }

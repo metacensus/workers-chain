@@ -90,7 +90,7 @@ message InitFabricOutput {
 // InitFabricShardInput specifies the parameters for initializing a Fabric shard
 message InitFabricShardInput {
   // org is the organization identifier (e.g., "org1", "acme-corp")
-  // Used to derive namespace names: Temporal namespace "fabric-{org}", K8s namespace "fabric-{org}"
+  // Used to derive namespace names: Temporal namespace "fabric-shard-{org}", K8s namespace "fabric-shard-{org}"
   string org = 1 [
     json_name = "Org",
     (go.field).tags = 'json:"Org" validate:"required"'

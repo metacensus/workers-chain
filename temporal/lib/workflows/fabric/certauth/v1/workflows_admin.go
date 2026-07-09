@@ -14,9 +14,10 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-// computeTLSCommonName returns the CN for a TLS certificate, adding "-tls" suffix
+// ComputeTLSCommonName returns the CN for a TLS certificate, adding "-tls" suffix
 // when both signing and TLS certs come from the same CA to avoid registration collision.
-func computeTLSCommonName(baseName string, signingIssuerRef, tlsIssuerRef *fabricpb.CertificateAuthorityRef) string {
+// Exported so deployment orchestration (fabric/v1) can derive the same identity names.
+func ComputeTLSCommonName(baseName string, signingIssuerRef, tlsIssuerRef *fabricpb.CertificateAuthorityRef) string {
 	// Self-signed cases: no collision (not registering with a CA)
 	if signingIssuerRef == nil || tlsIssuerRef == nil {
 		return baseName
@@ -156,7 +157,7 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 
 	// Compute TLS common name - signing identity always comes from this CA (bootstrap enrollment)
 	// For collision detection, signing issuer is effectively this CA (caRef)
-	tlsCommonName := computeTLSCommonName(
+	tlsCommonName := ComputeTLSCommonName(
 		fmt.Sprintf("bootstrap-admin@%s", caConfig.ComponentName()),
 		caRef, // signing from this CA
 		tlsIssuerRef,
@@ -313,7 +314,7 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 	tlsPurpose := fmt.Sprintf("%s-%s-admin-tls", certType, caID)
 
 	// Compute TLS common name - add "-tls" suffix if same CA issues both to avoid collision
-	tlsCommonName := computeTLSCommonName(caConfig.AdminCommonName(), signingIssuerRef, tlsIssuerRef)
+	tlsCommonName := ComputeTLSCommonName(caConfig.AdminCommonName(), signingIssuerRef, tlsIssuerRef)
 
 	// Determine which credentials to use for registration with the TLS issuer:
 	// - If TLS issuer is this CA itself → use this CA's bootstrap admin
@@ -344,7 +345,7 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 
 	if needsNexusForTls {
 		// Cross-namespace: Org CA admin getting TLS from operator TLS CA - use Nexus
-		NexusCreateCertificate(ctx, &pb.CreateCertificateInput{
+		_, err = NexusCreateCertificate(ctx, &pb.CreateCertificateInput{
 			Org:       org,
 			IssuerRef: tlsIssuerRef,
 			Profile:   "tls",

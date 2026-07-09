@@ -44,6 +44,47 @@ func NewWorkflows() *Workflows {
 	return &Workflows{}
 }
 
+func (w *Workflows) BootstrapFabric(ctx workflow.Context, input *pb.BootstrapFabricWorkflowInput) (pb.BootstrapFabricWorkflow, error) {
+	return newBootstrapFabricWorkflow(input)
+}
+
+type bootstrapFabricWorkflow struct {
+	input *pb.BootstrapFabricWorkflowInput
+}
+
+// newBootstrapFabricWorkflow creates and validates a new bootstrapFabricWorkflow
+func newBootstrapFabricWorkflow(input *pb.BootstrapFabricWorkflowInput) (*bootstrapFabricWorkflow, error) {
+	w := &bootstrapFabricWorkflow{input: input}
+	if err := w.validate(); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// validate checks that the workflow input is valid
+func (w *bootstrapFabricWorkflow) validate() error {
+	if w.input.Req.GetOrg() == "" {
+		return fmt.Errorf("%w: org is required", ErrInvalidInput)
+	}
+	return nil
+}
+
+// Execute bootstraps the shared (operator-owned) Fabric infrastructure:
+// the certificate store and the shared TLS certificate authority chain.
+// Runs on the fabric worker in the "fabric" Temporal namespace; called via
+// Nexus from the central infra worker.
+func (w *bootstrapFabricWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapFabricOutput, error) {
+	if _, err := pb.BootstrapTlsCertificateAuthoritiesChild(ctx, &pb.BootstrapTlsCertificateAuthoritiesInput{
+		Org:                     w.input.Req.GetOrg(),
+		TlsRootValidity:         w.input.Req.GetTlsRootValidity(),
+		TlsIntermediateValidity: w.input.Req.GetTlsIntermediateValidity(),
+	}); err != nil {
+		return nil, fmt.Errorf("bootstrap TLS certificate authorities: %w", err)
+	}
+
+	return &pb.BootstrapFabricOutput{}, nil
+}
+
 func (w *Workflows) BootstrapShard(ctx workflow.Context, input *pb.BootstrapShardWorkflowInput) (pb.BootstrapShardWorkflow, error) {
 	return newBootstrapShardWorkflow(input)
 }

@@ -64,9 +64,9 @@ func (c CouchDbConfig) PeerID() string {
 // ------------ Vault Properties ------------
 
 // PolicyName returns the Vault policy name.
-// Example: "fabric-org1-couchdb-peer0"
+// Example: "fabric-shard-org1-couchdb-peer0"
 func (c CouchDbConfig) PolicyName() string {
-	return fmt.Sprintf("fabric-%s-%s", c.OwnerID(), c.ComponentName())
+	return fmt.Sprintf("%s-%s", vaultPolicyPrefix(c.OwnerConfig), c.ComponentName())
 }
 
 // AuthRoleName returns the Vault Kubernetes auth role name.
@@ -76,26 +76,26 @@ func (c CouchDbConfig) AuthRoleName() string {
 
 // VaultKeysBasePath returns the base Vault path for this CouchDB's secrets (under keys/).
 // CouchDB only has credentials, which are private, so they live under keys/peer/{id}/couchdb.
-// Example: "fabric/org1/keys/peer/peer0/couchdb"
+// Example: "fabric/shard/org1/keys/peer/peer0/couchdb"
 func (c CouchDbConfig) VaultKeysBasePath() string {
 	return fmt.Sprintf("%s/keys/peer/%s/couchdb", c.VaultBasePath(), c.peerID)
 }
 
 // VaultAdminRef returns a SecretRef for the CouchDB admin credentials.
 // Stores {username, password} for CouchDB admin.
-// Example path: "fabric/org1/keys/peer/peer0/couchdb"
+// Example path: "fabric/shard/org1/keys/peer/peer0/couchdb"
 func (c CouchDbConfig) VaultAdminRef() *pb.SecretRef {
 	return secrets.NewVaultRef(c.VaultKeysBasePath())
 }
 
 // VaultDataPath returns the Vault KV v2 data path pattern for policy rules.
-// Example: "secret/data/fabric/org1/keys/peer/peer0/couchdb"
+// Example: "secret/data/fabric/shard/org1/keys/peer/peer0/couchdb"
 func (c CouchDbConfig) VaultDataPath() string {
 	return fmt.Sprintf("%s/%s", vaultSecretDataPrefix, c.VaultKeysBasePath())
 }
 
 // VaultMetadataPath returns the Vault KV v2 metadata path pattern for policy rules.
-// Example: "secret/metadata/fabric/org1/keys/peer/peer0/couchdb"
+// Example: "secret/metadata/fabric/shard/org1/keys/peer/peer0/couchdb"
 func (c CouchDbConfig) VaultMetadataPath() string {
 	return fmt.Sprintf("%s/%s", vaultSecretMetadataPrefix, c.VaultKeysBasePath())
 }
@@ -204,7 +204,7 @@ func (p PeerConfig) TLSDNSNames() []string {
 }
 
 // CouchDbAddress returns the CouchDB address for this peer's state database.
-// Example: "couchdb-peer0.fabric-org1.svc.cluster.local:5984"
+// Example: "couchdb-peer0.fabric-shard-org1.svc.cluster.local:5984"
 func (p PeerConfig) CouchDbAddress() string {
 	return fmt.Sprintf("couchdb-%s.%s.svc.cluster.local:5984", p.peerID, p.KubernetesNamespace())
 }
@@ -226,9 +226,9 @@ func (p PeerConfig) GossipExternalEndpoint() string {
 // ------------ Vault Properties: Base Paths ------------
 
 // PolicyName returns the Vault policy name.
-// Example: "fabric-org1-peer0"
+// Example: "fabric-shard-org1-peer0"
 func (p PeerConfig) PolicyName() string {
-	return fmt.Sprintf("fabric-%s-%s", p.OwnerID(), p.ComponentName())
+	return fmt.Sprintf("%s-%s", vaultPolicyPrefix(p.OwnerConfig), p.ComponentName())
 }
 
 // AuthRoleName returns the Vault Kubernetes auth role name.
@@ -237,13 +237,13 @@ func (p PeerConfig) AuthRoleName() string {
 }
 
 // VaultKeysBasePath returns the base Vault path for this peer's private keys.
-// Example: "fabric/org1/keys/peer/peer0"
+// Example: "fabric/shard/org1/keys/peer/peer0"
 func (p PeerConfig) VaultKeysBasePath() string {
 	return fmt.Sprintf("%s/keys/peer/%s", p.VaultBasePath(), p.peerID)
 }
 
 // VaultCertsBasePath returns the base Vault path for this peer's certificates.
-// Example: "fabric/org1/certs/peer/peer0"
+// Example: "fabric/shard/org1/certs/peer/peer0"
 func (p PeerConfig) VaultCertsBasePath() string {
 	return fmt.Sprintf("%s/certs/peer/%s", p.VaultBasePath(), p.peerID)
 }
@@ -252,21 +252,21 @@ func (p PeerConfig) VaultCertsBasePath() string {
 
 // VaultSigningKeyRef returns a SecretRef for the peer's signing private key.
 // Stores {private_key} for the peer's signing identity.
-// Example path: "fabric/org1/keys/peer/peer0/signing"
+// Example path: "fabric/shard/org1/keys/peer/peer0/signing"
 func (p PeerConfig) VaultSigningKeyRef() *pb.SecretRef {
 	return secrets.NewVaultRef(p.VaultKeysBasePath() + "/signing")
 }
 
 // VaultTLSKeyRef returns a SecretRef for the peer's TLS private key.
 // Stores {private_key} for the peer's TLS identity.
-// Example path: "fabric/org1/keys/peer/peer0/tls"
+// Example path: "fabric/shard/org1/keys/peer/peer0/tls"
 func (p PeerConfig) VaultTLSKeyRef() *pb.SecretRef {
 	return secrets.NewVaultRef(p.VaultKeysBasePath() + "/tls")
 }
 
 // VaultCouchDBRef returns a SecretRef for the peer's CouchDB credentials.
 // Stores {username, password} for CouchDB access.
-// Example path: "fabric/org1/keys/peer/peer0/couchdb"
+// Example path: "fabric/shard/org1/keys/peer/peer0/couchdb"
 func (p PeerConfig) VaultCouchDBRef() *pb.SecretRef {
 	return secrets.NewVaultRef(p.VaultKeysBasePath() + "/couchdb")
 }
@@ -275,14 +275,14 @@ func (p PeerConfig) VaultCouchDBRef() *pb.SecretRef {
 
 // VaultSigningCertRef returns a SecretRef for the peer's signing certificate.
 // Stores {certificate, chain} for the peer's signing identity.
-// Example path: "fabric/org1/certs/peer/peer0/signing"
+// Example path: "fabric/shard/org1/certs/peer/peer0/signing"
 func (p PeerConfig) VaultSigningCertRef() *pb.SecretRef {
 	return secrets.NewVaultRef(p.VaultCertsBasePath() + "/signing")
 }
 
 // VaultTLSCertRef returns a SecretRef for the peer's TLS certificate.
 // Stores {certificate, chain} for the peer's TLS identity.
-// Example path: "fabric/org1/certs/peer/peer0/tls"
+// Example path: "fabric/shard/org1/certs/peer/peer0/tls"
 func (p PeerConfig) VaultTLSCertRef() *pb.SecretRef {
 	return secrets.NewVaultRef(p.VaultCertsBasePath() + "/tls")
 }
@@ -290,19 +290,19 @@ func (p PeerConfig) VaultTLSCertRef() *pb.SecretRef {
 // ------------ Vault Properties: Policy Paths ------------
 
 // VaultKeysDataPath returns the Vault KV v2 data path pattern for this peer's private keys.
-// Example: "secret/data/fabric/org1/keys/peer/peer0/*"
+// Example: "secret/data/fabric/shard/org1/keys/peer/peer0/*"
 func (p PeerConfig) VaultKeysDataPath() string {
 	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, p.VaultKeysBasePath())
 }
 
 // VaultCertsDataPath returns the Vault KV v2 data path pattern for all certificates (public).
-// Example: "secret/data/fabric/org1/certs/*"
+// Example: "secret/data/fabric/shard/org1/certs/*"
 func (p PeerConfig) VaultCertsDataPath() string {
 	return fmt.Sprintf("%s/%s/certs/*", vaultSecretDataPrefix, p.VaultBasePath())
 }
 
 // VaultCertsMetadataPath returns the Vault KV v2 metadata path pattern for all certificates.
-// Example: "secret/metadata/fabric/org1/certs/*"
+// Example: "secret/metadata/fabric/shard/org1/certs/*"
 func (p PeerConfig) VaultCertsMetadataPath() string {
 	return fmt.Sprintf("%s/%s/certs/*", vaultSecretMetadataPrefix, p.VaultBasePath())
 }
@@ -442,7 +442,7 @@ func (o OrdererConfig) TLSDNSNames() []string {
 }
 
 // ClusterAddress returns the address for Raft cluster communication.
-// Example: "orderer0.fabric-org1.svc.cluster.local:7050"
+// Example: "orderer0.fabric-shard-org1.svc.cluster.local:7050"
 func (o OrdererConfig) ClusterAddress() string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local:%d", o.ComponentName(), o.KubernetesNamespace(), o.Port())
 }
@@ -450,9 +450,9 @@ func (o OrdererConfig) ClusterAddress() string {
 // ------------ Vault Properties: Base Paths ------------
 
 // PolicyName returns the Vault policy name.
-// Example: "fabric-org1-orderer0"
+// Example: "fabric-shard-org1-orderer0"
 func (o OrdererConfig) PolicyName() string {
-	return fmt.Sprintf("fabric-%s-%s", o.OwnerID(), o.ComponentName())
+	return fmt.Sprintf("%s-%s", vaultPolicyPrefix(o.OwnerConfig), o.ComponentName())
 }
 
 // AuthRoleName returns the Vault Kubernetes auth role name.
@@ -461,13 +461,13 @@ func (o OrdererConfig) AuthRoleName() string {
 }
 
 // VaultKeysBasePath returns the base Vault path for this orderer's private keys.
-// Example: "fabric/org1/keys/orderer/orderer0"
+// Example: "fabric/shard/org1/keys/orderer/orderer0"
 func (o OrdererConfig) VaultKeysBasePath() string {
 	return fmt.Sprintf("%s/keys/orderer/%s", o.VaultBasePath(), o.ordererID)
 }
 
 // VaultCertsBasePath returns the base Vault path for this orderer's certificates.
-// Example: "fabric/org1/certs/orderer/orderer0"
+// Example: "fabric/shard/org1/certs/orderer/orderer0"
 func (o OrdererConfig) VaultCertsBasePath() string {
 	return fmt.Sprintf("%s/certs/orderer/%s", o.VaultBasePath(), o.ordererID)
 }
@@ -476,14 +476,14 @@ func (o OrdererConfig) VaultCertsBasePath() string {
 
 // VaultSigningKeyRef returns a SecretRef for the orderer's signing private key.
 // Stores {private_key} for the orderer's signing identity.
-// Example path: "fabric/org1/keys/orderer/orderer0/signing"
+// Example path: "fabric/shard/org1/keys/orderer/orderer0/signing"
 func (o OrdererConfig) VaultSigningKeyRef() *pb.SecretRef {
 	return secrets.NewVaultRef(o.VaultKeysBasePath() + "/signing")
 }
 
 // VaultTLSKeyRef returns a SecretRef for the orderer's TLS private key.
 // Stores {private_key} for the orderer's TLS identity.
-// Example path: "fabric/org1/keys/orderer/orderer0/tls"
+// Example path: "fabric/shard/org1/keys/orderer/orderer0/tls"
 func (o OrdererConfig) VaultTLSKeyRef() *pb.SecretRef {
 	return secrets.NewVaultRef(o.VaultKeysBasePath() + "/tls")
 }
@@ -492,14 +492,14 @@ func (o OrdererConfig) VaultTLSKeyRef() *pb.SecretRef {
 
 // VaultSigningCertRef returns a SecretRef for the orderer's signing certificate.
 // Stores {certificate, chain} for the orderer's signing identity.
-// Example path: "fabric/org1/certs/orderer/orderer0/signing"
+// Example path: "fabric/shard/org1/certs/orderer/orderer0/signing"
 func (o OrdererConfig) VaultSigningCertRef() *pb.SecretRef {
 	return secrets.NewVaultRef(o.VaultCertsBasePath() + "/signing")
 }
 
 // VaultTLSCertRef returns a SecretRef for the orderer's TLS certificate.
 // Stores {certificate, chain} for the orderer's TLS identity.
-// Example path: "fabric/org1/certs/orderer/orderer0/tls"
+// Example path: "fabric/shard/org1/certs/orderer/orderer0/tls"
 func (o OrdererConfig) VaultTLSCertRef() *pb.SecretRef {
 	return secrets.NewVaultRef(o.VaultCertsBasePath() + "/tls")
 }
@@ -507,19 +507,19 @@ func (o OrdererConfig) VaultTLSCertRef() *pb.SecretRef {
 // ------------ Vault Properties: Policy Paths ------------
 
 // VaultKeysDataPath returns the Vault KV v2 data path pattern for this orderer's private keys.
-// Example: "secret/data/fabric/org1/keys/orderer/orderer0/*"
+// Example: "secret/data/fabric/shard/org1/keys/orderer/orderer0/*"
 func (o OrdererConfig) VaultKeysDataPath() string {
 	return fmt.Sprintf("%s/%s/*", vaultSecretDataPrefix, o.VaultKeysBasePath())
 }
 
 // VaultCertsDataPath returns the Vault KV v2 data path pattern for all certificates (public).
-// Example: "secret/data/fabric/org1/certs/*"
+// Example: "secret/data/fabric/shard/org1/certs/*"
 func (o OrdererConfig) VaultCertsDataPath() string {
 	return fmt.Sprintf("%s/%s/certs/*", vaultSecretDataPrefix, o.VaultBasePath())
 }
 
 // VaultCertsMetadataPath returns the Vault KV v2 metadata path pattern for all certificates.
-// Example: "secret/metadata/fabric/org1/certs/*"
+// Example: "secret/metadata/fabric/shard/org1/certs/*"
 func (o OrdererConfig) VaultCertsMetadataPath() string {
 	return fmt.Sprintf("%s/%s/certs/*", vaultSecretMetadataPrefix, o.VaultBasePath())
 }

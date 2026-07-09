@@ -301,7 +301,7 @@ type CertificateAuthorityRef struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// cert_type specifies the CA chain ("tls" or "org")
 	CertType string `protobuf:"bytes,1,opt,name=cert_type,json=CertType,proto3" json:"CertType" validate:"required,oneof=tls org"`
-	// id identifies the CA within its chain ("root" or version like "v1")
+	// id identifies the CA within its chain ("root" or "int")
 	Id            string `protobuf:"bytes,2,opt,name=id,json=Id,proto3" json:"Id" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -7,6 +7,7 @@ import (
 // PeerValues represents the Helm values for a Fabric peer deployment
 type PeerValues struct {
 	Org            string
+	Namespace      string
 	PeerId         string
 	Image          ImageConfig
 	Replicas       int
@@ -89,10 +90,11 @@ func NewPeerValues(
 	couchDbConfig := fabricconfig.NewCouchDbConfig(peerConfig.OwnerConfig, peerConfig.PeerID())
 
 	return &PeerValues{
-		Org:      peerConfig.OwnerID(),
-		PeerId:   peerConfig.PeerID(),
-		Image:    DefaultImageConfig("peer", ""),
-		Replicas: 1, // Single instance per peer StatefulSet
+		Org:       peerConfig.OwnerID(),
+		Namespace: peerConfig.KubernetesNamespace(),
+		PeerId:    peerConfig.PeerID(),
+		Image:     DefaultImageConfig("peer", ""),
+		Replicas:  1, // Single instance per peer StatefulSet
 		Msp: PeerMspConfig{
 			Id: peerConfig.MSPID(),
 		},

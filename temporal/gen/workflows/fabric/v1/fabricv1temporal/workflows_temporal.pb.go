@@ -19,6 +19,23 @@ import (
 // Nexus handler for fabric.v1.Fabric
 type FabricNexusHandler struct{}
 
+// BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
+// This workflow runs on the fabric worker in the "fabric" Temporal namespace and
+// deploys the certificate store and shared TLS certificate authority chain.
+// Called via Nexus from the central infra worker during InitFabric.
+func (h *FabricNexusHandler) BootstrapFabric(name string) nexus.Operation[*v1.BootstrapFabricInput, *v1.BootstrapFabricOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.BootstrapFabricInput, *v1.BootstrapFabricOutput]{
+		Handler: func(ctx context.Context, input *v1.BootstrapFabricInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.BootstrapFabricOutput], error) {
+			o, err := v1.NewBootstrapFabricOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.BootstrapFabricOutput](ctx, opts, o, v1.BootstrapFabricWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
 // BootstrapOrgCertificateAuthorities deploys the organization CA chain
 // Org-owned, runs in org namespace, deploys Org Root and Org Intermediate CAs
 func (h *FabricNexusHandler) BootstrapOrgCertificateAuthorities(name string) nexus.Operation[*v1.BootstrapOrgCertificateAuthoritiesInput, *v1.BootstrapOrgCertificateAuthoritiesOutput] {
@@ -35,8 +52,9 @@ func (h *FabricNexusHandler) BootstrapOrgCertificateAuthorities(name string) nex
 }
 
 // BootstrapShard is the entry point for Phase 2 of shard initialization
-// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
-// and deploys all Fabric components (CAs, peers, orderers) for the organization.
+// This workflow runs on the shard worker in the org's Temporal namespace
+// (e.g., "fabric-shard-org1") and deploys all Fabric components
+// (CAs, peers, orderers) for the organization.
 // Called via Nexus from the central worker after Phase 1 completes
 func (h *FabricNexusHandler) BootstrapShard(name string) nexus.Operation[*v1.BootstrapShardInput, *v1.BootstrapShardOutput] {
 	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.BootstrapShardInput, *v1.BootstrapShardOutput]{

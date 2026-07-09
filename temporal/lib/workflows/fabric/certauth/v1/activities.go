@@ -303,8 +303,13 @@ func (a *Activities) RevokeIdentity(ctx context.Context, req *pb.RevokeIdentityI
 	}
 	identityName := req.GetIdentityName()
 
-	// Create owner config from input - enables activities to work for any owner
-	ownerConfig := config.NewOrgConfig(req.GetOrg())
+	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
+	var ownerConfig config.OwnerConfig
+	if caRef.GetCertType() == "tls" {
+		ownerConfig = config.GetOperator()
+	} else {
+		ownerConfig = config.NewOrgConfig(req.GetOrg())
+	}
 	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, caRef)
 
 	// Create config with explicit admin identity (nil = use default permanent admin)

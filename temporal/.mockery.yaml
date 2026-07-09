@@ -122,6 +122,14 @@ packages:
     interfaces:
       OperatorServiceClient:
 
+  # Fabric CA certauth v1 client (for testing certauth activities)
+  github.com/metacensus/infra/temporal/lib/workflows/fabric/certauth/v1:
+    config:
+      dir: "mocks/workflows/fabric/certauth/v1"
+      outpkg: "certauthv1"
+    interfaces:
+      Client:
+
   # Secrets v1 provider (for testing activities that fetch/store secrets)
   github.com/metacensus/infra/temporal/lib/workflows/secrets/v1:
     config:

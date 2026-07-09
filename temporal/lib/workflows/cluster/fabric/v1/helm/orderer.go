@@ -7,6 +7,7 @@ import (
 // OrdererValues represents the Helm values for a Fabric orderer deployment
 type OrdererValues struct {
 	Org            string
+	Namespace      string
 	OrdererId      string
 	Image          ImageConfig
 	Replicas       int
@@ -71,6 +72,7 @@ func NewOrdererValues(
 ) *OrdererValues {
 	return &OrdererValues{
 		Org:       ordererConfig.OwnerID(),
+		Namespace: ordererConfig.KubernetesNamespace(),
 		OrdererId: ordererConfig.OrdererID(),
 		Image:     DefaultImageConfig("orderer", ""),
 		Replicas:  1, // Single instance per orderer StatefulSet

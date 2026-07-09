@@ -190,7 +190,7 @@ func GetOrg() *OrgConfig {
 // ============= Kubernetes Infrastructure =============
 
 func (c OrgConfig) KubernetesNamespace() string {
-	return "fabric-" + c.OrgID
+	return "fabric-shard-" + c.OrgID
 }
 
 func (c OrgConfig) WorkerServiceAccountName() string {
@@ -204,32 +204,32 @@ func (c OrgConfig) WorkerDeploymentName() string {
 // ============= Temporal Orchestration =============
 
 func (c OrgConfig) TemporalNamespace() string {
-	return "fabric-" + c.OrgID
+	return "fabric-shard-" + c.OrgID
 }
 
 func (c OrgConfig) NexusEndpointBootstrapShard() string {
-	return "fabric-" + c.OrgID + "-BootstrapShard"
+	return "fabric-shard-" + c.OrgID + "-BootstrapShard"
 }
 
 // ============= Vault Security/RBAC =============
 
 func (c OrgConfig) VaultBasePath() string {
-	return "fabric/" + c.OrgID
+	return "fabric/shard/" + c.OrgID
 }
 
 func (c OrgConfig) WorkerVaultPolicyName() string {
-	return "fabric-" + c.OrgID + "-worker"
+	return "fabric-shard-" + c.OrgID + "-worker"
 }
 
 func (c OrgConfig) WorkerVaultAuthRole() string {
-	return "fabric-" + c.OrgID + "-worker"
+	return "fabric-shard-" + c.OrgID + "-worker"
 }
 
 // VaultSecretPath constructs a full Vault KV v2 secret path.
-// Example: VaultSecretPath("database/cert-store/credentials") → "secret/fabric/org1/database/cert-store/credentials"
+// Example: VaultSecretPath("database/cert-store/credentials") → "secret/fabric/shard/org1/database/cert-store/credentials"
 func (c OrgConfig) VaultSecretPath(subpath string) string {
 	if subpath == "" {
-		return "secret/fabric/" + c.OrgID
+		return "secret/" + c.VaultBasePath()
 	}
-	return "secret/fabric/" + c.OrgID + "/" + subpath
+	return "secret/" + c.VaultBasePath() + "/" + subpath
 }

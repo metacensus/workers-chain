@@ -1,13 +1,22 @@
 # Fabric Worker Configuration
-# This chart deploys a Temporal worker for managing Hyperledger Fabric resources
+# This chart deploys a Temporal worker for managing Hyperledger Fabric resources.
+# It serves both the shared fabric worker (operator-owned) and per-org shard workers.
 
 # Operator identifier (e.g., "metacensus")
 # The operator owns shared infrastructure like TLS certificate authorities
 operator: "{{.Operator}}"
 
-# Organization identifier (e.g., "org1", "acme-corp")
-# Used to derive namespace names and service account names
+# Owner identifier used for resource naming
+# (org ID for shard workers, operator ID for the shared fabric worker)
 org: "{{.Org}}"
+
+# Organization identifier passed as ORG_ID to the worker container.
+# Empty for the shared fabric worker, which owns no organization.
+orgId: "{{.OrgId}}"
+
+# Kubernetes namespace the worker is deployed into
+# ("fabric" for the shared fabric worker, "fabric-shard-{org}" for shard workers)
+namespace: "{{.Namespace}}"
 
 # Container image configuration
 image:

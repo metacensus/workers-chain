@@ -225,7 +225,7 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/c
   // Keys (private) and certs (public) are stored at separate Vault paths.
   // Used during CA initialization to obtain the bootstrap admin's certificate.
   message BootstrapEnrollIdentityInput {
-    // ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric-org1.svc.cluster.local:7054")
+    // ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric.svc.cluster.local:7054")
     string ca_url = 1 [
       json_name = "CaUrl",
       (go.field).tags = 'json:"CaUrl" validate:"required,url"'

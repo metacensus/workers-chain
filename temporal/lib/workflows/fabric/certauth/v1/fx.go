@@ -2,7 +2,7 @@ package certauth
 
 import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1"
-	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1temporal"
+	"github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1/certauthv1temporal"
 	"github.com/metacensus/infra/temporal/lib/workflows/common"
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 	"go.temporal.io/sdk/worker"
@@ -50,8 +50,13 @@ func RegisterActivities(w worker.Worker, activities *Activities) {
 	pb.RegisterIdentityActivities(w, activities)
 }
 
-// RegisterNexusService registers the fabric Nexus service handler with the worker
-// This allows the fabric worker to receive Nexus calls from the central worker
+// RegisterNexusService registers the CertificateAuthority Nexus service handler with the worker.
+// This allows the worker owning the shared TLS CAs to receive cross-namespace
+// certificate issuance calls (e.g. CreateCertificate) from org workers.
+//
+// The parameter is worker.Worker (not worker.NexusServiceRegistry) so fx can
+// inject the worker.Worker from the container; worker.Worker embeds
+// worker.NexusServiceRegistry, which is all the generated registration needs.
 func RegisterNexusService(w worker.Worker) error {
-	return fabricv1temporal.RegisterFabricNexusService(w)
+	return certauthv1temporal.RegisterCertificateAuthorityNexusService(w)
 }

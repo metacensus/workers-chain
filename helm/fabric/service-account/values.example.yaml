@@ -1,7 +1,8 @@
-# Namespace where the ServiceAccount will be created (should match org-specific namespace)
-namespace: fabric-example-org
+# Namespace where the ServiceAccount will be created
+# ("fabric-shard-{org}" for shard workers, "fabric" for the shared fabric worker)
+namespace: fabric-shard-example-org
 
-# ServiceAccount name for the fabric worker in this org
+# ServiceAccount name for the worker in this namespace
 serviceAccountName: fabric-worker-example-org
 
 # Role name for RBAC permissions

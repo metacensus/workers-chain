@@ -30,7 +30,7 @@ const (
 // SecretRef is a backend-agnostic reference to a secret.
 // The ref field is a structured object interpreted based on type.
 // Examples:
-//   - type: "vault", ref: {path: "fabric/org1/ca/tls/root/admin", version: 1}
+//   - type: "vault", ref: {path: "fabric/shard/org1/ca/tls/root/admin", version: 1}
 //   - type: "k8s", ref: {namespace: "default", name: "my-secret", key: "password"}
 type SecretRef struct {
 	state protoimpl.MessageState `protogen:"open.v1"`

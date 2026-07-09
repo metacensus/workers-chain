@@ -111,7 +111,7 @@ message CertificateAuthorityRef {
     (go.field).tags = 'json:"CertType" validate:"required,oneof=tls org"'
   ];
 
-  // id identifies the CA within its chain ("root" or version like "v1")
+  // id identifies the CA within its chain ("root" or "int")
   string id = 2 [
     json_name = "Id",
     (go.field).tags = 'json:"Id" validate:"required"'

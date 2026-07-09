@@ -186,7 +186,7 @@ func (*InitFabricOutput) Descriptor() ([]byte, []int) {
 type InitFabricShardInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// org is the organization identifier (e.g., "org1", "acme-corp")
-	// Used to derive namespace names: Temporal namespace "fabric-{org}", K8s namespace "fabric-{org}"
+	// Used to derive namespace names: Temporal namespace "fabric-shard-{org}", K8s namespace "fabric-shard-{org}"
 	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
 	// deployment is the Fabric deployment configuration (required)
 	// Specifies all CAs, peers, and orderers to deploy for this shard

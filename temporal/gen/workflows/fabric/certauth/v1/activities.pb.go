@@ -476,7 +476,7 @@ func (x *RevokeIdentityOutput) GetRevoked() bool {
 // Used during CA initialization to obtain the bootstrap admin's certificate.
 type BootstrapEnrollIdentityInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric-org1.svc.cluster.local:7054")
+	// ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric.svc.cluster.local:7054")
 	CaUrl string `protobuf:"bytes,1,opt,name=ca_url,json=CaUrl,proto3" json:"CaUrl" validate:"required,url"`
 	// bootstrap_credentials_ref points to the bootstrap admin username/password in Vault
 	BootstrapCredentialsRef *v11.SecretRef `protobuf:"bytes,2,opt,name=bootstrap_credentials_ref,json=BootstrapCredentialsRef,proto3" json:"BootstrapCredentialsRef" validate:"required"`

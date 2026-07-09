@@ -221,7 +221,7 @@ func (w *deployOrgRootCertificateAuthorityWorkflow) Execute(ctx workflow.Context
 	}
 
 	tlsPurpose := fmt.Sprintf("org-root-tls")
-	tlsCommonName := computeTLSCommonName(caConfig.ComponentName(), nil, tlsIssuerRef)
+	tlsCommonName := certauth.ComputeTLSCommonName(caConfig.ComponentName(), nil, tlsIssuerRef)
 
 	_, err = certauth.NexusCreateCertificate(ctx, &certauthpb.CreateCertificateInput{
 		Org:       org,
@@ -381,7 +381,7 @@ func (w *deployOrgIntermediateCertificateAuthorityWorkflow) Execute(ctx workflow
 	}
 
 	tlsPurpose := fmt.Sprintf("org-int-tls")
-	tlsCommonName := computeTLSCommonName(caConfig.ComponentName(), signingIssuerRef, tlsIssuerRef)
+	tlsCommonName := certauth.ComputeTLSCommonName(caConfig.ComponentName(), signingIssuerRef, tlsIssuerRef)
 
 	_, err = certauth.NexusCreateCertificate(ctx, &certauthpb.CreateCertificateInput{
 		Org:       org,

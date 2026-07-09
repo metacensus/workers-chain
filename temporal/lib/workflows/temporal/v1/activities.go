@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/temporal/v1"
 	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/api/nexus/v1"
 	"go.temporal.io/api/operatorservice/v1"
+	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
@@ -60,9 +60,15 @@ func (a *Activities) RegisterNamespace(ctx context.Context, req *pb.RegisterName
 		ActiveClusterName:                "active", // Default cluster
 	}
 
-	// Call Temporal admin API
-	// This is idempotent - if the namespace already exists, it returns success
+	// Call Temporal admin API.
+	// Idempotent: a namespace that already exists is treated as success. The server
+	// returns a typed *serviceerror.NamespaceAlreadyExists; match the type rather than
+	// the message text (which varies by server version, e.g. "already exists").
 	if err := a.namespaceClient.Register(ctx, registerReq); err != nil {
+		var alreadyExists *serviceerror.NamespaceAlreadyExists
+		if errors.As(err, &alreadyExists) {
+			return &pb.RegisterNamespaceOutput{}, nil
+		}
 		return nil, fmt.Errorf("%w: %w", ErrRegisterNamespace, err)
 	}
 
@@ -122,8 +128,11 @@ func (a *Activities) CreateNexusEndpoint(ctx context.Context, req *pb.CreateNexu
 	// Call Temporal operator service
 	resp, err := a.operatorService.CreateNexusEndpoint(ctx, createReq)
 	if err != nil {
-		// Idempotent: treat "already exists" as success
-		if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "AlreadyExists") {
+		// Idempotent: an endpoint that already exists is treated as success. The server
+		// returns a typed *serviceerror.AlreadyExists (message: "... already registered");
+		// match the type rather than the message text, which varies by server version.
+		var alreadyExists *serviceerror.AlreadyExists
+		if errors.As(err, &alreadyExists) {
 			logger.Info("Nexus endpoint already exists, treating as success",
 				"name", req.Name)
 			return &pb.CreateNexusEndpointOutput{}, nil

@@ -3,21 +3,21 @@ package infra
 import (
 	"github.com/metacensus/infra/temporal/lib/workers"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
-	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	cell "github.com/metacensus/infra/temporal/lib/workflows/cell/v1"
 	clusterfabric "github.com/metacensus/infra/temporal/lib/workflows/cluster/fabric/v1"
-	certauth "github.com/metacensus/infra/temporal/lib/workflows/fabric/certauth/v1"
-	fabric "github.com/metacensus/infra/temporal/lib/workflows/fabric/v1"
 	helm "github.com/metacensus/infra/temporal/lib/workflows/helm/v1"
 	kube "github.com/metacensus/infra/temporal/lib/workflows/kube/v1"
-	postgres "github.com/metacensus/infra/temporal/lib/workflows/postgres/v1"
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 	temporal "github.com/metacensus/infra/temporal/lib/workflows/temporal/v1"
 	vault "github.com/metacensus/infra/temporal/lib/workflows/vault/v1"
 	"go.uber.org/fx"
 )
 
-// Module provides all dependencies for the infra worker
+// Module provides all dependencies for the infra worker.
+// The infra worker runs in the "infra" Temporal namespace and orchestrates
+// platform bootstrap (cell workflows), Temporal admin, secrets access, and
+// cluster provisioning. Fabric-specific work (TLS CAs, certificate issuance,
+// shard components) is delegated via Nexus to the fabric and shard workers.
 var Module = fx.Module("infra",
 	// Load environment config
 	fx.Provide(
@@ -27,12 +27,6 @@ var Module = fx.Module("infra",
 		config.GetKubernetes,
 		config.GetOperator,
 	),
-
-	// Provide CertificateStoreConfig for postgres activities
-	// The infra worker uses OperatorConfig because TLS CAs belong to the operator
-	fx.Provide(func(operatorConfig *config.OperatorConfig) fabricconfig.CertificateStoreConfig {
-		return fabricconfig.NewCertificateStoreConfig(operatorConfig)
-	}),
 
 	// Provide temporal worker
 	fx.Provide(workers.NewWorker),
@@ -45,9 +39,6 @@ var Module = fx.Module("infra",
 	temporal.Module,
 	cell.Module,
 	clusterfabric.Module,
-	certauth.Module,
-	fabric.Module,
-	postgres.Module,
 
 	// Register all workflows and activities with the worker
 	fx.Invoke(
@@ -61,10 +52,5 @@ var Module = fx.Module("infra",
 		temporal.RegisterWorkflows,
 		cell.RegisterWorkflows,
 		clusterfabric.RegisterWorkflows,
-		certauth.RegisterActivities,
-		certauth.RegisterWorkflows,
-		certauth.RegisterNexusService,
-		fabric.RegisterWorkflows,
-		postgres.RegisterActivities,
 	),
 )

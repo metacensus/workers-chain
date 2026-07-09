@@ -52,8 +52,9 @@ service Cluster {
 // ==================== CreateNamespace Workflow Messages ====================
 
 message CreateNamespaceInput {
-  // org is the organization identifier (e.g., "org1")
-  // The namespace will be named "fabric-{org}"
+  // org is the owner identifier: an organization (e.g., "org1") or, when
+  // is_operator is true, the operator (e.g., "metacensus").
+  // Org namespaces are named "fabric-shard-{org}"; the operator namespace is "fabric".
   string org = 1 [
     json_name = "Org",
     (go.field).tags = 'json:"Org" validate:"required"'
@@ -61,7 +62,7 @@ message CreateNamespaceInput {
 
   // is_operator indicates whether this is the operator namespace
   // When true, network policies will be created to allow cross-namespace
-  // access from fabric org namespaces to TLS CA services on port 7054
+  // access from fabric shard namespaces to TLS CA services on port 7054
   bool is_operator = 2 [
     json_name = "IsOperator",
     (go.field).tags = 'json:"IsOperator,omitempty"'
@@ -69,7 +70,7 @@ message CreateNamespaceInput {
 }
 
 message CreateNamespaceOutput {
-  // namespace_name is the created namespace (e.g., "fabric-org1")
+  // namespace_name is the created namespace (e.g., "fabric-shard-org1" or "fabric")
   string namespace_name = 1 [
     json_name = "NamespaceName",
     (go.field).tags = 'json:"NamespaceName" validate:"required"'
@@ -79,9 +80,18 @@ message CreateNamespaceOutput {
 // ==================== CreateServiceAccount Workflow Messages ====================
 
 message CreateServiceAccountInput {
+  // org is the owner identifier: an organization or, when is_operator is true,
+  // the operator.
   string org = 1 [
     json_name = "Org",
     (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
+  // is_operator selects operator-owned naming (namespace "fabric") instead of
+  // org-owned naming (namespace "fabric-shard-{org}")
+  bool is_operator = 2 [
+    json_name = "IsOperator",
+    (go.field).tags = 'json:"IsOperator,omitempty"'
   ];
 }
 
@@ -90,7 +100,8 @@ message CreateServiceAccountOutput {}
 // ==================== CreateDeployment Workflow Messages ====================
 
 message CreateDeploymentInput {
-  // org is the organization identifier (e.g., "org1")
+  // org is the owner identifier: an organization (e.g., "org1") or, when
+  // is_operator is true, the operator (e.g., "metacensus").
   // Used to derive namespace names, service account names, etc.
   string org = 1 [
     json_name = "Org",
@@ -99,15 +110,23 @@ message CreateDeploymentInput {
 
   // component specifies which type of deployment to create
   // Currently supported:
-  //   - "worker": Fabric worker deployment
+  //   - "worker": Fabric worker deployment (shared fabric worker when is_operator,
+  //       otherwise a per-org shard worker)
   //   - "certificate-store": PostgreSQL certificate store
   //   - "certificate-authority-{certType}-{caID}": Certificate Authority
-  //       where certType is "tls" or "org", and caID is "root", "v1", "v2", etc.
-  //       Examples: "certificate-authority-tls-root", "certificate-authority-org-v1"
-  // Future components: "peer", "orderer", "couchdb"
+  //       where certType is "tls" or "org", and caID is "root" or "int".
+  //       Examples: "certificate-authority-tls-root", "certificate-authority-org-int"
+  //   - "couchdb-{peerId}", "peer{id}", "orderer{id}"
   string component = 2 [
     json_name = "Component",
     (go.field).tags = 'json:"Component" validate:"required"'
+  ];
+
+  // is_operator selects operator-owned naming (namespace "fabric") instead of
+  // org-owned naming (namespace "fabric-shard-{org}")
+  bool is_operator = 3 [
+    json_name = "IsOperator",
+    (go.field).tags = 'json:"IsOperator,omitempty"'
   ];
 }
 

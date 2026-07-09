@@ -34,14 +34,14 @@ Fabric deployment requires balancing **security isolation** with **shared infras
 - **K8s Namespace:** `fabric`
 - **Vault Access:** `secret/fabric/tls/*` (TLS CA secrets only)
 - **Nexus Calls:** `secrets.v1.CreateAccess` → Infra
-- **Nexus Services:** Exposes `fabric.certauth.v1.CreateCertifitcate`
+- **Nexus Services:** Exposes `fabric.certauth.v1.CreateCertificate`
 - **Responsibilities:** TLS CA chain (Root + Intermediate), Certificate Store, TLS certificate issuance
 
 ### Shard Workers (per-org deployments)
 - **Temporal Namespace:** `fabric-shard-{org}` (one per org)
 - **K8s Namespace:** `fabric-shard-{org}` (one per org)
 - **Vault Access:** `secret/fabric/shard/{org}/*`
-- **Nexus Calls:** `secrets.v1.CreateAccess` → Infra, `fabric.certauth.v1.CreateCertifitcate` → Fabric
+- **Nexus Calls:** `secrets.v1.CreateAccess` → Infra, `fabric.certauth.v1.CreateCertificate` → Fabric
 - **Responsibilities:** Org CA chain, Peers, Orderers, CouchDB, identity management
 
 **Isolation Strategy:**
@@ -52,9 +52,11 @@ Fabric deployment requires balancing **security isolation** with **shared infras
 
 ---
 
-## Nexus Authorization
+## Nexus Authorization (Future Work)
 
-Cross-namespace calls require authorization. Since Temporal Nexus ACL management requires server plugins (not available in standard SDK), authorization is handled at the application layer.
+**Status: ❌ Not implemented.** Cross-namespace calls currently have no application-layer authorization; the design below is planned but deferred.
+
+Cross-namespace calls require authorization. Since Temporal Nexus ACL management requires server plugins (not available in standard SDK), authorization will be handled at the application layer.
 
 ### `secrets.v1.CreateAccess` (Infra Worker)
 
@@ -62,7 +64,7 @@ Validates caller namespace maps to requested Vault path:
 - `fabric` → `secret/fabric/tls/*` only
 - `fabric-shard-{org}` → `secret/fabric/shard/{org}/*` only
 
-### `fabric.certauth.v1.CreateCertifitcate` (Fabric Worker)
+### `fabric.certauth.v1.CreateCertificate` (Fabric Worker)
 
 Validates:
 - Caller namespace matches `fabric-shard-*` pattern
@@ -86,7 +88,8 @@ cell.v1.InitFabric (Infra Worker, infra namespace)
 ├─ cluster.fabric.v1.CreateServiceAccount
 ├─ secrets.v1.CreateAccess
 ├─ cluster.fabric.v1.CreateDeployment (fabric worker)
-├─ temporal.v1.CreateNexusEndpoint (CreateCertifitcate)
+├─ temporal.v1.CreateNexusEndpoint (CreateCertificate)
+├─ temporal.v1.CreateNexusEndpoint (BootstrapFabric)
 │
 └─ Nexus → fabric.v1.BootstrapFabric (Fabric Worker, fabric namespace)
            │
@@ -96,7 +99,7 @@ cell.v1.InitFabric (Infra Worker, infra namespace)
               └─ fabric.v1.DeployTlsIntermediateCertificateAuthority
 ```
 
-**Result:** TLS CA infrastructure ready. Fabric worker accepting `CreateCertifitcate` requests.
+**Result:** TLS CA infrastructure ready. Fabric worker accepting `CreateCertificate` requests.
 
 ### On-Demand: Shard Creation
 
@@ -117,9 +120,9 @@ cell.v1.InitFabricShard (Infra Worker, infra namespace)
            ├─ fabric.v1.BootstrapOrgCertificateAuthorities
            │  ├─ fabric.v1.DeployCertificateStore
            │  ├─ fabric.v1.DeployOrgRootCertificateAuthority
-           │  │  └─ Nexus → fabric.certauth.v1.CreateCertifitcate (Fabric Worker)
+           │  │  └─ Nexus → fabric.certauth.v1.CreateCertificate (Fabric Worker)
            │  └─ fabric.v1.DeployOrgIntermediateCertificateAuthority
-           │     └─ Nexus → fabric.certauth.v1.CreateCertifitcate (Fabric Worker)
+           │     └─ Nexus → fabric.certauth.v1.CreateCertificate (Fabric Worker)
            │
            ├─ for each peer:
            │  ├─ fabric.v1.DeployCouchDb
@@ -142,7 +145,7 @@ cell.v1.InitFabricShard (Infra Worker, infra namespace)
 | Worker | Temporal NS | K8s NS | Vault Access | Nexus Access |
 |--------|-------------|--------|--------------|--------------|
 | Infra | `infra` | `workers` | All paths (god-mode) | Exposes `CreateAccess` |
-| Fabric | `fabric` | `fabric` | `secret/fabric/tls/*` | Exposes `CreateCertifitcate` |
+| Fabric | `fabric` | `fabric` | `secret/fabric/tls/*` | Exposes `CreateCertificate` |
 | Shard (org1) | `fabric-shard-org1` | `fabric-shard-org1` | `secret/fabric/shard/org1/*` | Calls Infra + Fabric |
 | Shard (org2) | `fabric-shard-org2` | `fabric-shard-org2` | `secret/fabric/shard/org2/*` | Calls Infra + Fabric |
 
@@ -176,18 +179,19 @@ cell.v1.InitFabricShard (Infra Worker, infra namespace)
 ```
 cell.v1.BootstrapInfra ✅
 ├─ temporal.v1.CreateNexusEndpoint ✅ (secrets-CreateAccess)
-└─ cell.v1.InitFabric 🟡
+└─ cell.v1.InitFabric ✅
 ```
 
 ```
-cell.v1.InitFabric 🟡
-├─ temporal.v1.CreateNamespace ❌ (fabric)
+cell.v1.InitFabric ✅
+├─ temporal.v1.CreateNamespace ✅ (fabric)
 ├─ cluster.fabric.v1.CreateNamespace ✅
 ├─ cluster.fabric.v1.CreateServiceAccount ✅
 ├─ secrets.v1.CreateAccess ✅
-├─ cluster.fabric.v1.CreateDeployment ❌ (fabric worker)
-├─ temporal.v1.CreateNexusEndpoint ✅ (CreateCertifitcate)
-└─ Nexus → fabric.v1.BootstrapFabric ❌
+├─ cluster.fabric.v1.CreateDeployment ✅ (fabric worker)
+├─ temporal.v1.CreateNexusEndpoint ✅ (CreateCertificate)
+├─ temporal.v1.CreateNexusEndpoint ✅ (BootstrapFabric)
+└─ Nexus → fabric.v1.BootstrapFabric ✅
 ```
 
 ```
@@ -206,7 +210,7 @@ cell.v1.InitFabricShard ✅
 ### Fabric Worker Workflows (fabric.v1 package)
 
 ```
-fabric.v1.BootstrapFabric ❌
+fabric.v1.BootstrapFabric ✅
 └─ fabric.v1.BootstrapTlsCertificateAuthorities ✅
    ├─ fabric.v1.DeployCertificateStore ✅
    ├─ fabric.v1.DeployTlsRootCertificateAuthority ✅
@@ -267,7 +271,7 @@ fabric.v1.DeployOrgRootCertificateAuthority ✅
 ├─ fabric.v1.CreateCertificateDatabase ✅
 ├─ secrets.v1.CreateKeyPair ✅ (signing)
 ├─ secrets.v1.CreateSelfSignedCertificate ✅ (signing)
-├─ Nexus → fabric.certauth.v1.CreateCertifitcate ✅
+├─ Nexus → fabric.certauth.v1.CreateCertificate ✅
 ├─ secrets.v1.CreatePassword ✅ (bootstrap)
 ├─ cluster.fabric.v1.CreateDeployment ✅
 ├─ fabric.certauth.v1.CreateBootstrapAdmin ✅
@@ -314,9 +318,11 @@ fabric.certauth.v1.CreateIdentity ✅
 
 ```
 fabric.certauth.v1.CreateBootstrapAdmin ✅
-├─ secrets.v1.CreateKeyPair ✅
-├─ fabric.certauth.v1.BootstrapEnrollIdentity ✅
-└─ secrets.v1.StoreIdentityCredentials ✅
+├─ kube.v1.GetStatus ✅ (wait for CA readiness)
+├─ secrets.v1.CreateKeyPair ✅ (signing)
+├─ fabric.certauth.v1.BootstrapEnrollIdentity ✅ (signing)
+├─ secrets.v1.CreateKeyPair ✅ (TLS)
+└─ fabric.certauth.v1.BootstrapEnrollIdentity ✅ (TLS)
 ```
 
 ```

@@ -32,6 +32,7 @@ var FabricTaskQueue = "infra"
 
 // fabric.v1.Fabric workflow names
 const (
+	BootstrapFabricWorkflowName                           = "fabric.v1.BootstrapFabric"
 	BootstrapOrgCertificateAuthoritiesWorkflowName        = "fabric.v1.BootstrapOrgCertificateAuthorities"
 	BootstrapShardWorkflowName                            = "fabric.v1.BootstrapShard"
 	BootstrapTlsCertificateAuthoritiesWorkflowName        = "fabric.v1.BootstrapTlsCertificateAuthorities"
@@ -49,6 +50,7 @@ const (
 
 // fabric.v1.Fabric workflow id expressions
 var (
+	BootstrapFabricIdexpression                           = expression.MustParseExpression("fabric/bootstrap-fabric")
 	BootstrapOrgCertificateAuthoritiesIdexpression        = expression.MustParseExpression("fabric/${! Org }/bootstrap-org-certificate-authorities")
 	BootstrapShardIdexpression                            = expression.MustParseExpression("fabric/bootstrap-shard")
 	BootstrapTlsCertificateAuthoritiesIdexpression        = expression.MustParseExpression("fabric/${! Org }/bootstrap-tls-certificate-authorities")
@@ -66,6 +68,18 @@ var (
 
 // FabricClient describes a client for a(n) fabric.v1.Fabric worker
 type FabricClient interface {
+	// BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
+	// This workflow runs on the fabric worker in the "fabric" Temporal namespace and
+	// deploys the certificate store and shared TLS certificate authority chain.
+	// Called via Nexus from the central infra worker during InitFabric.
+	BootstrapFabric(ctx context.Context, req *BootstrapFabricInput, opts ...*BootstrapFabricOptions) (*BootstrapFabricOutput, error)
+
+	// BootstrapFabricAsync starts a(n) fabric.v1.BootstrapFabric workflow and returns a handle to the workflow run
+	BootstrapFabricAsync(ctx context.Context, req *BootstrapFabricInput, opts ...*BootstrapFabricOptions) (BootstrapFabricRun, error)
+
+	// GetBootstrapFabric retrieves a handle to an existing fabric.v1.BootstrapFabric workflow execution
+	GetBootstrapFabric(ctx context.Context, workflowID string, runID string) BootstrapFabricRun
+
 	// BootstrapOrgCertificateAuthorities deploys the organization CA chain
 	// Org-owned, runs in org namespace, deploys Org Root and Org Intermediate CAs
 	BootstrapOrgCertificateAuthorities(ctx context.Context, req *BootstrapOrgCertificateAuthoritiesInput, opts ...*BootstrapOrgCertificateAuthoritiesOptions) (*BootstrapOrgCertificateAuthoritiesOutput, error)
@@ -77,8 +91,9 @@ type FabricClient interface {
 	GetBootstrapOrgCertificateAuthorities(ctx context.Context, workflowID string, runID string) BootstrapOrgCertificateAuthoritiesRun
 
 	// BootstrapShard is the entry point for Phase 2 of shard initialization
-	// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
-	// and deploys all Fabric components (CAs, peers, orderers) for the organization.
+	// This workflow runs on the shard worker in the org's Temporal namespace
+	// (e.g., "fabric-shard-org1") and deploys all Fabric components
+	// (CAs, peers, orderers) for the organization.
 	// Called via Nexus from the central worker after Phase 1 completes
 	BootstrapShard(ctx context.Context, req *BootstrapShardInput, opts ...*BootstrapShardOptions) (*BootstrapShardOutput, error)
 
@@ -271,6 +286,54 @@ func (opts *fabricClientOptions) getLogger() *slog.Logger {
 	return slog.Default()
 }
 
+// BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
+// This workflow runs on the fabric worker in the "fabric" Temporal namespace and
+// deploys the certificate store and shared TLS certificate authority chain.
+// Called via Nexus from the central infra worker during InitFabric.
+func (c *fabricClient) BootstrapFabric(ctx context.Context, req *BootstrapFabricInput, options ...*BootstrapFabricOptions) (*BootstrapFabricOutput, error) {
+	run, err := c.BootstrapFabricAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
+// This workflow runs on the fabric worker in the "fabric" Temporal namespace and
+// deploys the certificate store and shared TLS certificate authority chain.
+// Called via Nexus from the central infra worker during InitFabric.
+func (c *fabricClient) BootstrapFabricAsync(ctx context.Context, req *BootstrapFabricInput, options ...*BootstrapFabricOptions) (BootstrapFabricRun, error) {
+	var o *BootstrapFabricOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewBootstrapFabricOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, BootstrapFabricWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &bootstrapFabricRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetBootstrapFabric fetches an existing fabric.v1.BootstrapFabric execution
+func (c *fabricClient) GetBootstrapFabric(ctx context.Context, workflowID string, runID string) BootstrapFabricRun {
+	return &bootstrapFabricRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
 // BootstrapOrgCertificateAuthorities deploys the organization CA chain
 // Org-owned, runs in org namespace, deploys Org Root and Org Intermediate CAs
 func (c *fabricClient) BootstrapOrgCertificateAuthorities(ctx context.Context, req *BootstrapOrgCertificateAuthoritiesInput, options ...*BootstrapOrgCertificateAuthoritiesOptions) (*BootstrapOrgCertificateAuthoritiesOutput, error) {
@@ -316,8 +379,9 @@ func (c *fabricClient) GetBootstrapOrgCertificateAuthorities(ctx context.Context
 }
 
 // BootstrapShard is the entry point for Phase 2 of shard initialization
-// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
-// and deploys all Fabric components (CAs, peers, orderers) for the organization.
+// This workflow runs on the shard worker in the org's Temporal namespace
+// (e.g., "fabric-shard-org1") and deploys all Fabric components
+// (CAs, peers, orderers) for the organization.
 // Called via Nexus from the central worker after Phase 1 completes
 func (c *fabricClient) BootstrapShard(ctx context.Context, req *BootstrapShardInput, options ...*BootstrapShardOptions) (*BootstrapShardOutput, error) {
 	run, err := c.BootstrapShardAsync(ctx, req, options...)
@@ -328,8 +392,9 @@ func (c *fabricClient) BootstrapShard(ctx context.Context, req *BootstrapShardIn
 }
 
 // BootstrapShard is the entry point for Phase 2 of shard initialization
-// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
-// and deploys all Fabric components (CAs, peers, orderers) for the organization.
+// This workflow runs on the shard worker in the org's Temporal namespace
+// (e.g., "fabric-shard-org1") and deploys all Fabric components
+// (CAs, peers, orderers) for the organization.
 // Called via Nexus from the central worker after Phase 1 completes
 func (c *fabricClient) BootstrapShardAsync(ctx context.Context, req *BootstrapShardInput, options ...*BootstrapShardOptions) (BootstrapShardRun, error) {
 	var o *BootstrapShardOptions
@@ -857,6 +922,189 @@ func (c *fabricClient) CancelWorkflow(ctx context.Context, workflowID string, ru
 // TerminateWorkflow terminates an existing workflow execution
 func (c *fabricClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
 	return c.client.TerminateWorkflow(ctx, workflowID, runID, reason, details...)
+}
+
+// BootstrapFabricOptions provides configuration for a fabric.v1.BootstrapFabric workflow operation
+type BootstrapFabricOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewBootstrapFabricOptions initializes a new BootstrapFabricOptions value
+func NewBootstrapFabricOptions() *BootstrapFabricOptions {
+	return &BootstrapFabricOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *BootstrapFabricOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(BootstrapFabricIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", BootstrapFabricWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *BootstrapFabricOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *BootstrapFabricOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *BootstrapFabricOptions) WithExecutionTimeout(d time.Duration) *BootstrapFabricOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *BootstrapFabricOptions) WithID(id string) *BootstrapFabricOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *BootstrapFabricOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *BootstrapFabricOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *BootstrapFabricOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *BootstrapFabricOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *BootstrapFabricOptions) WithRunTimeout(d time.Duration) *BootstrapFabricOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *BootstrapFabricOptions) WithSearchAttributes(sa map[string]any) *BootstrapFabricOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *BootstrapFabricOptions) WithTaskTimeout(d time.Duration) *BootstrapFabricOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *BootstrapFabricOptions) WithTaskQueue(tq string) *BootstrapFabricOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *BootstrapFabricOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *BootstrapFabricOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// BootstrapFabricRun describes a(n) fabric.v1.BootstrapFabric workflow run
+type BootstrapFabricRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*BootstrapFabricOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// bootstrapFabricRun provides an internal implementation of a(n) BootstrapFabricRunRun
+type bootstrapFabricRun struct {
+	client *fabricClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *bootstrapFabricRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *bootstrapFabricRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *bootstrapFabricRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *bootstrapFabricRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *bootstrapFabricRun) Get(ctx context.Context) (*BootstrapFabricOutput, error) {
+	var resp BootstrapFabricOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *bootstrapFabricRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
 // BootstrapOrgCertificateAuthoritiesOptions provides configuration for a fabric.v1.BootstrapOrgCertificateAuthorities workflow operation
@@ -3242,12 +3490,18 @@ func (r *deployTlsRootCertificateAuthorityRun) Terminate(ctx context.Context, re
 var (
 	// fabricRegistrationMutex is a mutex for registering fabric.v1.Fabric workflows
 	fabricRegistrationMutex sync.Mutex
+	// BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
+	// This workflow runs on the fabric worker in the "fabric" Temporal namespace and
+	// deploys the certificate store and shared TLS certificate authority chain.
+	// Called via Nexus from the central infra worker during InitFabric.
+	BootstrapFabricFunction func(workflow.Context, *BootstrapFabricInput) (*BootstrapFabricOutput, error)
 	// BootstrapOrgCertificateAuthorities deploys the organization CA chain
 	// Org-owned, runs in org namespace, deploys Org Root and Org Intermediate CAs
 	BootstrapOrgCertificateAuthoritiesFunction func(workflow.Context, *BootstrapOrgCertificateAuthoritiesInput) (*BootstrapOrgCertificateAuthoritiesOutput, error)
 	// BootstrapShard is the entry point for Phase 2 of shard initialization
-	// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
-	// and deploys all Fabric components (CAs, peers, orderers) for the organization.
+	// This workflow runs on the shard worker in the org's Temporal namespace
+	// (e.g., "fabric-shard-org1") and deploys all Fabric components
+	// (CAs, peers, orderers) for the organization.
 	// Called via Nexus from the central worker after Phase 1 completes
 	BootstrapShardFunction func(workflow.Context, *BootstrapShardInput) (*BootstrapShardOutput, error)
 	// BootstrapTlsCertificateAuthorities deploys the certificate store and TLS CA chain
@@ -3290,12 +3544,18 @@ var (
 type (
 	// FabricWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
 	FabricWorkflowFunctions interface {
+		// BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
+		// This workflow runs on the fabric worker in the "fabric" Temporal namespace and
+		// deploys the certificate store and shared TLS certificate authority chain.
+		// Called via Nexus from the central infra worker during InitFabric.
+		BootstrapFabric(workflow.Context, *BootstrapFabricInput) (*BootstrapFabricOutput, error)
 		// BootstrapOrgCertificateAuthorities deploys the organization CA chain
 		// Org-owned, runs in org namespace, deploys Org Root and Org Intermediate CAs
 		BootstrapOrgCertificateAuthorities(workflow.Context, *BootstrapOrgCertificateAuthoritiesInput) (*BootstrapOrgCertificateAuthoritiesOutput, error)
 		// BootstrapShard is the entry point for Phase 2 of shard initialization
-		// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
-		// and deploys all Fabric components (CAs, peers, orderers) for the organization.
+		// This workflow runs on the shard worker in the org's Temporal namespace
+		// (e.g., "fabric-shard-org1") and deploys all Fabric components
+		// (CAs, peers, orderers) for the organization.
 		// Called via Nexus from the central worker after Phase 1 completes
 		BootstrapShard(workflow.Context, *BootstrapShardInput) (*BootstrapShardOutput, error)
 		// BootstrapTlsCertificateAuthorities deploys the certificate store and TLS CA chain
@@ -3341,6 +3601,17 @@ func NewFabricWorkflowFunctions() FabricWorkflowFunctions {
 	return &fabricWorkflowFunctions{}
 }
 
+// BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
+// This workflow runs on the fabric worker in the "fabric" Temporal namespace and
+// deploys the certificate store and shared TLS certificate authority chain.
+// Called via Nexus from the central infra worker during InitFabric.
+func (f *fabricWorkflowFunctions) BootstrapFabric(ctx workflow.Context, req *BootstrapFabricInput) (*BootstrapFabricOutput, error) {
+	if BootstrapFabricFunction == nil {
+		return nil, errors.New("BootstrapFabric requires workflow registration via RegisterFabricWorkflows or RegisterBootstrapFabricWorkflow")
+	}
+	return BootstrapFabricFunction(ctx, req)
+}
+
 // BootstrapOrgCertificateAuthorities deploys the organization CA chain
 // Org-owned, runs in org namespace, deploys Org Root and Org Intermediate CAs
 func (f *fabricWorkflowFunctions) BootstrapOrgCertificateAuthorities(ctx workflow.Context, req *BootstrapOrgCertificateAuthoritiesInput) (*BootstrapOrgCertificateAuthoritiesOutput, error) {
@@ -3351,8 +3622,9 @@ func (f *fabricWorkflowFunctions) BootstrapOrgCertificateAuthorities(ctx workflo
 }
 
 // BootstrapShard is the entry point for Phase 2 of shard initialization
-// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
-// and deploys all Fabric components (CAs, peers, orderers) for the organization.
+// This workflow runs on the shard worker in the org's Temporal namespace
+// (e.g., "fabric-shard-org1") and deploys all Fabric components
+// (CAs, peers, orderers) for the organization.
 // Called via Nexus from the central worker after Phase 1 completes
 func (f *fabricWorkflowFunctions) BootstrapShard(ctx workflow.Context, req *BootstrapShardInput) (*BootstrapShardOutput, error) {
 	if BootstrapShardFunction == nil {
@@ -3463,13 +3735,20 @@ func (f *fabricWorkflowFunctions) DeployTlsRootCertificateAuthority(ctx workflow
 
 // FabricWorkflows provides methods for initializing new fabric.v1.Fabric workflow values
 type FabricWorkflows interface {
+	// BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
+	// This workflow runs on the fabric worker in the "fabric" Temporal namespace and
+	// deploys the certificate store and shared TLS certificate authority chain.
+	// Called via Nexus from the central infra worker during InitFabric.
+	BootstrapFabric(ctx workflow.Context, input *BootstrapFabricWorkflowInput) (BootstrapFabricWorkflow, error)
+
 	// BootstrapOrgCertificateAuthorities deploys the organization CA chain
 	// Org-owned, runs in org namespace, deploys Org Root and Org Intermediate CAs
 	BootstrapOrgCertificateAuthorities(ctx workflow.Context, input *BootstrapOrgCertificateAuthoritiesWorkflowInput) (BootstrapOrgCertificateAuthoritiesWorkflow, error)
 
 	// BootstrapShard is the entry point for Phase 2 of shard initialization
-	// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
-	// and deploys all Fabric components (CAs, peers, orderers) for the organization.
+	// This workflow runs on the shard worker in the org's Temporal namespace
+	// (e.g., "fabric-shard-org1") and deploys all Fabric components
+	// (CAs, peers, orderers) for the organization.
 	// Called via Nexus from the central worker after Phase 1 completes
 	BootstrapShard(ctx workflow.Context, input *BootstrapShardWorkflowInput) (BootstrapShardWorkflow, error)
 
@@ -3521,6 +3800,7 @@ type FabricWorkflows interface {
 
 // RegisterFabricWorkflows registers fabric.v1.Fabric workflows with the given worker
 func RegisterFabricWorkflows(r worker.WorkflowRegistry, workflows FabricWorkflows) {
+	RegisterBootstrapFabricWorkflow(r, workflows.BootstrapFabric)
 	RegisterBootstrapOrgCertificateAuthoritiesWorkflow(r, workflows.BootstrapOrgCertificateAuthorities)
 	RegisterBootstrapShardWorkflow(r, workflows.BootstrapShard)
 	RegisterBootstrapTlsCertificateAuthoritiesWorkflow(r, workflows.BootstrapTlsCertificateAuthorities)
@@ -3534,6 +3814,286 @@ func RegisterFabricWorkflows(r worker.WorkflowRegistry, workflows FabricWorkflow
 	RegisterDeployPeerWorkflow(r, workflows.DeployPeer)
 	RegisterDeployTlsIntermediateCertificateAuthorityWorkflow(r, workflows.DeployTlsIntermediateCertificateAuthority)
 	RegisterDeployTlsRootCertificateAuthorityWorkflow(r, workflows.DeployTlsRootCertificateAuthority)
+}
+
+// RegisterBootstrapFabricWorkflow registers a fabric.v1.Fabric.BootstrapFabric workflow with the given worker
+func RegisterBootstrapFabricWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *BootstrapFabricWorkflowInput) (BootstrapFabricWorkflow, error)) {
+	fabricRegistrationMutex.Lock()
+	defer fabricRegistrationMutex.Unlock()
+	BootstrapFabricFunction = buildBootstrapFabric(wf)
+	r.RegisterWorkflowWithOptions(BootstrapFabricFunction, workflow.RegisterOptions{Name: BootstrapFabricWorkflowName})
+}
+
+// buildBootstrapFabric converts a BootstrapFabric workflow struct into a valid workflow function
+func buildBootstrapFabric(ctor func(workflow.Context, *BootstrapFabricWorkflowInput) (BootstrapFabricWorkflow, error)) func(workflow.Context, *BootstrapFabricInput) (*BootstrapFabricOutput, error) {
+	return func(ctx workflow.Context, req *BootstrapFabricInput) (*BootstrapFabricOutput, error) {
+		input := &BootstrapFabricWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// BootstrapFabricWorkflowInput describes the input to a(n) fabric.v1.BootstrapFabric workflow constructor
+type BootstrapFabricWorkflowInput struct {
+	Req *BootstrapFabricInput
+}
+
+// BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
+// This workflow runs on the fabric worker in the "fabric" Temporal namespace and
+// deploys the certificate store and shared TLS certificate authority chain.
+// Called via Nexus from the central infra worker during InitFabric.
+//
+// workflow details: (name: "fabric.v1.BootstrapFabric", id: "fabric/bootstrap-fabric")
+type BootstrapFabricWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.v1.BootstrapFabric workflow
+	Execute(ctx workflow.Context) (*BootstrapFabricOutput, error)
+}
+
+// BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
+// This workflow runs on the fabric worker in the "fabric" Temporal namespace and
+// deploys the certificate store and shared TLS certificate authority chain.
+// Called via Nexus from the central infra worker during InitFabric.
+func BootstrapFabricChild(ctx workflow.Context, req *BootstrapFabricInput, options ...*BootstrapFabricChildOptions) (*BootstrapFabricOutput, error) {
+	childRun, err := BootstrapFabricChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
+// This workflow runs on the fabric worker in the "fabric" Temporal namespace and
+// deploys the certificate store and shared TLS certificate authority chain.
+// Called via Nexus from the central infra worker during InitFabric.
+func BootstrapFabricChildAsync(ctx workflow.Context, req *BootstrapFabricInput, options ...*BootstrapFabricChildOptions) (*BootstrapFabricChildRun, error) {
+	var o *BootstrapFabricChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewBootstrapFabricChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &BootstrapFabricChildRun{Future: workflow.ExecuteChildWorkflow(ctx, BootstrapFabricWorkflowName, req)}, nil
+}
+
+// BootstrapFabricChildOptions provides configuration for a child fabric.v1.BootstrapFabric workflow operation
+type BootstrapFabricChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewBootstrapFabricChildOptions initializes a new BootstrapFabricChildOptions value
+func NewBootstrapFabricChildOptions() *BootstrapFabricChildOptions {
+	return &BootstrapFabricChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *BootstrapFabricChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(BootstrapFabricIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", BootstrapFabricWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", BootstrapFabricWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(BootstrapFabricIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", BootstrapFabricWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = FabricTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *BootstrapFabricChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *BootstrapFabricChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *BootstrapFabricChildOptions) WithDataConverter(dc converter.DataConverter) *BootstrapFabricChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *BootstrapFabricChildOptions) WithExecutionTimeout(d time.Duration) *BootstrapFabricChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *BootstrapFabricChildOptions) WithID(id string) *BootstrapFabricChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *BootstrapFabricChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *BootstrapFabricChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *BootstrapFabricChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *BootstrapFabricChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *BootstrapFabricChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *BootstrapFabricChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *BootstrapFabricChildOptions) WithRunTimeout(d time.Duration) *BootstrapFabricChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *BootstrapFabricChildOptions) WithSearchAttributes(sa map[string]any) *BootstrapFabricChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *BootstrapFabricChildOptions) WithTaskTimeout(d time.Duration) *BootstrapFabricChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *BootstrapFabricChildOptions) WithTaskQueue(tq string) *BootstrapFabricChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *BootstrapFabricChildOptions) WithWaitForCancellation(wait bool) *BootstrapFabricChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *BootstrapFabricChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *BootstrapFabricChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// BootstrapFabricChildRun describes a child BootstrapFabric workflow run
+type BootstrapFabricChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *BootstrapFabricChildRun) Get(ctx workflow.Context) (*BootstrapFabricOutput, error) {
+	var resp BootstrapFabricOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *BootstrapFabricChildRun) Select(sel workflow.Selector, fn func(*BootstrapFabricChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *BootstrapFabricChildRun) SelectStart(sel workflow.Selector, fn func(*BootstrapFabricChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *BootstrapFabricChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
 }
 
 // RegisterBootstrapOrgCertificateAuthoritiesWorkflow registers a fabric.v1.Fabric.BootstrapOrgCertificateAuthorities workflow with the given worker
@@ -3843,8 +4403,9 @@ type BootstrapShardWorkflowInput struct {
 }
 
 // BootstrapShard is the entry point for Phase 2 of shard initialization
-// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
-// and deploys all Fabric components (CAs, peers, orderers) for the organization.
+// This workflow runs on the shard worker in the org's Temporal namespace
+// (e.g., "fabric-shard-org1") and deploys all Fabric components
+// (CAs, peers, orderers) for the organization.
 // Called via Nexus from the central worker after Phase 1 completes
 //
 // workflow details: (name: "fabric.v1.BootstrapShard", id: "fabric/bootstrap-shard")
@@ -3854,8 +4415,9 @@ type BootstrapShardWorkflow interface {
 }
 
 // BootstrapShard is the entry point for Phase 2 of shard initialization
-// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
-// and deploys all Fabric components (CAs, peers, orderers) for the organization.
+// This workflow runs on the shard worker in the org's Temporal namespace
+// (e.g., "fabric-shard-org1") and deploys all Fabric components
+// (CAs, peers, orderers) for the organization.
 // Called via Nexus from the central worker after Phase 1 completes
 func BootstrapShardChild(ctx workflow.Context, req *BootstrapShardInput, options ...*BootstrapShardChildOptions) (*BootstrapShardOutput, error) {
 	childRun, err := BootstrapShardChildAsync(ctx, req, options...)
@@ -3866,8 +4428,9 @@ func BootstrapShardChild(ctx workflow.Context, req *BootstrapShardInput, options
 }
 
 // BootstrapShard is the entry point for Phase 2 of shard initialization
-// This workflow runs on the fabric worker in the org's Temporal namespace (e.g., "fabric-org1")
-// and deploys all Fabric components (CAs, peers, orderers) for the organization.
+// This workflow runs on the shard worker in the org's Temporal namespace
+// (e.g., "fabric-shard-org1") and deploys all Fabric components
+// (CAs, peers, orderers) for the organization.
 // Called via Nexus from the central worker after Phase 1 completes
 func BootstrapShardChildAsync(ctx workflow.Context, req *BootstrapShardInput, options ...*BootstrapShardChildOptions) (*BootstrapShardChildRun, error) {
 	var o *BootstrapShardChildOptions
@@ -7132,6 +7695,35 @@ func NewTestFabricClient(env *testsuite.TestWorkflowEnvironment, workflows Fabri
 	return &TestFabricClient{env, workflows}
 }
 
+// BootstrapFabric executes a(n) fabric.v1.BootstrapFabric workflow in the test environment
+func (c *TestFabricClient) BootstrapFabric(ctx context.Context, req *BootstrapFabricInput, opts ...*BootstrapFabricOptions) (*BootstrapFabricOutput, error) {
+	run, err := c.BootstrapFabricAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// BootstrapFabricAsync executes a(n) fabric.v1.BootstrapFabric workflow in the test environment
+func (c *TestFabricClient) BootstrapFabricAsync(ctx context.Context, req *BootstrapFabricInput, options ...*BootstrapFabricOptions) (BootstrapFabricRun, error) {
+	var o *BootstrapFabricOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewBootstrapFabricOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testBootstrapFabricRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetBootstrapFabric is a noop
+func (c *TestFabricClient) GetBootstrapFabric(ctx context.Context, workflowID string, runID string) BootstrapFabricRun {
+	return &testBootstrapFabricRun{env: c.env, workflows: c.workflows}
+}
+
 // BootstrapOrgCertificateAuthorities executes a(n) fabric.v1.BootstrapOrgCertificateAuthorities workflow in the test environment
 func (c *TestFabricClient) BootstrapOrgCertificateAuthorities(ctx context.Context, req *BootstrapOrgCertificateAuthoritiesInput, opts ...*BootstrapOrgCertificateAuthoritiesOptions) (*BootstrapOrgCertificateAuthoritiesOutput, error) {
 	run, err := c.BootstrapOrgCertificateAuthoritiesAsync(ctx, req, opts...)
@@ -7518,6 +8110,64 @@ func (c *TestFabricClient) CancelWorkflow(ctx context.Context, workflowID string
 // TerminateWorkflow terminates an existing workflow execution
 func (c *TestFabricClient) TerminateWorkflow(ctx context.Context, workflowID string, runID string, reason string, details ...interface{}) error {
 	return c.CancelWorkflow(ctx, workflowID, runID)
+}
+
+var _ BootstrapFabricRun = &testBootstrapFabricRun{}
+
+// testBootstrapFabricRun provides convenience methods for interacting with a(n) fabric.v1.BootstrapFabric workflow in the test environment
+type testBootstrapFabricRun struct {
+	client    *TestFabricClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *BootstrapFabricInput
+	workflows FabricWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testBootstrapFabricRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.v1.BootstrapFabric workflow result
+func (r *testBootstrapFabricRun) Get(context.Context) (*BootstrapFabricOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(BootstrapFabricWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result BootstrapFabricOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.v1.BootstrapFabric workflow run's workflow ID
+func (r *testBootstrapFabricRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testBootstrapFabricRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testBootstrapFabricRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testBootstrapFabricRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
 var _ BootstrapOrgCertificateAuthoritiesRun = &testBootstrapOrgCertificateAuthoritiesRun{}
