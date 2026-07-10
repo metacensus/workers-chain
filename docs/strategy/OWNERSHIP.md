@@ -59,9 +59,9 @@ certStore := fabricconfig.NewCertificateStoreConfig(w.owner)
 Nexus is the authorization and audit boundary between Temporal namespaces. A child workflow executes on the same worker with the same Vault token, so a direct child that touches another owner's Vault paths or Kubernetes namespace silently smuggles a cross-owner operation past that boundary — it either fails with a 403 or, worse, succeeds because a policy was widened to accommodate it.
 
 - A workflow never touches another owner's Vault paths or Kubernetes namespace through a direct child workflow.
-- Cross-owner policy carve-outs (e.g., the operator's create/update on `secret/data/fabric/shard/*/certs/*`) exist only to serve Nexus handlers — for the operator, the `certauth.CreateCertificate` handler that issues TLS certificates into shard cert paths. They are never exercised by locally-invoked workflows.
+- Under the CSR-based issuance flow there are no cross-owner Vault carve-outs at all: the key owner generates its private key and CSR locally and stores the signed certificate back into its own subtree; the operator's `certauth.SignCertificate` Nexus handler only signs the public CSR and returns public material, so it never reads or writes a shard-owned `keys/*` or `certs/*` path.
 
-Concretely, in CA deployment: a signing parent is always same-owner, so signing certificates use a local `CreateCertificate` child. A TLS issuer owned by the operator, called from a shard worker, is someone else's CA — that request goes through `NexusCreateCertificate`.
+Concretely, in CA deployment: a signing parent is always same-owner, so signing certificates are produced inline with the local `SignCsr` activity. A TLS issuer owned by the operator, called from a shard worker, is someone else's CA — only the public CSR crosses via the `SignCertificate` Nexus operation, and the signed cert + chain come back to be stored locally.
 
 Corollary for reviewers: if a change makes a local child workflow need another owner's paths, the fix is a Nexus operation (or questioning the design), never a policy widening.
 
@@ -75,11 +75,12 @@ Case study: the four CA deployment workflows (TLS root, TLS intermediate, org ro
 
 ```go
 // ensureSigningIdentity: issuer == nil → key pair + self-signed cert;
-// otherwise → local CreateCertificate child (signing parents are always same-owner).
+// otherwise → IssueCertificate (local SignCsr; signing parents are always same-owner).
 
 // ensureTLSIdentity: issuer == nil → self-sign;
-// issuer owned by this worker → local child;
-// otherwise → Nexus CreateCertificate.
+// otherwise → IssueCertificate, which branches on ownership:
+//   issuer owned by this worker → local SignCsr;
+//   otherwise → Nexus SignCertificate (only the public CSR crosses).
 ```
 
 **Don't** — four 200-line workflow bodies whose differences hide in label checks, or an owner-guessing switch inside a shared workflow:
@@ -115,7 +116,7 @@ If the code that writes a secret computes its path from `CertificateStoreConfig.
 
 - Component configs (`temporal/lib/workers/fabric/config`) own both the path methods (`VaultKeysBasePath()`, `VaultDataPath()`, …) and the `VaultPolicy()` documents built from them.
 - Worker policies are produced by a `WorkerVaultPolicy(owner)` function in the same package, composed from those same path methods.
-- The operator's cross-shard `certs/*` write carve-out is generated from the same path constants and documented as serving only the Nexus `CreateCertificate` handler (P2).
+- Every worker gets access to only its own owner's subtree — there are no cross-owner rules. The CSR-based issuance flow keeps each private key and signed cert inside its owner's subtree (P2), so no cross-shard `certs/*` carve-out is needed.
 
 **Don't** — assemble a policy by hand, far from the path definitions:
 

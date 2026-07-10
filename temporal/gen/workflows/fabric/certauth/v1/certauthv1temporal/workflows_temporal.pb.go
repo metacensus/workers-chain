@@ -51,22 +51,6 @@ func (h *CertificateAuthorityNexusHandler) CreateBootstrapAdmin(name string) nex
 	})
 }
 
-// CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-// This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-// Used for CA signing certs, TLS certs, and any other certificate needs.
-func (h *CertificateAuthorityNexusHandler) CreateCertificate(name string) nexus.Operation[*v1.CreateCertificateInput, *v1.CreateCertificateOutput] {
-	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.CreateCertificateInput, *v1.CreateCertificateOutput]{
-		Handler: func(ctx context.Context, input *v1.CreateCertificateInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.CreateCertificateOutput], error) {
-			o, err := v1.NewCreateCertificateOptions().Build(input.ProtoReflect())
-			if err != nil {
-				return nil, err
-			}
-			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateCertificateOutput](ctx, opts, o, v1.CreateCertificateWorkflowName, input)
-		},
-		Name: name,
-	})
-}
-
 // CreateIdentity creates a full Fabric identity with both org and TLS certificates
 // Used for creating peer, orderer, admin, and client identities.
 // This is the production workflow for identity creation (not bootstrap).
@@ -78,6 +62,27 @@ func (h *CertificateAuthorityNexusHandler) CreateIdentity(name string) nexus.Ope
 				return nil, err
 			}
 			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateIdentityOutput](ctx, opts, o, v1.CreateIdentityWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// SignCertificate signs an externally-generated CSR with a CA owned by the
+// executing worker and returns only the public certificate + chain.
+//
+// This is the CROSS-OWNER issuance primitive: the key owner (e.g. a shard)
+// generates the private key + CSR locally and sends only the public CSR
+// here via Nexus; the issuer (e.g. the operator's TLS CA) never sees the
+// private key and never writes into the caller's Vault subtree. The caller
+// stores the returned certificate itself.
+func (h *CertificateAuthorityNexusHandler) SignCertificate(name string) nexus.Operation[*v1.SignCertificateInput, *v1.SignCertificateOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.SignCertificateInput, *v1.SignCertificateOutput]{
+		Handler: func(ctx context.Context, input *v1.SignCertificateInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.SignCertificateOutput], error) {
+			o, err := v1.NewSignCertificateOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.SignCertificateOutput](ctx, opts, o, v1.SignCertificateWorkflowName, input)
 		},
 		Name: name,
 	})

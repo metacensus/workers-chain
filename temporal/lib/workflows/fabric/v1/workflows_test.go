@@ -481,11 +481,6 @@ func registerChildWorkflowStubs(env *testsuite.TestWorkflowEnvironment) {
 		})
 
 	// certauth (certificate authority) child workflows
-	register(certauthpb.CreateCertificateWorkflowName,
-		func(workflow.Context, *certauthpb.CreateCertificateInput) (*certauthpb.CreateCertificateOutput, error) {
-			return nil, nil
-		})
-
 	register(certauthpb.CreateBootstrapAdminWorkflowName,
 		func(workflow.Context, *certauthpb.CreateBootstrapAdminInput) (*certauthpb.CreateBootstrapAdminOutput, error) {
 			return nil, nil
@@ -517,8 +512,8 @@ func mockChildWorkflow[O any](env *testsuite.TestWorkflowEnvironment, name strin
 // "func2", etc. which collides with the generated child-workflow ID-expression
 // local activities (also anonymous), causing mocks to intercept the wrong call.
 
-func stubCreateKeyPairActivity(ctx context.Context, input *secretspb.CreateKeyPairInput) (*secretspb.CreateKeyPairOutput, error) {
-	return &secretspb.CreateKeyPairOutput{SecretRef: input.SecretRef}, nil
+func stubEnsureKeyPairActivity(ctx context.Context, input *secretspb.EnsureKeyPairInput) (*secretspb.EnsureKeyPairOutput, error) {
+	return &secretspb.EnsureKeyPairOutput{SecretRef: input.SecretRef}, nil
 }
 
 func stubCreateSelfSignedCertificateActivity(ctx context.Context, input *secretspb.CreateSelfSignedCertificateInput) (*secretspb.CreateSelfSignedCertificateOutput, error) {
@@ -533,15 +528,39 @@ func stubGetStatusActivity(ctx context.Context, input *kubepb.GetStatusInput) (*
 	return &kubepb.GetStatusOutput{}, nil
 }
 
-// registerSecretsActivityStubs registers the secrets activities used by the CA
-// deployment workflows so they can be mocked with OnActivity.
+// stubGenerateCsrActivity is the key-owner side of the CSR pipeline: it stands
+// in for building a public CSR from the locally-ensured private key.
+func stubGenerateCsrActivity(ctx context.Context, input *certauthpb.GenerateCsrInput) (*certauthpb.GenerateCsrOutput, error) {
+	return &certauthpb.GenerateCsrOutput{CsrPem: []byte("test-csr")}, nil
+}
+
+// stubSignCsrActivity stands in for a locally-owned issuer signing the CSR
+// (the local branch of IssueCertificate).
+func stubSignCsrActivity(ctx context.Context, input *certauthpb.SignCsrInput) (*certauthpb.SignCsrOutput, error) {
+	return &certauthpb.SignCsrOutput{CertificatePem: []byte("test-cert"), ChainPem: []byte("test-chain")}, nil
+}
+
+// stubStoreCertificateActivity stands in for storing the returned cert + chain
+// in the caller's own subtree.
+func stubStoreCertificateActivity(ctx context.Context, input *secretspb.StoreCertificateInput) (*secretspb.StoreCertificateOutput, error) {
+	return &secretspb.StoreCertificateOutput{CertRef: input.CertRef}, nil
+}
+
+// registerSecretsActivityStubs registers the secrets and CSR-pipeline activities
+// used by the CA deployment workflows so they can be mocked with OnActivity.
 func registerSecretsActivityStubs(env *testsuite.TestWorkflowEnvironment) {
-	env.RegisterActivityWithOptions(stubCreateKeyPairActivity,
-		activity.RegisterOptions{Name: secretspb.CreateKeyPairActivityName})
+	env.RegisterActivityWithOptions(stubEnsureKeyPairActivity,
+		activity.RegisterOptions{Name: secretspb.EnsureKeyPairActivityName})
 	env.RegisterActivityWithOptions(stubCreateSelfSignedCertificateActivity,
 		activity.RegisterOptions{Name: secretspb.CreateSelfSignedCertificateActivityName})
 	env.RegisterActivityWithOptions(stubCreatePasswordActivity,
 		activity.RegisterOptions{Name: secretspb.CreatePasswordActivityName})
+	env.RegisterActivityWithOptions(stubStoreCertificateActivity,
+		activity.RegisterOptions{Name: secretspb.StoreCertificateActivityName})
+	env.RegisterActivityWithOptions(stubGenerateCsrActivity,
+		activity.RegisterOptions{Name: certauthpb.GenerateCsrActivityName})
+	env.RegisterActivityWithOptions(stubSignCsrActivity,
+		activity.RegisterOptions{Name: certauthpb.SignCsrActivityName})
 }
 
 // registerSecretsNexusMock registers the Secrets Nexus service and mocks the
@@ -563,8 +582,9 @@ func registerSecretsNexusMock(t *testing.T, env *testsuite.TestWorkflowEnvironme
 }
 
 // registerCertAuthNexusMock registers the CertificateAuthority Nexus service and
-// mocks the CreateCertificate operation (cross-namespace TLS issuance by the
-// shared TLS CAs on the fabric worker).
+// mocks the SignCertificate operation (cross-owner TLS issuance: the shard sends
+// a public CSR to the shared TLS CA on the operator's fabric worker and gets back
+// only the public cert + chain).
 func registerCertAuthNexusMock(t *testing.T, env *testsuite.TestWorkflowEnvironment, opErr error) {
 	t.Helper()
 	nexusSvc, err := certauthv1nexus.NewCertificateAuthorityNexusService(&certauthv1nexus.UnimplementedCertificateAuthorityNexusHandler{})
@@ -573,16 +593,14 @@ func registerCertAuthNexusMock(t *testing.T, env *testsuite.TestWorkflowEnvironm
 	}
 	env.RegisterNexusService(nexusSvc)
 	if opErr != nil {
-		env.OnNexusOperation(nexusSvc, certauthv1nexus.CertificateAuthorityCreateCertificateOperationName, mock.Anything, mock.Anything).
+		env.OnNexusOperation(nexusSvc, certauthv1nexus.CertificateAuthoritySignCertificateOperationName, mock.Anything, mock.Anything).
 			Return(nil, opErr)
 	} else {
-		env.OnNexusOperation(nexusSvc, certauthv1nexus.CertificateAuthorityCreateCertificateOperationName, mock.Anything, mock.Anything).
-			Return(&nexus.HandlerStartOperationResultSync[*certauthpb.CreateCertificateOutput]{
-				Value: &certauthpb.CreateCertificateOutput{
-					Identity: &pb.IdentityRef{
-						KeyRef:  secrets.NewVaultRef("test/keys"),
-						CertRef: secrets.NewVaultRef("test/certs"),
-					},
+		env.OnNexusOperation(nexusSvc, certauthv1nexus.CertificateAuthoritySignCertificateOperationName, mock.Anything, mock.Anything).
+			Return(&nexus.HandlerStartOperationResultSync[*certauthpb.SignCertificateOutput]{
+				Value: &certauthpb.SignCertificateOutput{
+					CertificatePem: []byte("test-cert"),
+					ChainPem:       []byte("test-chain"),
 				},
 			}, nil)
 	}
@@ -1292,7 +1310,7 @@ func TestDeployCertificateAuthorityTlsRoot(t *testing.T) {
 		name                         string
 		createAccessErr              error
 		createCertificateDatabaseErr error
-		createKeyPairErr             error
+		ensureKeyPairErr             error
 		createDeploymentErr          error
 		createBootstrapAdminErr      error
 		createAdminErr               error
@@ -1313,9 +1331,9 @@ func TestDeployCertificateAuthorityTlsRoot(t *testing.T) {
 			expectedErr:                  ErrCreateCertificateDatabase,
 		},
 		{
-			name:             "failure - create key pair fails",
-			createKeyPairErr: errors.New("vault unavailable"),
-			expectedErr:      errors.New("failed to generate signing key pair"),
+			name:             "failure - ensure key pair fails",
+			ensureKeyPairErr: errors.New("vault unavailable"),
+			expectedErr:      errors.New("failed to ensure signing key pair"),
 		},
 		{
 			name:                "failure - create deployment fails",
@@ -1347,12 +1365,12 @@ func TestDeployCertificateAuthorityTlsRoot(t *testing.T) {
 			mockChildWorkflow[pb.CreateCertificateDatabaseOutput](
 				env, pb.CreateCertificateDatabaseWorkflowName, tt.createCertificateDatabaseErr)
 
-			if tt.createKeyPairErr != nil {
-				env.OnActivity(secretspb.CreateKeyPairActivityName, mock.Anything, mock.Anything).
-					Return(nil, tt.createKeyPairErr)
+			if tt.ensureKeyPairErr != nil {
+				env.OnActivity(secretspb.EnsureKeyPairActivityName, mock.Anything, mock.Anything).
+					Return(nil, tt.ensureKeyPairErr)
 			} else {
-				env.OnActivity(secretspb.CreateKeyPairActivityName, mock.Anything, mock.Anything).
-					Return(&secretspb.CreateKeyPairOutput{}, nil)
+				env.OnActivity(secretspb.EnsureKeyPairActivityName, mock.Anything, mock.Anything).
+					Return(&secretspb.EnsureKeyPairOutput{}, nil)
 			}
 			env.OnActivity(secretspb.CreateSelfSignedCertificateActivityName, mock.Anything, mock.Anything).
 				Return(&secretspb.CreateSelfSignedCertificateOutput{}, nil)
@@ -1377,18 +1395,18 @@ func TestDeployCertificateAuthorityTlsRoot(t *testing.T) {
 // certificates issued by the (local) TLS Root via direct child workflow calls.
 func TestDeployCertificateAuthorityTlsInt(t *testing.T) {
 	tests := []struct {
-		name                 string
-		createCertificateErr error // CreateCertificate child (signing + tls, both local)
-		expectedErr          error
+		name        string
+		signCsrErr  error // SignCsr activity (signing + tls, both local)
+		expectedErr error
 	}{
 		{
 			name:        "success - TLS Intermediate CA deployed",
 			expectedErr: nil,
 		},
 		{
-			name:                 "failure - create certificate fails",
-			createCertificateErr: errors.New("CA enrollment failed"),
-			expectedErr:          ErrCreateCertificate,
+			name:        "failure - sign csr fails",
+			signCsrErr:  errors.New("CA enrollment failed"),
+			expectedErr: ErrCreateCertificate,
 		},
 	}
 
@@ -1406,9 +1424,14 @@ func TestDeployCertificateAuthorityTlsInt(t *testing.T) {
 				env, pb.CreateCertificateDatabaseWorkflowName, nil)
 
 			// Both the signing (profile "ca") and TLS (profile "tls") certificates
-			// come from the operator-owned TLS Root via direct child workflow calls.
-			mockChildWorkflow[certauthpb.CreateCertificateOutput](
-				env, certauthpb.CreateCertificateWorkflowName, tt.createCertificateErr)
+			// come from the operator-owned TLS Root via the local SignCsr activity.
+			env.OnActivity(certauthpb.SignCsrActivityName, mock.Anything, mock.Anything).
+				Return(func(ctx context.Context, input *certauthpb.SignCsrInput) (*certauthpb.SignCsrOutput, error) {
+					if tt.signCsrErr != nil {
+						return nil, tt.signCsrErr
+					}
+					return &certauthpb.SignCsrOutput{CertificatePem: []byte("test-cert"), ChainPem: []byte("test-chain")}, nil
+				})
 
 			env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
 				Return(&secretspb.CreatePasswordOutput{}, nil)
@@ -1469,8 +1492,8 @@ func TestDeployCertificateAuthorityOrgRoot(t *testing.T) {
 			mockChildWorkflow[pb.CreateCertificateDatabaseOutput](
 				env, pb.CreateCertificateDatabaseWorkflowName, nil)
 
-			env.OnActivity(secretspb.CreateKeyPairActivityName, mock.Anything, mock.Anything).
-				Return(&secretspb.CreateKeyPairOutput{}, nil)
+			env.OnActivity(secretspb.EnsureKeyPairActivityName, mock.Anything, mock.Anything).
+				Return(&secretspb.EnsureKeyPairOutput{}, nil)
 			env.OnActivity(secretspb.CreateSelfSignedCertificateActivityName, mock.Anything, mock.Anything).
 				Return(&secretspb.CreateSelfSignedCertificateOutput{}, nil)
 			env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
@@ -1495,8 +1518,8 @@ func TestDeployCertificateAuthorityOrgRoot(t *testing.T) {
 func TestDeployCertificateAuthorityOrgInt(t *testing.T) {
 	tests := []struct {
 		name           string
-		signingCertErr error // CreateCertificate child (signing cert from Org Root, local)
-		nexusTlsErr    error // Nexus CreateCertificate call (TLS cert from shared TLS Int)
+		signingCertErr error // SignCsr activity (signing cert from Org Root, local)
+		nexusTlsErr    error // Nexus SignCertificate call (TLS cert from shared TLS Int)
 		expectedErr    error
 	}{
 		{
@@ -1526,13 +1549,18 @@ func TestDeployCertificateAuthorityOrgInt(t *testing.T) {
 			registerSecretsNexusMock(t, env, nil)
 
 			// The TLS cert comes from the shared TLS Intermediate CA via Nexus;
-			// the signing cert comes from the Org Root via a direct child workflow.
+			// the signing cert comes from the (local) Org Root via SignCsr.
 			registerCertAuthNexusMock(t, env, tt.nexusTlsErr)
 
 			mockChildWorkflow[pb.CreateCertificateDatabaseOutput](
 				env, pb.CreateCertificateDatabaseWorkflowName, nil)
-			mockChildWorkflow[certauthpb.CreateCertificateOutput](
-				env, certauthpb.CreateCertificateWorkflowName, tt.signingCertErr)
+			env.OnActivity(certauthpb.SignCsrActivityName, mock.Anything, mock.Anything).
+				Return(func(ctx context.Context, input *certauthpb.SignCsrInput) (*certauthpb.SignCsrOutput, error) {
+					if tt.signingCertErr != nil {
+						return nil, tt.signingCertErr
+					}
+					return &certauthpb.SignCsrOutput{CertificatePem: []byte("test-cert"), ChainPem: []byte("test-chain")}, nil
+				})
 
 			env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
 				Return(&secretspb.CreatePasswordOutput{}, nil)

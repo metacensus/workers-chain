@@ -25,14 +25,21 @@ service CertificateAuthority {
     option (temporal.v1.service) = {task_queue: "infra"};
   
   
-    // CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-    // This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-    // Used for CA signing certs, TLS certs, and any other certificate needs.
-    rpc CreateCertificate(CreateCertificateInput) returns (CreateCertificateOutput) {
+    // SignCertificate signs an externally-generated CSR with a CA owned by the
+    // executing worker and returns only the public certificate + chain.
+    //
+    // This is the CROSS-OWNER issuance primitive: the key owner (e.g. a shard)
+    // generates the private key + CSR locally and sends only the public CSR
+    // here via Nexus; the issuer (e.g. the operator's TLS CA) never sees the
+    // private key and never writes into the caller's Vault subtree. The caller
+    // stores the returned certificate itself.
+    rpc SignCertificate(SignCertificateInput) returns (SignCertificateOutput) {
       option (temporal.v1.workflow) = {
-        name: "fabric.certauth.v1.CreateCertificate"
-        id: 'fabric/create-certificate/${! Purpose }'
-        id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+        name: "fabric.certauth.v1.SignCertificate"
+        // Org-qualified subject CN is globally unique within the issuer's namespace.
+        id: 'fabric/sign-certificate/${! Subject.CommonName }'
+        id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+        workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
       };
     }
   
@@ -64,73 +71,84 @@ service CertificateAuthority {
     rpc CreateIdentity(CreateIdentityInput) returns (CreateIdentityOutput) {
       option (temporal.v1.workflow) = {
         name: "fabric.certauth.v1.CreateIdentity"
-        id: 'fabric/create-identity/${! IdentityName }'
-        id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+        // Org-qualified subject CN (e.g. "peer0@org1") is globally unique
+        // within the owner's namespace, unlike the bare identity name.
+        id: 'fabric/create-identity/${! Subject.CommonName }'
+        id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+        workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
       };
     }
   }
 
-  // CreateCertificateInput specifies the parameters for creating a certificate.
-  // Keys (private) and certs (public) are stored at separate Vault paths.
-  message CreateCertificateInput {
+  // ==================== SignCertificate Workflow Messages ====================
+
+  // SignCertificateInput specifies the parameters for signing an externally
+  // generated CSR with a CA owned by the executing worker.
+  //
+  // Only public material crosses the ownership boundary: a CSR comes in, a
+  // certificate + chain go out. Deliberately carries NO storage location, NO
+  // admin identity, and NO key references - the issuer signs as its own CA's
+  // admin and never touches the caller's Vault subtree.
+  message SignCertificateInput {
     // issuer_ref identifies which CA signs this certificate.
-    // If nil/empty, creates a self-signed certificate.
-    // The issuer is always owned by the executing worker's owner.
-    fabric.v1.CertificateAuthorityRef issuer_ref = 2 [
+    // Always owned by the executing worker's owner (validated in the workflow).
+    fabric.v1.CertificateAuthorityRef issuer_ref = 1 [
       json_name = "IssuerRef",
-      (go.field).tags = 'json:"IssuerRef"'
+      (go.field).tags = 'json:"IssuerRef" validate:"required"'
     ];
-  
+
     // profile determines key usages ("ca", "tls", or "" for default identity)
-    string profile = 3 [
+    string profile = 2 [
       json_name = "Profile",
       (go.field).tags = 'json:"Profile"'
     ];
-  
-    // subject specifies the certificate subject fields
-    CertificateSubject subject = 4 [
+
+    // subject specifies the certificate subject fields. The CommonName MUST be
+    // org-qualified (e.g. "peer0@org1"); it is used both for CA registration
+    // and to satisfy Fabric CA's requirement that the CSR CN equals the
+    // enrollment ID.
+    CertificateSubject subject = 3 [
       json_name = "Subject",
       (go.field).tags = 'json:"Subject" validate:"required"'
     ];
-  
-    // storage is where to store the created identity (key + certificate)
-    fabric.v1.IdentityRef storage = 5 [
-      json_name = "Storage",
-      (go.field).tags = 'json:"Storage" validate:"required"'
-    ];
-  
-    // admin_identity is the issuer's admin identity for CA authentication
-    // Required unless self-signed
-    fabric.v1.IdentityRef admin_identity = 6 [
-      json_name = "AdminIdentity",
-      (go.field).tags = 'json:"AdminIdentity"'
-    ];
-  
-    // purpose is a human-readable label for the workflow ID (e.g., "tls-root-signing")
-    string purpose = 7 [
-      json_name = "Purpose",
-      (go.field).tags = 'json:"Purpose" validate:"required"'
-    ];
-  
-    // attributes are additional CA attributes for the identity (e.g., hf.IntermediateCA)
-    map<string, string> attributes = 8 [json_name = "Attributes"];
-  
+
     // identity_type specifies the Fabric CA identity type for registration.
-    // This determines the OU field in the issued certificate.
-    // Valid values: "peer", "orderer", "admin", "client" (default: "client")
-    // The OU is critical for NodeOUs classification in the MSP.
-    string identity_type = 10 [
+    // This determines the OU field in the issued certificate (server-set).
+    // Valid values: "peer", "orderer", "admin", "client" (default: "client").
+    string identity_type = 4 [
       json_name = "IdentityType",
       (go.field).tags = 'json:"IdentityType,omitempty"'
     ];
+
+    // attributes are additional CA attributes for the registration record.
+    map<string, string> attributes = 5 [json_name = "Attributes"];
+
+    // csr_pem is the PEM-encoded certificate signing request. The private key
+    // that generated it never leaves the caller.
+    bytes csr_pem = 6 [
+      json_name = "CsrPem",
+      (go.field).tags = 'json:"CsrPem" validate:"required"'
+    ];
+
+    // hosts are the requested Subject Alternative Names for the signed cert.
+    repeated string hosts = 7 [
+      json_name = "Hosts",
+      (go.field).tags = 'json:"Hosts,omitempty"'
+    ];
   }
-  
-  // CreateCertificateOutput indicates the result of certificate creation
-  message CreateCertificateOutput {
-    // identity points to the created identity (key + certificate)
-    fabric.v1.IdentityRef identity = 1 [
-      json_name = "Identity",
-      (go.field).tags = 'json:"Identity" validate:"required"'
+
+  // SignCertificateOutput returns only public certificate material.
+  message SignCertificateOutput {
+    // certificate_pem is the PEM-encoded leaf certificate.
+    bytes certificate_pem = 1 [
+      json_name = "CertificatePem",
+      (go.field).tags = 'json:"CertificatePem" validate:"required"'
+    ];
+
+    // chain_pem is the PEM-encoded full chain (leaf + issuer chain to root).
+    bytes chain_pem = 2 [
+      json_name = "ChainPem",
+      (go.field).tags = 'json:"ChainPem" validate:"required"'
     ];
   }
   

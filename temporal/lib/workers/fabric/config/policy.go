@@ -12,17 +12,18 @@ import (
 // configs (CertificateAuthorityConfig, CertificateStoreConfig, ...) build
 // their paths from, so worker permissions and component paths cannot drift.
 //
-// Every worker gets full access to its owner's own Vault subtree:
+// Every worker - operator or shard - gets full access to ONLY its owner's own
+// Vault subtree, and nothing else:
 //
 //	secret/data/{owner.VaultBasePath()}/*
+//	secret/metadata/{owner.VaultBasePath()}/*
 //
-// The operator's worker additionally gets cross-shard create/update for:
-//   - org certs/*: issued TLS certificates written back to requesting shards
-//   - org keys/*: private key material generated during Fabric CA enrollment
-//
-// The keys/* carve-out intentionally omits read/list/delete. It lets the
-// operator complete foreign TLS issuance without allowing it to fetch shard
-// private keys back from Vault.
+// There are no cross-owner rules. Under the CSR-based cross-owner issuance flow,
+// the key owner generates its private key and CSR locally and writes the signed
+// certificate back into its own subtree; the operator's TLS CA only signs the
+// public CSR and returns public material. The operator therefore never reads or
+// writes any shard-owned keys/* or certs/* path, so Vault access aligns exactly
+// with ownership.
 func WorkerVaultPolicy(owner OwnerConfig) *vaultv1.PolicyDocument {
 	rules := []*vaultv1.PolicyRule{
 		// Owner's subtree: full access
@@ -42,37 +43,6 @@ func WorkerVaultPolicy(owner OwnerConfig) *vaultv1.PolicyDocument {
 				vaultv1.Capability_CAPABILITY_READ,
 			},
 		},
-	}
-
-	if owner.IsOperator() {
-		// Cross-shard carve-out: write issued TLS material into any org's
-		// certs/* and keys/* subtrees. Vault uses "+" as a single path-segment
-		// wildcard, so this matches "fabric/shard/{org}/..." without matching
-		// unrelated layouts.
-		allOrgsCerts := NewOrgConfig("+").VaultBasePath() + "/certs/*"
-		allOrgsKeys := NewOrgConfig("+").VaultBasePath() + "/keys/*"
-		rules = append(rules,
-			&vaultv1.PolicyRule{
-				Path: fmt.Sprintf("%s/%s", vaultSecretDataPrefix, allOrgsCerts),
-				Capabilities: []vaultv1.Capability{
-					vaultv1.Capability_CAPABILITY_CREATE,
-					vaultv1.Capability_CAPABILITY_UPDATE,
-				},
-			},
-			&vaultv1.PolicyRule{
-				Path: fmt.Sprintf("%s/%s", vaultSecretDataPrefix, allOrgsKeys),
-				Capabilities: []vaultv1.Capability{
-					vaultv1.Capability_CAPABILITY_CREATE,
-					vaultv1.Capability_CAPABILITY_UPDATE,
-				},
-			},
-			&vaultv1.PolicyRule{
-				Path: fmt.Sprintf("%s/%s", vaultSecretMetadataPrefix, allOrgsCerts),
-				Capabilities: []vaultv1.Capability{
-					vaultv1.Capability_CAPABILITY_READ,
-				},
-			},
-		)
 	}
 
 	return &vaultv1.PolicyDocument{Rules: rules}

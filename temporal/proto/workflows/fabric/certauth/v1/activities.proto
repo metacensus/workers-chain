@@ -19,24 +19,6 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/c
     // Service-wide Temporal settings
     option (temporal.v1.service) = {task_queue: "infra"};
   
-    // RegisterIdentity registers a new identity with a Fabric CA
-    // This is the first step in identity creation - registration returns an enrollment secret
-    rpc RegisterIdentity(RegisterIdentityInput) returns (RegisterIdentityOutput) {
-      option (temporal.v1.activity) = {
-        name: "fabric.certauth.v1.RegisterIdentity"
-        schedule_to_close_timeout: {seconds: 60}
-      };
-    }
-  
-    // EnrollIdentity enrolls a registered identity and retrieves certificates
-    // This is the second step in identity creation - enrollment uses the secret from registration
-    rpc EnrollIdentity(EnrollIdentityInput) returns (EnrollIdentityOutput) {
-      option (temporal.v1.activity) = {
-        name: "fabric.certauth.v1.EnrollIdentity"
-        schedule_to_close_timeout: {seconds: 60}
-      };
-    }
-  
     // RevokeIdentity revokes an identity from a Fabric CA
     // Used to revoke bootstrap admin credentials after permanent admin is created
     rpc RevokeIdentity(RevokeIdentityInput) returns (RevokeIdentityOutput) {
@@ -45,130 +27,47 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/c
         schedule_to_close_timeout: {seconds: 60}
       };
     }
-  
-    // BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
-    // This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
-    // The activity generates a CSR internally and submits it to the CA
-    rpc BootstrapEnrollIdentity(BootstrapEnrollIdentityInput) returns (BootstrapEnrollIdentityOutput) {
+
+    // GenerateCsr runs on the KEY OWNER's worker. It fetches the private key at
+    // key_ref and returns a CSR for the given subject. The private key is
+    // ensured up-front by secrets.EnsureKeyPair; here it is only read, never
+    // written, and it never leaves this worker's Vault subtree - only the
+    // public CSR is returned.
+    //
+    // Note: named "Csr" (not "CSR") because the codegen plugin mangles trailing
+    // all-caps acronyms in derived identifiers (Future/Async helpers).
+    rpc GenerateCsr(GenerateCsrInput) returns (GenerateCsrOutput) {
       option (temporal.v1.activity) = {
-        name: "fabric.certauth.v1.BootstrapEnrollIdentity"
+        name: "fabric.certauth.v1.GenerateCsr"
         schedule_to_close_timeout: {seconds: 60}
       };
     }
-  }
-  
-  // ==================== RegisterIdentity Activity Messages ====================
-  
-  // RegisterIdentityInput specifies the parameters for registering an identity with a CA
-  message RegisterIdentityInput {
-    // ca_ref identifies which CA to register with.
-    // Always owned by the executing worker's owner.
-    fabric.v1.CertificateAuthorityRef ca_ref = 1 [
-      json_name = "CaRef",
-      (go.field).tags = 'json:"CaRef" validate:"required"'
-    ];
-  
-    // identity_name is the unique name for this identity
-    string identity_name = 2 [
-      json_name = "IdentityName",
-      (go.field).tags = 'json:"IdentityName" validate:"required"'
-    ];
-  
-    // affiliation is the affiliation for the identity in the CA
-    string affiliation = 3 [json_name = "Affiliation"];
-  
-    // attributes are additional attributes for the identity
-    map<string, string> attributes = 4 [json_name = "Attributes"];
-  
-    // identity_type specifies the type of identity (e.g., "admin", "peer", "orderer", "client")
-    string identity_type = 5 [
-      json_name = "IdentityType",
-      (go.field).tags = 'json:"IdentityType"'
-    ];
-  
-    // admin_identity is the admin identity for CA authentication
-    fabric.v1.IdentityRef admin_identity = 6 [
-      json_name = "AdminIdentity",
-      (go.field).tags = 'json:"AdminIdentity" validate:"required"'
-    ];
-  }
-  
-  // RegisterIdentityOutput contains the enrollment secret returned by the CA
-  message RegisterIdentityOutput {
-    // enrollment_secret is the secret used to enroll the identity
-    string enrollment_secret = 1 [
-      json_name = "EnrollmentSecret",
-      (go.field).tags = 'json:"EnrollmentSecret" validate:"required"'
-    ];
-  }
-  
-  // ==================== EnrollIdentity Activity Messages ====================
-  
-  // EnrollIdentityInput specifies the parameters for enrolling an identity with a CA.
-  // Keys (private) and certs (public) are stored at separate Vault paths.
-  message EnrollIdentityInput {
-    // ca_ref identifies which CA to enroll with.
-    // Always owned by the executing worker's owner.
-    fabric.v1.CertificateAuthorityRef ca_ref = 1 [
-      json_name = "CaRef",
-      (go.field).tags = 'json:"CaRef" validate:"required"'
-    ];
-  
-    // identity_name is the name of the identity to enroll
-    string identity_name = 2 [
-      json_name = "IdentityName",
-      (go.field).tags = 'json:"IdentityName" validate:"required"'
-    ];
-  
-    // enrollment_secret is the secret obtained from registration
-    string enrollment_secret = 3 [
-      json_name = "EnrollmentSecret",
-      (go.field).tags = 'json:"EnrollmentSecret" validate:"required"'
-    ];
-  
-    // storage is the identity storage location
-    // key_ref is read for CSR generation, cert_ref is where to store the result
-    fabric.v1.IdentityRef storage = 4 [
-      json_name = "Storage",
-      (go.field).tags = 'json:"Storage" validate:"required"'
-    ];
-  
-    // subject specifies the certificate subject fields
-    CertificateSubject subject = 5 [
-      json_name = "Subject",
-      (go.field).tags = 'json:"Subject" validate:"required"'
-    ];
-  
-    // ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS connection)
-    secrets.v1.SecretRef ca_tls_cert_ref = 6 [
-      json_name = "CaTlsCertRef",
-      (go.field).tags = 'json:"CaTlsCertRef" validate:"required"'
-    ];
-  
-    // issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
-    // Used to fetch the issuer's chain for building the full certificate chain
-    secrets.v1.SecretRef issuer_cert_ref = 10 [
-      json_name = "IssuerCertRef",
-      (go.field).tags = 'json:"IssuerCertRef" validate:"required"'
-    ];
-  
-    // profile specifies which CA signing profile to use for the certificate.
-    // Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
-    // Use "tls" for TLS certificates (grants server auth, client auth key usages).
-    // Leave empty to use the default profile (digital signature only).
-    string profile = 7 [
-      json_name = "Profile",
-      (go.field).tags = 'json:"Profile,omitempty"'
-    ];
-  }
-  
-  // EnrollIdentityOutput contains the certificates returned by the CA
-  message EnrollIdentityOutput {
-    // identity points to the enrolled identity
-    fabric.v1.IdentityRef identity = 1 [
-      json_name = "Identity",
-      (go.field).tags = 'json:"Identity" validate:"required"'
-    ];
+
+    // BootstrapEnrollCsr runs on the CA OWNER's worker during CA
+    // initialization, before any registrar exists. It enrolls a supplied CSR
+    // using the CA's preset bootstrap credentials (username/password) and
+    // returns the leaf certificate + full chain. Unlike SignCsr it performs NO
+    // registration (there is no admin to register as yet); it is the
+    // register-less bootstrap counterpart of SignCsr. Only public certificate
+    // material is returned.
+    rpc BootstrapEnrollCsr(BootstrapEnrollCsrInput) returns (BootstrapEnrollCsrOutput) {
+      option (temporal.v1.activity) = {
+        name: "fabric.certauth.v1.BootstrapEnrollCsr"
+        schedule_to_close_timeout: {seconds: 60}
+      };
+    }
+
+    // SignCsr runs on the ISSUER's worker. It registers the identity with a
+    // locally-owned CA (resetting the enrollment secret if already registered),
+    // enrolls the supplied CSR, and returns the certificate + full chain. The
+    // enrollment secret is generated and consumed entirely in-memory; no key or
+    // shard-owned path is ever written.
+    rpc SignCsr(SignCsrInput) returns (SignCsrOutput) {
+      option (temporal.v1.activity) = {
+        name: "fabric.certauth.v1.SignCsr"
+        schedule_to_close_timeout: {seconds: 60}
+      };
+    }
   }
   
   // ==================== RevokeIdentity Activity Messages ====================
@@ -204,64 +103,185 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/c
     bool revoked = 1 [json_name = "Revoked"];
   }
   
-  // ==================== BootstrapEnrollIdentity Activity Messages ====================
-  
-  // BootstrapEnrollIdentityInput specifies the parameters for bootstrap enrollment.
-  // Keys (private) and certs (public) are stored at separate Vault paths.
-  // Used during CA initialization to obtain the bootstrap admin's certificate.
-  message BootstrapEnrollIdentityInput {
+  // ==================== BootstrapEnrollCsr Activity Messages ====================
+
+  // BootstrapEnrollCsrInput specifies the parameters for register-less bootstrap
+  // enrollment of an externally-generated CSR. Used during CA initialization
+  // before any registrar exists: the CA's preset bootstrap credentials
+  // authenticate the enrollment directly. All referenced Vault paths belong to
+  // the executing (CA-owner) worker; only the public CSR is submitted.
+  message BootstrapEnrollCsrInput {
     // ca_url is the CA server URL (e.g., "https://ca-tls-root.fabric.svc.cluster.local:7054")
     string ca_url = 1 [
       json_name = "CaUrl",
       (go.field).tags = 'json:"CaUrl" validate:"required,url"'
     ];
-  
+
     // bootstrap_credentials_ref points to the bootstrap admin username/password in Vault
     secrets.v1.SecretRef bootstrap_credentials_ref = 2 [
       json_name = "BootstrapCredentialsRef",
       (go.field).tags = 'json:"BootstrapCredentialsRef" validate:"required"'
     ];
-  
-    // storage is the identity storage location
-    // key_ref is read for CSR generation, cert_ref is where to store the result
-    fabric.v1.IdentityRef storage = 3 [
-      json_name = "Storage",
-      (go.field).tags = 'json:"Storage" validate:"required"'
+
+    // csr_pem is the PEM-encoded CSR to enroll. The private key that generated
+    // it never leaves the caller.
+    bytes csr_pem = 3 [
+      json_name = "CsrPem",
+      (go.field).tags = 'json:"CsrPem" validate:"required"'
     ];
-  
-    // subject specifies the certificate subject fields
-    CertificateSubject subject = 5 [
-      json_name = "Subject",
-      (go.field).tags = 'json:"Subject" validate:"required"'
+
+    // hosts are the requested Subject Alternative Names.
+    repeated string hosts = 4 [
+      json_name = "Hosts",
+      (go.field).tags = 'json:"Hosts,omitempty"'
     ];
-  
+
+    // profile specifies which CA signing profile to use ("ca", "tls", or "" default).
+    string profile = 5 [
+      json_name = "Profile",
+      (go.field).tags = 'json:"Profile,omitempty"'
+    ];
+
     // ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS connection)
     secrets.v1.SecretRef ca_tls_cert_ref = 6 [
       json_name = "CaTlsCertRef",
       (go.field).tags = 'json:"CaTlsCertRef" validate:"required"'
     ];
-  
-    // issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
-    // Used to fetch the issuer's chain for building the full certificate chain.
-    // Optional - if nil, the CA's chain from enrollment response is used directly.
-    secrets.v1.SecretRef issuer_cert_ref = 9 [
+
+    // issuer_cert_ref points to the issuing CA's certificate path (certs/ path).
+    // Used to build the full chain. Optional - if nil, the CA's chain from the
+    // enrollment response is used directly (root CA bootstrap case).
+    secrets.v1.SecretRef issuer_cert_ref = 7 [
       json_name = "IssuerCertRef",
       (go.field).tags = 'json:"IssuerCertRef,omitempty"'
     ];
-  
-    // profile specifies which CA signing profile to use
+  }
+
+  // BootstrapEnrollCsrOutput returns only public certificate material.
+  message BootstrapEnrollCsrOutput {
+    // certificate_pem is the PEM-encoded leaf certificate.
+    bytes certificate_pem = 1 [
+      json_name = "CertificatePem",
+      (go.field).tags = 'json:"CertificatePem" validate:"required"'
+    ];
+
+    // chain_pem is the PEM-encoded full chain (leaf + issuer chain to root).
+    bytes chain_pem = 2 [
+      json_name = "ChainPem",
+      (go.field).tags = 'json:"ChainPem" validate:"required"'
+    ];
+  }
+
+  // ==================== GenerateCsr Activity Messages ====================
+
+  // GenerateCsrInput specifies where the private key lives (key owner side).
+  message GenerateCsrInput {
+    // key_ref is the Vault path where the private key lives. The key is ensured
+    // up-front by secrets.EnsureKeyPair; this activity only reads it. Always
+    // within the executing worker's own subtree.
+    secrets.v1.SecretRef key_ref = 1 [
+      json_name = "KeyRef",
+      (go.field).tags = 'json:"KeyRef" validate:"required"'
+    ];
+
+    // subject specifies the CSR subject. CommonName becomes the CSR CN and
+    // dns_names become the requested SANs.
+    CertificateSubject subject = 2 [
+      json_name = "Subject",
+      (go.field).tags = 'json:"Subject" validate:"required"'
+    ];
+  }
+
+  // GenerateCsrOutput returns the public CSR.
+  message GenerateCsrOutput {
+    // csr_pem is the PEM-encoded certificate signing request.
+    bytes csr_pem = 1 [
+      json_name = "CsrPem",
+      (go.field).tags = 'json:"CsrPem" validate:"required"'
+    ];
+  }
+
+  // ==================== SignCsr Activity Messages ====================
+
+  // SignCsrInput specifies the parameters for signing a CSR (issuer side).
+  // All references point into the issuer's own Vault subtree.
+  message SignCsrInput {
+    // ca_ref identifies which locally-owned CA signs the CSR.
+    fabric.v1.CertificateAuthorityRef ca_ref = 1 [
+      json_name = "CaRef",
+      (go.field).tags = 'json:"CaRef" validate:"required"'
+    ];
+
+    // identity_name is the CA registration name; MUST equal the CSR CN.
+    string identity_name = 2 [
+      json_name = "IdentityName",
+      (go.field).tags = 'json:"IdentityName" validate:"required"'
+    ];
+
+    // identity_type is the Fabric CA identity type (determines server-set OU).
+    string identity_type = 3 [
+      json_name = "IdentityType",
+      (go.field).tags = 'json:"IdentityType,omitempty"'
+    ];
+
+    // attributes are additional attributes for the registration record.
+    map<string, string> attributes = 4 [json_name = "Attributes"];
+
+    // csr_pem is the PEM-encoded CSR to sign.
+    bytes csr_pem = 5 [
+      json_name = "CsrPem",
+      (go.field).tags = 'json:"CsrPem" validate:"required"'
+    ];
+
+    // hosts are the requested Subject Alternative Names.
+    repeated string hosts = 6 [
+      json_name = "Hosts",
+      (go.field).tags = 'json:"Hosts,omitempty"'
+    ];
+
+    // profile specifies the CA signing profile ("ca", "tls", or "" default).
     string profile = 7 [
       json_name = "Profile",
       (go.field).tags = 'json:"Profile,omitempty"'
     ];
+
+    // issuer_cert_ref points to the issuing CA's signing certificate path
+    // (issuer's own certs/ path), used to build the full certificate chain.
+    secrets.v1.SecretRef issuer_cert_ref = 8 [
+      json_name = "IssuerCertRef",
+      (go.field).tags = 'json:"IssuerCertRef" validate:"required"'
+    ];
+
+    // ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS).
+    secrets.v1.SecretRef ca_tls_cert_ref = 9 [
+      json_name = "CaTlsCertRef",
+      (go.field).tags = 'json:"CaTlsCertRef" validate:"required"'
+    ];
+
+    // admin_identity is the registrar used to register/modify the CSR's
+    // identity. Optional: nil selects the CA's default permanent admin (the
+    // steady-state case). A non-nil value lets a different registrar (e.g. the
+    // bootstrap admin registering the permanent admin) authenticate the
+    // registration. The Nexus SignCertificate path always leaves this nil, so
+    // no caller-chosen registrar ever crosses the ownership boundary.
+    fabric.v1.IdentityRef admin_identity = 10 [
+      json_name = "AdminIdentity",
+      (go.field).tags = 'json:"AdminIdentity,omitempty"'
+    ];
   }
-  
-  // BootstrapEnrollIdentityOutput confirms the certificate was enrolled and stored
-  message BootstrapEnrollIdentityOutput {
-    // identity points to the enrolled identity
-    fabric.v1.IdentityRef identity = 1 [
-      json_name = "Identity",
-      (go.field).tags = 'json:"Identity" validate:"required"'
+
+  // SignCsrOutput returns only public certificate material.
+  message SignCsrOutput {
+    // certificate_pem is the PEM-encoded leaf certificate.
+    bytes certificate_pem = 1 [
+      json_name = "CertificatePem",
+      (go.field).tags = 'json:"CertificatePem" validate:"required"'
+    ];
+
+    // chain_pem is the PEM-encoded full chain (leaf + issuer chain to root).
+    bytes chain_pem = 2 [
+      json_name = "ChainPem",
+      (go.field).tags = 'json:"ChainPem" validate:"required"'
     ];
   }
   

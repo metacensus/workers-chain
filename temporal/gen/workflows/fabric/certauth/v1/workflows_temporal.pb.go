@@ -34,16 +34,16 @@ var CertificateAuthorityTaskQueue = "infra"
 const (
 	CreateAdminWorkflowName          = "fabric.certauth.v1.CreateAdmin"
 	CreateBootstrapAdminWorkflowName = "fabric.certauth.v1.CreateBootstrapAdmin"
-	CreateCertificateWorkflowName    = "fabric.certauth.v1.CreateCertificate"
 	CreateIdentityWorkflowName       = "fabric.certauth.v1.CreateIdentity"
+	SignCertificateWorkflowName      = "fabric.certauth.v1.SignCertificate"
 )
 
 // fabric.certauth.v1.CertificateAuthority workflow id expressions
 var (
 	CreateAdminIdexpression          = expression.MustParseExpression("fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }")
 	CreateBootstrapAdminIdexpression = expression.MustParseExpression("fabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }")
-	CreateCertificateIdexpression    = expression.MustParseExpression("fabric/create-certificate/${! Purpose }")
-	CreateIdentityIdexpression       = expression.MustParseExpression("fabric/create-identity/${! IdentityName }")
+	CreateIdentityIdexpression       = expression.MustParseExpression("fabric/create-identity/${! Subject.CommonName }")
+	SignCertificateIdexpression      = expression.MustParseExpression("fabric/sign-certificate/${! Subject.CommonName }")
 )
 
 // CertificateAuthorityClient describes a client for a(n) fabric.certauth.v1.CertificateAuthority worker
@@ -70,17 +70,6 @@ type CertificateAuthorityClient interface {
 	// GetCreateBootstrapAdmin retrieves a handle to an existing fabric.certauth.v1.CreateBootstrapAdmin workflow execution
 	GetCreateBootstrapAdmin(ctx context.Context, workflowID string, runID string) CreateBootstrapAdminRun
 
-	// CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-	// This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-	// Used for CA signing certs, TLS certs, and any other certificate needs.
-	CreateCertificate(ctx context.Context, req *CreateCertificateInput, opts ...*CreateCertificateOptions) (*CreateCertificateOutput, error)
-
-	// CreateCertificateAsync starts a(n) fabric.certauth.v1.CreateCertificate workflow and returns a handle to the workflow run
-	CreateCertificateAsync(ctx context.Context, req *CreateCertificateInput, opts ...*CreateCertificateOptions) (CreateCertificateRun, error)
-
-	// GetCreateCertificate retrieves a handle to an existing fabric.certauth.v1.CreateCertificate workflow execution
-	GetCreateCertificate(ctx context.Context, workflowID string, runID string) CreateCertificateRun
-
 	// CreateIdentity creates a full Fabric identity with both org and TLS certificates
 	// Used for creating peer, orderer, admin, and client identities.
 	// This is the production workflow for identity creation (not bootstrap).
@@ -91,6 +80,22 @@ type CertificateAuthorityClient interface {
 
 	// GetCreateIdentity retrieves a handle to an existing fabric.certauth.v1.CreateIdentity workflow execution
 	GetCreateIdentity(ctx context.Context, workflowID string, runID string) CreateIdentityRun
+
+	// SignCertificate signs an externally-generated CSR with a CA owned by the
+	// executing worker and returns only the public certificate + chain.
+	//
+	// This is the CROSS-OWNER issuance primitive: the key owner (e.g. a shard)
+	// generates the private key + CSR locally and sends only the public CSR
+	// here via Nexus; the issuer (e.g. the operator's TLS CA) never sees the
+	// private key and never writes into the caller's Vault subtree. The caller
+	// stores the returned certificate itself.
+	SignCertificate(ctx context.Context, req *SignCertificateInput, opts ...*SignCertificateOptions) (*SignCertificateOutput, error)
+
+	// SignCertificateAsync starts a(n) fabric.certauth.v1.SignCertificate workflow and returns a handle to the workflow run
+	SignCertificateAsync(ctx context.Context, req *SignCertificateInput, opts ...*SignCertificateOptions) (SignCertificateRun, error)
+
+	// GetSignCertificate retrieves a handle to an existing fabric.certauth.v1.SignCertificate workflow execution
+	GetSignCertificate(ctx context.Context, workflowID string, runID string) SignCertificateRun
 
 	// CancelWorkflow requests cancellation of an existing workflow execution
 	CancelWorkflow(ctx context.Context, workflowID string, runID string) error
@@ -256,52 +261,6 @@ func (c *certificateAuthorityClient) GetCreateBootstrapAdmin(ctx context.Context
 	}
 }
 
-// CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-// This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-// Used for CA signing certs, TLS certs, and any other certificate needs.
-func (c *certificateAuthorityClient) CreateCertificate(ctx context.Context, req *CreateCertificateInput, options ...*CreateCertificateOptions) (*CreateCertificateOutput, error) {
-	run, err := c.CreateCertificateAsync(ctx, req, options...)
-	if err != nil {
-		return nil, err
-	}
-	return run.Get(ctx)
-}
-
-// CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-// This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-// Used for CA signing certs, TLS certs, and any other certificate needs.
-func (c *certificateAuthorityClient) CreateCertificateAsync(ctx context.Context, req *CreateCertificateInput, options ...*CreateCertificateOptions) (CreateCertificateRun, error) {
-	var o *CreateCertificateOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewCreateCertificateOptions()
-	}
-	opts, err := o.Build(req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
-	}
-	run, err := c.client.ExecuteWorkflow(ctx, opts, CreateCertificateWorkflowName, req)
-	if err != nil {
-		return nil, err
-	}
-	if run == nil {
-		return nil, errors.New("execute workflow returned nil run")
-	}
-	return &createCertificateRun{
-		client: c,
-		run:    run,
-	}, nil
-}
-
-// GetCreateCertificate fetches an existing fabric.certauth.v1.CreateCertificate execution
-func (c *certificateAuthorityClient) GetCreateCertificate(ctx context.Context, workflowID string, runID string) CreateCertificateRun {
-	return &createCertificateRun{
-		client: c,
-		run:    c.client.GetWorkflow(ctx, workflowID, runID),
-	}
-}
-
 // CreateIdentity creates a full Fabric identity with both org and TLS certificates
 // Used for creating peer, orderer, admin, and client identities.
 // This is the production workflow for identity creation (not bootstrap).
@@ -343,6 +302,62 @@ func (c *certificateAuthorityClient) CreateIdentityAsync(ctx context.Context, re
 // GetCreateIdentity fetches an existing fabric.certauth.v1.CreateIdentity execution
 func (c *certificateAuthorityClient) GetCreateIdentity(ctx context.Context, workflowID string, runID string) CreateIdentityRun {
 	return &createIdentityRun{
+		client: c,
+		run:    c.client.GetWorkflow(ctx, workflowID, runID),
+	}
+}
+
+// SignCertificate signs an externally-generated CSR with a CA owned by the
+// executing worker and returns only the public certificate + chain.
+//
+// This is the CROSS-OWNER issuance primitive: the key owner (e.g. a shard)
+// generates the private key + CSR locally and sends only the public CSR
+// here via Nexus; the issuer (e.g. the operator's TLS CA) never sees the
+// private key and never writes into the caller's Vault subtree. The caller
+// stores the returned certificate itself.
+func (c *certificateAuthorityClient) SignCertificate(ctx context.Context, req *SignCertificateInput, options ...*SignCertificateOptions) (*SignCertificateOutput, error) {
+	run, err := c.SignCertificateAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// SignCertificate signs an externally-generated CSR with a CA owned by the
+// executing worker and returns only the public certificate + chain.
+//
+// This is the CROSS-OWNER issuance primitive: the key owner (e.g. a shard)
+// generates the private key + CSR locally and sends only the public CSR
+// here via Nexus; the issuer (e.g. the operator's TLS CA) never sees the
+// private key and never writes into the caller's Vault subtree. The caller
+// stores the returned certificate itself.
+func (c *certificateAuthorityClient) SignCertificateAsync(ctx context.Context, req *SignCertificateInput, options ...*SignCertificateOptions) (SignCertificateRun, error) {
+	var o *SignCertificateOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewSignCertificateOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	run, err := c.client.ExecuteWorkflow(ctx, opts, SignCertificateWorkflowName, req)
+	if err != nil {
+		return nil, err
+	}
+	if run == nil {
+		return nil, errors.New("execute workflow returned nil run")
+	}
+	return &signCertificateRun{
+		client: c,
+		run:    run,
+	}, nil
+}
+
+// GetSignCertificate fetches an existing fabric.certauth.v1.SignCertificate execution
+func (c *certificateAuthorityClient) GetSignCertificate(ctx context.Context, workflowID string, runID string) SignCertificateRun {
+	return &signCertificateRun{
 		client: c,
 		run:    c.client.GetWorkflow(ctx, workflowID, runID),
 	}
@@ -724,189 +739,6 @@ func (r *createBootstrapAdminRun) Terminate(ctx context.Context, reason string, 
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-// CreateCertificateOptions provides configuration for a fabric.certauth.v1.CreateCertificate workflow operation
-type CreateCertificateOptions struct {
-	options                  client.StartWorkflowOptions
-	executionTimeout         *time.Duration
-	id                       *string
-	idReusePolicy            enumsv1.WorkflowIdReusePolicy
-	retryPolicy              *temporal.RetryPolicy
-	runTimeout               *time.Duration
-	searchAttributes         map[string]any
-	taskQueue                *string
-	taskTimeout              *time.Duration
-	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
-}
-
-// NewCreateCertificateOptions initializes a new CreateCertificateOptions value
-func NewCreateCertificateOptions() *CreateCertificateOptions {
-	return &CreateCertificateOptions{}
-}
-
-// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
-func (o *CreateCertificateOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
-	opts := o.options
-	if v := o.id; v != nil {
-		opts.ID = *v
-	} else if opts.ID == "" {
-		id, err := expression.EvalExpression(CreateCertificateIdexpression, req)
-		if err != nil {
-			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateCertificateWorkflowName, err)
-		}
-		opts.ID = id
-	}
-	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = v
-	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-	}
-	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
-		opts.WorkflowIDConflictPolicy = v
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = CertificateAuthorityTaskQueue
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.searchAttributes; v != nil {
-		opts.SearchAttributes = o.searchAttributes
-	}
-	if v := o.executionTimeout; v != nil {
-		opts.WorkflowExecutionTimeout = *v
-	}
-	if v := o.runTimeout; v != nil {
-		opts.WorkflowRunTimeout = *v
-	}
-	if v := o.taskTimeout; v != nil {
-		opts.WorkflowTaskTimeout = *v
-	}
-	return opts, nil
-}
-
-// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
-func (o *CreateCertificateOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *CreateCertificateOptions {
-	o.options = options
-	return o
-}
-
-// WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *CreateCertificateOptions) WithExecutionTimeout(d time.Duration) *CreateCertificateOptions {
-	o.executionTimeout = &d
-	return o
-}
-
-// WithID sets the ID value
-func (o *CreateCertificateOptions) WithID(id string) *CreateCertificateOptions {
-	o.id = &id
-	return o
-}
-
-// WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *CreateCertificateOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *CreateCertificateOptions {
-	o.idReusePolicy = policy
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *CreateCertificateOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateCertificateOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithRunTimeout sets the WorkflowRunTimeout value
-func (o *CreateCertificateOptions) WithRunTimeout(d time.Duration) *CreateCertificateOptions {
-	o.runTimeout = &d
-	return o
-}
-
-// WithSearchAttributes sets the SearchAttributes value
-func (o *CreateCertificateOptions) WithSearchAttributes(sa map[string]any) *CreateCertificateOptions {
-	o.searchAttributes = sa
-	return o
-}
-
-// WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *CreateCertificateOptions) WithTaskTimeout(d time.Duration) *CreateCertificateOptions {
-	o.taskTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *CreateCertificateOptions) WithTaskQueue(tq string) *CreateCertificateOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *CreateCertificateOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *CreateCertificateOptions {
-	o.workflowIdConflictPolicy = policy
-	return o
-}
-
-// CreateCertificateRun describes a(n) fabric.certauth.v1.CreateCertificate workflow run
-type CreateCertificateRun interface {
-	// ID returns the workflow ID
-	ID() string
-
-	// RunID returns the workflow instance ID
-	RunID() string
-
-	// Run returns the inner client.WorkflowRun
-	Run() client.WorkflowRun
-
-	// Get blocks until the workflow is complete and returns the result
-	Get(ctx context.Context) (*CreateCertificateOutput, error)
-
-	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-	Cancel(ctx context.Context) error
-
-	// Terminate terminates a workflow in execution, returning an error if applicable
-	Terminate(ctx context.Context, reason string, details ...interface{}) error
-}
-
-// createCertificateRun provides an internal implementation of a(n) CreateCertificateRunRun
-type createCertificateRun struct {
-	client *certificateAuthorityClient
-	run    client.WorkflowRun
-}
-
-// ID returns the workflow ID
-func (r *createCertificateRun) ID() string {
-	return r.run.GetID()
-}
-
-// Run returns the inner client.WorkflowRun
-func (r *createCertificateRun) Run() client.WorkflowRun {
-	return r.run
-}
-
-// RunID returns the execution ID
-func (r *createCertificateRun) RunID() string {
-	return r.run.GetRunID()
-}
-
-// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *createCertificateRun) Cancel(ctx context.Context) error {
-	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
-}
-
-// Get blocks until the workflow is complete, returning the result if applicable
-func (r *createCertificateRun) Get(ctx context.Context) (*CreateCertificateOutput, error) {
-	var resp CreateCertificateOutput
-	if err := r.run.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Terminate terminates a workflow in execution, returning an error if applicable
-func (r *createCertificateRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
-	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
-}
-
 // CreateIdentityOptions provides configuration for a fabric.certauth.v1.CreateIdentity workflow operation
 type CreateIdentityOptions struct {
 	options                  client.StartWorkflowOptions
@@ -941,10 +773,12 @@ func (o *CreateIdentityOptions) Build(req protoreflect.Message) (client.StartWor
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
 		opts.WorkflowIDConflictPolicy = v
+	} else if opts.WorkflowIDConflictPolicy == enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = enumsv1.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -1090,6 +924,191 @@ func (r *createIdentityRun) Terminate(ctx context.Context, reason string, detail
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
+// SignCertificateOptions provides configuration for a fabric.certauth.v1.SignCertificate workflow operation
+type SignCertificateOptions struct {
+	options                  client.StartWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+}
+
+// NewSignCertificateOptions initializes a new SignCertificateOptions value
+func NewSignCertificateOptions() *SignCertificateOptions {
+	return &SignCertificateOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/client.StartWorkflowOptions value with defaults and overrides applied
+func (o *SignCertificateOptions) Build(req protoreflect.Message) (client.StartWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.ID = *v
+	} else if opts.ID == "" {
+		id, err := expression.EvalExpression(SignCertificateIdexpression, req)
+		if err != nil {
+			return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", SignCertificateWorkflowName, err)
+		}
+		opts.ID = id
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+	}
+	if v := o.workflowIdConflictPolicy; v != enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = v
+	} else if opts.WorkflowIDConflictPolicy == enumsv1.WORKFLOW_ID_CONFLICT_POLICY_UNSPECIFIED {
+		opts.WorkflowIDConflictPolicy = enumsv1.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = CertificateAuthorityTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	return opts, nil
+}
+
+// WithStartWorkflowOptions sets the initial go.temporal.io/sdk/client.StartWorkflowOptions
+func (o *SignCertificateOptions) WithStartWorkflowOptions(options client.StartWorkflowOptions) *SignCertificateOptions {
+	o.options = options
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *SignCertificateOptions) WithExecutionTimeout(d time.Duration) *SignCertificateOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the ID value
+func (o *SignCertificateOptions) WithID(id string) *SignCertificateOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *SignCertificateOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *SignCertificateOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *SignCertificateOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *SignCertificateOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *SignCertificateOptions) WithRunTimeout(d time.Duration) *SignCertificateOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *SignCertificateOptions) WithSearchAttributes(sa map[string]any) *SignCertificateOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *SignCertificateOptions) WithTaskTimeout(d time.Duration) *SignCertificateOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *SignCertificateOptions) WithTaskQueue(tq string) *SignCertificateOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *SignCertificateOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *SignCertificateOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// SignCertificateRun describes a(n) fabric.certauth.v1.SignCertificate workflow run
+type SignCertificateRun interface {
+	// ID returns the workflow ID
+	ID() string
+
+	// RunID returns the workflow instance ID
+	RunID() string
+
+	// Run returns the inner client.WorkflowRun
+	Run() client.WorkflowRun
+
+	// Get blocks until the workflow is complete and returns the result
+	Get(ctx context.Context) (*SignCertificateOutput, error)
+
+	// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+	Cancel(ctx context.Context) error
+
+	// Terminate terminates a workflow in execution, returning an error if applicable
+	Terminate(ctx context.Context, reason string, details ...interface{}) error
+}
+
+// signCertificateRun provides an internal implementation of a(n) SignCertificateRunRun
+type signCertificateRun struct {
+	client *certificateAuthorityClient
+	run    client.WorkflowRun
+}
+
+// ID returns the workflow ID
+func (r *signCertificateRun) ID() string {
+	return r.run.GetID()
+}
+
+// Run returns the inner client.WorkflowRun
+func (r *signCertificateRun) Run() client.WorkflowRun {
+	return r.run
+}
+
+// RunID returns the execution ID
+func (r *signCertificateRun) RunID() string {
+	return r.run.GetRunID()
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *signCertificateRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get blocks until the workflow is complete, returning the result if applicable
+func (r *signCertificateRun) Get(ctx context.Context) (*SignCertificateOutput, error) {
+	var resp SignCertificateOutput
+	if err := r.run.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *signCertificateRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
 // Reference to generated workflow functions
 var (
 	// certificateAuthorityRegistrationMutex is a mutex for registering fabric.certauth.v1.CertificateAuthority workflows
@@ -1102,14 +1121,19 @@ var (
 	// This is called after CA deployment to enroll using bootstrap credentials.
 	// Creates both signing and TLS client certs for the bootstrap admin.
 	CreateBootstrapAdminFunction func(workflow.Context, *CreateBootstrapAdminInput) (*CreateBootstrapAdminOutput, error)
-	// CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-	// This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-	// Used for CA signing certs, TLS certs, and any other certificate needs.
-	CreateCertificateFunction func(workflow.Context, *CreateCertificateInput) (*CreateCertificateOutput, error)
 	// CreateIdentity creates a full Fabric identity with both org and TLS certificates
 	// Used for creating peer, orderer, admin, and client identities.
 	// This is the production workflow for identity creation (not bootstrap).
 	CreateIdentityFunction func(workflow.Context, *CreateIdentityInput) (*CreateIdentityOutput, error)
+	// SignCertificate signs an externally-generated CSR with a CA owned by the
+	// executing worker and returns only the public certificate + chain.
+	//
+	// This is the CROSS-OWNER issuance primitive: the key owner (e.g. a shard)
+	// generates the private key + CSR locally and sends only the public CSR
+	// here via Nexus; the issuer (e.g. the operator's TLS CA) never sees the
+	// private key and never writes into the caller's Vault subtree. The caller
+	// stores the returned certificate itself.
+	SignCertificateFunction func(workflow.Context, *SignCertificateInput) (*SignCertificateOutput, error)
 )
 
 // CertificateAuthorityWorkflowFunctions describes a mockable dependency for inlining workflows within other workflows
@@ -1124,14 +1148,19 @@ type (
 		// This is called after CA deployment to enroll using bootstrap credentials.
 		// Creates both signing and TLS client certs for the bootstrap admin.
 		CreateBootstrapAdmin(workflow.Context, *CreateBootstrapAdminInput) (*CreateBootstrapAdminOutput, error)
-		// CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-		// This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-		// Used for CA signing certs, TLS certs, and any other certificate needs.
-		CreateCertificate(workflow.Context, *CreateCertificateInput) (*CreateCertificateOutput, error)
 		// CreateIdentity creates a full Fabric identity with both org and TLS certificates
 		// Used for creating peer, orderer, admin, and client identities.
 		// This is the production workflow for identity creation (not bootstrap).
 		CreateIdentity(workflow.Context, *CreateIdentityInput) (*CreateIdentityOutput, error)
+		// SignCertificate signs an externally-generated CSR with a CA owned by the
+		// executing worker and returns only the public certificate + chain.
+		//
+		// This is the CROSS-OWNER issuance primitive: the key owner (e.g. a shard)
+		// generates the private key + CSR locally and sends only the public CSR
+		// here via Nexus; the issuer (e.g. the operator's TLS CA) never sees the
+		// private key and never writes into the caller's Vault subtree. The caller
+		// stores the returned certificate itself.
+		SignCertificate(workflow.Context, *SignCertificateInput) (*SignCertificateOutput, error)
 	}
 	// certificateAuthorityWorkflowFunctions provides an internal CertificateAuthorityWorkflowFunctions implementation
 	certificateAuthorityWorkflowFunctions struct{}
@@ -1161,16 +1190,6 @@ func (f *certificateAuthorityWorkflowFunctions) CreateBootstrapAdmin(ctx workflo
 	return CreateBootstrapAdminFunction(ctx, req)
 }
 
-// CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-// This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-// Used for CA signing certs, TLS certs, and any other certificate needs.
-func (f *certificateAuthorityWorkflowFunctions) CreateCertificate(ctx workflow.Context, req *CreateCertificateInput) (*CreateCertificateOutput, error) {
-	if CreateCertificateFunction == nil {
-		return nil, errors.New("CreateCertificate requires workflow registration via RegisterCertificateAuthorityWorkflows or RegisterCreateCertificateWorkflow")
-	}
-	return CreateCertificateFunction(ctx, req)
-}
-
 // CreateIdentity creates a full Fabric identity with both org and TLS certificates
 // Used for creating peer, orderer, admin, and client identities.
 // This is the production workflow for identity creation (not bootstrap).
@@ -1179,6 +1198,21 @@ func (f *certificateAuthorityWorkflowFunctions) CreateIdentity(ctx workflow.Cont
 		return nil, errors.New("CreateIdentity requires workflow registration via RegisterCertificateAuthorityWorkflows or RegisterCreateIdentityWorkflow")
 	}
 	return CreateIdentityFunction(ctx, req)
+}
+
+// SignCertificate signs an externally-generated CSR with a CA owned by the
+// executing worker and returns only the public certificate + chain.
+//
+// This is the CROSS-OWNER issuance primitive: the key owner (e.g. a shard)
+// generates the private key + CSR locally and sends only the public CSR
+// here via Nexus; the issuer (e.g. the operator's TLS CA) never sees the
+// private key and never writes into the caller's Vault subtree. The caller
+// stores the returned certificate itself.
+func (f *certificateAuthorityWorkflowFunctions) SignCertificate(ctx workflow.Context, req *SignCertificateInput) (*SignCertificateOutput, error) {
+	if SignCertificateFunction == nil {
+		return nil, errors.New("SignCertificate requires workflow registration via RegisterCertificateAuthorityWorkflows or RegisterSignCertificateWorkflow")
+	}
+	return SignCertificateFunction(ctx, req)
 }
 
 // CertificateAuthorityWorkflows provides methods for initializing new fabric.certauth.v1.CertificateAuthority workflow values
@@ -1193,23 +1227,28 @@ type CertificateAuthorityWorkflows interface {
 	// Creates both signing and TLS client certs for the bootstrap admin.
 	CreateBootstrapAdmin(ctx workflow.Context, input *CreateBootstrapAdminWorkflowInput) (CreateBootstrapAdminWorkflow, error)
 
-	// CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-	// This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-	// Used for CA signing certs, TLS certs, and any other certificate needs.
-	CreateCertificate(ctx workflow.Context, input *CreateCertificateWorkflowInput) (CreateCertificateWorkflow, error)
-
 	// CreateIdentity creates a full Fabric identity with both org and TLS certificates
 	// Used for creating peer, orderer, admin, and client identities.
 	// This is the production workflow for identity creation (not bootstrap).
 	CreateIdentity(ctx workflow.Context, input *CreateIdentityWorkflowInput) (CreateIdentityWorkflow, error)
+
+	// SignCertificate signs an externally-generated CSR with a CA owned by the
+	// executing worker and returns only the public certificate + chain.
+	//
+	// This is the CROSS-OWNER issuance primitive: the key owner (e.g. a shard)
+	// generates the private key + CSR locally and sends only the public CSR
+	// here via Nexus; the issuer (e.g. the operator's TLS CA) never sees the
+	// private key and never writes into the caller's Vault subtree. The caller
+	// stores the returned certificate itself.
+	SignCertificate(ctx workflow.Context, input *SignCertificateWorkflowInput) (SignCertificateWorkflow, error)
 }
 
 // RegisterCertificateAuthorityWorkflows registers fabric.certauth.v1.CertificateAuthority workflows with the given worker
 func RegisterCertificateAuthorityWorkflows(r worker.WorkflowRegistry, workflows CertificateAuthorityWorkflows) {
 	RegisterCreateAdminWorkflow(r, workflows.CreateAdmin)
 	RegisterCreateBootstrapAdminWorkflow(r, workflows.CreateBootstrapAdmin)
-	RegisterCreateCertificateWorkflow(r, workflows.CreateCertificate)
 	RegisterCreateIdentityWorkflow(r, workflows.CreateIdentity)
+	RegisterSignCertificateWorkflow(r, workflows.SignCertificate)
 }
 
 // RegisterCreateAdminWorkflow registers a fabric.certauth.v1.CertificateAuthority.CreateAdmin workflow with the given worker
@@ -1766,283 +1805,6 @@ func (r *CreateBootstrapAdminChildRun) WaitStart(ctx workflow.Context) (*workflo
 	return &exec, nil
 }
 
-// RegisterCreateCertificateWorkflow registers a fabric.certauth.v1.CertificateAuthority.CreateCertificate workflow with the given worker
-func RegisterCreateCertificateWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *CreateCertificateWorkflowInput) (CreateCertificateWorkflow, error)) {
-	certificateAuthorityRegistrationMutex.Lock()
-	defer certificateAuthorityRegistrationMutex.Unlock()
-	CreateCertificateFunction = buildCreateCertificate(wf)
-	r.RegisterWorkflowWithOptions(CreateCertificateFunction, workflow.RegisterOptions{Name: CreateCertificateWorkflowName})
-}
-
-// buildCreateCertificate converts a CreateCertificate workflow struct into a valid workflow function
-func buildCreateCertificate(ctor func(workflow.Context, *CreateCertificateWorkflowInput) (CreateCertificateWorkflow, error)) func(workflow.Context, *CreateCertificateInput) (*CreateCertificateOutput, error) {
-	return func(ctx workflow.Context, req *CreateCertificateInput) (*CreateCertificateOutput, error) {
-		input := &CreateCertificateWorkflowInput{
-			Req: req,
-		}
-		wf, err := ctor(ctx, input)
-		if err != nil {
-			return nil, err
-		}
-		if initializable, ok := wf.(helpers.Initializable); ok {
-			if err := initializable.Initialize(ctx); err != nil {
-				return nil, err
-			}
-		}
-		return wf.Execute(ctx)
-	}
-}
-
-// CreateCertificateWorkflowInput describes the input to a(n) fabric.certauth.v1.CreateCertificate workflow constructor
-type CreateCertificateWorkflowInput struct {
-	Req *CreateCertificateInput
-}
-
-// CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-// This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-// Used for CA signing certs, TLS certs, and any other certificate needs.
-//
-// workflow details: (name: "fabric.certauth.v1.CreateCertificate", id: "fabric/create-certificate/${! Purpose }")
-type CreateCertificateWorkflow interface {
-	// Execute defines the entrypoint to a(n) fabric.certauth.v1.CreateCertificate workflow
-	Execute(ctx workflow.Context) (*CreateCertificateOutput, error)
-}
-
-// CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-// This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-// Used for CA signing certs, TLS certs, and any other certificate needs.
-func CreateCertificateChild(ctx workflow.Context, req *CreateCertificateInput, options ...*CreateCertificateChildOptions) (*CreateCertificateOutput, error) {
-	childRun, err := CreateCertificateChildAsync(ctx, req, options...)
-	if err != nil {
-		return nil, err
-	}
-	return childRun.Get(ctx)
-}
-
-// CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-// This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-// Used for CA signing certs, TLS certs, and any other certificate needs.
-func CreateCertificateChildAsync(ctx workflow.Context, req *CreateCertificateInput, options ...*CreateCertificateChildOptions) (*CreateCertificateChildRun, error) {
-	var o *CreateCertificateChildOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewCreateCertificateChildOptions()
-	}
-	opts, err := o.Build(ctx, req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
-	}
-	ctx = workflow.WithChildOptions(ctx, opts)
-	if o.dc != nil {
-		ctx = workflow.WithDataConverter(ctx, o.dc)
-	}
-	return &CreateCertificateChildRun{Future: workflow.ExecuteChildWorkflow(ctx, CreateCertificateWorkflowName, req)}, nil
-}
-
-// CreateCertificateChildOptions provides configuration for a child fabric.certauth.v1.CreateCertificate workflow operation
-type CreateCertificateChildOptions struct {
-	options                  workflow.ChildWorkflowOptions
-	executionTimeout         *time.Duration
-	id                       *string
-	idReusePolicy            enumsv1.WorkflowIdReusePolicy
-	retryPolicy              *temporal.RetryPolicy
-	runTimeout               *time.Duration
-	searchAttributes         map[string]any
-	taskQueue                *string
-	taskTimeout              *time.Duration
-	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
-	dc                       converter.DataConverter
-	parentClosePolicy        enumsv1.ParentClosePolicy
-	waitForCancellation      *bool
-}
-
-// NewCreateCertificateChildOptions initializes a new CreateCertificateChildOptions value
-func NewCreateCertificateChildOptions() *CreateCertificateChildOptions {
-	return &CreateCertificateChildOptions{}
-}
-
-// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
-func (o *CreateCertificateChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
-	opts := o.options
-	if v := o.id; v != nil {
-		opts.WorkflowID = *v
-	} else if opts.WorkflowID == "" {
-		// wrap expression evaluation in local activity
-		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
-		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
-			lao := workflow.GetLocalActivityOptions(ctx)
-			lao.ScheduleToCloseTimeout = time.Second * 10
-			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
-				id, err := expression.EvalExpression(CreateCertificateIdexpression, req)
-				if err != nil {
-					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateCertificateWorkflowName, err)
-				}
-				return id, nil
-			}).Get(ctx, &opts.WorkflowID); err != nil {
-				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateCertificateWorkflowName, err)
-			}
-		} else {
-			id, err := expression.EvalExpression(CreateCertificateIdexpression, req)
-			if err != nil {
-				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", CreateCertificateWorkflowName, err)
-			}
-			opts.WorkflowID = id
-		}
-	}
-	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = v
-	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = CertificateAuthorityTaskQueue
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.searchAttributes; v != nil {
-		opts.SearchAttributes = o.searchAttributes
-	}
-	if v := o.executionTimeout; v != nil {
-		opts.WorkflowExecutionTimeout = *v
-	}
-	if v := o.runTimeout; v != nil {
-		opts.WorkflowRunTimeout = *v
-	}
-	if v := o.taskTimeout; v != nil {
-		opts.WorkflowTaskTimeout = *v
-	}
-	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
-		opts.ParentClosePolicy = v
-	}
-	if v := o.waitForCancellation; v != nil {
-		opts.WaitForCancellation = *v
-	}
-	return opts, nil
-}
-
-// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
-func (o *CreateCertificateChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *CreateCertificateChildOptions {
-	o.options = options
-	return o
-}
-
-// WithDataConverter registers a DataConverter for the child workflow
-func (o *CreateCertificateChildOptions) WithDataConverter(dc converter.DataConverter) *CreateCertificateChildOptions {
-	o.dc = dc
-	return o
-}
-
-// WithExecutionTimeout sets the WorkflowExecutionTimeout value
-func (o *CreateCertificateChildOptions) WithExecutionTimeout(d time.Duration) *CreateCertificateChildOptions {
-	o.executionTimeout = &d
-	return o
-}
-
-// WithID sets the WorkflowID value
-func (o *CreateCertificateChildOptions) WithID(id string) *CreateCertificateChildOptions {
-	o.id = &id
-	return o
-}
-
-// WithIDReusePolicy sets the WorkflowIDReusePolicy value
-func (o *CreateCertificateChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *CreateCertificateChildOptions {
-	o.idReusePolicy = policy
-	return o
-}
-
-// WithParentClosePolicy sets the WorkflowIDReusePolicy value
-func (o *CreateCertificateChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *CreateCertificateChildOptions {
-	o.parentClosePolicy = policy
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *CreateCertificateChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateCertificateChildOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithRunTimeout sets the WorkflowRunTimeout value
-func (o *CreateCertificateChildOptions) WithRunTimeout(d time.Duration) *CreateCertificateChildOptions {
-	o.runTimeout = &d
-	return o
-}
-
-// WithSearchAttributes sets the SearchAttributes value
-func (o *CreateCertificateChildOptions) WithSearchAttributes(sa map[string]any) *CreateCertificateChildOptions {
-	o.searchAttributes = sa
-	return o
-}
-
-// WithTaskTimeout sets the WorkflowTaskTimeout value
-func (o *CreateCertificateChildOptions) WithTaskTimeout(d time.Duration) *CreateCertificateChildOptions {
-	o.taskTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *CreateCertificateChildOptions) WithTaskQueue(tq string) *CreateCertificateChildOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWaitForCancellation sets the WaitForCancellation value
-func (o *CreateCertificateChildOptions) WithWaitForCancellation(wait bool) *CreateCertificateChildOptions {
-	o.waitForCancellation = &wait
-	return o
-}
-
-// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
-func (o *CreateCertificateChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *CreateCertificateChildOptions {
-	o.workflowIdConflictPolicy = policy
-	return o
-}
-
-// CreateCertificateChildRun describes a child CreateCertificate workflow run
-type CreateCertificateChildRun struct {
-	Future workflow.ChildWorkflowFuture
-}
-
-// Get blocks until the workflow is completed, returning the response value
-func (r *CreateCertificateChildRun) Get(ctx workflow.Context) (*CreateCertificateOutput, error) {
-	var resp CreateCertificateOutput
-	if err := r.Future.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Select adds this completion to the selector. Callback can be nil.
-func (r *CreateCertificateChildRun) Select(sel workflow.Selector, fn func(*CreateCertificateChildRun)) workflow.Selector {
-	return sel.AddFuture(r.Future, func(workflow.Future) {
-		if fn != nil {
-			fn(r)
-		}
-	})
-}
-
-// SelectStart adds waiting for start to the selector. Callback can be nil.
-func (r *CreateCertificateChildRun) SelectStart(sel workflow.Selector, fn func(*CreateCertificateChildRun)) workflow.Selector {
-	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
-		if fn != nil {
-			fn(r)
-		}
-	})
-}
-
-// WaitStart waits for the child workflow to start
-func (r *CreateCertificateChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
-	var exec workflow.Execution
-	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
-		return nil, err
-	}
-	return &exec, nil
-}
-
 // RegisterCreateIdentityWorkflow registers a fabric.certauth.v1.CertificateAuthority.CreateIdentity workflow with the given worker
 func RegisterCreateIdentityWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *CreateIdentityWorkflowInput) (CreateIdentityWorkflow, error)) {
 	certificateAuthorityRegistrationMutex.Lock()
@@ -2079,7 +1841,7 @@ type CreateIdentityWorkflowInput struct {
 // Used for creating peer, orderer, admin, and client identities.
 // This is the production workflow for identity creation (not bootstrap).
 //
-// workflow details: (name: "fabric.certauth.v1.CreateIdentity", id: "fabric/create-identity/${! IdentityName }")
+// workflow details: (name: "fabric.certauth.v1.CreateIdentity", id: "fabric/create-identity/${! Subject.CommonName }")
 type CreateIdentityWorkflow interface {
 	// Execute defines the entrypoint to a(n) fabric.certauth.v1.CreateIdentity workflow
 	Execute(ctx workflow.Context) (*CreateIdentityOutput, error)
@@ -2170,7 +1932,7 @@ func (o *CreateIdentityChildOptions) Build(ctx workflow.Context, req protoreflec
 	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
 		opts.WorkflowIDReusePolicy = v
 	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
-		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if v := o.taskQueue; v != nil {
 		opts.TaskQueue = *v
@@ -2320,6 +2082,298 @@ func (r *CreateIdentityChildRun) WaitStart(ctx workflow.Context) (*workflow.Exec
 	return &exec, nil
 }
 
+// RegisterSignCertificateWorkflow registers a fabric.certauth.v1.CertificateAuthority.SignCertificate workflow with the given worker
+func RegisterSignCertificateWorkflow(r worker.WorkflowRegistry, wf func(workflow.Context, *SignCertificateWorkflowInput) (SignCertificateWorkflow, error)) {
+	certificateAuthorityRegistrationMutex.Lock()
+	defer certificateAuthorityRegistrationMutex.Unlock()
+	SignCertificateFunction = buildSignCertificate(wf)
+	r.RegisterWorkflowWithOptions(SignCertificateFunction, workflow.RegisterOptions{Name: SignCertificateWorkflowName})
+}
+
+// buildSignCertificate converts a SignCertificate workflow struct into a valid workflow function
+func buildSignCertificate(ctor func(workflow.Context, *SignCertificateWorkflowInput) (SignCertificateWorkflow, error)) func(workflow.Context, *SignCertificateInput) (*SignCertificateOutput, error) {
+	return func(ctx workflow.Context, req *SignCertificateInput) (*SignCertificateOutput, error) {
+		input := &SignCertificateWorkflowInput{
+			Req: req,
+		}
+		wf, err := ctor(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if initializable, ok := wf.(helpers.Initializable); ok {
+			if err := initializable.Initialize(ctx); err != nil {
+				return nil, err
+			}
+		}
+		return wf.Execute(ctx)
+	}
+}
+
+// SignCertificateWorkflowInput describes the input to a(n) fabric.certauth.v1.SignCertificate workflow constructor
+type SignCertificateWorkflowInput struct {
+	Req *SignCertificateInput
+}
+
+// SignCertificate signs an externally-generated CSR with a CA owned by the
+// executing worker and returns only the public certificate + chain.
+//
+// This is the CROSS-OWNER issuance primitive: the key owner (e.g. a shard)
+// generates the private key + CSR locally and sends only the public CSR
+// here via Nexus; the issuer (e.g. the operator's TLS CA) never sees the
+// private key and never writes into the caller's Vault subtree. The caller
+// stores the returned certificate itself.
+//
+// workflow details: (name: "fabric.certauth.v1.SignCertificate", id: "fabric/sign-certificate/${! Subject.CommonName }")
+type SignCertificateWorkflow interface {
+	// Execute defines the entrypoint to a(n) fabric.certauth.v1.SignCertificate workflow
+	Execute(ctx workflow.Context) (*SignCertificateOutput, error)
+}
+
+// SignCertificate signs an externally-generated CSR with a CA owned by the
+// executing worker and returns only the public certificate + chain.
+//
+// This is the CROSS-OWNER issuance primitive: the key owner (e.g. a shard)
+// generates the private key + CSR locally and sends only the public CSR
+// here via Nexus; the issuer (e.g. the operator's TLS CA) never sees the
+// private key and never writes into the caller's Vault subtree. The caller
+// stores the returned certificate itself.
+func SignCertificateChild(ctx workflow.Context, req *SignCertificateInput, options ...*SignCertificateChildOptions) (*SignCertificateOutput, error) {
+	childRun, err := SignCertificateChildAsync(ctx, req, options...)
+	if err != nil {
+		return nil, err
+	}
+	return childRun.Get(ctx)
+}
+
+// SignCertificate signs an externally-generated CSR with a CA owned by the
+// executing worker and returns only the public certificate + chain.
+//
+// This is the CROSS-OWNER issuance primitive: the key owner (e.g. a shard)
+// generates the private key + CSR locally and sends only the public CSR
+// here via Nexus; the issuer (e.g. the operator's TLS CA) never sees the
+// private key and never writes into the caller's Vault subtree. The caller
+// stores the returned certificate itself.
+func SignCertificateChildAsync(ctx workflow.Context, req *SignCertificateInput, options ...*SignCertificateChildOptions) (*SignCertificateChildRun, error) {
+	var o *SignCertificateChildOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewSignCertificateChildOptions()
+	}
+	opts, err := o.Build(ctx, req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing workflow.ChildWorkflowOptions: %w", err)
+	}
+	ctx = workflow.WithChildOptions(ctx, opts)
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	return &SignCertificateChildRun{Future: workflow.ExecuteChildWorkflow(ctx, SignCertificateWorkflowName, req)}, nil
+}
+
+// SignCertificateChildOptions provides configuration for a child fabric.certauth.v1.SignCertificate workflow operation
+type SignCertificateChildOptions struct {
+	options                  workflow.ChildWorkflowOptions
+	executionTimeout         *time.Duration
+	id                       *string
+	idReusePolicy            enumsv1.WorkflowIdReusePolicy
+	retryPolicy              *temporal.RetryPolicy
+	runTimeout               *time.Duration
+	searchAttributes         map[string]any
+	taskQueue                *string
+	taskTimeout              *time.Duration
+	workflowIdConflictPolicy enumsv1.WorkflowIdConflictPolicy
+	dc                       converter.DataConverter
+	parentClosePolicy        enumsv1.ParentClosePolicy
+	waitForCancellation      *bool
+}
+
+// NewSignCertificateChildOptions initializes a new SignCertificateChildOptions value
+func NewSignCertificateChildOptions() *SignCertificateChildOptions {
+	return &SignCertificateChildOptions{}
+}
+
+// Build initializes a new go.temporal.io/sdk/workflow.ChildWorkflowOptions value with defaults and overrides applied
+func (o *SignCertificateChildOptions) Build(ctx workflow.Context, req protoreflect.Message) (workflow.ChildWorkflowOptions, error) {
+	opts := o.options
+	if v := o.id; v != nil {
+		opts.WorkflowID = *v
+	} else if opts.WorkflowID == "" {
+		// wrap expression evaluation in local activity
+		// more info: https://cludden.github.io/protoc-gen-go-temporal/docs/guides/patches#pv_64-expression-evaluation-local-activity
+		if workflow.GetVersion(ctx, "cludden_protoc-gen-go-temporal_64_expression-evaluation-local-activity", workflow.DefaultVersion, 1) == 1 {
+			lao := workflow.GetLocalActivityOptions(ctx)
+			lao.ScheduleToCloseTimeout = time.Second * 10
+			if err := workflow.ExecuteLocalActivity(workflow.WithLocalActivityOptions(ctx, lao), func(ctx context.Context) (string, error) {
+				id, err := expression.EvalExpression(SignCertificateIdexpression, req)
+				if err != nil {
+					return "", fmt.Errorf("error evaluating id expression for %q workflow: %w", SignCertificateWorkflowName, err)
+				}
+				return id, nil
+			}).Get(ctx, &opts.WorkflowID); err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", SignCertificateWorkflowName, err)
+			}
+		} else {
+			id, err := expression.EvalExpression(SignCertificateIdexpression, req)
+			if err != nil {
+				return opts, fmt.Errorf("error evaluating id expression for %q workflow: %w", SignCertificateWorkflowName, err)
+			}
+			opts.WorkflowID = id
+		}
+	}
+	if v := o.idReusePolicy; v != enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = v
+	} else if opts.WorkflowIDReusePolicy == enumsv1.WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED {
+		opts.WorkflowIDReusePolicy = enumsv1.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = CertificateAuthorityTaskQueue
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.searchAttributes; v != nil {
+		opts.SearchAttributes = o.searchAttributes
+	}
+	if v := o.executionTimeout; v != nil {
+		opts.WorkflowExecutionTimeout = *v
+	}
+	if v := o.runTimeout; v != nil {
+		opts.WorkflowRunTimeout = *v
+	}
+	if v := o.taskTimeout; v != nil {
+		opts.WorkflowTaskTimeout = *v
+	}
+	if v := o.parentClosePolicy; v != enumsv1.PARENT_CLOSE_POLICY_UNSPECIFIED {
+		opts.ParentClosePolicy = v
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return opts, nil
+}
+
+// WithChildWorkflowOptions sets the initial go.temporal.io/sdk/workflow.ChildWorkflowOptions
+func (o *SignCertificateChildOptions) WithChildWorkflowOptions(options workflow.ChildWorkflowOptions) *SignCertificateChildOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the child workflow
+func (o *SignCertificateChildOptions) WithDataConverter(dc converter.DataConverter) *SignCertificateChildOptions {
+	o.dc = dc
+	return o
+}
+
+// WithExecutionTimeout sets the WorkflowExecutionTimeout value
+func (o *SignCertificateChildOptions) WithExecutionTimeout(d time.Duration) *SignCertificateChildOptions {
+	o.executionTimeout = &d
+	return o
+}
+
+// WithID sets the WorkflowID value
+func (o *SignCertificateChildOptions) WithID(id string) *SignCertificateChildOptions {
+	o.id = &id
+	return o
+}
+
+// WithIDReusePolicy sets the WorkflowIDReusePolicy value
+func (o *SignCertificateChildOptions) WithIDReusePolicy(policy enumsv1.WorkflowIdReusePolicy) *SignCertificateChildOptions {
+	o.idReusePolicy = policy
+	return o
+}
+
+// WithParentClosePolicy sets the WorkflowIDReusePolicy value
+func (o *SignCertificateChildOptions) WithParentClosePolicy(policy enumsv1.ParentClosePolicy) *SignCertificateChildOptions {
+	o.parentClosePolicy = policy
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *SignCertificateChildOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *SignCertificateChildOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithRunTimeout sets the WorkflowRunTimeout value
+func (o *SignCertificateChildOptions) WithRunTimeout(d time.Duration) *SignCertificateChildOptions {
+	o.runTimeout = &d
+	return o
+}
+
+// WithSearchAttributes sets the SearchAttributes value
+func (o *SignCertificateChildOptions) WithSearchAttributes(sa map[string]any) *SignCertificateChildOptions {
+	o.searchAttributes = sa
+	return o
+}
+
+// WithTaskTimeout sets the WorkflowTaskTimeout value
+func (o *SignCertificateChildOptions) WithTaskTimeout(d time.Duration) *SignCertificateChildOptions {
+	o.taskTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *SignCertificateChildOptions) WithTaskQueue(tq string) *SignCertificateChildOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *SignCertificateChildOptions) WithWaitForCancellation(wait bool) *SignCertificateChildOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// WithWorkflowIdConflictPolicy sets the WorkflowIdConflictPolicy value
+func (o *SignCertificateChildOptions) WithWorkflowIdConflictPolicy(policy enumsv1.WorkflowIdConflictPolicy) *SignCertificateChildOptions {
+	o.workflowIdConflictPolicy = policy
+	return o
+}
+
+// SignCertificateChildRun describes a child SignCertificate workflow run
+type SignCertificateChildRun struct {
+	Future workflow.ChildWorkflowFuture
+}
+
+// Get blocks until the workflow is completed, returning the response value
+func (r *SignCertificateChildRun) Get(ctx workflow.Context) (*SignCertificateOutput, error) {
+	var resp SignCertificateOutput
+	if err := r.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds this completion to the selector. Callback can be nil.
+func (r *SignCertificateChildRun) Select(sel workflow.Selector, fn func(*SignCertificateChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// SelectStart adds waiting for start to the selector. Callback can be nil.
+func (r *SignCertificateChildRun) SelectStart(sel workflow.Selector, fn func(*SignCertificateChildRun)) workflow.Selector {
+	return sel.AddFuture(r.Future.GetChildWorkflowExecution(), func(workflow.Future) {
+		if fn != nil {
+			fn(r)
+		}
+	})
+}
+
+// WaitStart waits for the child workflow to start
+func (r *SignCertificateChildRun) WaitStart(ctx workflow.Context) (*workflow.Execution, error) {
+	var exec workflow.Execution
+	if err := r.Future.GetChildWorkflowExecution().Get(ctx, &exec); err != nil {
+		return nil, err
+	}
+	return &exec, nil
+}
+
 // CertificateAuthorityActivities describes available worker activities
 type CertificateAuthorityActivities interface{}
 
@@ -2404,35 +2458,6 @@ func (c *TestCertificateAuthorityClient) GetCreateBootstrapAdmin(ctx context.Con
 	return &testCreateBootstrapAdminRun{env: c.env, workflows: c.workflows}
 }
 
-// CreateCertificate executes a(n) fabric.certauth.v1.CreateCertificate workflow in the test environment
-func (c *TestCertificateAuthorityClient) CreateCertificate(ctx context.Context, req *CreateCertificateInput, opts ...*CreateCertificateOptions) (*CreateCertificateOutput, error) {
-	run, err := c.CreateCertificateAsync(ctx, req, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return run.Get(ctx)
-}
-
-// CreateCertificateAsync executes a(n) fabric.certauth.v1.CreateCertificate workflow in the test environment
-func (c *TestCertificateAuthorityClient) CreateCertificateAsync(ctx context.Context, req *CreateCertificateInput, options ...*CreateCertificateOptions) (CreateCertificateRun, error) {
-	var o *CreateCertificateOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewCreateCertificateOptions()
-	}
-	opts, err := o.Build(req.ProtoReflect())
-	if err != nil {
-		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
-	}
-	return &testCreateCertificateRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
-}
-
-// GetCreateCertificate is a noop
-func (c *TestCertificateAuthorityClient) GetCreateCertificate(ctx context.Context, workflowID string, runID string) CreateCertificateRun {
-	return &testCreateCertificateRun{env: c.env, workflows: c.workflows}
-}
-
 // CreateIdentity executes a(n) fabric.certauth.v1.CreateIdentity workflow in the test environment
 func (c *TestCertificateAuthorityClient) CreateIdentity(ctx context.Context, req *CreateIdentityInput, opts ...*CreateIdentityOptions) (*CreateIdentityOutput, error) {
 	run, err := c.CreateIdentityAsync(ctx, req, opts...)
@@ -2460,6 +2485,35 @@ func (c *TestCertificateAuthorityClient) CreateIdentityAsync(ctx context.Context
 // GetCreateIdentity is a noop
 func (c *TestCertificateAuthorityClient) GetCreateIdentity(ctx context.Context, workflowID string, runID string) CreateIdentityRun {
 	return &testCreateIdentityRun{env: c.env, workflows: c.workflows}
+}
+
+// SignCertificate executes a(n) fabric.certauth.v1.SignCertificate workflow in the test environment
+func (c *TestCertificateAuthorityClient) SignCertificate(ctx context.Context, req *SignCertificateInput, opts ...*SignCertificateOptions) (*SignCertificateOutput, error) {
+	run, err := c.SignCertificateAsync(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return run.Get(ctx)
+}
+
+// SignCertificateAsync executes a(n) fabric.certauth.v1.SignCertificate workflow in the test environment
+func (c *TestCertificateAuthorityClient) SignCertificateAsync(ctx context.Context, req *SignCertificateInput, options ...*SignCertificateOptions) (SignCertificateRun, error) {
+	var o *SignCertificateOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewSignCertificateOptions()
+	}
+	opts, err := o.Build(req.ProtoReflect())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing client.StartWorkflowOptions: %w", err)
+	}
+	return &testSignCertificateRun{client: c, env: c.env, opts: &opts, req: req, workflows: c.workflows}, nil
+}
+
+// GetSignCertificate is a noop
+func (c *TestCertificateAuthorityClient) GetSignCertificate(ctx context.Context, workflowID string, runID string) SignCertificateRun {
+	return &testSignCertificateRun{env: c.env, workflows: c.workflows}
 }
 
 // CancelWorkflow requests cancellation of an existing workflow execution
@@ -2589,64 +2643,6 @@ func (r *testCreateBootstrapAdminRun) Terminate(ctx context.Context, reason stri
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }
 
-var _ CreateCertificateRun = &testCreateCertificateRun{}
-
-// testCreateCertificateRun provides convenience methods for interacting with a(n) fabric.certauth.v1.CreateCertificate workflow in the test environment
-type testCreateCertificateRun struct {
-	client    *TestCertificateAuthorityClient
-	env       *testsuite.TestWorkflowEnvironment
-	isStarted atomic.Bool
-	opts      *client.StartWorkflowOptions
-	req       *CreateCertificateInput
-	workflows CertificateAuthorityWorkflows
-}
-
-// Cancel requests cancellation of a workflow in execution, returning an error if applicable
-func (r *testCreateCertificateRun) Cancel(ctx context.Context) error {
-	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
-}
-
-// Get retrieves a test fabric.certauth.v1.CreateCertificate workflow result
-func (r *testCreateCertificateRun) Get(context.Context) (*CreateCertificateOutput, error) {
-	if r.isStarted.CompareAndSwap(false, true) {
-		r.env.ExecuteWorkflow(CreateCertificateWorkflowName, r.req)
-	}
-	if !r.env.IsWorkflowCompleted() {
-		return nil, errors.New("workflow in progress")
-	}
-	if err := r.env.GetWorkflowError(); err != nil {
-		return nil, err
-	}
-	var result CreateCertificateOutput
-	if err := r.env.GetWorkflowResult(&result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// ID returns a test fabric.certauth.v1.CreateCertificate workflow run's workflow ID
-func (r *testCreateCertificateRun) ID() string {
-	if r.opts != nil {
-		return r.opts.ID
-	}
-	return ""
-}
-
-// Run noop implementation
-func (r *testCreateCertificateRun) Run() client.WorkflowRun {
-	return nil
-}
-
-// RunID noop implementation
-func (r *testCreateCertificateRun) RunID() string {
-	return ""
-}
-
-// Terminate terminates a workflow in execution, returning an error if applicable
-func (r *testCreateCertificateRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
-	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
-}
-
 var _ CreateIdentityRun = &testCreateIdentityRun{}
 
 // testCreateIdentityRun provides convenience methods for interacting with a(n) fabric.certauth.v1.CreateIdentity workflow in the test environment
@@ -2702,5 +2698,63 @@ func (r *testCreateIdentityRun) RunID() string {
 
 // Terminate terminates a workflow in execution, returning an error if applicable
 func (r *testCreateIdentityRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
+	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
+}
+
+var _ SignCertificateRun = &testSignCertificateRun{}
+
+// testSignCertificateRun provides convenience methods for interacting with a(n) fabric.certauth.v1.SignCertificate workflow in the test environment
+type testSignCertificateRun struct {
+	client    *TestCertificateAuthorityClient
+	env       *testsuite.TestWorkflowEnvironment
+	isStarted atomic.Bool
+	opts      *client.StartWorkflowOptions
+	req       *SignCertificateInput
+	workflows CertificateAuthorityWorkflows
+}
+
+// Cancel requests cancellation of a workflow in execution, returning an error if applicable
+func (r *testSignCertificateRun) Cancel(ctx context.Context) error {
+	return r.client.CancelWorkflow(ctx, r.ID(), r.RunID())
+}
+
+// Get retrieves a test fabric.certauth.v1.SignCertificate workflow result
+func (r *testSignCertificateRun) Get(context.Context) (*SignCertificateOutput, error) {
+	if r.isStarted.CompareAndSwap(false, true) {
+		r.env.ExecuteWorkflow(SignCertificateWorkflowName, r.req)
+	}
+	if !r.env.IsWorkflowCompleted() {
+		return nil, errors.New("workflow in progress")
+	}
+	if err := r.env.GetWorkflowError(); err != nil {
+		return nil, err
+	}
+	var result SignCertificateOutput
+	if err := r.env.GetWorkflowResult(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ID returns a test fabric.certauth.v1.SignCertificate workflow run's workflow ID
+func (r *testSignCertificateRun) ID() string {
+	if r.opts != nil {
+		return r.opts.ID
+	}
+	return ""
+}
+
+// Run noop implementation
+func (r *testSignCertificateRun) Run() client.WorkflowRun {
+	return nil
+}
+
+// RunID noop implementation
+func (r *testSignCertificateRun) RunID() string {
+	return ""
+}
+
+// Terminate terminates a workflow in execution, returning an error if applicable
+func (r *testSignCertificateRun) Terminate(ctx context.Context, reason string, details ...interface{}) error {
 	return r.client.TerminateWorkflow(ctx, r.ID(), r.RunID(), reason, details...)
 }

@@ -165,44 +165,62 @@ func TestCreatePasswordActivity(t *testing.T) {
 	}
 }
 
-func TestCreateKeyPairActivity(t *testing.T) {
+// TestEnsureKeyPairActivity verifies the get-or-create semantics: an existing
+// key is reused (never overwritten), an absent key (ErrSecretNotFound) triggers
+// generation + store, and any other fetch error is fatal so a possibly-valid
+// key is never clobbered.
+func TestEnsureKeyPairActivity(t *testing.T) {
+	existingKey := validKeyPairSecret()
+
 	tests := []struct {
 		name        string
-		input       *pb.CreateKeyPairInput
-		providerErr error
+		input       *pb.EnsureKeyPairInput
+		fetchSecret Secret
+		fetchErr    error
+		storeErr    error
+		expectFetch bool
+		expectStore bool
 		expectErr   bool
 	}{
 		// Layer 1: Validation errors
 		{
-			name: "error - missing secret_ref",
-			input: &pb.CreateKeyPairInput{
-				SecretRef: nil,
-			},
+			name:      "error - missing secret_ref",
+			input:     &pb.EnsureKeyPairInput{SecretRef: nil},
 			expectErr: true,
 		},
-		// Layer 2: Success cases
+		// Layer 2: get-or-create behavior
 		{
-			name: "success - creates key pair",
-			input: &pb.CreateKeyPairInput{
-				SecretRef: testSecretRef("fabric/shard/org1/ca/key"),
-			},
-			expectErr: false,
+			name:        "success - key absent, generates and stores",
+			input:       &pb.EnsureKeyPairInput{SecretRef: testSecretRef("fabric/shard/org1/ca/key")},
+			fetchErr:    ErrSecretNotFound,
+			expectFetch: true,
+			expectStore: true,
+			expectErr:   false,
+		},
+		{
+			name:        "success - key exists, reuses without storing",
+			input:       &pb.EnsureKeyPairInput{SecretRef: testSecretRef("fabric/shard/org1/ca/key")},
+			fetchSecret: existingKey,
+			expectFetch: true,
+			expectStore: false,
+			expectErr:   false,
 		},
 		// Layer 3: Provider errors
 		{
-			name: "error - provider connection refused",
-			input: &pb.CreateKeyPairInput{
-				SecretRef: testSecretRef("fabric/shard/org1/ca/key"),
-			},
-			providerErr: errProviderConnectionRefused,
+			name:        "error - transient fetch failure is fatal (no overwrite)",
+			input:       &pb.EnsureKeyPairInput{SecretRef: testSecretRef("fabric/shard/org1/ca/key")},
+			fetchErr:    errProviderConnectionRefused,
+			expectFetch: true,
+			expectStore: false,
 			expectErr:   true,
 		},
 		{
-			name: "error - provider forbidden",
-			input: &pb.CreateKeyPairInput{
-				SecretRef: testSecretRef("fabric/shard/org1/ca/key"),
-			},
-			providerErr: errProviderForbidden,
+			name:        "error - store fails after generation",
+			input:       &pb.EnsureKeyPairInput{SecretRef: testSecretRef("fabric/shard/org1/ca/key")},
+			fetchErr:    ErrSecretNotFound,
+			storeErr:    errProviderForbidden,
+			expectFetch: true,
+			expectStore: true,
 			expectErr:   true,
 		},
 	}
@@ -214,39 +232,42 @@ func TestCreateKeyPairActivity(t *testing.T) {
 
 			mockProvider := newMockSecretProvider(t)
 
-			// Conditional mock: only expect provider call if input passes validation
-			if tt.input.SecretRef != nil {
+			if tt.expectFetch {
+				mockProvider.On("FetchSecret", mock.Anything, tt.input.SecretRef).
+					Return(tt.fetchSecret, tt.fetchErr).Maybe()
+			}
+			if tt.expectStore {
 				mockProvider.On("UpdateSecret", mock.Anything, tt.input.SecretRef, mock.MatchedBy(func(secret Secret) bool {
-					// Verify the secret contains a key pair
 					_, hasPrivateKey := secret["private_key"]
 					_, hasPublicKey := secret["public_key"]
 					return hasPrivateKey && hasPublicKey
-				})).Return(tt.providerErr).Maybe()
+				})).Return(tt.storeErr).Maybe()
 			}
 
 			activities := NewActivities(mockProvider)
-			env.RegisterActivity(activities.CreateKeyPair)
+			env.RegisterActivity(activities.EnsureKeyPair)
 
-			val, err := env.ExecuteActivity(activities.CreateKeyPair, tt.input)
+			val, err := env.ExecuteActivity(activities.EnsureKeyPair, tt.input)
 
 			if tt.expectErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
 				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				var result *pb.CreateKeyPairOutput
-				if err := val.Get(&result); err != nil {
-					t.Fatalf("error getting result: %v", err)
-				}
-				if result == nil {
-					t.Fatal("result is nil")
-				}
-				if result.SecretRef == nil {
-					t.Fatal("result.SecretRef is nil")
-				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			var result *pb.EnsureKeyPairOutput
+			if err := val.Get(&result); err != nil {
+				t.Fatalf("error getting result: %v", err)
+			}
+			if result == nil || result.SecretRef == nil {
+				t.Fatal("result or result.SecretRef is nil")
+			}
+			// When the key already exists it must be reused, not overwritten.
+			if !tt.expectStore {
+				mockProvider.AssertNotCalled(t, "UpdateSecret", mock.Anything, mock.Anything, mock.Anything)
 			}
 		})
 	}
@@ -414,6 +435,72 @@ func TestCreateSelfSignedCertificateActivity(t *testing.T) {
 				if result.CertRef == nil {
 					t.Fatal("result.CertRef is nil")
 				}
+			}
+		})
+	}
+}
+
+// TestStoreCertificateActivity_PersistsChain verifies the fix that StoreCertificate
+// persists BOTH the leaf certificate and the full chain: when ca_chain_pem is
+// given the stored "chain" equals it; when omitted the leaf is stored as the
+// chain (root/self-contained case). Downstream mTLS consumers rely on the full
+// chain being present.
+func TestStoreCertificateActivity_PersistsChain(t *testing.T) {
+	leaf := []byte("-----BEGIN CERTIFICATE-----\nleaf\n-----END CERTIFICATE-----")
+	chain := []byte("-----BEGIN CERTIFICATE-----\nleaf\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nissuer\n-----END CERTIFICATE-----")
+
+	tests := []struct {
+		name      string
+		input     *pb.StoreCertificateInput
+		wantCert  string
+		wantChain string
+	}{
+		{
+			name: "with explicit chain",
+			input: &pb.StoreCertificateInput{
+				CertRef:        testSecretRef("fabric/shard/org1/peer/tls-cert"),
+				CertificatePem: leaf,
+				CaChainPem:     chain,
+			},
+			wantCert:  string(leaf),
+			wantChain: string(chain),
+		},
+		{
+			name: "no chain falls back to leaf",
+			input: &pb.StoreCertificateInput{
+				CertRef:        testSecretRef("fabric/shard/org1/peer/tls-cert"),
+				CertificatePem: leaf,
+			},
+			wantCert:  string(leaf),
+			wantChain: string(leaf),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestActivityEnvironment()
+
+			mockProvider := newMockSecretProvider(t)
+			var stored Secret
+			mockProvider.On("UpdateSecret", mock.Anything, tt.input.CertRef, mock.Anything).
+				Run(func(args mock.Arguments) {
+					stored = args.Get(2).(Secret)
+				}).
+				Return(nil)
+
+			activities := NewActivities(mockProvider)
+			env.RegisterActivity(activities.StoreCertificate)
+
+			if _, err := env.ExecuteActivity(activities.StoreCertificate, tt.input); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if got, _ := stored["certificate"].(string); got != tt.wantCert {
+				t.Errorf("certificate = %q, want %q", got, tt.wantCert)
+			}
+			if got, _ := stored["chain"].(string); got != tt.wantChain {
+				t.Errorf("chain = %q, want %q", got, tt.wantChain)
 			}
 		})
 	}

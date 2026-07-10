@@ -43,9 +43,9 @@ var (
 
 // secrets.v1.Secrets activity names
 const (
-	CreateKeyPairActivityName               = "secrets.v1.CreateKeyPair"
 	CreatePasswordActivityName              = "secrets.v1.CreatePassword"
 	CreateSelfSignedCertificateActivityName = "secrets.v1.CreateSelfSignedCertificate"
+	EnsureKeyPairActivityName               = "secrets.v1.EnsureKeyPair"
 	StoreCertificateActivityName            = "secrets.v1.StoreCertificate"
 )
 
@@ -692,15 +692,20 @@ func (r *CreateAccessChildRun) WaitStart(ctx workflow.Context) (*workflow.Execut
 
 // SecretsActivities describes available worker activities
 type SecretsActivities interface {
-	// CreateKeyPair generates an ECDSA key pair (P-256) and stores it.
-	CreateKeyPair(ctx context.Context, req *CreateKeyPairInput) (*CreateKeyPairOutput, error)
-
 	// CreatePassword generates a secure password and stores it with the given username.
 	CreatePassword(ctx context.Context, req *CreatePasswordInput) (*CreatePasswordOutput, error)
 
 	// CreateSelfSignedCertificate fetches a key pair, generates a self-signed certificate, and stores it.
 	// Used for root CA certificates only. Implemented as an activity to keep secrets out of workflow history.
 	CreateSelfSignedCertificate(ctx context.Context, req *CreateSelfSignedCertificateInput) (*CreateSelfSignedCertificateOutput, error)
+
+	// EnsureKeyPair get-or-creates an ECDSA key pair (P-256): it returns the
+	// existing key at secret_ref when present, and generates + stores a new one
+	// only when the backend reports the secret is absent. Reusing a stable key
+	// across retries keeps a previously-signed certificate consistent with the
+	// key, closing the partial-failure key/cert-mismatch window. A transient
+	// fetch failure is fatal (the possibly-valid key is never overwritten).
+	EnsureKeyPair(ctx context.Context, req *EnsureKeyPairInput) (*EnsureKeyPairOutput, error)
 
 	// StoreCertificate stores certificate data at the specified location.
 	// Implemented as an activity to keep certificate data out of workflow history.
@@ -709,270 +714,10 @@ type SecretsActivities interface {
 
 // RegisterSecretsActivities registers activities with a worker
 func RegisterSecretsActivities(r worker.ActivityRegistry, activities SecretsActivities) {
-	RegisterCreateKeyPairActivity(r, activities.CreateKeyPair)
 	RegisterCreatePasswordActivity(r, activities.CreatePassword)
 	RegisterCreateSelfSignedCertificateActivity(r, activities.CreateSelfSignedCertificate)
+	RegisterEnsureKeyPairActivity(r, activities.EnsureKeyPair)
 	RegisterStoreCertificateActivity(r, activities.StoreCertificate)
-}
-
-// RegisterCreateKeyPairActivity registers a secrets.v1.CreateKeyPair activity
-func RegisterCreateKeyPairActivity(r worker.ActivityRegistry, fn func(context.Context, *CreateKeyPairInput) (*CreateKeyPairOutput, error)) {
-	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
-		Name: CreateKeyPairActivityName,
-	})
-}
-
-// CreateKeyPairFuture describes a(n) secrets.v1.CreateKeyPair activity execution
-type CreateKeyPairFuture struct {
-	Future workflow.Future
-}
-
-// Get blocks on the activity's completion, returning the response
-func (f *CreateKeyPairFuture) Get(ctx workflow.Context) (*CreateKeyPairOutput, error) {
-	var resp CreateKeyPairOutput
-	if err := f.Future.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Select adds the activity's completion to the selector, callback can be nil
-func (f *CreateKeyPairFuture) Select(sel workflow.Selector, fn func(*CreateKeyPairFuture)) workflow.Selector {
-	return sel.AddFuture(f.Future, func(workflow.Future) {
-		if fn != nil {
-			fn(f)
-		}
-	})
-}
-
-// CreateKeyPair generates an ECDSA key pair (P-256) and stores it.
-func CreateKeyPair(ctx workflow.Context, req *CreateKeyPairInput, options ...*CreateKeyPairActivityOptions) (*CreateKeyPairOutput, error) {
-	return CreateKeyPairAsync(ctx, req, options...).Get(ctx)
-}
-
-// CreateKeyPair generates an ECDSA key pair (P-256) and stores it.
-func CreateKeyPairAsync(ctx workflow.Context, req *CreateKeyPairInput, options ...*CreateKeyPairActivityOptions) *CreateKeyPairFuture {
-	var o *CreateKeyPairActivityOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewCreateKeyPairActivityOptions()
-	}
-	var err error
-	if ctx, err = o.Build(ctx); err != nil {
-		errF, errS := workflow.NewFuture(ctx)
-		errS.SetError(err)
-		return &CreateKeyPairFuture{Future: errF}
-	}
-	activity := CreateKeyPairActivityName
-	if o.dc != nil {
-		ctx = workflow.WithDataConverter(ctx, o.dc)
-	}
-	future := &CreateKeyPairFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
-	return future
-}
-
-// CreateKeyPair generates an ECDSA key pair (P-256) and stores it.
-func CreateKeyPairLocal(ctx workflow.Context, req *CreateKeyPairInput, options ...*CreateKeyPairLocalActivityOptions) (*CreateKeyPairOutput, error) {
-	return CreateKeyPairLocalAsync(ctx, req, options...).Get(ctx)
-}
-
-// CreateKeyPair generates an ECDSA key pair (P-256) and stores it.
-func CreateKeyPairLocalAsync(ctx workflow.Context, req *CreateKeyPairInput, options ...*CreateKeyPairLocalActivityOptions) *CreateKeyPairFuture {
-	var o *CreateKeyPairLocalActivityOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewCreateKeyPairLocalActivityOptions()
-	}
-	var err error
-	if ctx, err = o.Build(ctx); err != nil {
-		errF, errS := workflow.NewFuture(ctx)
-		errS.SetError(err)
-		return &CreateKeyPairFuture{Future: errF}
-	}
-	var activity any
-	if o.fn != nil {
-		activity = o.fn
-	} else {
-		activity = CreateKeyPairActivityName
-	}
-	if o.dc != nil {
-		ctx = workflow.WithDataConverter(ctx, o.dc)
-	}
-	future := &CreateKeyPairFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
-	return future
-}
-
-// CreateKeyPairActivityOptions provides configuration for a(n) secrets.v1.CreateKeyPair activity
-type CreateKeyPairActivityOptions struct {
-	options                workflow.ActivityOptions
-	retryPolicy            *temporal.RetryPolicy
-	scheduleToCloseTimeout *time.Duration
-	startToCloseTimeout    *time.Duration
-	dc                     converter.DataConverter
-	heartbeatTimeout       *time.Duration
-	scheduleToStartTimeout *time.Duration
-	taskQueue              *string
-	waitForCancellation    *bool
-}
-
-// NewCreateKeyPairActivityOptions initializes a new CreateKeyPairActivityOptions value
-func NewCreateKeyPairActivityOptions() *CreateKeyPairActivityOptions {
-	return &CreateKeyPairActivityOptions{}
-}
-
-// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
-func (o *CreateKeyPairActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
-	opts := o.options
-	if v := o.heartbeatTimeout; v != nil {
-		opts.HeartbeatTimeout = *v
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.scheduleToCloseTimeout; v != nil {
-		opts.ScheduleToCloseTimeout = *v
-	} else if opts.ScheduleToCloseTimeout == 0 {
-		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
-	}
-	if v := o.scheduleToStartTimeout; v != nil {
-		opts.ScheduleToStartTimeout = *v
-	}
-	if v := o.startToCloseTimeout; v != nil {
-		opts.StartToCloseTimeout = *v
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = SecretsTaskQueue
-	}
-	if v := o.waitForCancellation; v != nil {
-		opts.WaitForCancellation = *v
-	}
-	return workflow.WithActivityOptions(ctx, opts), nil
-}
-
-// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
-func (o *CreateKeyPairActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *CreateKeyPairActivityOptions {
-	o.options = options
-	return o
-}
-
-// WithDataConverter registers a DataConverter for the (local) activity
-func (o *CreateKeyPairActivityOptions) WithDataConverter(dc converter.DataConverter) *CreateKeyPairActivityOptions {
-	o.dc = dc
-	return o
-}
-
-// WithHeartbeatTimeout sets the HeartbeatTimeout value
-func (o *CreateKeyPairActivityOptions) WithHeartbeatTimeout(d time.Duration) *CreateKeyPairActivityOptions {
-	o.heartbeatTimeout = &d
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *CreateKeyPairActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateKeyPairActivityOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
-func (o *CreateKeyPairActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *CreateKeyPairActivityOptions {
-	o.scheduleToCloseTimeout = &d
-	return o
-}
-
-// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
-func (o *CreateKeyPairActivityOptions) WithScheduleToStartTimeout(d time.Duration) *CreateKeyPairActivityOptions {
-	o.scheduleToStartTimeout = &d
-	return o
-}
-
-// WithStartToCloseTimeout sets the StartToCloseTimeout value
-func (o *CreateKeyPairActivityOptions) WithStartToCloseTimeout(d time.Duration) *CreateKeyPairActivityOptions {
-	o.startToCloseTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *CreateKeyPairActivityOptions) WithTaskQueue(tq string) *CreateKeyPairActivityOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWaitForCancellation sets the WaitForCancellation value
-func (o *CreateKeyPairActivityOptions) WithWaitForCancellation(wait bool) *CreateKeyPairActivityOptions {
-	o.waitForCancellation = &wait
-	return o
-}
-
-// CreateKeyPairLocalActivityOptions provides configuration for a(n) secrets.v1.CreateKeyPair activity
-type CreateKeyPairLocalActivityOptions struct {
-	options                workflow.LocalActivityOptions
-	retryPolicy            *temporal.RetryPolicy
-	scheduleToCloseTimeout *time.Duration
-	startToCloseTimeout    *time.Duration
-	dc                     converter.DataConverter
-	fn                     func(context.Context, *CreateKeyPairInput) (*CreateKeyPairOutput, error)
-}
-
-// NewCreateKeyPairLocalActivityOptions initializes a new CreateKeyPairLocalActivityOptions value
-func NewCreateKeyPairLocalActivityOptions() *CreateKeyPairLocalActivityOptions {
-	return &CreateKeyPairLocalActivityOptions{}
-}
-
-// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
-func (o *CreateKeyPairLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
-	opts := o.options
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.scheduleToCloseTimeout; v != nil {
-		opts.ScheduleToCloseTimeout = *v
-	} else if opts.ScheduleToCloseTimeout == 0 {
-		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
-	}
-	if v := o.startToCloseTimeout; v != nil {
-		opts.StartToCloseTimeout = *v
-	}
-	return workflow.WithLocalActivityOptions(ctx, opts), nil
-}
-
-// Local specifies a custom secrets.v1.CreateKeyPair implementation
-func (o *CreateKeyPairLocalActivityOptions) Local(fn func(context.Context, *CreateKeyPairInput) (*CreateKeyPairOutput, error)) *CreateKeyPairLocalActivityOptions {
-	o.fn = fn
-	return o
-}
-
-// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
-func (o *CreateKeyPairLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *CreateKeyPairLocalActivityOptions {
-	o.options = options
-	return o
-}
-
-// WithDataConverter registers a DataConverter for the (local) activity
-func (o *CreateKeyPairLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *CreateKeyPairLocalActivityOptions {
-	o.dc = dc
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *CreateKeyPairLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CreateKeyPairLocalActivityOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
-func (o *CreateKeyPairLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *CreateKeyPairLocalActivityOptions {
-	o.scheduleToCloseTimeout = &d
-	return o
-}
-
-// WithStartToCloseTimeout sets the StartToCloseTimeout value
-func (o *CreateKeyPairLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *CreateKeyPairLocalActivityOptions {
-	o.startToCloseTimeout = &d
-	return o
 }
 
 // RegisterCreatePasswordActivity registers a secrets.v1.CreatePassword activity
@@ -1495,6 +1240,286 @@ func (o *CreateSelfSignedCertificateLocalActivityOptions) WithScheduleToCloseTim
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
 func (o *CreateSelfSignedCertificateLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *CreateSelfSignedCertificateLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterEnsureKeyPairActivity registers a secrets.v1.EnsureKeyPair activity
+func RegisterEnsureKeyPairActivity(r worker.ActivityRegistry, fn func(context.Context, *EnsureKeyPairInput) (*EnsureKeyPairOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: EnsureKeyPairActivityName,
+	})
+}
+
+// EnsureKeyPairFuture describes a(n) secrets.v1.EnsureKeyPair activity execution
+type EnsureKeyPairFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *EnsureKeyPairFuture) Get(ctx workflow.Context) (*EnsureKeyPairOutput, error) {
+	var resp EnsureKeyPairOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *EnsureKeyPairFuture) Select(sel workflow.Selector, fn func(*EnsureKeyPairFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// EnsureKeyPair get-or-creates an ECDSA key pair (P-256): it returns the
+// existing key at secret_ref when present, and generates + stores a new one
+// only when the backend reports the secret is absent. Reusing a stable key
+// across retries keeps a previously-signed certificate consistent with the
+// key, closing the partial-failure key/cert-mismatch window. A transient
+// fetch failure is fatal (the possibly-valid key is never overwritten).
+func EnsureKeyPair(ctx workflow.Context, req *EnsureKeyPairInput, options ...*EnsureKeyPairActivityOptions) (*EnsureKeyPairOutput, error) {
+	return EnsureKeyPairAsync(ctx, req, options...).Get(ctx)
+}
+
+// EnsureKeyPair get-or-creates an ECDSA key pair (P-256): it returns the
+// existing key at secret_ref when present, and generates + stores a new one
+// only when the backend reports the secret is absent. Reusing a stable key
+// across retries keeps a previously-signed certificate consistent with the
+// key, closing the partial-failure key/cert-mismatch window. A transient
+// fetch failure is fatal (the possibly-valid key is never overwritten).
+func EnsureKeyPairAsync(ctx workflow.Context, req *EnsureKeyPairInput, options ...*EnsureKeyPairActivityOptions) *EnsureKeyPairFuture {
+	var o *EnsureKeyPairActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewEnsureKeyPairActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &EnsureKeyPairFuture{Future: errF}
+	}
+	activity := EnsureKeyPairActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &EnsureKeyPairFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// EnsureKeyPair get-or-creates an ECDSA key pair (P-256): it returns the
+// existing key at secret_ref when present, and generates + stores a new one
+// only when the backend reports the secret is absent. Reusing a stable key
+// across retries keeps a previously-signed certificate consistent with the
+// key, closing the partial-failure key/cert-mismatch window. A transient
+// fetch failure is fatal (the possibly-valid key is never overwritten).
+func EnsureKeyPairLocal(ctx workflow.Context, req *EnsureKeyPairInput, options ...*EnsureKeyPairLocalActivityOptions) (*EnsureKeyPairOutput, error) {
+	return EnsureKeyPairLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// EnsureKeyPair get-or-creates an ECDSA key pair (P-256): it returns the
+// existing key at secret_ref when present, and generates + stores a new one
+// only when the backend reports the secret is absent. Reusing a stable key
+// across retries keeps a previously-signed certificate consistent with the
+// key, closing the partial-failure key/cert-mismatch window. A transient
+// fetch failure is fatal (the possibly-valid key is never overwritten).
+func EnsureKeyPairLocalAsync(ctx workflow.Context, req *EnsureKeyPairInput, options ...*EnsureKeyPairLocalActivityOptions) *EnsureKeyPairFuture {
+	var o *EnsureKeyPairLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewEnsureKeyPairLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &EnsureKeyPairFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = EnsureKeyPairActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &EnsureKeyPairFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// EnsureKeyPairActivityOptions provides configuration for a(n) secrets.v1.EnsureKeyPair activity
+type EnsureKeyPairActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewEnsureKeyPairActivityOptions initializes a new EnsureKeyPairActivityOptions value
+func NewEnsureKeyPairActivityOptions() *EnsureKeyPairActivityOptions {
+	return &EnsureKeyPairActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *EnsureKeyPairActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = SecretsTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *EnsureKeyPairActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *EnsureKeyPairActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *EnsureKeyPairActivityOptions) WithDataConverter(dc converter.DataConverter) *EnsureKeyPairActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *EnsureKeyPairActivityOptions) WithHeartbeatTimeout(d time.Duration) *EnsureKeyPairActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *EnsureKeyPairActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *EnsureKeyPairActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *EnsureKeyPairActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *EnsureKeyPairActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *EnsureKeyPairActivityOptions) WithScheduleToStartTimeout(d time.Duration) *EnsureKeyPairActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *EnsureKeyPairActivityOptions) WithStartToCloseTimeout(d time.Duration) *EnsureKeyPairActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *EnsureKeyPairActivityOptions) WithTaskQueue(tq string) *EnsureKeyPairActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *EnsureKeyPairActivityOptions) WithWaitForCancellation(wait bool) *EnsureKeyPairActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// EnsureKeyPairLocalActivityOptions provides configuration for a(n) secrets.v1.EnsureKeyPair activity
+type EnsureKeyPairLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *EnsureKeyPairInput) (*EnsureKeyPairOutput, error)
+}
+
+// NewEnsureKeyPairLocalActivityOptions initializes a new EnsureKeyPairLocalActivityOptions value
+func NewEnsureKeyPairLocalActivityOptions() *EnsureKeyPairLocalActivityOptions {
+	return &EnsureKeyPairLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *EnsureKeyPairLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom secrets.v1.EnsureKeyPair implementation
+func (o *EnsureKeyPairLocalActivityOptions) Local(fn func(context.Context, *EnsureKeyPairInput) (*EnsureKeyPairOutput, error)) *EnsureKeyPairLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *EnsureKeyPairLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *EnsureKeyPairLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *EnsureKeyPairLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *EnsureKeyPairLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *EnsureKeyPairLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *EnsureKeyPairLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *EnsureKeyPairLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *EnsureKeyPairLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *EnsureKeyPairLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *EnsureKeyPairLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }

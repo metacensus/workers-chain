@@ -20,10 +20,10 @@ import (
 // CertificateAuthorityServiceName defines the fully-qualified name for the fabric.certauth.v1.CertificateAuthority service.
 const CertificateAuthorityServiceName = "fabric.certauth.v1.CertificateAuthority"
 
-// CertificateAuthorityCreateCertificateOperationName defines the fully-qualified name for the CreateCertificate operation.
-const CertificateAuthorityCreateCertificateOperationName = "CreateCertificate"
+// CertificateAuthoritySignCertificateOperationName defines the fully-qualified name for the SignCertificate operation.
+const CertificateAuthoritySignCertificateOperationName = "SignCertificate"
 
-var CertificateAuthorityCreateCertificateOperation = nexus.NewOperationReference[*v1.CreateCertificateInput, *v1.CreateCertificateOutput](CertificateAuthorityCreateCertificateOperationName)
+var CertificateAuthoritySignCertificateOperation = nexus.NewOperationReference[*v1.SignCertificateInput, *v1.SignCertificateOutput](CertificateAuthoritySignCertificateOperationName)
 
 // CertificateAuthorityCreateBootstrapAdminOperationName defines the fully-qualified name for the CreateBootstrapAdmin operation.
 const CertificateAuthorityCreateBootstrapAdminOperationName = "CreateBootstrapAdmin"
@@ -41,7 +41,7 @@ const CertificateAuthorityCreateIdentityOperationName = "CreateIdentity"
 var CertificateAuthorityCreateIdentityOperation = nexus.NewOperationReference[*v1.CreateIdentityInput, *v1.CreateIdentityOutput](CertificateAuthorityCreateIdentityOperationName)
 
 type CertificateAuthorityNexusHandler interface {
-	CreateCertificate(name string) nexus.Operation[*v1.CreateCertificateInput, *v1.CreateCertificateOutput]
+	SignCertificate(name string) nexus.Operation[*v1.SignCertificateInput, *v1.SignCertificateOutput]
 	CreateBootstrapAdmin(name string) nexus.Operation[*v1.CreateBootstrapAdminInput, *v1.CreateBootstrapAdminOutput]
 	CreateAdmin(name string) nexus.Operation[*v1.CreateAdminInput, *v1.CreateAdminOutput]
 	CreateIdentity(name string) nexus.Operation[*v1.CreateIdentityInput, *v1.CreateIdentityOutput]
@@ -49,7 +49,7 @@ type CertificateAuthorityNexusHandler interface {
 
 func NewCertificateAuthorityNexusService(h CertificateAuthorityNexusHandler) (*nexus.Service, error) {
 	svc := nexus.NewService(CertificateAuthorityServiceName)
-	err := svc.Register(h.CreateCertificate(CertificateAuthorityCreateCertificateOperationName), h.CreateBootstrapAdmin(CertificateAuthorityCreateBootstrapAdminOperationName), h.CreateAdmin(CertificateAuthorityCreateAdminOperationName), h.CreateIdentity(CertificateAuthorityCreateIdentityOperationName))
+	err := svc.Register(h.SignCertificate(CertificateAuthoritySignCertificateOperationName), h.CreateBootstrapAdmin(CertificateAuthorityCreateBootstrapAdminOperationName), h.CreateAdmin(CertificateAuthorityCreateAdminOperationName), h.CreateIdentity(CertificateAuthorityCreateIdentityOperationName))
 	if err != nil {
 		return nil, err
 	}
@@ -57,16 +57,16 @@ func NewCertificateAuthorityNexusService(h CertificateAuthorityNexusHandler) (*n
 }
 
 type UnimplementedCertificateAuthorityNexusHandler struct{}
-type unimplementedCertificateAuthorityCreateCertificate struct {
-	nexus.UnimplementedOperation[*v1.CreateCertificateInput, *v1.CreateCertificateOutput]
+type unimplementedCertificateAuthoritySignCertificate struct {
+	nexus.UnimplementedOperation[*v1.SignCertificateInput, *v1.SignCertificateOutput]
 	name string
 }
 
-func (h *unimplementedCertificateAuthorityCreateCertificate) Name() string {
+func (h *unimplementedCertificateAuthoritySignCertificate) Name() string {
 	return h.name
 }
-func (h *UnimplementedCertificateAuthorityNexusHandler) CreateCertificate(name string) nexus.Operation[*v1.CreateCertificateInput, *v1.CreateCertificateOutput] {
-	return &unimplementedCertificateAuthorityCreateCertificate{
+func (h *UnimplementedCertificateAuthorityNexusHandler) SignCertificate(name string) nexus.Operation[*v1.SignCertificateInput, *v1.SignCertificateOutput] {
+	return &unimplementedCertificateAuthoritySignCertificate{
 		name: name,
 	}
 }

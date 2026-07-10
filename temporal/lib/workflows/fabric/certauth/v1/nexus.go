@@ -10,13 +10,16 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-func NexusCreateCertificate(ctx workflow.Context, input *pb.CreateCertificateInput) (*pb.CreateCertificateOutput, error) {
+// NexusSignCertificate invokes the issuer-owner's SignCertificate workflow via
+// Nexus. Only the public CSR crosses out and only the public certificate +
+// chain cross back.
+func NexusSignCertificate(ctx workflow.Context, input *pb.SignCertificateInput) (*pb.SignCertificateOutput, error) {
 	fabricNexusClient := certauthv1nexustemporal.NewCertificateAuthorityNexusClient(cellv1.FabricCreateCertificateNexusEndpoint)
-	output, err := fabricNexusClient.CreateCertificate(ctx, input, workflow.NexusOperationOptions{
+	output, err := fabricNexusClient.SignCertificate(ctx, input, workflow.NexusOperationOptions{
 		ScheduleToCloseTimeout: 5 * time.Minute,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCreateCertificate, err)
+		return nil, fmt.Errorf("%w: %w", ErrSignCertificate, err)
 	}
 	return output, nil
 }

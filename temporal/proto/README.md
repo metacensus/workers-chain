@@ -43,37 +43,37 @@
   - Services
     - [fabric.certauth.v1.Identity](#fabric-certauth-v1-identity)
       - [Activities](#fabric-certauth-v1-identity-activities)
-        - [fabric.certauth.v1.RegisterIdentity](#fabric-certauth-v1-registeridentity-activity)
-        - [fabric.certauth.v1.EnrollIdentity](#fabric-certauth-v1-enrollidentity-activity)
         - [fabric.certauth.v1.RevokeIdentity](#fabric-certauth-v1-revokeidentity-activity)
-        - [fabric.certauth.v1.BootstrapEnrollIdentity](#fabric-certauth-v1-bootstrapenrollidentity-activity)
+        - [fabric.certauth.v1.GenerateCsr](#fabric-certauth-v1-generatecsr-activity)
+        - [fabric.certauth.v1.BootstrapEnrollCsr](#fabric-certauth-v1-bootstrapenrollcsr-activity)
+        - [fabric.certauth.v1.SignCsr](#fabric-certauth-v1-signcsr-activity)
     - [fabric.certauth.v1.CertificateAuthority](#fabric-certauth-v1-certificateauthority)
       - [Workflows](#fabric-certauth-v1-certificateauthority-workflows)
-        - [fabric.certauth.v1.CreateCertificate](#fabric-certauth-v1-createcertificate-workflow)
+        - [fabric.certauth.v1.SignCertificate](#fabric-certauth-v1-signcertificate-workflow)
         - [fabric.certauth.v1.CreateBootstrapAdmin](#fabric-certauth-v1-createbootstrapadmin-workflow)
         - [fabric.certauth.v1.CreateAdmin](#fabric-certauth-v1-createadmin-workflow)
         - [fabric.certauth.v1.CreateIdentity](#fabric-certauth-v1-createidentity-workflow)
   - Messages
-    - [fabric.certauth.v1.BootstrapEnrollIdentityInput](#fabric-certauth-v1-bootstrapenrollidentityinput)
-    - [fabric.certauth.v1.BootstrapEnrollIdentityOutput](#fabric-certauth-v1-bootstrapenrollidentityoutput)
+    - [fabric.certauth.v1.BootstrapEnrollCsrInput](#fabric-certauth-v1-bootstrapenrollcsrinput)
+    - [fabric.certauth.v1.BootstrapEnrollCsrOutput](#fabric-certauth-v1-bootstrapenrollcsroutput)
     - [fabric.certauth.v1.CertificateSubject](#fabric-certauth-v1-certificatesubject)
     - [fabric.certauth.v1.CreateAdminInput](#fabric-certauth-v1-createadmininput)
     - [fabric.certauth.v1.CreateAdminOutput](#fabric-certauth-v1-createadminoutput)
     - [fabric.certauth.v1.CreateBootstrapAdminInput](#fabric-certauth-v1-createbootstrapadmininput)
     - [fabric.certauth.v1.CreateBootstrapAdminOutput](#fabric-certauth-v1-createbootstrapadminoutput)
-    - [fabric.certauth.v1.CreateCertificateInput](#fabric-certauth-v1-createcertificateinput)
-    - [fabric.certauth.v1.CreateCertificateInput.AttributesEntry](#fabric-certauth-v1-createcertificateinput-attributesentry)
-    - [fabric.certauth.v1.CreateCertificateOutput](#fabric-certauth-v1-createcertificateoutput)
     - [fabric.certauth.v1.CreateIdentityInput](#fabric-certauth-v1-createidentityinput)
     - [fabric.certauth.v1.CreateIdentityInput.AttributesEntry](#fabric-certauth-v1-createidentityinput-attributesentry)
     - [fabric.certauth.v1.CreateIdentityOutput](#fabric-certauth-v1-createidentityoutput)
-    - [fabric.certauth.v1.EnrollIdentityInput](#fabric-certauth-v1-enrollidentityinput)
-    - [fabric.certauth.v1.EnrollIdentityOutput](#fabric-certauth-v1-enrollidentityoutput)
-    - [fabric.certauth.v1.RegisterIdentityInput](#fabric-certauth-v1-registeridentityinput)
-    - [fabric.certauth.v1.RegisterIdentityInput.AttributesEntry](#fabric-certauth-v1-registeridentityinput-attributesentry)
-    - [fabric.certauth.v1.RegisterIdentityOutput](#fabric-certauth-v1-registeridentityoutput)
+    - [fabric.certauth.v1.GenerateCsrInput](#fabric-certauth-v1-generatecsrinput)
+    - [fabric.certauth.v1.GenerateCsrOutput](#fabric-certauth-v1-generatecsroutput)
     - [fabric.certauth.v1.RevokeIdentityInput](#fabric-certauth-v1-revokeidentityinput)
     - [fabric.certauth.v1.RevokeIdentityOutput](#fabric-certauth-v1-revokeidentityoutput)
+    - [fabric.certauth.v1.SignCertificateInput](#fabric-certauth-v1-signcertificateinput)
+    - [fabric.certauth.v1.SignCertificateInput.AttributesEntry](#fabric-certauth-v1-signcertificateinput-attributesentry)
+    - [fabric.certauth.v1.SignCertificateOutput](#fabric-certauth-v1-signcertificateoutput)
+    - [fabric.certauth.v1.SignCsrInput](#fabric-certauth-v1-signcsrinput)
+    - [fabric.certauth.v1.SignCsrInput.AttributesEntry](#fabric-certauth-v1-signcsrinput-attributesentry)
+    - [fabric.certauth.v1.SignCsrOutput](#fabric-certauth-v1-signcsroutput)
 - [fabric.v1](#fabric-v1)
   - Services
     - [fabric.v1.Fabric](#fabric-v1-fabric)
@@ -192,18 +192,18 @@
         - [secrets.v1.CreateAccess](#secrets-v1-createaccess-workflow)
       - [Activities](#secrets-v1-secrets-activities)
         - [secrets.v1.CreatePassword](#secrets-v1-createpassword-activity)
-        - [secrets.v1.CreateKeyPair](#secrets-v1-createkeypair-activity)
+        - [secrets.v1.EnsureKeyPair](#secrets-v1-ensurekeypair-activity)
         - [secrets.v1.CreateSelfSignedCertificate](#secrets-v1-createselfsignedcertificate-activity)
         - [secrets.v1.StoreCertificate](#secrets-v1-storecertificate-activity)
   - Messages
     - [secrets.v1.CreateAccessInput](#secrets-v1-createaccessinput)
     - [secrets.v1.CreateAccessOutput](#secrets-v1-createaccessoutput)
-    - [secrets.v1.CreateKeyPairInput](#secrets-v1-createkeypairinput)
-    - [secrets.v1.CreateKeyPairOutput](#secrets-v1-createkeypairoutput)
     - [secrets.v1.CreatePasswordInput](#secrets-v1-createpasswordinput)
     - [secrets.v1.CreatePasswordOutput](#secrets-v1-createpasswordoutput)
     - [secrets.v1.CreateSelfSignedCertificateInput](#secrets-v1-createselfsignedcertificateinput)
     - [secrets.v1.CreateSelfSignedCertificateOutput](#secrets-v1-createselfsignedcertificateoutput)
+    - [secrets.v1.EnsureKeyPairInput](#secrets-v1-ensurekeypairinput)
+    - [secrets.v1.EnsureKeyPairOutput](#secrets-v1-ensurekeypairoutput)
     - [secrets.v1.SecretRef](#secrets-v1-secretref)
     - [secrets.v1.StoreCertificateInput](#secrets-v1-storecertificateinput)
     - [secrets.v1.StoreCertificateOutput](#secrets-v1-storecertificateoutput)
@@ -1347,217 +1347,6 @@ Activities are NOT exposed via Nexus (only workflows can be called cross-namespa
 ### Activities
 
 ---
-<a name="fabric-certauth-v1-registeridentity-activity"></a>
-### fabric.certauth.v1.RegisterIdentity
-
-<pre>
-RegisterIdentity registers a new identity with a Fabric CA
-This is the first step in identity creation - registration returns an enrollment secret
-</pre>
-
-**Input:** [fabric.certauth.v1.RegisterIdentityInput](#fabric-certauth-v1-registeridentityinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>admin_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-admin_identity is the admin identity for CA authentication<br>
-
-json_name: AdminIdentity
-go_name: AdminIdentity
-go_tags: json:"AdminIdentity" validate:"required"</pre></td>
-</tr><tr>
-<td>affiliation</td>
-<td>string</td>
-<td><pre>
-affiliation is the affiliation for the identity in the CA<br>
-
-json_name: Affiliation
-go_name: Affiliation</pre></td>
-</tr><tr>
-<td>attributes</td>
-<td><a href="#fabric-certauth-v1-registeridentityinput-attributesentry">fabric.certauth.v1.RegisterIdentityInput.AttributesEntry</a></td>
-<td><pre>
-attributes are additional attributes for the identity<br>
-
-json_name: Attributes
-go_name: Attributes</pre></td>
-</tr><tr>
-<td>ca_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-ca_ref identifies which CA to register with.
-Always owned by the executing worker's owner.<br>
-
-json_name: CaRef
-go_name: CaRef
-go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>identity_name</td>
-<td>string</td>
-<td><pre>
-identity_name is the unique name for this identity<br>
-
-json_name: IdentityName
-go_name: IdentityName
-go_tags: json:"IdentityName" validate:"required"</pre></td>
-</tr><tr>
-<td>identity_type</td>
-<td>string</td>
-<td><pre>
-identity_type specifies the type of identity (e.g., "admin", "peer", "orderer", "client")<br>
-
-json_name: IdentityType
-go_name: IdentityType
-go_tags: json:"IdentityType"</pre></td>
-</tr>
-</table>
-
-**Output:** [fabric.certauth.v1.RegisterIdentityOutput](#fabric-certauth-v1-registeridentityoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>enrollment_secret</td>
-<td>string</td>
-<td><pre>
-enrollment_secret is the secret used to enroll the identity<br>
-
-json_name: EnrollmentSecret
-go_name: EnrollmentSecret
-go_tags: json:"EnrollmentSecret" validate:"required"</pre></td>
-</tr>
-</table> 
-
----
-<a name="fabric-certauth-v1-enrollidentity-activity"></a>
-### fabric.certauth.v1.EnrollIdentity
-
-<pre>
-EnrollIdentity enrolls a registered identity and retrieves certificates
-This is the second step in identity creation - enrollment uses the secret from registration
-</pre>
-
-**Input:** [fabric.certauth.v1.EnrollIdentityInput](#fabric-certauth-v1-enrollidentityinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>ca_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-ca_ref identifies which CA to enroll with.
-Always owned by the executing worker's owner.<br>
-
-json_name: CaRef
-go_name: CaRef
-go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>ca_tls_cert_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS connection)<br>
-
-json_name: CaTlsCertRef
-go_name: CaTlsCertRef
-go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>enrollment_secret</td>
-<td>string</td>
-<td><pre>
-enrollment_secret is the secret obtained from registration<br>
-
-json_name: EnrollmentSecret
-go_name: EnrollmentSecret
-go_tags: json:"EnrollmentSecret" validate:"required"</pre></td>
-</tr><tr>
-<td>identity_name</td>
-<td>string</td>
-<td><pre>
-identity_name is the name of the identity to enroll<br>
-
-json_name: IdentityName
-go_name: IdentityName
-go_tags: json:"IdentityName" validate:"required"</pre></td>
-</tr><tr>
-<td>issuer_cert_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
-Used to fetch the issuer's chain for building the full certificate chain<br>
-
-json_name: IssuerCertRef
-go_name: IssuerCertRef
-go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>profile</td>
-<td>string</td>
-<td><pre>
-profile specifies which CA signing profile to use for the certificate.
-Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
-Use "tls" for TLS certificates (grants server auth, client auth key usages).
-Leave empty to use the default profile (digital signature only).<br>
-
-json_name: Profile
-go_name: Profile
-go_tags: json:"Profile,omitempty"</pre></td>
-</tr><tr>
-<td>storage</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-storage is the identity storage location
-key_ref is read for CSR generation, cert_ref is where to store the result<br>
-
-json_name: Storage
-go_name: Storage
-go_tags: json:"Storage" validate:"required"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the certificate subject fields<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
-</tr>
-</table>
-
-**Output:** [fabric.certauth.v1.EnrollIdentityOutput](#fabric-certauth-v1-enrollidentityoutput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-identity points to the enrolled identity<br>
-
-json_name: Identity
-go_name: Identity
-go_tags: json:"Identity" validate:"required"</pre></td>
-</tr>
-</table> 
-
----
 <a name="fabric-certauth-v1-revokeidentity-activity"></a>
 ### fabric.certauth.v1.RevokeIdentity
 
@@ -1633,16 +1422,87 @@ go_name: Revoked</pre></td>
 </table> 
 
 ---
-<a name="fabric-certauth-v1-bootstrapenrollidentity-activity"></a>
-### fabric.certauth.v1.BootstrapEnrollIdentity
+<a name="fabric-certauth-v1-generatecsr-activity"></a>
+### fabric.certauth.v1.GenerateCsr
 
 <pre>
-BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
-This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
-The activity generates a CSR internally and submits it to the CA
+GenerateCsr runs on the KEY OWNER's worker. It fetches the private key at
+key_ref and returns a CSR for the given subject. The private key is
+ensured up-front by secrets.EnsureKeyPair; here it is only read, never
+written, and it never leaves this worker's Vault subtree - only the
+public CSR is returned.
+
+Note: named "Csr" (not "CSR") because the codegen plugin mangles trailing
+all-caps acronyms in derived identifiers (Future/Async helpers).
 </pre>
 
-**Input:** [fabric.certauth.v1.BootstrapEnrollIdentityInput](#fabric-certauth-v1-bootstrapenrollidentityinput)
+**Input:** [fabric.certauth.v1.GenerateCsrInput](#fabric-certauth-v1-generatecsrinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>key_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+key_ref is the Vault path where the private key lives. The key is ensured
+up-front by secrets.EnsureKeyPair; this activity only reads it. Always
+within the executing worker's own subtree.<br>
+
+json_name: KeyRef
+go_name: KeyRef
+go_tags: json:"KeyRef" validate:"required"</pre></td>
+</tr><tr>
+<td>subject</td>
+<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
+<td><pre>
+subject specifies the CSR subject. CommonName becomes the CSR CN and
+dns_names become the requested SANs.<br>
+
+json_name: Subject
+go_name: Subject
+go_tags: json:"Subject" validate:"required"</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.certauth.v1.GenerateCsrOutput](#fabric-certauth-v1-generatecsroutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>csr_pem</td>
+<td>bytes</td>
+<td><pre>
+csr_pem is the PEM-encoded certificate signing request.<br>
+
+json_name: CsrPem
+go_name: CsrPem
+go_tags: json:"CsrPem" validate:"required"</pre></td>
+</tr>
+</table> 
+
+---
+<a name="fabric-certauth-v1-bootstrapenrollcsr-activity"></a>
+### fabric.certauth.v1.BootstrapEnrollCsr
+
+<pre>
+BootstrapEnrollCsr runs on the CA OWNER's worker during CA
+initialization, before any registrar exists. It enrolls a supplied CSR
+using the CA's preset bootstrap credentials (username/password) and
+returns the leaf certificate + full chain. Unlike SignCsr it performs NO
+registration (there is no admin to register as yet); it is the
+register-less bootstrap counterpart of SignCsr. Only public certificate
+material is returned.
+</pre>
+
+**Input:** [fabric.certauth.v1.BootstrapEnrollCsrInput](#fabric-certauth-v1-bootstrapenrollcsrinput)
 
 <table>
 <tr>
@@ -1678,12 +1538,31 @@ json_name: CaUrl
 go_name: CaUrl
 go_tags: json:"CaUrl" validate:"required,url"</pre></td>
 </tr><tr>
+<td>csr_pem</td>
+<td>bytes</td>
+<td><pre>
+csr_pem is the PEM-encoded CSR to enroll. The private key that generated
+it never leaves the caller.<br>
+
+json_name: CsrPem
+go_name: CsrPem
+go_tags: json:"CsrPem" validate:"required"</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+hosts are the requested Subject Alternative Names.<br>
+
+json_name: Hosts
+go_name: Hosts
+go_tags: json:"Hosts,omitempty"</pre></td>
+</tr><tr>
 <td>issuer_cert_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
-Used to fetch the issuer's chain for building the full certificate chain.
-Optional - if nil, the CA's chain from enrollment response is used directly.<br>
+issuer_cert_ref points to the issuing CA's certificate path (certs/ path).
+Used to build the full chain. Optional - if nil, the CA's chain from the
+enrollment response is used directly (root CA bootstrap case).<br>
 
 json_name: IssuerCertRef
 go_name: IssuerCertRef
@@ -1692,34 +1571,15 @@ go_tags: json:"IssuerCertRef,omitempty"</pre></td>
 <td>profile</td>
 <td>string</td>
 <td><pre>
-profile specifies which CA signing profile to use<br>
+profile specifies which CA signing profile to use ("ca", "tls", or "" default).<br>
 
 json_name: Profile
 go_name: Profile
 go_tags: json:"Profile,omitempty"</pre></td>
-</tr><tr>
-<td>storage</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-storage is the identity storage location
-key_ref is read for CSR generation, cert_ref is where to store the result<br>
-
-json_name: Storage
-go_name: Storage
-go_tags: json:"Storage" validate:"required"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the certificate subject fields<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
 </tr>
 </table>
 
-**Output:** [fabric.certauth.v1.BootstrapEnrollIdentityOutput](#fabric-certauth-v1-bootstrapenrollidentityoutput)
+**Output:** [fabric.certauth.v1.BootstrapEnrollCsrOutput](#fabric-certauth-v1-bootstrapenrollcsroutput)
 
 <table>
 <tr>
@@ -1728,14 +1588,170 @@ go_tags: json:"Subject" validate:"required"</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>identity</td>
+<td>certificate_pem</td>
+<td>bytes</td>
+<td><pre>
+certificate_pem is the PEM-encoded leaf certificate.<br>
+
+json_name: CertificatePem
+go_name: CertificatePem
+go_tags: json:"CertificatePem" validate:"required"</pre></td>
+</tr><tr>
+<td>chain_pem</td>
+<td>bytes</td>
+<td><pre>
+chain_pem is the PEM-encoded full chain (leaf + issuer chain to root).<br>
+
+json_name: ChainPem
+go_name: ChainPem
+go_tags: json:"ChainPem" validate:"required"</pre></td>
+</tr>
+</table> 
+
+---
+<a name="fabric-certauth-v1-signcsr-activity"></a>
+### fabric.certauth.v1.SignCsr
+
+<pre>
+SignCsr runs on the ISSUER's worker. It registers the identity with a
+locally-owned CA (resetting the enrollment secret if already registered),
+enrolls the supplied CSR, and returns the certificate + full chain. The
+enrollment secret is generated and consumed entirely in-memory; no key or
+shard-owned path is ever written.
+</pre>
+
+**Input:** [fabric.certauth.v1.SignCsrInput](#fabric-certauth-v1-signcsrinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>admin_identity</td>
 <td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
 <td><pre>
-identity points to the enrolled identity<br>
+admin_identity is the registrar used to register/modify the CSR's
+identity. Optional: nil selects the CA's default permanent admin (the
+steady-state case). A non-nil value lets a different registrar (e.g. the
+bootstrap admin registering the permanent admin) authenticate the
+registration. The Nexus SignCertificate path always leaves this nil, so
+no caller-chosen registrar ever crosses the ownership boundary.<br>
 
-json_name: Identity
-go_name: Identity
-go_tags: json:"Identity" validate:"required"</pre></td>
+json_name: AdminIdentity
+go_name: AdminIdentity
+go_tags: json:"AdminIdentity,omitempty"</pre></td>
+</tr><tr>
+<td>attributes</td>
+<td><a href="#fabric-certauth-v1-signcsrinput-attributesentry">fabric.certauth.v1.SignCsrInput.AttributesEntry</a></td>
+<td><pre>
+attributes are additional attributes for the registration record.<br>
+
+json_name: Attributes
+go_name: Attributes</pre></td>
+</tr><tr>
+<td>ca_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+ca_ref identifies which locally-owned CA signs the CSR.<br>
+
+json_name: CaRef
+go_name: CaRef
+go_tags: json:"CaRef" validate:"required"</pre></td>
+</tr><tr>
+<td>ca_tls_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS).<br>
+
+json_name: CaTlsCertRef
+go_name: CaTlsCertRef
+go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>csr_pem</td>
+<td>bytes</td>
+<td><pre>
+csr_pem is the PEM-encoded CSR to sign.<br>
+
+json_name: CsrPem
+go_name: CsrPem
+go_tags: json:"CsrPem" validate:"required"</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+hosts are the requested Subject Alternative Names.<br>
+
+json_name: Hosts
+go_name: Hosts
+go_tags: json:"Hosts,omitempty"</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the CA registration name; MUST equal the CSR CN.<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_type</td>
+<td>string</td>
+<td><pre>
+identity_type is the Fabric CA identity type (determines server-set OU).<br>
+
+json_name: IdentityType
+go_name: IdentityType
+go_tags: json:"IdentityType,omitempty"</pre></td>
+</tr><tr>
+<td>issuer_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+issuer_cert_ref points to the issuing CA's signing certificate path
+(issuer's own certs/ path), used to build the full certificate chain.<br>
+
+json_name: IssuerCertRef
+go_name: IssuerCertRef
+go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>profile</td>
+<td>string</td>
+<td><pre>
+profile specifies the CA signing profile ("ca", "tls", or "" default).<br>
+
+json_name: Profile
+go_name: Profile
+go_tags: json:"Profile,omitempty"</pre></td>
+</tr>
+</table>
+
+**Output:** [fabric.certauth.v1.SignCsrOutput](#fabric-certauth-v1-signcsroutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>certificate_pem</td>
+<td>bytes</td>
+<td><pre>
+certificate_pem is the PEM-encoded leaf certificate.<br>
+
+json_name: CertificatePem
+go_name: CertificatePem
+go_tags: json:"CertificatePem" validate:"required"</pre></td>
+</tr><tr>
+<td>chain_pem</td>
+<td>bytes</td>
+<td><pre>
+chain_pem is the PEM-encoded full chain (leaf + issuer chain to root).<br>
+
+json_name: ChainPem
+go_name: ChainPem
+go_tags: json:"ChainPem" validate:"required"</pre></td>
 </tr>
 </table>   
 
@@ -1755,16 +1771,21 @@ executing worker; foreign issuers are reached via Nexus.
 ### Workflows
 
 ---
-<a name="fabric-certauth-v1-createcertificate-workflow"></a>
-### fabric.certauth.v1.CreateCertificate
+<a name="fabric-certauth-v1-signcertificate-workflow"></a>
+### fabric.certauth.v1.SignCertificate
 
 <pre>
-CreateCertificate creates a certificate issued by a CA (or self-signed if no issuer)
-This is the atomic unit of certificate issuance - generates keypair, registers, enrolls.
-Used for CA signing certs, TLS certs, and any other certificate needs.
+SignCertificate signs an externally-generated CSR with a CA owned by the
+executing worker and returns only the public certificate + chain.
+
+This is the CROSS-OWNER issuance primitive: the key owner (e.g. a shard)
+generates the private key + CSR locally and sends only the public CSR
+here via Nexus; the issuer (e.g. the operator's TLS CA) never sees the
+private key and never writes into the caller's Vault subtree. The caller
+stores the returned certificate itself.
 </pre>
 
-**Input:** [fabric.certauth.v1.CreateCertificateInput](#fabric-certauth-v1-createcertificateinput)
+**Input:** [fabric.certauth.v1.SignCertificateInput](#fabric-certauth-v1-signcertificateinput)
 
 <table>
 <tr>
@@ -1773,31 +1794,39 @@ Used for CA signing certs, TLS certs, and any other certificate needs.
 <th>Description</th>
 </tr>
 <tr>
-<td>admin_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-admin_identity is the issuer's admin identity for CA authentication
-Required unless self-signed<br>
-
-json_name: AdminIdentity
-go_name: AdminIdentity
-go_tags: json:"AdminIdentity"</pre></td>
-</tr><tr>
 <td>attributes</td>
-<td><a href="#fabric-certauth-v1-createcertificateinput-attributesentry">fabric.certauth.v1.CreateCertificateInput.AttributesEntry</a></td>
+<td><a href="#fabric-certauth-v1-signcertificateinput-attributesentry">fabric.certauth.v1.SignCertificateInput.AttributesEntry</a></td>
 <td><pre>
-attributes are additional CA attributes for the identity (e.g., hf.IntermediateCA)<br>
+attributes are additional CA attributes for the registration record.<br>
 
 json_name: Attributes
 go_name: Attributes</pre></td>
+</tr><tr>
+<td>csr_pem</td>
+<td>bytes</td>
+<td><pre>
+csr_pem is the PEM-encoded certificate signing request. The private key
+that generated it never leaves the caller.<br>
+
+json_name: CsrPem
+go_name: CsrPem
+go_tags: json:"CsrPem" validate:"required"</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+hosts are the requested Subject Alternative Names for the signed cert.<br>
+
+json_name: Hosts
+go_name: Hosts
+go_tags: json:"Hosts,omitempty"</pre></td>
 </tr><tr>
 <td>identity_type</td>
 <td>string</td>
 <td><pre>
 identity_type specifies the Fabric CA identity type for registration.
-This determines the OU field in the issued certificate.
-Valid values: "peer", "orderer", "admin", "client" (default: "client")
-The OU is critical for NodeOUs classification in the MSP.<br>
+This determines the OU field in the issued certificate (server-set).
+Valid values: "peer", "orderer", "admin", "client" (default: "client").<br>
 
 json_name: IdentityType
 go_name: IdentityType
@@ -1807,12 +1836,11 @@ go_tags: json:"IdentityType,omitempty"</pre></td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
 issuer_ref identifies which CA signs this certificate.
-If nil/empty, creates a self-signed certificate.
-The issuer is always owned by the executing worker's owner.<br>
+Always owned by the executing worker's owner (validated in the workflow).<br>
 
 json_name: IssuerRef
 go_name: IssuerRef
-go_tags: json:"IssuerRef"</pre></td>
+go_tags: json:"IssuerRef" validate:"required"</pre></td>
 </tr><tr>
 <td>profile</td>
 <td>string</td>
@@ -1823,28 +1851,13 @@ json_name: Profile
 go_name: Profile
 go_tags: json:"Profile"</pre></td>
 </tr><tr>
-<td>purpose</td>
-<td>string</td>
-<td><pre>
-purpose is a human-readable label for the workflow ID (e.g., "tls-root-signing")<br>
-
-json_name: Purpose
-go_name: Purpose
-go_tags: json:"Purpose" validate:"required"</pre></td>
-</tr><tr>
-<td>storage</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-storage is where to store the created identity (key + certificate)<br>
-
-json_name: Storage
-go_name: Storage
-go_tags: json:"Storage" validate:"required"</pre></td>
-</tr><tr>
 <td>subject</td>
 <td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
 <td><pre>
-subject specifies the certificate subject fields<br>
+subject specifies the certificate subject fields. The CommonName MUST be
+org-qualified (e.g. "peer0@org1"); it is used both for CA registration
+and to satisfy Fabric CA's requirement that the CSR CN equals the
+enrollment ID.<br>
 
 json_name: Subject
 go_name: Subject
@@ -1852,7 +1865,7 @@ go_tags: json:"Subject" validate:"required"</pre></td>
 </tr>
 </table>
 
-**Output:** [fabric.certauth.v1.CreateCertificateOutput](#fabric-certauth-v1-createcertificateoutput)
+**Output:** [fabric.certauth.v1.SignCertificateOutput](#fabric-certauth-v1-signcertificateoutput)
 
 <table>
 <tr>
@@ -1861,14 +1874,23 @@ go_tags: json:"Subject" validate:"required"</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td>certificate_pem</td>
+<td>bytes</td>
 <td><pre>
-identity points to the created identity (key + certificate)<br>
+certificate_pem is the PEM-encoded leaf certificate.<br>
 
-json_name: Identity
-go_name: Identity
-go_tags: json:"Identity" validate:"required"</pre></td>
+json_name: CertificatePem
+go_name: CertificatePem
+go_tags: json:"CertificatePem" validate:"required"</pre></td>
+</tr><tr>
+<td>chain_pem</td>
+<td>bytes</td>
+<td><pre>
+chain_pem is the PEM-encoded full chain (leaf + issuer chain to root).<br>
+
+json_name: ChainPem
+go_name: ChainPem
+go_tags: json:"ChainPem" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1876,8 +1898,8 @@ go_tags: json:"Identity" validate:"required"</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/create-certificate/${! Purpose }</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/sign-certificate/${! Subject.CommonName }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
 </table>
 
 ---
@@ -2204,20 +2226,22 @@ go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/create-identity/${! IdentityName }</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/create-identity/${! Subject.CommonName }</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
 </table>     
 
 <a name="fabric-certauth-v1-messages"></a>
 ## Messages
 
-<a name="fabric-certauth-v1-bootstrapenrollidentityinput"></a>
-### fabric.certauth.v1.BootstrapEnrollIdentityInput
+<a name="fabric-certauth-v1-bootstrapenrollcsrinput"></a>
+### fabric.certauth.v1.BootstrapEnrollCsrInput
 
 <pre>
-BootstrapEnrollIdentityInput specifies the parameters for bootstrap enrollment.
-Keys (private) and certs (public) are stored at separate Vault paths.
-Used during CA initialization to obtain the bootstrap admin's certificate.
+BootstrapEnrollCsrInput specifies the parameters for register-less bootstrap
+enrollment of an externally-generated CSR. Used during CA initialization
+before any registrar exists: the CA's preset bootstrap credentials
+authenticate the enrollment directly. All referenced Vault paths belong to
+the executing (CA-owner) worker; only the public CSR is submitted.
 </pre>
 
 <table>
@@ -2254,12 +2278,31 @@ json_name: CaUrl
 go_name: CaUrl
 go_tags: json:"CaUrl" validate:"required,url"</pre></td>
 </tr><tr>
+<td>csr_pem</td>
+<td>bytes</td>
+<td><pre>
+csr_pem is the PEM-encoded CSR to enroll. The private key that generated
+it never leaves the caller.<br>
+
+json_name: CsrPem
+go_name: CsrPem
+go_tags: json:"CsrPem" validate:"required"</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+hosts are the requested Subject Alternative Names.<br>
+
+json_name: Hosts
+go_name: Hosts
+go_tags: json:"Hosts,omitempty"</pre></td>
+</tr><tr>
 <td>issuer_cert_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
-Used to fetch the issuer's chain for building the full certificate chain.
-Optional - if nil, the CA's chain from enrollment response is used directly.<br>
+issuer_cert_ref points to the issuing CA's certificate path (certs/ path).
+Used to build the full chain. Optional - if nil, the CA's chain from the
+enrollment response is used directly (root CA bootstrap case).<br>
 
 json_name: IssuerCertRef
 go_name: IssuerCertRef
@@ -2268,40 +2311,21 @@ go_tags: json:"IssuerCertRef,omitempty"</pre></td>
 <td>profile</td>
 <td>string</td>
 <td><pre>
-profile specifies which CA signing profile to use<br>
+profile specifies which CA signing profile to use ("ca", "tls", or "" default).<br>
 
 json_name: Profile
 go_name: Profile
 go_tags: json:"Profile,omitempty"</pre></td>
-</tr><tr>
-<td>storage</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-storage is the identity storage location
-key_ref is read for CSR generation, cert_ref is where to store the result<br>
-
-json_name: Storage
-go_name: Storage
-go_tags: json:"Storage" validate:"required"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the certificate subject fields<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
 </tr>
 </table>
 
 
 
-<a name="fabric-certauth-v1-bootstrapenrollidentityoutput"></a>
-### fabric.certauth.v1.BootstrapEnrollIdentityOutput
+<a name="fabric-certauth-v1-bootstrapenrollcsroutput"></a>
+### fabric.certauth.v1.BootstrapEnrollCsrOutput
 
 <pre>
-BootstrapEnrollIdentityOutput confirms the certificate was enrolled and stored
+BootstrapEnrollCsrOutput returns only public certificate material.
 </pre>
 
 <table>
@@ -2311,14 +2335,23 @@ BootstrapEnrollIdentityOutput confirms the certificate was enrolled and stored
 <th>Description</th>
 </tr>
 <tr>
-<td>identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td>certificate_pem</td>
+<td>bytes</td>
 <td><pre>
-identity points to the enrolled identity<br>
+certificate_pem is the PEM-encoded leaf certificate.<br>
 
-json_name: Identity
-go_name: Identity
-go_tags: json:"Identity" validate:"required"</pre></td>
+json_name: CertificatePem
+go_name: CertificatePem
+go_tags: json:"CertificatePem" validate:"required"</pre></td>
+</tr><tr>
+<td>chain_pem</td>
+<td>bytes</td>
+<td><pre>
+chain_pem is the PEM-encoded full chain (leaf + issuer chain to root).<br>
+
+json_name: ChainPem
+go_name: ChainPem
+go_tags: json:"ChainPem" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2555,155 +2588,6 @@ go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 
 
 
-<a name="fabric-certauth-v1-createcertificateinput"></a>
-### fabric.certauth.v1.CreateCertificateInput
-
-<pre>
-CreateCertificateInput specifies the parameters for creating a certificate.
-Keys (private) and certs (public) are stored at separate Vault paths.
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>admin_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-admin_identity is the issuer's admin identity for CA authentication
-Required unless self-signed<br>
-
-json_name: AdminIdentity
-go_name: AdminIdentity
-go_tags: json:"AdminIdentity"</pre></td>
-</tr><tr>
-<td>attributes</td>
-<td><a href="#fabric-certauth-v1-createcertificateinput-attributesentry">fabric.certauth.v1.CreateCertificateInput.AttributesEntry</a></td>
-<td><pre>
-attributes are additional CA attributes for the identity (e.g., hf.IntermediateCA)<br>
-
-json_name: Attributes
-go_name: Attributes</pre></td>
-</tr><tr>
-<td>identity_type</td>
-<td>string</td>
-<td><pre>
-identity_type specifies the Fabric CA identity type for registration.
-This determines the OU field in the issued certificate.
-Valid values: "peer", "orderer", "admin", "client" (default: "client")
-The OU is critical for NodeOUs classification in the MSP.<br>
-
-json_name: IdentityType
-go_name: IdentityType
-go_tags: json:"IdentityType,omitempty"</pre></td>
-</tr><tr>
-<td>issuer_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-issuer_ref identifies which CA signs this certificate.
-If nil/empty, creates a self-signed certificate.
-The issuer is always owned by the executing worker's owner.<br>
-
-json_name: IssuerRef
-go_name: IssuerRef
-go_tags: json:"IssuerRef"</pre></td>
-</tr><tr>
-<td>profile</td>
-<td>string</td>
-<td><pre>
-profile determines key usages ("ca", "tls", or "" for default identity)<br>
-
-json_name: Profile
-go_name: Profile
-go_tags: json:"Profile"</pre></td>
-</tr><tr>
-<td>purpose</td>
-<td>string</td>
-<td><pre>
-purpose is a human-readable label for the workflow ID (e.g., "tls-root-signing")<br>
-
-json_name: Purpose
-go_name: Purpose
-go_tags: json:"Purpose" validate:"required"</pre></td>
-</tr><tr>
-<td>storage</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-storage is where to store the created identity (key + certificate)<br>
-
-json_name: Storage
-go_name: Storage
-go_tags: json:"Storage" validate:"required"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the certificate subject fields<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-certauth-v1-createcertificateinput-attributesentry"></a>
-### fabric.certauth.v1.CreateCertificateInput.AttributesEntry
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>key</td>
-<td>string</td>
-<td><pre>
-json_name: key
-go_name: Key</pre></td>
-</tr><tr>
-<td>value</td>
-<td>string</td>
-<td><pre>
-json_name: value
-go_name: Value</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-certauth-v1-createcertificateoutput"></a>
-### fabric.certauth.v1.CreateCertificateOutput
-
-<pre>
-CreateCertificateOutput indicates the result of certificate creation
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-identity points to the created identity (key + certificate)<br>
-
-json_name: Identity
-go_name: Identity
-go_tags: json:"Identity" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
 <a name="fabric-certauth-v1-createidentityinput"></a>
 ### fabric.certauth.v1.CreateIdentityInput
 
@@ -2869,12 +2753,11 @@ go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 
 
 
-<a name="fabric-certauth-v1-enrollidentityinput"></a>
-### fabric.certauth.v1.EnrollIdentityInput
+<a name="fabric-certauth-v1-generatecsrinput"></a>
+### fabric.certauth.v1.GenerateCsrInput
 
 <pre>
-EnrollIdentityInput specifies the parameters for enrolling an identity with a CA.
-Keys (private) and certs (public) are stored at separate Vault paths.
+GenerateCsrInput specifies where the private key lives (key owner side).
 </pre>
 
 <table>
@@ -2884,79 +2767,22 @@ Keys (private) and certs (public) are stored at separate Vault paths.
 <th>Description</th>
 </tr>
 <tr>
-<td>ca_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-ca_ref identifies which CA to enroll with.
-Always owned by the executing worker's owner.<br>
-
-json_name: CaRef
-go_name: CaRef
-go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>ca_tls_cert_ref</td>
+<td>key_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS connection)<br>
+key_ref is the Vault path where the private key lives. The key is ensured
+up-front by secrets.EnsureKeyPair; this activity only reads it. Always
+within the executing worker's own subtree.<br>
 
-json_name: CaTlsCertRef
-go_name: CaTlsCertRef
-go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>enrollment_secret</td>
-<td>string</td>
-<td><pre>
-enrollment_secret is the secret obtained from registration<br>
-
-json_name: EnrollmentSecret
-go_name: EnrollmentSecret
-go_tags: json:"EnrollmentSecret" validate:"required"</pre></td>
-</tr><tr>
-<td>identity_name</td>
-<td>string</td>
-<td><pre>
-identity_name is the name of the identity to enroll<br>
-
-json_name: IdentityName
-go_name: IdentityName
-go_tags: json:"IdentityName" validate:"required"</pre></td>
-</tr><tr>
-<td>issuer_cert_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
-Used to fetch the issuer's chain for building the full certificate chain<br>
-
-json_name: IssuerCertRef
-go_name: IssuerCertRef
-go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>profile</td>
-<td>string</td>
-<td><pre>
-profile specifies which CA signing profile to use for the certificate.
-Use "ca" for intermediate CA certificates (grants cert sign, crl sign key usages).
-Use "tls" for TLS certificates (grants server auth, client auth key usages).
-Leave empty to use the default profile (digital signature only).<br>
-
-json_name: Profile
-go_name: Profile
-go_tags: json:"Profile,omitempty"</pre></td>
-</tr><tr>
-<td>storage</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-storage is the identity storage location
-key_ref is read for CSR generation, cert_ref is where to store the result<br>
-
-json_name: Storage
-go_name: Storage
-go_tags: json:"Storage" validate:"required"</pre></td>
+json_name: KeyRef
+go_name: KeyRef
+go_tags: json:"KeyRef" validate:"required"</pre></td>
 </tr><tr>
 <td>subject</td>
 <td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
 <td><pre>
-subject specifies the certificate subject fields<br>
+subject specifies the CSR subject. CommonName becomes the CSR CN and
+dns_names become the requested SANs.<br>
 
 json_name: Subject
 go_name: Subject
@@ -2966,11 +2792,11 @@ go_tags: json:"Subject" validate:"required"</pre></td>
 
 
 
-<a name="fabric-certauth-v1-enrollidentityoutput"></a>
-### fabric.certauth.v1.EnrollIdentityOutput
+<a name="fabric-certauth-v1-generatecsroutput"></a>
+### fabric.certauth.v1.GenerateCsrOutput
 
 <pre>
-EnrollIdentityOutput contains the certificates returned by the CA
+GenerateCsrOutput returns the public CSR.
 </pre>
 
 <table>
@@ -2980,138 +2806,14 @@ EnrollIdentityOutput contains the certificates returned by the CA
 <th>Description</th>
 </tr>
 <tr>
-<td>identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td>csr_pem</td>
+<td>bytes</td>
 <td><pre>
-identity points to the enrolled identity<br>
+csr_pem is the PEM-encoded certificate signing request.<br>
 
-json_name: Identity
-go_name: Identity
-go_tags: json:"Identity" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-certauth-v1-registeridentityinput"></a>
-### fabric.certauth.v1.RegisterIdentityInput
-
-<pre>
-RegisterIdentityInput specifies the parameters for registering an identity with a CA
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>admin_identity</td>
-<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
-<td><pre>
-admin_identity is the admin identity for CA authentication<br>
-
-json_name: AdminIdentity
-go_name: AdminIdentity
-go_tags: json:"AdminIdentity" validate:"required"</pre></td>
-</tr><tr>
-<td>affiliation</td>
-<td>string</td>
-<td><pre>
-affiliation is the affiliation for the identity in the CA<br>
-
-json_name: Affiliation
-go_name: Affiliation</pre></td>
-</tr><tr>
-<td>attributes</td>
-<td><a href="#fabric-certauth-v1-registeridentityinput-attributesentry">fabric.certauth.v1.RegisterIdentityInput.AttributesEntry</a></td>
-<td><pre>
-attributes are additional attributes for the identity<br>
-
-json_name: Attributes
-go_name: Attributes</pre></td>
-</tr><tr>
-<td>ca_ref</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-ca_ref identifies which CA to register with.
-Always owned by the executing worker's owner.<br>
-
-json_name: CaRef
-go_name: CaRef
-go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>identity_name</td>
-<td>string</td>
-<td><pre>
-identity_name is the unique name for this identity<br>
-
-json_name: IdentityName
-go_name: IdentityName
-go_tags: json:"IdentityName" validate:"required"</pre></td>
-</tr><tr>
-<td>identity_type</td>
-<td>string</td>
-<td><pre>
-identity_type specifies the type of identity (e.g., "admin", "peer", "orderer", "client")<br>
-
-json_name: IdentityType
-go_name: IdentityType
-go_tags: json:"IdentityType"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-certauth-v1-registeridentityinput-attributesentry"></a>
-### fabric.certauth.v1.RegisterIdentityInput.AttributesEntry
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>key</td>
-<td>string</td>
-<td><pre>
-json_name: key
-go_name: Key</pre></td>
-</tr><tr>
-<td>value</td>
-<td>string</td>
-<td><pre>
-json_name: value
-go_name: Value</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-certauth-v1-registeridentityoutput"></a>
-### fabric.certauth.v1.RegisterIdentityOutput
-
-<pre>
-RegisterIdentityOutput contains the enrollment secret returned by the CA
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>enrollment_secret</td>
-<td>string</td>
-<td><pre>
-enrollment_secret is the secret used to enroll the identity<br>
-
-json_name: EnrollmentSecret
-go_name: EnrollmentSecret
-go_tags: json:"EnrollmentSecret" validate:"required"</pre></td>
+json_name: CsrPem
+go_name: CsrPem
+go_tags: json:"CsrPem" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3192,6 +2894,337 @@ revoked indicates if the identity was successfully revoked<br>
 
 json_name: Revoked
 go_name: Revoked</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-signcertificateinput"></a>
+### fabric.certauth.v1.SignCertificateInput
+
+<pre>
+SignCertificateInput specifies the parameters for signing an externally
+generated CSR with a CA owned by the executing worker.
+
+Only public material crosses the ownership boundary: a CSR comes in, a
+certificate + chain go out. Deliberately carries NO storage location, NO
+admin identity, and NO key references - the issuer signs as its own CA's
+admin and never touches the caller's Vault subtree.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>attributes</td>
+<td><a href="#fabric-certauth-v1-signcertificateinput-attributesentry">fabric.certauth.v1.SignCertificateInput.AttributesEntry</a></td>
+<td><pre>
+attributes are additional CA attributes for the registration record.<br>
+
+json_name: Attributes
+go_name: Attributes</pre></td>
+</tr><tr>
+<td>csr_pem</td>
+<td>bytes</td>
+<td><pre>
+csr_pem is the PEM-encoded certificate signing request. The private key
+that generated it never leaves the caller.<br>
+
+json_name: CsrPem
+go_name: CsrPem
+go_tags: json:"CsrPem" validate:"required"</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+hosts are the requested Subject Alternative Names for the signed cert.<br>
+
+json_name: Hosts
+go_name: Hosts
+go_tags: json:"Hosts,omitempty"</pre></td>
+</tr><tr>
+<td>identity_type</td>
+<td>string</td>
+<td><pre>
+identity_type specifies the Fabric CA identity type for registration.
+This determines the OU field in the issued certificate (server-set).
+Valid values: "peer", "orderer", "admin", "client" (default: "client").<br>
+
+json_name: IdentityType
+go_name: IdentityType
+go_tags: json:"IdentityType,omitempty"</pre></td>
+</tr><tr>
+<td>issuer_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+issuer_ref identifies which CA signs this certificate.
+Always owned by the executing worker's owner (validated in the workflow).<br>
+
+json_name: IssuerRef
+go_name: IssuerRef
+go_tags: json:"IssuerRef" validate:"required"</pre></td>
+</tr><tr>
+<td>profile</td>
+<td>string</td>
+<td><pre>
+profile determines key usages ("ca", "tls", or "" for default identity)<br>
+
+json_name: Profile
+go_name: Profile
+go_tags: json:"Profile"</pre></td>
+</tr><tr>
+<td>subject</td>
+<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
+<td><pre>
+subject specifies the certificate subject fields. The CommonName MUST be
+org-qualified (e.g. "peer0@org1"); it is used both for CA registration
+and to satisfy Fabric CA's requirement that the CSR CN equals the
+enrollment ID.<br>
+
+json_name: Subject
+go_name: Subject
+go_tags: json:"Subject" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-signcertificateinput-attributesentry"></a>
+### fabric.certauth.v1.SignCertificateInput.AttributesEntry
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>key</td>
+<td>string</td>
+<td><pre>
+json_name: key
+go_name: Key</pre></td>
+</tr><tr>
+<td>value</td>
+<td>string</td>
+<td><pre>
+json_name: value
+go_name: Value</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-signcertificateoutput"></a>
+### fabric.certauth.v1.SignCertificateOutput
+
+<pre>
+SignCertificateOutput returns only public certificate material.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>certificate_pem</td>
+<td>bytes</td>
+<td><pre>
+certificate_pem is the PEM-encoded leaf certificate.<br>
+
+json_name: CertificatePem
+go_name: CertificatePem
+go_tags: json:"CertificatePem" validate:"required"</pre></td>
+</tr><tr>
+<td>chain_pem</td>
+<td>bytes</td>
+<td><pre>
+chain_pem is the PEM-encoded full chain (leaf + issuer chain to root).<br>
+
+json_name: ChainPem
+go_name: ChainPem
+go_tags: json:"ChainPem" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-signcsrinput"></a>
+### fabric.certauth.v1.SignCsrInput
+
+<pre>
+SignCsrInput specifies the parameters for signing a CSR (issuer side).
+All references point into the issuer's own Vault subtree.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>admin_identity</td>
+<td><a href="#fabric-v1-identityref">fabric.v1.IdentityRef</a></td>
+<td><pre>
+admin_identity is the registrar used to register/modify the CSR's
+identity. Optional: nil selects the CA's default permanent admin (the
+steady-state case). A non-nil value lets a different registrar (e.g. the
+bootstrap admin registering the permanent admin) authenticate the
+registration. The Nexus SignCertificate path always leaves this nil, so
+no caller-chosen registrar ever crosses the ownership boundary.<br>
+
+json_name: AdminIdentity
+go_name: AdminIdentity
+go_tags: json:"AdminIdentity,omitempty"</pre></td>
+</tr><tr>
+<td>attributes</td>
+<td><a href="#fabric-certauth-v1-signcsrinput-attributesentry">fabric.certauth.v1.SignCsrInput.AttributesEntry</a></td>
+<td><pre>
+attributes are additional attributes for the registration record.<br>
+
+json_name: Attributes
+go_name: Attributes</pre></td>
+</tr><tr>
+<td>ca_ref</td>
+<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
+<td><pre>
+ca_ref identifies which locally-owned CA signs the CSR.<br>
+
+json_name: CaRef
+go_name: CaRef
+go_tags: json:"CaRef" validate:"required"</pre></td>
+</tr><tr>
+<td>ca_tls_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+ca_tls_cert_ref points to the CA's TLS certificate in Vault (for mTLS).<br>
+
+json_name: CaTlsCertRef
+go_name: CaTlsCertRef
+go_tags: json:"CaTlsCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>csr_pem</td>
+<td>bytes</td>
+<td><pre>
+csr_pem is the PEM-encoded CSR to sign.<br>
+
+json_name: CsrPem
+go_name: CsrPem
+go_tags: json:"CsrPem" validate:"required"</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+hosts are the requested Subject Alternative Names.<br>
+
+json_name: Hosts
+go_name: Hosts
+go_tags: json:"Hosts,omitempty"</pre></td>
+</tr><tr>
+<td>identity_name</td>
+<td>string</td>
+<td><pre>
+identity_name is the CA registration name; MUST equal the CSR CN.<br>
+
+json_name: IdentityName
+go_name: IdentityName
+go_tags: json:"IdentityName" validate:"required"</pre></td>
+</tr><tr>
+<td>identity_type</td>
+<td>string</td>
+<td><pre>
+identity_type is the Fabric CA identity type (determines server-set OU).<br>
+
+json_name: IdentityType
+go_name: IdentityType
+go_tags: json:"IdentityType,omitempty"</pre></td>
+</tr><tr>
+<td>issuer_cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+issuer_cert_ref points to the issuing CA's signing certificate path
+(issuer's own certs/ path), used to build the full certificate chain.<br>
+
+json_name: IssuerCertRef
+go_name: IssuerCertRef
+go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>profile</td>
+<td>string</td>
+<td><pre>
+profile specifies the CA signing profile ("ca", "tls", or "" default).<br>
+
+json_name: Profile
+go_name: Profile
+go_tags: json:"Profile,omitempty"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-signcsrinput-attributesentry"></a>
+### fabric.certauth.v1.SignCsrInput.AttributesEntry
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>key</td>
+<td>string</td>
+<td><pre>
+json_name: key
+go_name: Key</pre></td>
+</tr><tr>
+<td>value</td>
+<td>string</td>
+<td><pre>
+json_name: value
+go_name: Value</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-certauth-v1-signcsroutput"></a>
+### fabric.certauth.v1.SignCsrOutput
+
+<pre>
+SignCsrOutput returns only public certificate material.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>certificate_pem</td>
+<td>bytes</td>
+<td><pre>
+certificate_pem is the PEM-encoded leaf certificate.<br>
+
+json_name: CertificatePem
+go_name: CertificatePem
+go_tags: json:"CertificatePem" validate:"required"</pre></td>
+</tr><tr>
+<td>chain_pem</td>
+<td>bytes</td>
+<td><pre>
+chain_pem is the PEM-encoded full chain (leaf + issuer chain to root).<br>
+
+json_name: ChainPem
+go_name: ChainPem
+go_tags: json:"ChainPem" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -6709,14 +6742,19 @@ go_tags: json:"SecretRef" validate:"required"</pre></td>
 </table> 
 
 ---
-<a name="secrets-v1-createkeypair-activity"></a>
-### secrets.v1.CreateKeyPair
+<a name="secrets-v1-ensurekeypair-activity"></a>
+### secrets.v1.EnsureKeyPair
 
 <pre>
-CreateKeyPair generates an ECDSA key pair (P-256) and stores it.
+EnsureKeyPair get-or-creates an ECDSA key pair (P-256): it returns the
+existing key at secret_ref when present, and generates + stores a new one
+only when the backend reports the secret is absent. Reusing a stable key
+across retries keeps a previously-signed certificate consistent with the
+key, closing the partial-failure key/cert-mismatch window. A transient
+fetch failure is fatal (the possibly-valid key is never overwritten).
 </pre>
 
-**Input:** [secrets.v1.CreateKeyPairInput](#secrets-v1-createkeypairinput)
+**Input:** [secrets.v1.EnsureKeyPairInput](#secrets-v1-ensurekeypairinput)
 
 <table>
 <tr>
@@ -6728,7 +6766,8 @@ CreateKeyPair generates an ECDSA key pair (P-256) and stores it.
 <td>secret_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
-secret_ref is where the key pair should be stored<br>
+secret_ref is the key pair's location. It is read first; a new key pair is
+generated and stored here only when the secret is absent.<br>
 
 json_name: SecretRef
 go_name: SecretRef
@@ -6736,7 +6775,7 @@ go_tags: json:"SecretRef" validate:"required"</pre></td>
 </tr>
 </table>
 
-**Output:** [secrets.v1.CreateKeyPairOutput](#secrets-v1-createkeypairoutput)
+**Output:** [secrets.v1.EnsureKeyPairOutput](#secrets-v1-ensurekeypairoutput)
 
 <table>
 <tr>
@@ -7028,58 +7067,6 @@ go_tags: json:"PolicyName" validate:"required"</pre></td>
 
 
 
-<a name="secrets-v1-createkeypairinput"></a>
-### secrets.v1.CreateKeyPairInput
-
-<pre>
-CreateKeyPairInput specifies where to store the generated key pair
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>secret_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-secret_ref is where the key pair should be stored<br>
-
-json_name: SecretRef
-go_name: SecretRef
-go_tags: json:"SecretRef" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="secrets-v1-createkeypairoutput"></a>
-### secrets.v1.CreateKeyPairOutput
-
-<pre>
-CreateKeyPairOutput confirms key pair was stored
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>secret_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-json_name: SecretRef
-go_name: SecretRef
-go_tags: json:"SecretRef" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
 <a name="secrets-v1-createpasswordinput"></a>
 ### secrets.v1.CreatePasswordInput
 
@@ -7252,6 +7239,59 @@ CreateSelfSignedCertificateOutput confirms certificate was stored
 json_name: CertRef
 go_name: CertRef
 go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-ensurekeypairinput"></a>
+### secrets.v1.EnsureKeyPairInput
+
+<pre>
+EnsureKeyPairInput specifies where the key pair lives or is created.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+secret_ref is the key pair's location. It is read first; a new key pair is
+generated and stored here only when the secret is absent.<br>
+
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-ensurekeypairoutput"></a>
+### secrets.v1.EnsureKeyPairOutput
+
+<pre>
+EnsureKeyPairOutput confirms a key pair is present at secret_ref.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
 </tr>
 </table>
 

@@ -25,24 +25,24 @@ func NewCertificateAuthorityNexusClient(endpoint string) *CertificateAuthorityNe
 	}
 }
 
-type CreateCertificateFuture struct {
+type SignCertificateFuture struct {
 	workflow.NexusOperationFuture
 }
 
-func (f *CreateCertificateFuture) GetTyped(ctx workflow.Context) (*v1.CreateCertificateOutput, error) {
-	var output v1.CreateCertificateOutput
+func (f *SignCertificateFuture) GetTyped(ctx workflow.Context) (*v1.SignCertificateOutput, error) {
+	var output v1.SignCertificateOutput
 	err := f.Get(ctx, &output)
 	return &output, err
 }
-func (c *CertificateAuthorityNexusClient) CreateCertificateAsync(ctx workflow.Context, input *v1.CreateCertificateInput, options workflow.NexusOperationOptions) CreateCertificateFuture {
-	fut := c.client.ExecuteOperation(ctx, certauthv1nexus.CertificateAuthorityCreateCertificateOperationName, input, options)
-	return CreateCertificateFuture{
+func (c *CertificateAuthorityNexusClient) SignCertificateAsync(ctx workflow.Context, input *v1.SignCertificateInput, options workflow.NexusOperationOptions) SignCertificateFuture {
+	fut := c.client.ExecuteOperation(ctx, certauthv1nexus.CertificateAuthoritySignCertificateOperationName, input, options)
+	return SignCertificateFuture{
 		fut,
 	}
 }
-func (c *CertificateAuthorityNexusClient) CreateCertificate(ctx workflow.Context, input *v1.CreateCertificateInput, options workflow.NexusOperationOptions) (*v1.CreateCertificateOutput, error) {
-	var output v1.CreateCertificateOutput
-	fut := c.client.ExecuteOperation(ctx, certauthv1nexus.CertificateAuthorityCreateCertificateOperationName, input, options)
+func (c *CertificateAuthorityNexusClient) SignCertificate(ctx workflow.Context, input *v1.SignCertificateInput, options workflow.NexusOperationOptions) (*v1.SignCertificateOutput, error) {
+	var output v1.SignCertificateOutput
+	fut := c.client.ExecuteOperation(ctx, certauthv1nexus.CertificateAuthoritySignCertificateOperationName, input, options)
 	err := fut.Get(ctx, &output)
 	return &output, err
 }

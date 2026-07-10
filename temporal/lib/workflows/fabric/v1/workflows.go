@@ -157,6 +157,15 @@ func (w *bootstrapShardWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapSha
 		}
 	}
 
+	// TEMP(debug): stop after deploying the certificate authorities. The peer
+	// DB (CouchDB) deployment below is still being worked on. Set
+	// deployWorkloads back to true (or remove this block) to re-enable
+	// peer/orderer deployment.
+	deployWorkloads := false
+	if !deployWorkloads {
+		return &pb.BootstrapShardOutput{}, nil
+	}
+
 	for _, peerSpec := range deployment.GetPeers() {
 		if _, err := pb.DeployCouchDbChild(ctx, &pb.DeployCouchDbInput{
 			PeerId: peerSpec.GetId(),

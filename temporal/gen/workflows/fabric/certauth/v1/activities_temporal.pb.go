@@ -22,55 +22,68 @@ var IdentityTaskQueue = "infra"
 
 // fabric.certauth.v1.Identity activity names
 const (
-	BootstrapEnrollIdentityActivityName = "fabric.certauth.v1.BootstrapEnrollIdentity"
-	EnrollIdentityActivityName          = "fabric.certauth.v1.EnrollIdentity"
-	RegisterIdentityActivityName        = "fabric.certauth.v1.RegisterIdentity"
-	RevokeIdentityActivityName          = "fabric.certauth.v1.RevokeIdentity"
+	BootstrapEnrollCsrActivityName = "fabric.certauth.v1.BootstrapEnrollCsr"
+	GenerateCsrActivityName        = "fabric.certauth.v1.GenerateCsr"
+	RevokeIdentityActivityName     = "fabric.certauth.v1.RevokeIdentity"
+	SignCsrActivityName            = "fabric.certauth.v1.SignCsr"
 )
 
 // IdentityActivities describes available worker activities
 type IdentityActivities interface {
-	// BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
-	// This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
-	// The activity generates a CSR internally and submits it to the CA
-	BootstrapEnrollIdentity(ctx context.Context, req *BootstrapEnrollIdentityInput) (*BootstrapEnrollIdentityOutput, error)
+	// BootstrapEnrollCsr runs on the CA OWNER's worker during CA
+	// initialization, before any registrar exists. It enrolls a supplied CSR
+	// using the CA's preset bootstrap credentials (username/password) and
+	// returns the leaf certificate + full chain. Unlike SignCsr it performs NO
+	// registration (there is no admin to register as yet); it is the
+	// register-less bootstrap counterpart of SignCsr. Only public certificate
+	// material is returned.
+	BootstrapEnrollCsr(ctx context.Context, req *BootstrapEnrollCsrInput) (*BootstrapEnrollCsrOutput, error)
 
-	// EnrollIdentity enrolls a registered identity and retrieves certificates
-	// This is the second step in identity creation - enrollment uses the secret from registration
-	EnrollIdentity(ctx context.Context, req *EnrollIdentityInput) (*EnrollIdentityOutput, error)
-
-	// RegisterIdentity registers a new identity with a Fabric CA
-	// This is the first step in identity creation - registration returns an enrollment secret
-	RegisterIdentity(ctx context.Context, req *RegisterIdentityInput) (*RegisterIdentityOutput, error)
+	// GenerateCsr runs on the KEY OWNER's worker. It fetches the private key at
+	// key_ref and returns a CSR for the given subject. The private key is
+	// ensured up-front by secrets.EnsureKeyPair; here it is only read, never
+	// written, and it never leaves this worker's Vault subtree - only the
+	// public CSR is returned.
+	//
+	// Note: named "Csr" (not "CSR") because the codegen plugin mangles trailing
+	// all-caps acronyms in derived identifiers (Future/Async helpers).
+	GenerateCsr(ctx context.Context, req *GenerateCsrInput) (*GenerateCsrOutput, error)
 
 	// RevokeIdentity revokes an identity from a Fabric CA
 	// Used to revoke bootstrap admin credentials after permanent admin is created
 	RevokeIdentity(ctx context.Context, req *RevokeIdentityInput) (*RevokeIdentityOutput, error)
+
+	// SignCsr runs on the ISSUER's worker. It registers the identity with a
+	// locally-owned CA (resetting the enrollment secret if already registered),
+	// enrolls the supplied CSR, and returns the certificate + full chain. The
+	// enrollment secret is generated and consumed entirely in-memory; no key or
+	// shard-owned path is ever written.
+	SignCsr(ctx context.Context, req *SignCsrInput) (*SignCsrOutput, error)
 }
 
 // RegisterIdentityActivities registers activities with a worker
 func RegisterIdentityActivities(r worker.ActivityRegistry, activities IdentityActivities) {
-	RegisterBootstrapEnrollIdentityActivity(r, activities.BootstrapEnrollIdentity)
-	RegisterEnrollIdentityActivity(r, activities.EnrollIdentity)
-	RegisterRegisterIdentityActivity(r, activities.RegisterIdentity)
+	RegisterBootstrapEnrollCsrActivity(r, activities.BootstrapEnrollCsr)
+	RegisterGenerateCsrActivity(r, activities.GenerateCsr)
 	RegisterRevokeIdentityActivity(r, activities.RevokeIdentity)
+	RegisterSignCsrActivity(r, activities.SignCsr)
 }
 
-// RegisterBootstrapEnrollIdentityActivity registers a fabric.certauth.v1.BootstrapEnrollIdentity activity
-func RegisterBootstrapEnrollIdentityActivity(r worker.ActivityRegistry, fn func(context.Context, *BootstrapEnrollIdentityInput) (*BootstrapEnrollIdentityOutput, error)) {
+// RegisterBootstrapEnrollCsrActivity registers a fabric.certauth.v1.BootstrapEnrollCsr activity
+func RegisterBootstrapEnrollCsrActivity(r worker.ActivityRegistry, fn func(context.Context, *BootstrapEnrollCsrInput) (*BootstrapEnrollCsrOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
-		Name: BootstrapEnrollIdentityActivityName,
+		Name: BootstrapEnrollCsrActivityName,
 	})
 }
 
-// BootstrapEnrollIdentityFuture describes a(n) fabric.certauth.v1.BootstrapEnrollIdentity activity execution
-type BootstrapEnrollIdentityFuture struct {
+// BootstrapEnrollCsrFuture describes a(n) fabric.certauth.v1.BootstrapEnrollCsr activity execution
+type BootstrapEnrollCsrFuture struct {
 	Future workflow.Future
 }
 
 // Get blocks on the activity's completion, returning the response
-func (f *BootstrapEnrollIdentityFuture) Get(ctx workflow.Context) (*BootstrapEnrollIdentityOutput, error) {
-	var resp BootstrapEnrollIdentityOutput
+func (f *BootstrapEnrollCsrFuture) Get(ctx workflow.Context) (*BootstrapEnrollCsrOutput, error) {
+	var resp BootstrapEnrollCsrOutput
 	if err := f.Future.Get(ctx, &resp); err != nil {
 		return nil, err
 	}
@@ -78,7 +91,7 @@ func (f *BootstrapEnrollIdentityFuture) Get(ctx workflow.Context) (*BootstrapEnr
 }
 
 // Select adds the activity's completion to the selector, callback can be nil
-func (f *BootstrapEnrollIdentityFuture) Select(sel workflow.Selector, fn func(*BootstrapEnrollIdentityFuture)) workflow.Selector {
+func (f *BootstrapEnrollCsrFuture) Select(sel workflow.Selector, fn func(*BootstrapEnrollCsrFuture)) workflow.Selector {
 	return sel.AddFuture(f.Future, func(workflow.Future) {
 		if fn != nil {
 			fn(f)
@@ -86,75 +99,91 @@ func (f *BootstrapEnrollIdentityFuture) Select(sel workflow.Selector, fn func(*B
 	})
 }
 
-// BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
-// This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
-// The activity generates a CSR internally and submits it to the CA
-func BootstrapEnrollIdentity(ctx workflow.Context, req *BootstrapEnrollIdentityInput, options ...*BootstrapEnrollIdentityActivityOptions) (*BootstrapEnrollIdentityOutput, error) {
-	return BootstrapEnrollIdentityAsync(ctx, req, options...).Get(ctx)
+// BootstrapEnrollCsr runs on the CA OWNER's worker during CA
+// initialization, before any registrar exists. It enrolls a supplied CSR
+// using the CA's preset bootstrap credentials (username/password) and
+// returns the leaf certificate + full chain. Unlike SignCsr it performs NO
+// registration (there is no admin to register as yet); it is the
+// register-less bootstrap counterpart of SignCsr. Only public certificate
+// material is returned.
+func BootstrapEnrollCsr(ctx workflow.Context, req *BootstrapEnrollCsrInput, options ...*BootstrapEnrollCsrActivityOptions) (*BootstrapEnrollCsrOutput, error) {
+	return BootstrapEnrollCsrAsync(ctx, req, options...).Get(ctx)
 }
 
-// BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
-// This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
-// The activity generates a CSR internally and submits it to the CA
-func BootstrapEnrollIdentityAsync(ctx workflow.Context, req *BootstrapEnrollIdentityInput, options ...*BootstrapEnrollIdentityActivityOptions) *BootstrapEnrollIdentityFuture {
-	var o *BootstrapEnrollIdentityActivityOptions
+// BootstrapEnrollCsr runs on the CA OWNER's worker during CA
+// initialization, before any registrar exists. It enrolls a supplied CSR
+// using the CA's preset bootstrap credentials (username/password) and
+// returns the leaf certificate + full chain. Unlike SignCsr it performs NO
+// registration (there is no admin to register as yet); it is the
+// register-less bootstrap counterpart of SignCsr. Only public certificate
+// material is returned.
+func BootstrapEnrollCsrAsync(ctx workflow.Context, req *BootstrapEnrollCsrInput, options ...*BootstrapEnrollCsrActivityOptions) *BootstrapEnrollCsrFuture {
+	var o *BootstrapEnrollCsrActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
 	} else {
-		o = NewBootstrapEnrollIdentityActivityOptions()
+		o = NewBootstrapEnrollCsrActivityOptions()
 	}
 	var err error
 	if ctx, err = o.Build(ctx); err != nil {
 		errF, errS := workflow.NewFuture(ctx)
 		errS.SetError(err)
-		return &BootstrapEnrollIdentityFuture{Future: errF}
+		return &BootstrapEnrollCsrFuture{Future: errF}
 	}
-	activity := BootstrapEnrollIdentityActivityName
+	activity := BootstrapEnrollCsrActivityName
 	if o.dc != nil {
 		ctx = workflow.WithDataConverter(ctx, o.dc)
 	}
-	future := &BootstrapEnrollIdentityFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	future := &BootstrapEnrollCsrFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
 	return future
 }
 
-// BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
-// This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
-// The activity generates a CSR internally and submits it to the CA
-func BootstrapEnrollIdentityLocal(ctx workflow.Context, req *BootstrapEnrollIdentityInput, options ...*BootstrapEnrollIdentityLocalActivityOptions) (*BootstrapEnrollIdentityOutput, error) {
-	return BootstrapEnrollIdentityLocalAsync(ctx, req, options...).Get(ctx)
+// BootstrapEnrollCsr runs on the CA OWNER's worker during CA
+// initialization, before any registrar exists. It enrolls a supplied CSR
+// using the CA's preset bootstrap credentials (username/password) and
+// returns the leaf certificate + full chain. Unlike SignCsr it performs NO
+// registration (there is no admin to register as yet); it is the
+// register-less bootstrap counterpart of SignCsr. Only public certificate
+// material is returned.
+func BootstrapEnrollCsrLocal(ctx workflow.Context, req *BootstrapEnrollCsrInput, options ...*BootstrapEnrollCsrLocalActivityOptions) (*BootstrapEnrollCsrOutput, error) {
+	return BootstrapEnrollCsrLocalAsync(ctx, req, options...).Get(ctx)
 }
 
-// BootstrapEnrollIdentity enrolls an identity using bootstrap credentials (username/password)
-// This is used ONLY during CA initialization to obtain the bootstrap admin's certificate
-// The activity generates a CSR internally and submits it to the CA
-func BootstrapEnrollIdentityLocalAsync(ctx workflow.Context, req *BootstrapEnrollIdentityInput, options ...*BootstrapEnrollIdentityLocalActivityOptions) *BootstrapEnrollIdentityFuture {
-	var o *BootstrapEnrollIdentityLocalActivityOptions
+// BootstrapEnrollCsr runs on the CA OWNER's worker during CA
+// initialization, before any registrar exists. It enrolls a supplied CSR
+// using the CA's preset bootstrap credentials (username/password) and
+// returns the leaf certificate + full chain. Unlike SignCsr it performs NO
+// registration (there is no admin to register as yet); it is the
+// register-less bootstrap counterpart of SignCsr. Only public certificate
+// material is returned.
+func BootstrapEnrollCsrLocalAsync(ctx workflow.Context, req *BootstrapEnrollCsrInput, options ...*BootstrapEnrollCsrLocalActivityOptions) *BootstrapEnrollCsrFuture {
+	var o *BootstrapEnrollCsrLocalActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
 	} else {
-		o = NewBootstrapEnrollIdentityLocalActivityOptions()
+		o = NewBootstrapEnrollCsrLocalActivityOptions()
 	}
 	var err error
 	if ctx, err = o.Build(ctx); err != nil {
 		errF, errS := workflow.NewFuture(ctx)
 		errS.SetError(err)
-		return &BootstrapEnrollIdentityFuture{Future: errF}
+		return &BootstrapEnrollCsrFuture{Future: errF}
 	}
 	var activity any
 	if o.fn != nil {
 		activity = o.fn
 	} else {
-		activity = BootstrapEnrollIdentityActivityName
+		activity = BootstrapEnrollCsrActivityName
 	}
 	if o.dc != nil {
 		ctx = workflow.WithDataConverter(ctx, o.dc)
 	}
-	future := &BootstrapEnrollIdentityFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	future := &BootstrapEnrollCsrFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
 	return future
 }
 
-// BootstrapEnrollIdentityActivityOptions provides configuration for a(n) fabric.certauth.v1.BootstrapEnrollIdentity activity
-type BootstrapEnrollIdentityActivityOptions struct {
+// BootstrapEnrollCsrActivityOptions provides configuration for a(n) fabric.certauth.v1.BootstrapEnrollCsr activity
+type BootstrapEnrollCsrActivityOptions struct {
 	options                workflow.ActivityOptions
 	retryPolicy            *temporal.RetryPolicy
 	scheduleToCloseTimeout *time.Duration
@@ -166,13 +195,13 @@ type BootstrapEnrollIdentityActivityOptions struct {
 	waitForCancellation    *bool
 }
 
-// NewBootstrapEnrollIdentityActivityOptions initializes a new BootstrapEnrollIdentityActivityOptions value
-func NewBootstrapEnrollIdentityActivityOptions() *BootstrapEnrollIdentityActivityOptions {
-	return &BootstrapEnrollIdentityActivityOptions{}
+// NewBootstrapEnrollCsrActivityOptions initializes a new BootstrapEnrollCsrActivityOptions value
+func NewBootstrapEnrollCsrActivityOptions() *BootstrapEnrollCsrActivityOptions {
+	return &BootstrapEnrollCsrActivityOptions{}
 }
 
 // Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
-func (o *BootstrapEnrollIdentityActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+func (o *BootstrapEnrollCsrActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
 	opts := o.options
 	if v := o.heartbeatTimeout; v != nil {
 		opts.HeartbeatTimeout = *v
@@ -203,76 +232,76 @@ func (o *BootstrapEnrollIdentityActivityOptions) Build(ctx workflow.Context) (wo
 }
 
 // WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
-func (o *BootstrapEnrollIdentityActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *BootstrapEnrollIdentityActivityOptions {
+func (o *BootstrapEnrollCsrActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *BootstrapEnrollCsrActivityOptions {
 	o.options = options
 	return o
 }
 
 // WithDataConverter registers a DataConverter for the (local) activity
-func (o *BootstrapEnrollIdentityActivityOptions) WithDataConverter(dc converter.DataConverter) *BootstrapEnrollIdentityActivityOptions {
+func (o *BootstrapEnrollCsrActivityOptions) WithDataConverter(dc converter.DataConverter) *BootstrapEnrollCsrActivityOptions {
 	o.dc = dc
 	return o
 }
 
 // WithHeartbeatTimeout sets the HeartbeatTimeout value
-func (o *BootstrapEnrollIdentityActivityOptions) WithHeartbeatTimeout(d time.Duration) *BootstrapEnrollIdentityActivityOptions {
+func (o *BootstrapEnrollCsrActivityOptions) WithHeartbeatTimeout(d time.Duration) *BootstrapEnrollCsrActivityOptions {
 	o.heartbeatTimeout = &d
 	return o
 }
 
 // WithRetryPolicy sets the RetryPolicy value
-func (o *BootstrapEnrollIdentityActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *BootstrapEnrollIdentityActivityOptions {
+func (o *BootstrapEnrollCsrActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *BootstrapEnrollCsrActivityOptions {
 	o.retryPolicy = policy
 	return o
 }
 
 // WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
-func (o *BootstrapEnrollIdentityActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *BootstrapEnrollIdentityActivityOptions {
+func (o *BootstrapEnrollCsrActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *BootstrapEnrollCsrActivityOptions {
 	o.scheduleToCloseTimeout = &d
 	return o
 }
 
 // WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
-func (o *BootstrapEnrollIdentityActivityOptions) WithScheduleToStartTimeout(d time.Duration) *BootstrapEnrollIdentityActivityOptions {
+func (o *BootstrapEnrollCsrActivityOptions) WithScheduleToStartTimeout(d time.Duration) *BootstrapEnrollCsrActivityOptions {
 	o.scheduleToStartTimeout = &d
 	return o
 }
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
-func (o *BootstrapEnrollIdentityActivityOptions) WithStartToCloseTimeout(d time.Duration) *BootstrapEnrollIdentityActivityOptions {
+func (o *BootstrapEnrollCsrActivityOptions) WithStartToCloseTimeout(d time.Duration) *BootstrapEnrollCsrActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }
 
 // WithTaskQueue sets the TaskQueue value
-func (o *BootstrapEnrollIdentityActivityOptions) WithTaskQueue(tq string) *BootstrapEnrollIdentityActivityOptions {
+func (o *BootstrapEnrollCsrActivityOptions) WithTaskQueue(tq string) *BootstrapEnrollCsrActivityOptions {
 	o.taskQueue = &tq
 	return o
 }
 
 // WithWaitForCancellation sets the WaitForCancellation value
-func (o *BootstrapEnrollIdentityActivityOptions) WithWaitForCancellation(wait bool) *BootstrapEnrollIdentityActivityOptions {
+func (o *BootstrapEnrollCsrActivityOptions) WithWaitForCancellation(wait bool) *BootstrapEnrollCsrActivityOptions {
 	o.waitForCancellation = &wait
 	return o
 }
 
-// BootstrapEnrollIdentityLocalActivityOptions provides configuration for a(n) fabric.certauth.v1.BootstrapEnrollIdentity activity
-type BootstrapEnrollIdentityLocalActivityOptions struct {
+// BootstrapEnrollCsrLocalActivityOptions provides configuration for a(n) fabric.certauth.v1.BootstrapEnrollCsr activity
+type BootstrapEnrollCsrLocalActivityOptions struct {
 	options                workflow.LocalActivityOptions
 	retryPolicy            *temporal.RetryPolicy
 	scheduleToCloseTimeout *time.Duration
 	startToCloseTimeout    *time.Duration
 	dc                     converter.DataConverter
-	fn                     func(context.Context, *BootstrapEnrollIdentityInput) (*BootstrapEnrollIdentityOutput, error)
+	fn                     func(context.Context, *BootstrapEnrollCsrInput) (*BootstrapEnrollCsrOutput, error)
 }
 
-// NewBootstrapEnrollIdentityLocalActivityOptions initializes a new BootstrapEnrollIdentityLocalActivityOptions value
-func NewBootstrapEnrollIdentityLocalActivityOptions() *BootstrapEnrollIdentityLocalActivityOptions {
-	return &BootstrapEnrollIdentityLocalActivityOptions{}
+// NewBootstrapEnrollCsrLocalActivityOptions initializes a new BootstrapEnrollCsrLocalActivityOptions value
+func NewBootstrapEnrollCsrLocalActivityOptions() *BootstrapEnrollCsrLocalActivityOptions {
+	return &BootstrapEnrollCsrLocalActivityOptions{}
 }
 
 // Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
-func (o *BootstrapEnrollIdentityLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+func (o *BootstrapEnrollCsrLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
 	opts := o.options
 	if v := o.retryPolicy; v != nil {
 		opts.RetryPolicy = v
@@ -288,57 +317,57 @@ func (o *BootstrapEnrollIdentityLocalActivityOptions) Build(ctx workflow.Context
 	return workflow.WithLocalActivityOptions(ctx, opts), nil
 }
 
-// Local specifies a custom fabric.certauth.v1.BootstrapEnrollIdentity implementation
-func (o *BootstrapEnrollIdentityLocalActivityOptions) Local(fn func(context.Context, *BootstrapEnrollIdentityInput) (*BootstrapEnrollIdentityOutput, error)) *BootstrapEnrollIdentityLocalActivityOptions {
+// Local specifies a custom fabric.certauth.v1.BootstrapEnrollCsr implementation
+func (o *BootstrapEnrollCsrLocalActivityOptions) Local(fn func(context.Context, *BootstrapEnrollCsrInput) (*BootstrapEnrollCsrOutput, error)) *BootstrapEnrollCsrLocalActivityOptions {
 	o.fn = fn
 	return o
 }
 
 // WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
-func (o *BootstrapEnrollIdentityLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *BootstrapEnrollIdentityLocalActivityOptions {
+func (o *BootstrapEnrollCsrLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *BootstrapEnrollCsrLocalActivityOptions {
 	o.options = options
 	return o
 }
 
 // WithDataConverter registers a DataConverter for the (local) activity
-func (o *BootstrapEnrollIdentityLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *BootstrapEnrollIdentityLocalActivityOptions {
+func (o *BootstrapEnrollCsrLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *BootstrapEnrollCsrLocalActivityOptions {
 	o.dc = dc
 	return o
 }
 
 // WithRetryPolicy sets the RetryPolicy value
-func (o *BootstrapEnrollIdentityLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *BootstrapEnrollIdentityLocalActivityOptions {
+func (o *BootstrapEnrollCsrLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *BootstrapEnrollCsrLocalActivityOptions {
 	o.retryPolicy = policy
 	return o
 }
 
 // WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
-func (o *BootstrapEnrollIdentityLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *BootstrapEnrollIdentityLocalActivityOptions {
+func (o *BootstrapEnrollCsrLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *BootstrapEnrollCsrLocalActivityOptions {
 	o.scheduleToCloseTimeout = &d
 	return o
 }
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
-func (o *BootstrapEnrollIdentityLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *BootstrapEnrollIdentityLocalActivityOptions {
+func (o *BootstrapEnrollCsrLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *BootstrapEnrollCsrLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }
 
-// RegisterEnrollIdentityActivity registers a fabric.certauth.v1.EnrollIdentity activity
-func RegisterEnrollIdentityActivity(r worker.ActivityRegistry, fn func(context.Context, *EnrollIdentityInput) (*EnrollIdentityOutput, error)) {
+// RegisterGenerateCsrActivity registers a fabric.certauth.v1.GenerateCsr activity
+func RegisterGenerateCsrActivity(r worker.ActivityRegistry, fn func(context.Context, *GenerateCsrInput) (*GenerateCsrOutput, error)) {
 	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
-		Name: EnrollIdentityActivityName,
+		Name: GenerateCsrActivityName,
 	})
 }
 
-// EnrollIdentityFuture describes a(n) fabric.certauth.v1.EnrollIdentity activity execution
-type EnrollIdentityFuture struct {
+// GenerateCsrFuture describes a(n) fabric.certauth.v1.GenerateCsr activity execution
+type GenerateCsrFuture struct {
 	Future workflow.Future
 }
 
 // Get blocks on the activity's completion, returning the response
-func (f *EnrollIdentityFuture) Get(ctx workflow.Context) (*EnrollIdentityOutput, error) {
-	var resp EnrollIdentityOutput
+func (f *GenerateCsrFuture) Get(ctx workflow.Context) (*GenerateCsrOutput, error) {
+	var resp GenerateCsrOutput
 	if err := f.Future.Get(ctx, &resp); err != nil {
 		return nil, err
 	}
@@ -346,7 +375,7 @@ func (f *EnrollIdentityFuture) Get(ctx workflow.Context) (*EnrollIdentityOutput,
 }
 
 // Select adds the activity's completion to the selector, callback can be nil
-func (f *EnrollIdentityFuture) Select(sel workflow.Selector, fn func(*EnrollIdentityFuture)) workflow.Selector {
+func (f *GenerateCsrFuture) Select(sel workflow.Selector, fn func(*GenerateCsrFuture)) workflow.Selector {
 	return sel.AddFuture(f.Future, func(workflow.Future) {
 		if fn != nil {
 			fn(f)
@@ -354,71 +383,95 @@ func (f *EnrollIdentityFuture) Select(sel workflow.Selector, fn func(*EnrollIden
 	})
 }
 
-// EnrollIdentity enrolls a registered identity and retrieves certificates
-// This is the second step in identity creation - enrollment uses the secret from registration
-func EnrollIdentity(ctx workflow.Context, req *EnrollIdentityInput, options ...*EnrollIdentityActivityOptions) (*EnrollIdentityOutput, error) {
-	return EnrollIdentityAsync(ctx, req, options...).Get(ctx)
+// GenerateCsr runs on the KEY OWNER's worker. It fetches the private key at
+// key_ref and returns a CSR for the given subject. The private key is
+// ensured up-front by secrets.EnsureKeyPair; here it is only read, never
+// written, and it never leaves this worker's Vault subtree - only the
+// public CSR is returned.
+//
+// Note: named "Csr" (not "CSR") because the codegen plugin mangles trailing
+// all-caps acronyms in derived identifiers (Future/Async helpers).
+func GenerateCsr(ctx workflow.Context, req *GenerateCsrInput, options ...*GenerateCsrActivityOptions) (*GenerateCsrOutput, error) {
+	return GenerateCsrAsync(ctx, req, options...).Get(ctx)
 }
 
-// EnrollIdentity enrolls a registered identity and retrieves certificates
-// This is the second step in identity creation - enrollment uses the secret from registration
-func EnrollIdentityAsync(ctx workflow.Context, req *EnrollIdentityInput, options ...*EnrollIdentityActivityOptions) *EnrollIdentityFuture {
-	var o *EnrollIdentityActivityOptions
+// GenerateCsr runs on the KEY OWNER's worker. It fetches the private key at
+// key_ref and returns a CSR for the given subject. The private key is
+// ensured up-front by secrets.EnsureKeyPair; here it is only read, never
+// written, and it never leaves this worker's Vault subtree - only the
+// public CSR is returned.
+//
+// Note: named "Csr" (not "CSR") because the codegen plugin mangles trailing
+// all-caps acronyms in derived identifiers (Future/Async helpers).
+func GenerateCsrAsync(ctx workflow.Context, req *GenerateCsrInput, options ...*GenerateCsrActivityOptions) *GenerateCsrFuture {
+	var o *GenerateCsrActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
 	} else {
-		o = NewEnrollIdentityActivityOptions()
+		o = NewGenerateCsrActivityOptions()
 	}
 	var err error
 	if ctx, err = o.Build(ctx); err != nil {
 		errF, errS := workflow.NewFuture(ctx)
 		errS.SetError(err)
-		return &EnrollIdentityFuture{Future: errF}
+		return &GenerateCsrFuture{Future: errF}
 	}
-	activity := EnrollIdentityActivityName
+	activity := GenerateCsrActivityName
 	if o.dc != nil {
 		ctx = workflow.WithDataConverter(ctx, o.dc)
 	}
-	future := &EnrollIdentityFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	future := &GenerateCsrFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
 	return future
 }
 
-// EnrollIdentity enrolls a registered identity and retrieves certificates
-// This is the second step in identity creation - enrollment uses the secret from registration
-func EnrollIdentityLocal(ctx workflow.Context, req *EnrollIdentityInput, options ...*EnrollIdentityLocalActivityOptions) (*EnrollIdentityOutput, error) {
-	return EnrollIdentityLocalAsync(ctx, req, options...).Get(ctx)
+// GenerateCsr runs on the KEY OWNER's worker. It fetches the private key at
+// key_ref and returns a CSR for the given subject. The private key is
+// ensured up-front by secrets.EnsureKeyPair; here it is only read, never
+// written, and it never leaves this worker's Vault subtree - only the
+// public CSR is returned.
+//
+// Note: named "Csr" (not "CSR") because the codegen plugin mangles trailing
+// all-caps acronyms in derived identifiers (Future/Async helpers).
+func GenerateCsrLocal(ctx workflow.Context, req *GenerateCsrInput, options ...*GenerateCsrLocalActivityOptions) (*GenerateCsrOutput, error) {
+	return GenerateCsrLocalAsync(ctx, req, options...).Get(ctx)
 }
 
-// EnrollIdentity enrolls a registered identity and retrieves certificates
-// This is the second step in identity creation - enrollment uses the secret from registration
-func EnrollIdentityLocalAsync(ctx workflow.Context, req *EnrollIdentityInput, options ...*EnrollIdentityLocalActivityOptions) *EnrollIdentityFuture {
-	var o *EnrollIdentityLocalActivityOptions
+// GenerateCsr runs on the KEY OWNER's worker. It fetches the private key at
+// key_ref and returns a CSR for the given subject. The private key is
+// ensured up-front by secrets.EnsureKeyPair; here it is only read, never
+// written, and it never leaves this worker's Vault subtree - only the
+// public CSR is returned.
+//
+// Note: named "Csr" (not "CSR") because the codegen plugin mangles trailing
+// all-caps acronyms in derived identifiers (Future/Async helpers).
+func GenerateCsrLocalAsync(ctx workflow.Context, req *GenerateCsrInput, options ...*GenerateCsrLocalActivityOptions) *GenerateCsrFuture {
+	var o *GenerateCsrLocalActivityOptions
 	if len(options) > 0 && options[0] != nil {
 		o = options[0]
 	} else {
-		o = NewEnrollIdentityLocalActivityOptions()
+		o = NewGenerateCsrLocalActivityOptions()
 	}
 	var err error
 	if ctx, err = o.Build(ctx); err != nil {
 		errF, errS := workflow.NewFuture(ctx)
 		errS.SetError(err)
-		return &EnrollIdentityFuture{Future: errF}
+		return &GenerateCsrFuture{Future: errF}
 	}
 	var activity any
 	if o.fn != nil {
 		activity = o.fn
 	} else {
-		activity = EnrollIdentityActivityName
+		activity = GenerateCsrActivityName
 	}
 	if o.dc != nil {
 		ctx = workflow.WithDataConverter(ctx, o.dc)
 	}
-	future := &EnrollIdentityFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	future := &GenerateCsrFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
 	return future
 }
 
-// EnrollIdentityActivityOptions provides configuration for a(n) fabric.certauth.v1.EnrollIdentity activity
-type EnrollIdentityActivityOptions struct {
+// GenerateCsrActivityOptions provides configuration for a(n) fabric.certauth.v1.GenerateCsr activity
+type GenerateCsrActivityOptions struct {
 	options                workflow.ActivityOptions
 	retryPolicy            *temporal.RetryPolicy
 	scheduleToCloseTimeout *time.Duration
@@ -430,13 +483,13 @@ type EnrollIdentityActivityOptions struct {
 	waitForCancellation    *bool
 }
 
-// NewEnrollIdentityActivityOptions initializes a new EnrollIdentityActivityOptions value
-func NewEnrollIdentityActivityOptions() *EnrollIdentityActivityOptions {
-	return &EnrollIdentityActivityOptions{}
+// NewGenerateCsrActivityOptions initializes a new GenerateCsrActivityOptions value
+func NewGenerateCsrActivityOptions() *GenerateCsrActivityOptions {
+	return &GenerateCsrActivityOptions{}
 }
 
 // Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
-func (o *EnrollIdentityActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+func (o *GenerateCsrActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
 	opts := o.options
 	if v := o.heartbeatTimeout; v != nil {
 		opts.HeartbeatTimeout = *v
@@ -467,76 +520,76 @@ func (o *EnrollIdentityActivityOptions) Build(ctx workflow.Context) (workflow.Co
 }
 
 // WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
-func (o *EnrollIdentityActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *EnrollIdentityActivityOptions {
+func (o *GenerateCsrActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *GenerateCsrActivityOptions {
 	o.options = options
 	return o
 }
 
 // WithDataConverter registers a DataConverter for the (local) activity
-func (o *EnrollIdentityActivityOptions) WithDataConverter(dc converter.DataConverter) *EnrollIdentityActivityOptions {
+func (o *GenerateCsrActivityOptions) WithDataConverter(dc converter.DataConverter) *GenerateCsrActivityOptions {
 	o.dc = dc
 	return o
 }
 
 // WithHeartbeatTimeout sets the HeartbeatTimeout value
-func (o *EnrollIdentityActivityOptions) WithHeartbeatTimeout(d time.Duration) *EnrollIdentityActivityOptions {
+func (o *GenerateCsrActivityOptions) WithHeartbeatTimeout(d time.Duration) *GenerateCsrActivityOptions {
 	o.heartbeatTimeout = &d
 	return o
 }
 
 // WithRetryPolicy sets the RetryPolicy value
-func (o *EnrollIdentityActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *EnrollIdentityActivityOptions {
+func (o *GenerateCsrActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *GenerateCsrActivityOptions {
 	o.retryPolicy = policy
 	return o
 }
 
 // WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
-func (o *EnrollIdentityActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *EnrollIdentityActivityOptions {
+func (o *GenerateCsrActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *GenerateCsrActivityOptions {
 	o.scheduleToCloseTimeout = &d
 	return o
 }
 
 // WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
-func (o *EnrollIdentityActivityOptions) WithScheduleToStartTimeout(d time.Duration) *EnrollIdentityActivityOptions {
+func (o *GenerateCsrActivityOptions) WithScheduleToStartTimeout(d time.Duration) *GenerateCsrActivityOptions {
 	o.scheduleToStartTimeout = &d
 	return o
 }
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
-func (o *EnrollIdentityActivityOptions) WithStartToCloseTimeout(d time.Duration) *EnrollIdentityActivityOptions {
+func (o *GenerateCsrActivityOptions) WithStartToCloseTimeout(d time.Duration) *GenerateCsrActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }
 
 // WithTaskQueue sets the TaskQueue value
-func (o *EnrollIdentityActivityOptions) WithTaskQueue(tq string) *EnrollIdentityActivityOptions {
+func (o *GenerateCsrActivityOptions) WithTaskQueue(tq string) *GenerateCsrActivityOptions {
 	o.taskQueue = &tq
 	return o
 }
 
 // WithWaitForCancellation sets the WaitForCancellation value
-func (o *EnrollIdentityActivityOptions) WithWaitForCancellation(wait bool) *EnrollIdentityActivityOptions {
+func (o *GenerateCsrActivityOptions) WithWaitForCancellation(wait bool) *GenerateCsrActivityOptions {
 	o.waitForCancellation = &wait
 	return o
 }
 
-// EnrollIdentityLocalActivityOptions provides configuration for a(n) fabric.certauth.v1.EnrollIdentity activity
-type EnrollIdentityLocalActivityOptions struct {
+// GenerateCsrLocalActivityOptions provides configuration for a(n) fabric.certauth.v1.GenerateCsr activity
+type GenerateCsrLocalActivityOptions struct {
 	options                workflow.LocalActivityOptions
 	retryPolicy            *temporal.RetryPolicy
 	scheduleToCloseTimeout *time.Duration
 	startToCloseTimeout    *time.Duration
 	dc                     converter.DataConverter
-	fn                     func(context.Context, *EnrollIdentityInput) (*EnrollIdentityOutput, error)
+	fn                     func(context.Context, *GenerateCsrInput) (*GenerateCsrOutput, error)
 }
 
-// NewEnrollIdentityLocalActivityOptions initializes a new EnrollIdentityLocalActivityOptions value
-func NewEnrollIdentityLocalActivityOptions() *EnrollIdentityLocalActivityOptions {
-	return &EnrollIdentityLocalActivityOptions{}
+// NewGenerateCsrLocalActivityOptions initializes a new GenerateCsrLocalActivityOptions value
+func NewGenerateCsrLocalActivityOptions() *GenerateCsrLocalActivityOptions {
+	return &GenerateCsrLocalActivityOptions{}
 }
 
 // Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
-func (o *EnrollIdentityLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+func (o *GenerateCsrLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
 	opts := o.options
 	if v := o.retryPolicy; v != nil {
 		opts.RetryPolicy = v
@@ -552,302 +605,38 @@ func (o *EnrollIdentityLocalActivityOptions) Build(ctx workflow.Context) (workfl
 	return workflow.WithLocalActivityOptions(ctx, opts), nil
 }
 
-// Local specifies a custom fabric.certauth.v1.EnrollIdentity implementation
-func (o *EnrollIdentityLocalActivityOptions) Local(fn func(context.Context, *EnrollIdentityInput) (*EnrollIdentityOutput, error)) *EnrollIdentityLocalActivityOptions {
+// Local specifies a custom fabric.certauth.v1.GenerateCsr implementation
+func (o *GenerateCsrLocalActivityOptions) Local(fn func(context.Context, *GenerateCsrInput) (*GenerateCsrOutput, error)) *GenerateCsrLocalActivityOptions {
 	o.fn = fn
 	return o
 }
 
 // WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
-func (o *EnrollIdentityLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *EnrollIdentityLocalActivityOptions {
+func (o *GenerateCsrLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *GenerateCsrLocalActivityOptions {
 	o.options = options
 	return o
 }
 
 // WithDataConverter registers a DataConverter for the (local) activity
-func (o *EnrollIdentityLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *EnrollIdentityLocalActivityOptions {
+func (o *GenerateCsrLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *GenerateCsrLocalActivityOptions {
 	o.dc = dc
 	return o
 }
 
 // WithRetryPolicy sets the RetryPolicy value
-func (o *EnrollIdentityLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *EnrollIdentityLocalActivityOptions {
+func (o *GenerateCsrLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *GenerateCsrLocalActivityOptions {
 	o.retryPolicy = policy
 	return o
 }
 
 // WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
-func (o *EnrollIdentityLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *EnrollIdentityLocalActivityOptions {
+func (o *GenerateCsrLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *GenerateCsrLocalActivityOptions {
 	o.scheduleToCloseTimeout = &d
 	return o
 }
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
-func (o *EnrollIdentityLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *EnrollIdentityLocalActivityOptions {
-	o.startToCloseTimeout = &d
-	return o
-}
-
-// RegisterRegisterIdentityActivity registers a fabric.certauth.v1.RegisterIdentity activity
-func RegisterRegisterIdentityActivity(r worker.ActivityRegistry, fn func(context.Context, *RegisterIdentityInput) (*RegisterIdentityOutput, error)) {
-	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
-		Name: RegisterIdentityActivityName,
-	})
-}
-
-// RegisterIdentityFuture describes a(n) fabric.certauth.v1.RegisterIdentity activity execution
-type RegisterIdentityFuture struct {
-	Future workflow.Future
-}
-
-// Get blocks on the activity's completion, returning the response
-func (f *RegisterIdentityFuture) Get(ctx workflow.Context) (*RegisterIdentityOutput, error) {
-	var resp RegisterIdentityOutput
-	if err := f.Future.Get(ctx, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-// Select adds the activity's completion to the selector, callback can be nil
-func (f *RegisterIdentityFuture) Select(sel workflow.Selector, fn func(*RegisterIdentityFuture)) workflow.Selector {
-	return sel.AddFuture(f.Future, func(workflow.Future) {
-		if fn != nil {
-			fn(f)
-		}
-	})
-}
-
-// RegisterIdentity registers a new identity with a Fabric CA
-// This is the first step in identity creation - registration returns an enrollment secret
-func RegisterIdentity(ctx workflow.Context, req *RegisterIdentityInput, options ...*RegisterIdentityActivityOptions) (*RegisterIdentityOutput, error) {
-	return RegisterIdentityAsync(ctx, req, options...).Get(ctx)
-}
-
-// RegisterIdentity registers a new identity with a Fabric CA
-// This is the first step in identity creation - registration returns an enrollment secret
-func RegisterIdentityAsync(ctx workflow.Context, req *RegisterIdentityInput, options ...*RegisterIdentityActivityOptions) *RegisterIdentityFuture {
-	var o *RegisterIdentityActivityOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewRegisterIdentityActivityOptions()
-	}
-	var err error
-	if ctx, err = o.Build(ctx); err != nil {
-		errF, errS := workflow.NewFuture(ctx)
-		errS.SetError(err)
-		return &RegisterIdentityFuture{Future: errF}
-	}
-	activity := RegisterIdentityActivityName
-	if o.dc != nil {
-		ctx = workflow.WithDataConverter(ctx, o.dc)
-	}
-	future := &RegisterIdentityFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
-	return future
-}
-
-// RegisterIdentity registers a new identity with a Fabric CA
-// This is the first step in identity creation - registration returns an enrollment secret
-func RegisterIdentityLocal(ctx workflow.Context, req *RegisterIdentityInput, options ...*RegisterIdentityLocalActivityOptions) (*RegisterIdentityOutput, error) {
-	return RegisterIdentityLocalAsync(ctx, req, options...).Get(ctx)
-}
-
-// RegisterIdentity registers a new identity with a Fabric CA
-// This is the first step in identity creation - registration returns an enrollment secret
-func RegisterIdentityLocalAsync(ctx workflow.Context, req *RegisterIdentityInput, options ...*RegisterIdentityLocalActivityOptions) *RegisterIdentityFuture {
-	var o *RegisterIdentityLocalActivityOptions
-	if len(options) > 0 && options[0] != nil {
-		o = options[0]
-	} else {
-		o = NewRegisterIdentityLocalActivityOptions()
-	}
-	var err error
-	if ctx, err = o.Build(ctx); err != nil {
-		errF, errS := workflow.NewFuture(ctx)
-		errS.SetError(err)
-		return &RegisterIdentityFuture{Future: errF}
-	}
-	var activity any
-	if o.fn != nil {
-		activity = o.fn
-	} else {
-		activity = RegisterIdentityActivityName
-	}
-	if o.dc != nil {
-		ctx = workflow.WithDataConverter(ctx, o.dc)
-	}
-	future := &RegisterIdentityFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
-	return future
-}
-
-// RegisterIdentityActivityOptions provides configuration for a(n) fabric.certauth.v1.RegisterIdentity activity
-type RegisterIdentityActivityOptions struct {
-	options                workflow.ActivityOptions
-	retryPolicy            *temporal.RetryPolicy
-	scheduleToCloseTimeout *time.Duration
-	startToCloseTimeout    *time.Duration
-	dc                     converter.DataConverter
-	heartbeatTimeout       *time.Duration
-	scheduleToStartTimeout *time.Duration
-	taskQueue              *string
-	waitForCancellation    *bool
-}
-
-// NewRegisterIdentityActivityOptions initializes a new RegisterIdentityActivityOptions value
-func NewRegisterIdentityActivityOptions() *RegisterIdentityActivityOptions {
-	return &RegisterIdentityActivityOptions{}
-}
-
-// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
-func (o *RegisterIdentityActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
-	opts := o.options
-	if v := o.heartbeatTimeout; v != nil {
-		opts.HeartbeatTimeout = *v
-	}
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.scheduleToCloseTimeout; v != nil {
-		opts.ScheduleToCloseTimeout = *v
-	} else if opts.ScheduleToCloseTimeout == 0 {
-		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
-	}
-	if v := o.scheduleToStartTimeout; v != nil {
-		opts.ScheduleToStartTimeout = *v
-	}
-	if v := o.startToCloseTimeout; v != nil {
-		opts.StartToCloseTimeout = *v
-	}
-	if v := o.taskQueue; v != nil {
-		opts.TaskQueue = *v
-	} else if opts.TaskQueue == "" {
-		opts.TaskQueue = IdentityTaskQueue
-	}
-	if v := o.waitForCancellation; v != nil {
-		opts.WaitForCancellation = *v
-	}
-	return workflow.WithActivityOptions(ctx, opts), nil
-}
-
-// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
-func (o *RegisterIdentityActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *RegisterIdentityActivityOptions {
-	o.options = options
-	return o
-}
-
-// WithDataConverter registers a DataConverter for the (local) activity
-func (o *RegisterIdentityActivityOptions) WithDataConverter(dc converter.DataConverter) *RegisterIdentityActivityOptions {
-	o.dc = dc
-	return o
-}
-
-// WithHeartbeatTimeout sets the HeartbeatTimeout value
-func (o *RegisterIdentityActivityOptions) WithHeartbeatTimeout(d time.Duration) *RegisterIdentityActivityOptions {
-	o.heartbeatTimeout = &d
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *RegisterIdentityActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *RegisterIdentityActivityOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
-func (o *RegisterIdentityActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *RegisterIdentityActivityOptions {
-	o.scheduleToCloseTimeout = &d
-	return o
-}
-
-// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
-func (o *RegisterIdentityActivityOptions) WithScheduleToStartTimeout(d time.Duration) *RegisterIdentityActivityOptions {
-	o.scheduleToStartTimeout = &d
-	return o
-}
-
-// WithStartToCloseTimeout sets the StartToCloseTimeout value
-func (o *RegisterIdentityActivityOptions) WithStartToCloseTimeout(d time.Duration) *RegisterIdentityActivityOptions {
-	o.startToCloseTimeout = &d
-	return o
-}
-
-// WithTaskQueue sets the TaskQueue value
-func (o *RegisterIdentityActivityOptions) WithTaskQueue(tq string) *RegisterIdentityActivityOptions {
-	o.taskQueue = &tq
-	return o
-}
-
-// WithWaitForCancellation sets the WaitForCancellation value
-func (o *RegisterIdentityActivityOptions) WithWaitForCancellation(wait bool) *RegisterIdentityActivityOptions {
-	o.waitForCancellation = &wait
-	return o
-}
-
-// RegisterIdentityLocalActivityOptions provides configuration for a(n) fabric.certauth.v1.RegisterIdentity activity
-type RegisterIdentityLocalActivityOptions struct {
-	options                workflow.LocalActivityOptions
-	retryPolicy            *temporal.RetryPolicy
-	scheduleToCloseTimeout *time.Duration
-	startToCloseTimeout    *time.Duration
-	dc                     converter.DataConverter
-	fn                     func(context.Context, *RegisterIdentityInput) (*RegisterIdentityOutput, error)
-}
-
-// NewRegisterIdentityLocalActivityOptions initializes a new RegisterIdentityLocalActivityOptions value
-func NewRegisterIdentityLocalActivityOptions() *RegisterIdentityLocalActivityOptions {
-	return &RegisterIdentityLocalActivityOptions{}
-}
-
-// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
-func (o *RegisterIdentityLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
-	opts := o.options
-	if v := o.retryPolicy; v != nil {
-		opts.RetryPolicy = v
-	}
-	if v := o.scheduleToCloseTimeout; v != nil {
-		opts.ScheduleToCloseTimeout = *v
-	} else if opts.ScheduleToCloseTimeout == 0 {
-		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
-	}
-	if v := o.startToCloseTimeout; v != nil {
-		opts.StartToCloseTimeout = *v
-	}
-	return workflow.WithLocalActivityOptions(ctx, opts), nil
-}
-
-// Local specifies a custom fabric.certauth.v1.RegisterIdentity implementation
-func (o *RegisterIdentityLocalActivityOptions) Local(fn func(context.Context, *RegisterIdentityInput) (*RegisterIdentityOutput, error)) *RegisterIdentityLocalActivityOptions {
-	o.fn = fn
-	return o
-}
-
-// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
-func (o *RegisterIdentityLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *RegisterIdentityLocalActivityOptions {
-	o.options = options
-	return o
-}
-
-// WithDataConverter registers a DataConverter for the (local) activity
-func (o *RegisterIdentityLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *RegisterIdentityLocalActivityOptions {
-	o.dc = dc
-	return o
-}
-
-// WithRetryPolicy sets the RetryPolicy value
-func (o *RegisterIdentityLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *RegisterIdentityLocalActivityOptions {
-	o.retryPolicy = policy
-	return o
-}
-
-// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
-func (o *RegisterIdentityLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *RegisterIdentityLocalActivityOptions {
-	o.scheduleToCloseTimeout = &d
-	return o
-}
-
-// WithStartToCloseTimeout sets the StartToCloseTimeout value
-func (o *RegisterIdentityLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *RegisterIdentityLocalActivityOptions {
+func (o *GenerateCsrLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *GenerateCsrLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }
@@ -1112,6 +901,282 @@ func (o *RevokeIdentityLocalActivityOptions) WithScheduleToCloseTimeout(d time.D
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
 func (o *RevokeIdentityLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *RevokeIdentityLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterSignCsrActivity registers a fabric.certauth.v1.SignCsr activity
+func RegisterSignCsrActivity(r worker.ActivityRegistry, fn func(context.Context, *SignCsrInput) (*SignCsrOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: SignCsrActivityName,
+	})
+}
+
+// SignCsrFuture describes a(n) fabric.certauth.v1.SignCsr activity execution
+type SignCsrFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *SignCsrFuture) Get(ctx workflow.Context) (*SignCsrOutput, error) {
+	var resp SignCsrOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *SignCsrFuture) Select(sel workflow.Selector, fn func(*SignCsrFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// SignCsr runs on the ISSUER's worker. It registers the identity with a
+// locally-owned CA (resetting the enrollment secret if already registered),
+// enrolls the supplied CSR, and returns the certificate + full chain. The
+// enrollment secret is generated and consumed entirely in-memory; no key or
+// shard-owned path is ever written.
+func SignCsr(ctx workflow.Context, req *SignCsrInput, options ...*SignCsrActivityOptions) (*SignCsrOutput, error) {
+	return SignCsrAsync(ctx, req, options...).Get(ctx)
+}
+
+// SignCsr runs on the ISSUER's worker. It registers the identity with a
+// locally-owned CA (resetting the enrollment secret if already registered),
+// enrolls the supplied CSR, and returns the certificate + full chain. The
+// enrollment secret is generated and consumed entirely in-memory; no key or
+// shard-owned path is ever written.
+func SignCsrAsync(ctx workflow.Context, req *SignCsrInput, options ...*SignCsrActivityOptions) *SignCsrFuture {
+	var o *SignCsrActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewSignCsrActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &SignCsrFuture{Future: errF}
+	}
+	activity := SignCsrActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &SignCsrFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// SignCsr runs on the ISSUER's worker. It registers the identity with a
+// locally-owned CA (resetting the enrollment secret if already registered),
+// enrolls the supplied CSR, and returns the certificate + full chain. The
+// enrollment secret is generated and consumed entirely in-memory; no key or
+// shard-owned path is ever written.
+func SignCsrLocal(ctx workflow.Context, req *SignCsrInput, options ...*SignCsrLocalActivityOptions) (*SignCsrOutput, error) {
+	return SignCsrLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// SignCsr runs on the ISSUER's worker. It registers the identity with a
+// locally-owned CA (resetting the enrollment secret if already registered),
+// enrolls the supplied CSR, and returns the certificate + full chain. The
+// enrollment secret is generated and consumed entirely in-memory; no key or
+// shard-owned path is ever written.
+func SignCsrLocalAsync(ctx workflow.Context, req *SignCsrInput, options ...*SignCsrLocalActivityOptions) *SignCsrFuture {
+	var o *SignCsrLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewSignCsrLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &SignCsrFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = SignCsrActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &SignCsrFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// SignCsrActivityOptions provides configuration for a(n) fabric.certauth.v1.SignCsr activity
+type SignCsrActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewSignCsrActivityOptions initializes a new SignCsrActivityOptions value
+func NewSignCsrActivityOptions() *SignCsrActivityOptions {
+	return &SignCsrActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *SignCsrActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = IdentityTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *SignCsrActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *SignCsrActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *SignCsrActivityOptions) WithDataConverter(dc converter.DataConverter) *SignCsrActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *SignCsrActivityOptions) WithHeartbeatTimeout(d time.Duration) *SignCsrActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *SignCsrActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *SignCsrActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *SignCsrActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *SignCsrActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *SignCsrActivityOptions) WithScheduleToStartTimeout(d time.Duration) *SignCsrActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *SignCsrActivityOptions) WithStartToCloseTimeout(d time.Duration) *SignCsrActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *SignCsrActivityOptions) WithTaskQueue(tq string) *SignCsrActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *SignCsrActivityOptions) WithWaitForCancellation(wait bool) *SignCsrActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// SignCsrLocalActivityOptions provides configuration for a(n) fabric.certauth.v1.SignCsr activity
+type SignCsrLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *SignCsrInput) (*SignCsrOutput, error)
+}
+
+// NewSignCsrLocalActivityOptions initializes a new SignCsrLocalActivityOptions value
+func NewSignCsrLocalActivityOptions() *SignCsrLocalActivityOptions {
+	return &SignCsrLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *SignCsrLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom fabric.certauth.v1.SignCsr implementation
+func (o *SignCsrLocalActivityOptions) Local(fn func(context.Context, *SignCsrInput) (*SignCsrOutput, error)) *SignCsrLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *SignCsrLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *SignCsrLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *SignCsrLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *SignCsrLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *SignCsrLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *SignCsrLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *SignCsrLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *SignCsrLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *SignCsrLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *SignCsrLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }

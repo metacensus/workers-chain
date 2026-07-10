@@ -142,6 +142,65 @@ func (_c *MockClient_GetCAInfo_Call) RunAndReturn(run func(context.Context) (*li
 	return _c
 }
 
+// ModifyIdentity provides a mock function with given fields: ctx, req
+func (_m *MockClient) ModifyIdentity(ctx context.Context, req *api.ModifyIdentityRequest) (*api.IdentityResponse, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ModifyIdentity")
+	}
+
+	var r0 *api.IdentityResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ModifyIdentityRequest) (*api.IdentityResponse, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ModifyIdentityRequest) *api.IdentityResponse); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.IdentityResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *api.ModifyIdentityRequest) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockClient_ModifyIdentity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ModifyIdentity'
+type MockClient_ModifyIdentity_Call struct {
+	*mock.Call
+}
+
+// ModifyIdentity is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *api.ModifyIdentityRequest
+func (_e *MockClient_Expecter) ModifyIdentity(ctx interface{}, req interface{}) *MockClient_ModifyIdentity_Call {
+	return &MockClient_ModifyIdentity_Call{Call: _e.mock.On("ModifyIdentity", ctx, req)}
+}
+
+func (_c *MockClient_ModifyIdentity_Call) Run(run func(ctx context.Context, req *api.ModifyIdentityRequest)) *MockClient_ModifyIdentity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*api.ModifyIdentityRequest))
+	})
+	return _c
+}
+
+func (_c *MockClient_ModifyIdentity_Call) Return(_a0 *api.IdentityResponse, _a1 error) *MockClient_ModifyIdentity_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockClient_ModifyIdentity_Call) RunAndReturn(run func(context.Context, *api.ModifyIdentityRequest) (*api.IdentityResponse, error)) *MockClient_ModifyIdentity_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Register provides a mock function with given fields: ctx, req
 func (_m *MockClient) Register(ctx context.Context, req *api.RegistrationRequest) (*api.RegistrationResponse, error) {
 	ret := _m.Called(ctx, req)

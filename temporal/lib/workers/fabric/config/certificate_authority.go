@@ -529,6 +529,19 @@ func (ca CertificateAuthorityConfig) BootstrapAdminCommonName() string {
 	return fmt.Sprintf("bootstrap-admin@%s", ca.ComponentName())
 }
 
+// BootstrapAdminUsername returns the CA server's preset bootstrap registrar
+// identity name (the username in VaultBootstrapAdminCredentialsRef and the
+// registry.identities[0].name the CA is configured with).
+//
+// This is also the enrollment ID that register-less bootstrap enrollment
+// authenticates as, so a bootstrap-issued certificate's subject CN MUST equal
+// this value: Fabric CA rejects an enroll whose CSR CN differs from the
+// enrollment ID (error 77), and the bootstrap admin is later recognized as a
+// registrar only when its cert CN matches this registered identity name.
+func (ca CertificateAuthorityConfig) BootstrapAdminUsername() string {
+	return "bootstrap-admin"
+}
+
 // ------------ Helper Functions ------------
 
 // sanitizeForPostgres converts a string to PostgreSQL-safe identifier format

@@ -195,7 +195,7 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 	// Step 5: bootstrap admin credentials
 	if err := workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
 		SecretRef: caConfig.VaultBootstrapAdminCredentialsRef(),
-		Username:  "bootstrap-admin",
+		Username:  caConfig.BootstrapAdminUsername(),
 	}).Get(ctx, nil); err != nil {
 		return nil, fmt.Errorf("failed to generate bootstrap admin credentials: %w", err)
 	}
@@ -239,9 +239,9 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 }
 
 // ensureSigningIdentity obtains the CA's signing key and certificate.
-// SigningIssuer == nil: root CA, generate a keypair and self-sign.
+// SigningIssuer == nil: root CA, ensure a keypair and self-sign.
 // SigningIssuer != nil: intermediate CA, issued by a local (same-owner) CA
-// via a CreateCertificate child with the hf.IntermediateCA attribute.
+// through the unified CSR pipeline with the hf.IntermediateCA attribute.
 func (w *deployCertificateAuthorityWorkflow) ensureSigningIdentity(
 	ctx workflow.Context,
 	activityCtx workflow.Context,
@@ -251,11 +251,12 @@ func (w *deployCertificateAuthorityWorkflow) ensureSigningIdentity(
 	signingIssuerRef := spec.GetSigningIssuer()
 
 	if signingIssuerRef == nil {
-		// Root CA: self-signed signing certificate
-		if err := workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
+		// Root CA: self-signed signing certificate. EnsureKeyPair is
+		// get-or-create so re-runs reuse the existing private key.
+		if err := workflow.ExecuteActivity(activityCtx, secretspb.EnsureKeyPairActivityName, &secretspb.EnsureKeyPairInput{
 			SecretRef: caConfig.VaultSigningKeyRef(),
 		}).Get(ctx, nil); err != nil {
-			return fmt.Errorf("failed to generate signing key pair: %w", err)
+			return fmt.Errorf("failed to ensure signing key pair: %w", err)
 		}
 
 		if err := workflow.ExecuteActivity(activityCtx, secretspb.CreateSelfSignedCertificateActivityName, &secretspb.CreateSelfSignedCertificateInput{
@@ -274,29 +275,30 @@ func (w *deployCertificateAuthorityWorkflow) ensureSigningIdentity(
 	}
 
 	// Intermediate CA: signing certificate issued by the (local) signing issuer
-	signingIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(w.owner, signingIssuerRef)
-	purpose := fmt.Sprintf("%s-%s-signing", caConfig.CertType(), caConfig.CAID())
-	if _, err := certauthpb.CreateCertificateChild(ctx, &certauthpb.CreateCertificateInput{
-		IssuerRef: signingIssuerRef,
-		Profile:   "ca",
-		Subject: &certauthpb.CertificateSubject{
+	// through the unified CSR pipeline. The signing issuer is locally owned
+	// (validated), so IssueCertificate signs inline authenticating as the
+	// issuer's default permanent admin (nil). The "ca" profile plus the
+	// hf.IntermediateCA attribute mark this as an intermediate CA certificate.
+	if _, err := certauth.IssueCertificate(
+		ctx,
+		w.owner,
+		signingIssuerRef,
+		&certauthpb.CertificateSubject{
 			CommonName:         caConfig.ComponentName(),
 			Organization:       w.owner.OwnerID(),
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
 		},
-		Storage: &pb.IdentityRef{
+		"", // no identity type
+		map[string]string{
+			"hf.IntermediateCA": "true",
+		},
+		"ca",
+		&pb.IdentityRef{
 			KeyRef:  caConfig.VaultSigningKeyRef(),
 			CertRef: caConfig.VaultSigningCertRef(),
 		},
-		AdminIdentity: &pb.IdentityRef{
-			KeyRef:  signingIssuerConfig.VaultAdminSigningKeyRef(),
-			CertRef: signingIssuerConfig.VaultAdminSigningCertRef(),
-		},
-		Purpose: purpose,
-		Attributes: map[string]string{
-			"hf.IntermediateCA": "true",
-		},
-	}); err != nil {
+		nil, // default permanent admin of the signing issuer
+	); err != nil {
 		return err
 	}
 	return nil
@@ -304,8 +306,8 @@ func (w *deployCertificateAuthorityWorkflow) ensureSigningIdentity(
 
 // ensureTLSIdentity obtains the CA's TLS key and certificate.
 // TlsIssuer == nil: self-signed (TLS Root CA only).
-// TlsIssuer owned by this worker's owner: local CreateCertificate child.
-// TlsIssuer foreign: CreateCertificate via Nexus to the issuer's worker
+// TlsIssuer owned by this worker's owner: local SignCsr via IssueCertificate.
+// TlsIssuer foreign: SignCertificate via Nexus to the issuer's worker
 // (the operator's TLS chain issues TLS certs for org CAs).
 func (w *deployCertificateAuthorityWorkflow) ensureTLSIdentity(
 	ctx workflow.Context,
@@ -316,11 +318,12 @@ func (w *deployCertificateAuthorityWorkflow) ensureTLSIdentity(
 	tlsIssuerRef := spec.GetTlsIssuer()
 
 	if tlsIssuerRef == nil {
-		// Self-signed TLS certificate (TLS Root CA)
-		if err := workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
+		// Self-signed TLS certificate (TLS Root CA). EnsureKeyPair is
+		// get-or-create so re-runs reuse the existing private key.
+		if err := workflow.ExecuteActivity(activityCtx, secretspb.EnsureKeyPairActivityName, &secretspb.EnsureKeyPairInput{
 			SecretRef: caConfig.VaultTLSKeyRef(),
 		}).Get(ctx, nil); err != nil {
-			return fmt.Errorf("failed to generate TLS key pair: %w", err)
+			return fmt.Errorf("failed to ensure TLS key pair: %w", err)
 		}
 
 		if err := workflow.ExecuteActivity(activityCtx, secretspb.CreateSelfSignedCertificateActivityName, &secretspb.CreateSelfSignedCertificateInput{
@@ -338,40 +341,32 @@ func (w *deployCertificateAuthorityWorkflow) ensureTLSIdentity(
 		return nil
 	}
 
-	purpose := fmt.Sprintf("%s-%s-tls", caConfig.CertType(), caConfig.CAID())
+	// Non-self-signed TLS certificate via the unified CSR pipeline.
+	// IssueCertificate branches on ownership: a local TLS issuer signs inline
+	// (authenticating as its default permanent admin, nil); a foreign TLS issuer
+	// (the operator's TLS chain issuing for an org CA) is reached via Nexus with
+	// only the public CSR crossing the boundary. Either way the CA's TLS private
+	// key is generated and kept in this worker's own subtree.
 	tlsCommonName := certauth.ComputeTLSCommonName(caConfig.ComponentName(), spec.GetSigningIssuer(), tlsIssuerRef)
-	req := &certauthpb.CreateCertificateInput{
-		IssuerRef: tlsIssuerRef,
-		Profile:   "tls",
-		Subject: &certauthpb.CertificateSubject{
+	if _, err := certauth.IssueCertificate(
+		ctx,
+		w.owner,
+		tlsIssuerRef,
+		&certauthpb.CertificateSubject{
 			CommonName:         tlsCommonName,
 			Organization:       w.owner.OwnerID(),
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
 			DnsNames:           caConfig.TLSDNSNames(),
 		},
-		Storage: &pb.IdentityRef{
+		"",  // no identity type
+		nil, // no attributes
+		"tls",
+		&pb.IdentityRef{
 			KeyRef:  caConfig.VaultTLSKeyRef(),
 			CertRef: caConfig.VaultTLSCertRef(),
 		},
-		Purpose: purpose,
-	}
-
-	if fabricconfig.OwnsCertificateAuthority(w.owner, tlsIssuerRef) {
-		// Local issuer: direct child workflow, authenticated as the issuer's admin
-		tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(w.owner, tlsIssuerRef)
-		req.AdminIdentity = &pb.IdentityRef{
-			KeyRef:  tlsIssuerConfig.VaultAdminSigningKeyRef(),
-			CertRef: tlsIssuerConfig.VaultAdminSigningCertRef(),
-		}
-		if _, err := certauthpb.CreateCertificateChild(ctx, req); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	// Foreign issuer: route via Nexus to the issuer's worker, which
-	// authenticates with its own admin identity
-	if _, err := certauth.NexusCreateCertificate(ctx, req); err != nil {
+		nil, // default permanent admin (local branch only; not forwarded over Nexus)
+	); err != nil {
 		return err
 	}
 	return nil

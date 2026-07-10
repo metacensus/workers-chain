@@ -7,7 +7,6 @@ import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1"
 	fabricpb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	kubepb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
-	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	"go.temporal.io/sdk/temporal"
@@ -87,44 +86,31 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 		return nil, fmt.Errorf("CA did not become ready: %w", err)
 	}
 
-	ao := workflow.ActivityOptions{
-		StartToCloseTimeout: 5 * time.Minute,
-		RetryPolicy: &temporal.RetryPolicy{
-			InitialInterval:    time.Second,
-			BackoffCoefficient: 2.0,
-			MaximumInterval:    30 * time.Second,
-			MaximumAttempts:    3,
-		},
-	}
-	activityCtx := workflow.WithActivityOptions(ctx, ao)
-
-	// Create keypair for signing identity (keys/ path)
-	err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
-		SecretRef: caConfig.VaultBootstrapAdminSigningKeyRef(),
-	}).Get(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate signing key pair: %w", err)
-	}
-
-	// Bootstrap enroll signing identity from this CA
-	// Storage IdentityRef holds both key and cert refs
+	// Bootstrap-enroll the signing identity from this CA. There is no registrar
+	// yet, so BootstrapIssueCertificate runs the register-less CSR pipeline
+	// (EnsureKeyPair -> GenerateCsr -> BootstrapEnrollCsr -> StoreCertificate)
+	// using the CA's preset bootstrap credentials. The private key stays local.
 	signingStorage := &fabricpb.IdentityRef{
 		KeyRef:  caConfig.VaultBootstrapAdminSigningKeyRef(),
 		CertRef: caConfig.VaultBootstrapAdminSigningCertRef(),
 	}
-	err = workflow.ExecuteActivity(activityCtx, pb.BootstrapEnrollIdentityActivityName, &pb.BootstrapEnrollIdentityInput{
-		CaUrl:                   caConfig.URL(),
-		BootstrapCredentialsRef: caConfig.VaultBootstrapAdminCredentialsRef(),
-		Storage:                 signingStorage,
-		Subject: &pb.CertificateSubject{
-			CommonName:         caConfig.BootstrapAdminCommonName(),
+	_, err = BootstrapIssueCertificate(
+		ctx,
+		caConfig.URL(),
+		caConfig.VaultBootstrapAdminCredentialsRef(),
+		&pb.CertificateSubject{
+			// Register-less bootstrap enrollment authenticates as the CA's preset
+			// bootstrap registrar, so the CSR CN must equal that enrollment ID
+			// (the username) or Fabric CA rejects it (error 77).
+			CommonName:         caConfig.BootstrapAdminUsername(),
 			Organization:       w.owner.OwnerID(),
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
 		},
-		CaTlsCertRef:  caConfig.VaultTLSCertRef(),
-		IssuerCertRef: caConfig.VaultSigningCertRef(), // CA's signing cert for chain building
-		Profile:       "",                             // Default profile for admin identity
-	}).Get(ctx, nil)
+		"", // default profile for admin identity
+		signingStorage,
+		caConfig.VaultSigningCertRef(), // CA's signing cert for chain building
+		caConfig.VaultTLSCertRef(),     // CA's TLS cert for mTLS
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to bootstrap enroll signing identity: %w", err)
 	}
@@ -136,67 +122,56 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 		tlsIssuerRef = caRef
 	}
 
-	// Compute TLS common name - signing identity always comes from this CA (bootstrap enrollment)
-	// For collision detection, signing issuer is effectively this CA (caRef)
-	tlsCommonName := ComputeTLSCommonName(
-		caConfig.BootstrapAdminCommonName(),
-		caRef, // signing from this CA
-		tlsIssuerRef,
-	)
-
 	tlsStorage := &fabricpb.IdentityRef{
 		KeyRef:  caConfig.VaultBootstrapAdminTLSKeyRef(),
 		CertRef: caConfig.VaultBootstrapAdminTLSCertRef(),
+	}
+	tlsSubject := &pb.CertificateSubject{
+		// CommonName is set per-branch below: the register-less local branch must
+		// use the issuer's bootstrap enrollment ID, while the foreign branch is
+		// registered under a normal per-identity CN.
+		Organization:       w.owner.OwnerID(),
+		OrganizationalUnit: caConfig.OrganizationalUnit(),
 	}
 
 	if fabricconfig.OwnsCertificateAuthority(w.owner, tlsIssuerRef) {
 		// Local TLS issuer: bootstrap-enroll directly against it using its
 		// bootstrap credentials (the issuer may not have a permanent admin
-		// yet, e.g. a TLS CA enrolling its own bootstrap admin).
+		// yet, e.g. a TLS CA enrolling its own bootstrap admin), so SignCsr
+		// (which needs a registrar) is not usable here.
 		tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(w.owner, tlsIssuerRef)
-
-		// Create keypair for TLS client cert (keys/ path)
-		err = workflow.ExecuteActivity(activityCtx, secretspb.CreateKeyPairActivityName, &secretspb.CreateKeyPairInput{
-			SecretRef: caConfig.VaultBootstrapAdminTLSKeyRef(),
-		}).Get(ctx, nil)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate TLS key pair: %w", err)
-		}
-
-		err = workflow.ExecuteActivity(activityCtx, pb.BootstrapEnrollIdentityActivityName, &pb.BootstrapEnrollIdentityInput{
-			CaUrl:                   tlsIssuerConfig.URL(),
-			BootstrapCredentialsRef: tlsIssuerConfig.VaultBootstrapAdminCredentialsRef(),
-			Storage:                 tlsStorage,
-			Subject: &pb.CertificateSubject{
-				CommonName:         tlsCommonName,
-				Organization:       w.owner.OwnerID(),
-				OrganizationalUnit: caConfig.OrganizationalUnit(),
-			},
-			CaTlsCertRef:  tlsIssuerConfig.VaultTLSCertRef(),
-			IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(), // TLS issuer's signing cert for chain building
-			Profile:       "tls",                                 // TLS profile for client cert
-		}).Get(ctx, nil)
+		// Register-less bootstrap enrollment authenticates as the issuer's preset
+		// bootstrap registrar, so the CSR CN must equal that enrollment ID (error
+		// 77 otherwise). The -tls collision suffix does not apply: bootstrap
+		// enroll registers nothing, and signing/TLS certs live at distinct Vault
+		// paths.
+		tlsSubject.CommonName = tlsIssuerConfig.BootstrapAdminUsername()
+		_, err = BootstrapIssueCertificate(
+			ctx,
+			tlsIssuerConfig.URL(),
+			tlsIssuerConfig.VaultBootstrapAdminCredentialsRef(),
+			tlsSubject,
+			"tls", // TLS profile for client cert
+			tlsStorage,
+			tlsIssuerConfig.VaultSigningCertRef(), // TLS issuer's signing cert for chain building
+			tlsIssuerConfig.VaultTLSCertRef(),
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to bootstrap enroll TLS identity: %w", err)
 		}
 	} else {
 		// Foreign TLS issuer (org CA bootstrap admin getting TLS from the
-		// operator's TLS chain): route via Nexus so issuance runs on the
-		// issuer's worker with its own credentials. This worker has no
-		// access to the foreign issuer's bootstrap credentials.
-		_, err = NexusCreateCertificate(ctx, &pb.CreateCertificateInput{
-			IssuerRef: tlsIssuerRef,
-			Profile:   "tls",
-			Subject: &pb.CertificateSubject{
-				CommonName:         tlsCommonName,
-				Organization:       w.owner.OwnerID(),
-				OrganizationalUnit: caConfig.OrganizationalUnit(),
-			},
-			Storage: tlsStorage,
-			Purpose: fmt.Sprintf("%s-%s-bootstrap-admin-tls", caRef.GetCertType(), caRef.GetId()),
-		})
+		// operator's TLS chain): use the CSR flow. The issuer's permanent admin
+		// registers the identity under this CN, so a normal per-identity CN is
+		// used (with the -tls suffix to avoid a same-CA registration collision).
+		// The private key is generated and kept in this worker's own subtree;
+		// only a public CSR crosses to the issuer's worker, which signs with its
+		// own permanent admin. This worker has no access to the foreign issuer's
+		// Vault space.
+		tlsSubject.CommonName = ComputeTLSCommonName(caConfig.BootstrapAdminCommonName(), caRef, tlsIssuerRef)
+		_, err = IssueCertificate(ctx, w.owner, tlsIssuerRef, tlsSubject, "", nil, "tls", tlsStorage, nil)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create TLS identity via nexus: %w", err)
+			return nil, fmt.Errorf("failed to create TLS identity via CSR flow: %w", err)
 		}
 	}
 
@@ -247,8 +222,6 @@ func (w *createAdminWorkflow) validate() error {
 
 func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutput, error) {
 	caRef := w.input.Req.GetCaRef()
-	certType := caRef.GetCertType()
-	caID := caRef.GetId()
 	caConfig := fabricconfig.NewCertificateAuthorityConfig(w.owner, caRef)
 
 	// Use explicit signing issuer from input - if nil, use the CA itself
@@ -259,11 +232,12 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 	}
 	// Signing issuance never crosses the ownership boundary (validated above)
 	signingIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(w.owner, signingIssuerRef)
-	signingPurpose := fmt.Sprintf("%s-%s-admin-signing", certType, caID)
 
-	// Determine which credentials to use for registration with the signing issuer:
-	// - If signing issuer is this CA itself → use this CA's bootstrap admin
-	// - If signing issuer is a different CA → use that CA's permanent admin
+	// Determine which registrar signs the CSR with the signing issuer:
+	// - If signing issuer is this CA itself → its bootstrap admin (the only
+	//   registrar that exists yet; this is how the bootstrap admin registers
+	//   the permanent admin).
+	// - If signing issuer is a different CA → that CA's permanent admin.
 	var signingAdminIdentity *fabricpb.IdentityRef
 	if signingIssuerRef.GetCertType() == caRef.GetCertType() && signingIssuerRef.GetId() == caRef.GetId() {
 		signingAdminIdentity = &fabricpb.IdentityRef{
@@ -281,18 +255,19 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 		KeyRef:  caConfig.VaultAdminSigningKeyRef(),
 		CertRef: caConfig.VaultAdminSigningCertRef(),
 	}
-	_, err := pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
-		IssuerRef: signingIssuerRef,
-		Profile:   "", // Default profile for admin identity
-		Subject: &pb.CertificateSubject{
+	// The signing issuer is locally owned (validated above), so IssueCertificate
+	// takes the local SignCsr branch, authenticating as signingAdminIdentity.
+	_, err := IssueCertificate(
+		ctx,
+		w.owner,
+		signingIssuerRef,
+		&pb.CertificateSubject{
 			CommonName:         caConfig.AdminCommonName(),
 			Organization:       w.owner.OwnerID(),
 			OrganizationalUnit: caConfig.OrganizationalUnit(),
 		},
-		Storage:       signingStorage,
-		AdminIdentity: signingAdminIdentity,
-		Purpose:       signingPurpose,
-		Attributes: map[string]string{
+		"", // default identity type (admin is a client-type identity)
+		map[string]string{
 			"hf.Registrar.Roles":         "*",
 			"hf.Registrar.DelegateRoles": "*",
 			"hf.Registrar.Attributes":    "*",
@@ -301,7 +276,10 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 			"hf.GenCRL":                  "true",
 			"hf.AffiliationMgr":          "true",
 		},
-	})
+		"", // default profile for admin identity
+		signingStorage,
+		signingAdminIdentity,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create admin signing identity: %w", err)
 	}
@@ -311,7 +289,6 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 	if tlsIssuerRef == nil || tlsIssuerRef.GetCertType() == "" {
 		tlsIssuerRef = caRef // Default: TLS from this CA itself
 	}
-	tlsPurpose := fmt.Sprintf("%s-%s-admin-tls", certType, caID)
 
 	// Compute TLS common name - add "-tls" suffix if same CA issues both to avoid collision
 	tlsCommonName := ComputeTLSCommonName(caConfig.AdminCommonName(), signingIssuerRef, tlsIssuerRef)
@@ -320,41 +297,37 @@ func (w *createAdminWorkflow) Execute(ctx workflow.Context) (*pb.CreateAdminOutp
 		KeyRef:  caConfig.VaultAdminTLSKeyRef(),
 		CertRef: caConfig.VaultAdminTLSCertRef(),
 	}
-
-	tlsReq := &pb.CreateCertificateInput{
-		IssuerRef: tlsIssuerRef,
-		Profile:   "tls",
-		Subject: &pb.CertificateSubject{
-			CommonName:         tlsCommonName, // Different name if same CA issues both
-			Organization:       w.owner.OwnerID(),
-			OrganizationalUnit: caConfig.OrganizationalUnit(),
-		},
-		Storage: tlsStorage,
-		Purpose: tlsPurpose,
+	tlsSubject := &pb.CertificateSubject{
+		CommonName:         tlsCommonName, // Different name if same CA issues both
+		Organization:       w.owner.OwnerID(),
+		OrganizationalUnit: caConfig.OrganizationalUnit(),
 	}
 
+	// Determine the registrar for a LOCAL TLS issuer. Ignored for a foreign
+	// issuer (which signs as its own permanent admin and never receives a
+	// caller-chosen registrar), so it stays nil in that case.
+	var tlsAdminIdentity *fabricpb.IdentityRef
 	if fabricconfig.OwnsCertificateAuthority(w.owner, tlsIssuerRef) {
-		// Local TLS issuer: direct child with the appropriate admin identity:
-		// - If TLS issuer is this CA itself → use this CA's bootstrap admin
-		// - If TLS issuer is a different local CA → use that CA's permanent admin
 		tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(w.owner, tlsIssuerRef)
 		if tlsIssuerRef.GetCertType() == caRef.GetCertType() && tlsIssuerRef.GetId() == caRef.GetId() {
-			tlsReq.AdminIdentity = &fabricpb.IdentityRef{
+			// TLS issuer is this CA itself → register with its bootstrap admin.
+			tlsAdminIdentity = &fabricpb.IdentityRef{
 				KeyRef:  caConfig.VaultBootstrapAdminSigningKeyRef(),
 				CertRef: caConfig.VaultBootstrapAdminSigningCertRef(),
 			}
 		} else {
-			tlsReq.AdminIdentity = &fabricpb.IdentityRef{
+			// Different local CA → register with its permanent admin.
+			tlsAdminIdentity = &fabricpb.IdentityRef{
 				KeyRef:  tlsIssuerConfig.VaultAdminSigningKeyRef(),
 				CertRef: tlsIssuerConfig.VaultAdminSigningCertRef(),
 			}
 		}
-		_, err = pb.CreateCertificateChild(ctx, tlsReq)
-	} else {
-		// Foreign TLS issuer (org CA admin getting TLS from the operator's
-		// TLS chain): route via Nexus to the issuer's worker
-		_, err = NexusCreateCertificate(ctx, tlsReq)
 	}
+
+	// IssueCertificate branches on ownership: local signs inline with
+	// tlsAdminIdentity as the registrar; foreign crosses via Nexus with only
+	// the public CSR (tlsAdminIdentity is not forwarded).
+	_, err = IssueCertificate(ctx, w.owner, tlsIssuerRef, tlsSubject, "", nil, "tls", tlsStorage, tlsAdminIdentity)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create admin TLS identity: %w", err)
 	}
