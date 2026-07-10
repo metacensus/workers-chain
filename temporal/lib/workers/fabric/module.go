@@ -29,14 +29,19 @@ var Module = fx.Module("fabric",
 		config.GetVault,
 		config.GetWorker,
 		config.GetKubernetes,
-		config.GetOperator,
+		config.LoadOperatorConfig,
 	),
 
-	// Provide CertificateStoreConfig for postgres activities
-	// The fabric worker uses OperatorConfig because the certificate store and
-	// TLS CAs belong to the operator
-	fx.Provide(func(operatorConfig *config.OperatorConfig) fabricconfig.CertificateStoreConfig {
-		return fabricconfig.NewCertificateStoreConfig(operatorConfig)
+	// Worker identity: the fabric worker acts AS the operator. All owned
+	// workflows/activities (fabric.v1, certauth.v1) receive this OwnerConfig.
+	fx.Provide(func(operatorConfig *config.OperatorConfig) config.OwnerConfig {
+		return operatorConfig
+	}),
+
+	// Provide CertificateStoreConfig for postgres activities, derived from the
+	// worker's owner (the certificate store and TLS CAs belong to the operator)
+	fx.Provide(func(owner config.OwnerConfig) fabricconfig.CertificateStoreConfig {
+		return fabricconfig.NewCertificateStoreConfig(owner)
 	}),
 
 	// Provide temporal worker

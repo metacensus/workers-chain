@@ -26,6 +26,98 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Owner identifies who owns a set of resources: the operator (shared
+// infrastructure such as the TLS CA chain) or a single organization
+// (per-org shard infrastructure).
+//
+// Workflows that act ON BEHALF OF an owner (infra worker: cell, cluster)
+// take an explicit Owner. Workflows that act AS their owner (fabric/shard
+// workers) never take an Owner input - the owner is injected into the
+// worker at startup (OPERATOR_ID / ORG_ID).
+type Owner struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Id:
+	//
+	//	*Owner_OperatorId
+	//	*Owner_OrgId
+	Id            isOwner_Id `protobuf_oneof:"id"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Owner) Reset() {
+	*x = Owner{}
+	mi := &file_fabric_v1_fabric_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Owner) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Owner) ProtoMessage() {}
+
+func (x *Owner) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_fabric_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Owner.ProtoReflect.Descriptor instead.
+func (*Owner) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Owner) GetId() isOwner_Id {
+	if x != nil {
+		return x.Id
+	}
+	return nil
+}
+
+func (x *Owner) GetOperatorId() string {
+	if x != nil {
+		if x, ok := x.Id.(*Owner_OperatorId); ok {
+			return x.OperatorId
+		}
+	}
+	return ""
+}
+
+func (x *Owner) GetOrgId() string {
+	if x != nil {
+		if x, ok := x.Id.(*Owner_OrgId); ok {
+			return x.OrgId
+		}
+	}
+	return ""
+}
+
+type isOwner_Id interface {
+	isOwner_Id()
+}
+
+type Owner_OperatorId struct {
+	// operator_id identifies the operator (e.g., "metacensus")
+	OperatorId string `protobuf:"bytes,1,opt,name=operator_id,json=OperatorId,proto3,oneof"`
+}
+
+type Owner_OrgId struct {
+	// org_id identifies an organization (e.g., "org1")
+	OrgId string `protobuf:"bytes,2,opt,name=org_id,json=OrgId,proto3,oneof"`
+}
+
+func (*Owner_OperatorId) isOwner_Id() {}
+
+func (*Owner_OrgId) isOwner_Id() {}
+
 // OrgFabricDeployment represents the complete fabric deployment configuration
 // Passed as required input to BootstrapShard - no defaults, caller must specify all components
 type OrgFabricDeployment struct {
@@ -43,7 +135,7 @@ type OrgFabricDeployment struct {
 
 func (x *OrgFabricDeployment) Reset() {
 	*x = OrgFabricDeployment{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[0]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -55,7 +147,7 @@ func (x *OrgFabricDeployment) String() string {
 func (*OrgFabricDeployment) ProtoMessage() {}
 
 func (x *OrgFabricDeployment) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[0]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -68,7 +160,7 @@ func (x *OrgFabricDeployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrgFabricDeployment.ProtoReflect.Descriptor instead.
 func (*OrgFabricDeployment) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{0}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *OrgFabricDeployment) GetCertificateAuthorities() []*CertificateAuthoritySpec {
@@ -111,7 +203,7 @@ type CertificateAuthoritySpec struct {
 
 func (x *CertificateAuthoritySpec) Reset() {
 	*x = CertificateAuthoritySpec{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[1]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -123,7 +215,7 @@ func (x *CertificateAuthoritySpec) String() string {
 func (*CertificateAuthoritySpec) ProtoMessage() {}
 
 func (x *CertificateAuthoritySpec) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[1]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -136,7 +228,7 @@ func (x *CertificateAuthoritySpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CertificateAuthoritySpec.ProtoReflect.Descriptor instead.
 func (*CertificateAuthoritySpec) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{1}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CertificateAuthoritySpec) GetSelf() *CertificateAuthorityRef {
@@ -182,7 +274,7 @@ type PeerSpec struct {
 
 func (x *PeerSpec) Reset() {
 	*x = PeerSpec{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[2]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -194,7 +286,7 @@ func (x *PeerSpec) String() string {
 func (*PeerSpec) ProtoMessage() {}
 
 func (x *PeerSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[2]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -207,7 +299,7 @@ func (x *PeerSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeerSpec.ProtoReflect.Descriptor instead.
 func (*PeerSpec) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{2}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *PeerSpec) GetId() string {
@@ -246,7 +338,7 @@ type OrdererSpec struct {
 
 func (x *OrdererSpec) Reset() {
 	*x = OrdererSpec{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[3]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -258,7 +350,7 @@ func (x *OrdererSpec) String() string {
 func (*OrdererSpec) ProtoMessage() {}
 
 func (x *OrdererSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[3]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -271,7 +363,7 @@ func (x *OrdererSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrdererSpec.ProtoReflect.Descriptor instead.
 func (*OrdererSpec) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{3}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *OrdererSpec) GetId() string {
@@ -309,7 +401,7 @@ type CertificateAuthorityRef struct {
 
 func (x *CertificateAuthorityRef) Reset() {
 	*x = CertificateAuthorityRef{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[4]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -321,7 +413,7 @@ func (x *CertificateAuthorityRef) String() string {
 func (*CertificateAuthorityRef) ProtoMessage() {}
 
 func (x *CertificateAuthorityRef) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[4]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -334,7 +426,7 @@ func (x *CertificateAuthorityRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CertificateAuthorityRef.ProtoReflect.Descriptor instead.
 func (*CertificateAuthorityRef) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{4}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CertificateAuthorityRef) GetCertType() string {
@@ -369,7 +461,7 @@ type IdentityRef struct {
 
 func (x *IdentityRef) Reset() {
 	*x = IdentityRef{}
-	mi := &file_fabric_v1_fabric_proto_msgTypes[5]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -381,7 +473,7 @@ func (x *IdentityRef) String() string {
 func (*IdentityRef) ProtoMessage() {}
 
 func (x *IdentityRef) ProtoReflect() protoreflect.Message {
-	mi := &file_fabric_v1_fabric_proto_msgTypes[5]
+	mi := &file_fabric_v1_fabric_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -394,7 +486,7 @@ func (x *IdentityRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IdentityRef.ProtoReflect.Descriptor instead.
 func (*IdentityRef) Descriptor() ([]byte, []int) {
-	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{5}
+	return file_fabric_v1_fabric_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *IdentityRef) GetKeyRef() *v1.SecretRef {
@@ -415,7 +507,12 @@ var File_fabric_v1_fabric_proto protoreflect.FileDescriptor
 
 const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\n" +
-	"\x16fabric/v1/fabric.proto\x12\tfabric.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x18secrets/v1/secrets.proto\x1a\x1atemporal/v1/temporal.proto\"\xf4\x02\n" +
+	"\x16fabric/v1/fabric.proto\x12\tfabric.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x18secrets/v1/secrets.proto\x1a\x1atemporal/v1/temporal.proto\"I\n" +
+	"\x05Owner\x12!\n" +
+	"\voperator_id\x18\x01 \x01(\tH\x00R\n" +
+	"OperatorId\x12\x17\n" +
+	"\x06org_id\x18\x02 \x01(\tH\x00R\x05OrgIdB\x04\n" +
+	"\x02id\"\xf4\x02\n" +
 	"\x13OrgFabricDeployment\x12\x9c\x01\n" +
 	"\x17certificate_authorities\x18\x01 \x03(\v2#.fabric.v1.CertificateAuthoritySpecB>ʵ\x03:\xa2\x017json:\"CertificateAuthorities\" validate:\"required,min=1\"R\x16CertificateAuthorities\x12X\n" +
 	"\x05peers\x18\x02 \x03(\v2\x13.fabric.v1.PeerSpecB-ʵ\x03)\xa2\x01&json:\"Peers\" validate:\"required,min=1\"R\x05Peers\x12d\n" +
@@ -459,31 +556,32 @@ func file_fabric_v1_fabric_proto_rawDescGZIP() []byte {
 	return file_fabric_v1_fabric_proto_rawDescData
 }
 
-var file_fabric_v1_fabric_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_fabric_v1_fabric_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_fabric_v1_fabric_proto_goTypes = []any{
-	(*OrgFabricDeployment)(nil),      // 0: fabric.v1.OrgFabricDeployment
-	(*CertificateAuthoritySpec)(nil), // 1: fabric.v1.CertificateAuthoritySpec
-	(*PeerSpec)(nil),                 // 2: fabric.v1.PeerSpec
-	(*OrdererSpec)(nil),              // 3: fabric.v1.OrdererSpec
-	(*CertificateAuthorityRef)(nil),  // 4: fabric.v1.CertificateAuthorityRef
-	(*IdentityRef)(nil),              // 5: fabric.v1.IdentityRef
-	(*durationpb.Duration)(nil),      // 6: google.protobuf.Duration
-	(*v1.SecretRef)(nil),             // 7: secrets.v1.SecretRef
+	(*Owner)(nil),                    // 0: fabric.v1.Owner
+	(*OrgFabricDeployment)(nil),      // 1: fabric.v1.OrgFabricDeployment
+	(*CertificateAuthoritySpec)(nil), // 2: fabric.v1.CertificateAuthoritySpec
+	(*PeerSpec)(nil),                 // 3: fabric.v1.PeerSpec
+	(*OrdererSpec)(nil),              // 4: fabric.v1.OrdererSpec
+	(*CertificateAuthorityRef)(nil),  // 5: fabric.v1.CertificateAuthorityRef
+	(*IdentityRef)(nil),              // 6: fabric.v1.IdentityRef
+	(*durationpb.Duration)(nil),      // 7: google.protobuf.Duration
+	(*v1.SecretRef)(nil),             // 8: secrets.v1.SecretRef
 }
 var file_fabric_v1_fabric_proto_depIdxs = []int32{
-	1,  // 0: fabric.v1.OrgFabricDeployment.certificate_authorities:type_name -> fabric.v1.CertificateAuthoritySpec
-	2,  // 1: fabric.v1.OrgFabricDeployment.peers:type_name -> fabric.v1.PeerSpec
-	3,  // 2: fabric.v1.OrgFabricDeployment.orderers:type_name -> fabric.v1.OrdererSpec
-	4,  // 3: fabric.v1.CertificateAuthoritySpec.self:type_name -> fabric.v1.CertificateAuthorityRef
-	4,  // 4: fabric.v1.CertificateAuthoritySpec.signing_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	4,  // 5: fabric.v1.CertificateAuthoritySpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	6,  // 6: fabric.v1.CertificateAuthoritySpec.validity_duration:type_name -> google.protobuf.Duration
-	4,  // 7: fabric.v1.PeerSpec.org_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	4,  // 8: fabric.v1.PeerSpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	4,  // 9: fabric.v1.OrdererSpec.org_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	4,  // 10: fabric.v1.OrdererSpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	7,  // 11: fabric.v1.IdentityRef.key_ref:type_name -> secrets.v1.SecretRef
-	7,  // 12: fabric.v1.IdentityRef.cert_ref:type_name -> secrets.v1.SecretRef
+	2,  // 0: fabric.v1.OrgFabricDeployment.certificate_authorities:type_name -> fabric.v1.CertificateAuthoritySpec
+	3,  // 1: fabric.v1.OrgFabricDeployment.peers:type_name -> fabric.v1.PeerSpec
+	4,  // 2: fabric.v1.OrgFabricDeployment.orderers:type_name -> fabric.v1.OrdererSpec
+	5,  // 3: fabric.v1.CertificateAuthoritySpec.self:type_name -> fabric.v1.CertificateAuthorityRef
+	5,  // 4: fabric.v1.CertificateAuthoritySpec.signing_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	5,  // 5: fabric.v1.CertificateAuthoritySpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	7,  // 6: fabric.v1.CertificateAuthoritySpec.validity_duration:type_name -> google.protobuf.Duration
+	5,  // 7: fabric.v1.PeerSpec.org_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	5,  // 8: fabric.v1.PeerSpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	5,  // 9: fabric.v1.OrdererSpec.org_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	5,  // 10: fabric.v1.OrdererSpec.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	8,  // 11: fabric.v1.IdentityRef.key_ref:type_name -> secrets.v1.SecretRef
+	8,  // 12: fabric.v1.IdentityRef.cert_ref:type_name -> secrets.v1.SecretRef
 	13, // [13:13] is the sub-list for method output_type
 	13, // [13:13] is the sub-list for method input_type
 	13, // [13:13] is the sub-list for extension type_name
@@ -496,13 +594,17 @@ func file_fabric_v1_fabric_proto_init() {
 	if File_fabric_v1_fabric_proto != nil {
 		return
 	}
+	file_fabric_v1_fabric_proto_msgTypes[0].OneofWrappers = []any{
+		(*Owner_OperatorId)(nil),
+		(*Owner_OrgId)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_fabric_v1_fabric_proto_rawDesc), len(file_fabric_v1_fabric_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

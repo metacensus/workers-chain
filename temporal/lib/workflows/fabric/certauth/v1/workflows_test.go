@@ -3,7 +3,6 @@ package certauth
 import (
 	"context"
 	"errors"
-	"os"
 	"strings"
 	"testing"
 
@@ -15,7 +14,6 @@ import (
 	workerconfig "github.com/metacensus/infra/temporal/lib/workers/config"
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 	"github.com/nexus-rpc/sdk-go/nexus"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
@@ -26,170 +24,163 @@ import (
 const testOrg = "testorg"
 const testOperatorID = "metacensus"
 
-func init() {
-	// Initialize global OperatorConfig for tests
-	os.Setenv("OPERATOR_ID", testOperatorID)
-	viper.AutomaticEnv()
-	if err := workerconfig.InitializeOperator(); err != nil {
-		panic("failed to initialize operator config for tests: " + err.Error())
-	}
-}
+// Worker identities under test. Certauth workflows act AS their worker's
+// owner: the operator owns "tls" CAs (fabric worker), an org owns "org" CAs
+// (shard worker).
+var (
+	operatorOwner = workerconfig.NewOperatorConfig(testOperatorID)
+	orgOwner      = workerconfig.NewOrgConfig(testOrg)
+)
+
+// CA refs used across tests
+var (
+	tlsRootRef = &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "root"}
+	tlsIntRef  = &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"}
+	orgRootRef = &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "root"}
+	orgIntRef  = &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"}
+)
 
 // =============================================================================
 // Constructor / Validation Tests
 // =============================================================================
 
+func assertConstructorResult(t *testing.T, wfIsNil bool, err error, wantErr bool, errSubstr string) {
+	t.Helper()
+	if wantErr {
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if errSubstr != "" && !strings.Contains(err.Error(), errSubstr) {
+			t.Errorf("expected error containing %q, got: %v", errSubstr, err)
+		}
+		if !wfIsNil {
+			t.Error("expected nil workflow on error")
+		}
+	} else {
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if wfIsNil {
+			t.Fatal("expected non-nil workflow")
+		}
+	}
+}
+
 func TestNewCreateCertificateWorkflow(t *testing.T) {
+	validStorage := func() *fabricpb.IdentityRef {
+		return &fabricpb.IdentityRef{
+			KeyRef:  secrets.NewVaultRef("test/keys/storage"),
+			CertRef: secrets.NewVaultRef("test/certs/storage"),
+		}
+	}
+
 	tests := []struct {
 		name      string
+		owner     workerconfig.OwnerConfig
 		input     *pb.CreateCertificateWorkflowInput
 		wantErr   bool
 		errSubstr string
 	}{
 		{
-			name: "success - all required fields with tls issuer",
+			name:  "success - tls issuer on operator worker",
+			owner: operatorOwner,
 			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				Org:       testOrg,
-				IssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-				Storage: &fabricpb.IdentityRef{
-					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
-					CertRef: secrets.NewVaultRef("test/certs/storage"),
-				},
-				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
+				IssuerRef: tlsIntRef,
+				Storage:   validStorage(),
 			}},
 			wantErr: false,
 		},
 		{
-			name: "success - all required fields with org issuer",
+			name:  "success - org issuer on shard worker",
+			owner: orgOwner,
 			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				Org:       testOrg,
-				IssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
-				Storage: &fabricpb.IdentityRef{
-					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
-					CertRef: secrets.NewVaultRef("test/certs/storage"),
-				},
-				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
+				IssuerRef: orgIntRef,
+				Storage:   validStorage(),
 			}},
 			wantErr: false,
 		},
 		{
-			name: "error - missing org",
+			name:  "error - nil issuer_ref",
+			owner: operatorOwner,
 			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				IssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-				Storage: &fabricpb.IdentityRef{
-					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
-					CertRef: secrets.NewVaultRef("test/certs/storage"),
-				},
-				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
-			}},
-			wantErr:   true,
-			errSubstr: "org is required",
-		},
-		{
-			name: "error - nil issuer_ref",
-			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				Org:       testOrg,
 				IssuerRef: nil,
-				Storage: &fabricpb.IdentityRef{
-					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
-					CertRef: secrets.NewVaultRef("test/certs/storage"),
-				},
-				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
+				Storage:   validStorage(),
 			}},
 			wantErr:   true,
 			errSubstr: "issuer_ref is required",
 		},
 		{
-			name: "error - nil storage",
+			name:  "error - nil storage",
+			owner: operatorOwner,
 			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				Org:           testOrg,
-				IssuerRef:     &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-				Storage:       nil,
-				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
+				IssuerRef: tlsIntRef,
+				Storage:   nil,
 			}},
 			wantErr:   true,
 			errSubstr: "storage is required",
 		},
 		{
-			name: "error - nil storage.key_ref",
+			name:  "error - nil storage.key_ref",
+			owner: operatorOwner,
 			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				Org:       testOrg,
-				IssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
+				IssuerRef: tlsIntRef,
 				Storage: &fabricpb.IdentityRef{
 					KeyRef:  nil,
 					CertRef: secrets.NewVaultRef("test/certs/storage"),
 				},
-				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
 			}},
 			wantErr:   true,
 			errSubstr: "storage.key_ref is required",
 		},
 		{
-			name: "error - nil storage.cert_ref",
+			name:  "error - nil storage.cert_ref",
+			owner: operatorOwner,
 			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				Org:       testOrg,
-				IssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
+				IssuerRef: tlsIntRef,
 				Storage: &fabricpb.IdentityRef{
 					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
 					CertRef: nil,
 				},
-				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
 			}},
 			wantErr:   true,
 			errSubstr: "storage.cert_ref is required",
 		},
 		{
-			name: "error - nil issuer_cert_ref",
+			name:  "error - invalid cert type",
+			owner: operatorOwner,
 			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				Org:       testOrg,
-				IssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-				Storage: &fabricpb.IdentityRef{
-					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
-					CertRef: secrets.NewVaultRef("test/certs/storage"),
-				},
-				IssuerCertRef: nil,
-			}},
-			wantErr:   true,
-			errSubstr: "issuer_cert_ref is required",
-		},
-		{
-			name: "error - invalid cert type",
-			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
-				Org:       testOrg,
 				IssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "invalid", Id: "int"},
-				Storage: &fabricpb.IdentityRef{
-					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
-					CertRef: secrets.NewVaultRef("test/certs/storage"),
-				},
-				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
+				Storage:   validStorage(),
 			}},
 			wantErr:   true,
 			errSubstr: "issuer cert_type must be 'tls' or 'org'",
+		},
+		{
+			name:  "error - shard worker given tls issuer (not owned)",
+			owner: orgOwner,
+			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
+				IssuerRef: tlsIntRef,
+				Storage:   validStorage(),
+			}},
+			wantErr:   true,
+			errSubstr: "not owned",
+		},
+		{
+			name:  "error - operator worker given org issuer (not owned)",
+			owner: operatorOwner,
+			input: &pb.CreateCertificateWorkflowInput{Req: &pb.CreateCertificateInput{
+				IssuerRef: orgIntRef,
+				Storage:   validStorage(),
+			}},
+			wantErr:   true,
+			errSubstr: "not owned",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wf, err := newCreateCertificateWorkflow(tt.input)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
-					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
-				}
-				if wf != nil {
-					t.Error("expected nil workflow on error")
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if wf == nil {
-					t.Fatal("expected non-nil workflow")
-				}
-			}
+			wf, err := newCreateCertificateWorkflow(tt.input, tt.owner)
+			assertConstructorResult(t, wf == nil, err, tt.wantErr, tt.errSubstr)
 		})
 	}
 }
@@ -197,67 +188,51 @@ func TestNewCreateCertificateWorkflow(t *testing.T) {
 func TestNewCreateBootstrapAdminWorkflow(t *testing.T) {
 	tests := []struct {
 		name      string
+		owner     workerconfig.OwnerConfig
 		input     *pb.CreateBootstrapAdminWorkflowInput
 		wantErr   bool
 		errSubstr string
 	}{
 		{
-			name: "success - valid ca_ref for tls CA",
+			name:  "success - tls CA on operator worker",
+			owner: operatorOwner,
 			input: &pb.CreateBootstrapAdminWorkflowInput{Req: &pb.CreateBootstrapAdminInput{
-				Org:   testOrg,
-				CaRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
+				CaRef: tlsRootRef,
 			}},
 			wantErr: false,
 		},
 		{
-			name: "success - valid ca_ref for org CA",
+			name:  "success - org CA on shard worker",
+			owner: orgOwner,
 			input: &pb.CreateBootstrapAdminWorkflowInput{Req: &pb.CreateBootstrapAdminInput{
-				Org:   testOrg,
-				CaRef: &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
+				CaRef: orgIntRef,
 			}},
 			wantErr: false,
 		},
 		{
-			name: "error - missing org",
+			name:  "error - nil ca_ref",
+			owner: operatorOwner,
 			input: &pb.CreateBootstrapAdminWorkflowInput{Req: &pb.CreateBootstrapAdminInput{
-				CaRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
-			}},
-			wantErr:   true,
-			errSubstr: "org is required",
-		},
-		{
-			name: "error - nil ca_ref",
-			input: &pb.CreateBootstrapAdminWorkflowInput{Req: &pb.CreateBootstrapAdminInput{
-				Org:   testOrg,
 				CaRef: nil,
 			}},
 			wantErr:   true,
 			errSubstr: "ca_ref is required",
 		},
+		{
+			name:  "error - shard worker given tls CA (not owned)",
+			owner: orgOwner,
+			input: &pb.CreateBootstrapAdminWorkflowInput{Req: &pb.CreateBootstrapAdminInput{
+				CaRef: tlsRootRef,
+			}},
+			wantErr:   true,
+			errSubstr: "not owned",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wf, err := newCreateBootstrapAdminWorkflow(tt.input)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
-					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
-				}
-				if wf != nil {
-					t.Error("expected nil workflow on error")
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if wf == nil {
-					t.Fatal("expected non-nil workflow")
-				}
-			}
+			wf, err := newCreateBootstrapAdminWorkflow(tt.input, tt.owner)
+			assertConstructorResult(t, wf == nil, err, tt.wantErr, tt.errSubstr)
 		})
 	}
 }
@@ -265,67 +240,61 @@ func TestNewCreateBootstrapAdminWorkflow(t *testing.T) {
 func TestNewCreateAdminWorkflow(t *testing.T) {
 	tests := []struct {
 		name      string
+		owner     workerconfig.OwnerConfig
 		input     *pb.CreateAdminWorkflowInput
 		wantErr   bool
 		errSubstr string
 	}{
 		{
-			name: "success - valid ca_ref for tls CA",
+			name:  "success - tls CA on operator worker",
+			owner: operatorOwner,
 			input: &pb.CreateAdminWorkflowInput{Req: &pb.CreateAdminInput{
-				Org:   testOrg,
-				CaRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
+				CaRef: tlsRootRef,
 			}},
 			wantErr: false,
 		},
 		{
-			name: "success - valid ca_ref for org CA",
+			name:  "success - org CA on shard worker",
+			owner: orgOwner,
 			input: &pb.CreateAdminWorkflowInput{Req: &pb.CreateAdminInput{
-				Org:   testOrg,
-				CaRef: &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
+				CaRef: orgIntRef,
 			}},
 			wantErr: false,
 		},
 		{
-			name: "error - missing org",
+			name:  "error - nil ca_ref",
+			owner: operatorOwner,
 			input: &pb.CreateAdminWorkflowInput{Req: &pb.CreateAdminInput{
-				CaRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
-			}},
-			wantErr:   true,
-			errSubstr: "org is required",
-		},
-		{
-			name: "error - nil ca_ref",
-			input: &pb.CreateAdminWorkflowInput{Req: &pb.CreateAdminInput{
-				Org:   testOrg,
 				CaRef: nil,
 			}},
 			wantErr:   true,
 			errSubstr: "ca_ref is required",
 		},
+		{
+			name:  "error - operator worker given org CA (not owned)",
+			owner: operatorOwner,
+			input: &pb.CreateAdminWorkflowInput{Req: &pb.CreateAdminInput{
+				CaRef: orgIntRef,
+			}},
+			wantErr:   true,
+			errSubstr: "not owned",
+		},
+		{
+			name:  "error - foreign signing issuer (crosses ownership boundary)",
+			owner: orgOwner,
+			input: &pb.CreateAdminWorkflowInput{Req: &pb.CreateAdminInput{
+				CaRef:         orgIntRef,
+				SigningIssuer: tlsRootRef,
+			}},
+			wantErr:   true,
+			errSubstr: "signing_issuer",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wf, err := newCreateAdminWorkflow(tt.input)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
-					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
-				}
-				if wf != nil {
-					t.Error("expected nil workflow on error")
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if wf == nil {
-					t.Fatal("expected non-nil workflow")
-				}
-			}
+			wf, err := newCreateAdminWorkflow(tt.input, tt.owner)
+			assertConstructorResult(t, wf == nil, err, tt.wantErr, tt.errSubstr)
 		})
 	}
 }
@@ -333,10 +302,9 @@ func TestNewCreateAdminWorkflow(t *testing.T) {
 func TestNewCreateIdentityWorkflow(t *testing.T) {
 	validInput := func() *pb.CreateIdentityInput {
 		return &pb.CreateIdentityInput{
-			Org:          testOrg,
 			IdentityName: "test-identity",
-			OrgIssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
-			TlsIssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
+			OrgIssuerRef: orgIntRef,
+			TlsIssuerRef: tlsIntRef,
 			SigningStorage: &fabricpb.IdentityRef{
 				KeyRef:  secrets.NewVaultRef("test/keys/signing"),
 				CertRef: secrets.NewVaultRef("test/certs/signing"),
@@ -350,50 +318,58 @@ func TestNewCreateIdentityWorkflow(t *testing.T) {
 
 	tests := []struct {
 		name      string
+		owner     workerconfig.OwnerConfig
 		mutate    func(*pb.CreateIdentityInput)
 		wantErr   bool
 		errSubstr string
 	}{
 		{
 			name:    "success - all required fields",
+			owner:   orgOwner,
 			mutate:  func(in *pb.CreateIdentityInput) {},
 			wantErr: false,
 		},
 		{
-			name:      "error - missing org",
-			mutate:    func(in *pb.CreateIdentityInput) { in.Org = "" },
-			wantErr:   true,
-			errSubstr: "org is required",
-		},
-		{
 			name:      "error - missing identity name",
+			owner:     orgOwner,
 			mutate:    func(in *pb.CreateIdentityInput) { in.IdentityName = "" },
 			wantErr:   true,
 			errSubstr: "identity_name is required",
 		},
 		{
 			name:      "error - missing org_issuer_ref",
+			owner:     orgOwner,
 			mutate:    func(in *pb.CreateIdentityInput) { in.OrgIssuerRef = nil },
 			wantErr:   true,
 			errSubstr: "org_issuer_ref is required",
 		},
 		{
 			name:      "error - missing tls_issuer_ref",
+			owner:     orgOwner,
 			mutate:    func(in *pb.CreateIdentityInput) { in.TlsIssuerRef = nil },
 			wantErr:   true,
 			errSubstr: "tls_issuer_ref is required",
 		},
 		{
 			name:      "error - missing signing_storage",
+			owner:     orgOwner,
 			mutate:    func(in *pb.CreateIdentityInput) { in.SigningStorage = nil },
 			wantErr:   true,
 			errSubstr: "signing_storage is required",
 		},
 		{
 			name:      "error - missing tls_storage",
+			owner:     orgOwner,
 			mutate:    func(in *pb.CreateIdentityInput) { in.TlsStorage = nil },
 			wantErr:   true,
 			errSubstr: "tls_storage is required",
+		},
+		{
+			name:      "error - foreign org issuer (not owned)",
+			owner:     orgOwner,
+			mutate:    func(in *pb.CreateIdentityInput) { in.OrgIssuerRef = tlsIntRef },
+			wantErr:   true,
+			errSubstr: "not owned",
 		},
 	}
 
@@ -401,26 +377,8 @@ func TestNewCreateIdentityWorkflow(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			input := validInput()
 			tt.mutate(input)
-			wf, err := newCreateIdentityWorkflow(&pb.CreateIdentityWorkflowInput{Req: input})
-
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
-					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
-				}
-				if wf != nil {
-					t.Error("expected nil workflow on error")
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if wf == nil {
-					t.Fatal("expected non-nil workflow")
-				}
-			}
+			wf, err := newCreateIdentityWorkflow(&pb.CreateIdentityWorkflowInput{Req: input}, tt.owner)
+			assertConstructorResult(t, wf == nil, err, tt.wantErr, tt.errSubstr)
 		})
 	}
 }
@@ -448,49 +406,49 @@ func TestComputeTLSCommonName(t *testing.T) {
 			name:             "signing nil - self-signed signing - returns base name",
 			baseName:         "ca-tls-root",
 			signingIssuerRef: nil,
-			tlsIssuerRef:     &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
+			tlsIssuerRef:     tlsRootRef,
 			expected:         "ca-tls-root",
 		},
 		{
 			name:             "tls nil - self-signed tls - returns base name",
 			baseName:         "ca-tls-root",
-			signingIssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
+			signingIssuerRef: tlsRootRef,
 			tlsIssuerRef:     nil,
 			expected:         "ca-tls-root",
 		},
 		{
 			name:             "same CA issues both - collision - returns base name with -tls suffix",
 			baseName:         "ca-tls-int",
-			signingIssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
-			tlsIssuerRef:     &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
+			signingIssuerRef: tlsRootRef,
+			tlsIssuerRef:     tlsRootRef,
 			expected:         "ca-tls-int-tls",
 		},
 		{
 			name:             "different CAs - no collision - returns base name",
 			baseName:         "ca-org-int",
-			signingIssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "root"},
-			tlsIssuerRef:     &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
+			signingIssuerRef: orgRootRef,
+			tlsIssuerRef:     tlsIntRef,
 			expected:         "ca-org-int",
 		},
 		{
 			name:             "different ID same type - no collision - returns base name",
 			baseName:         "ca-tls-v2",
-			signingIssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
-			tlsIssuerRef:     &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
+			signingIssuerRef: tlsRootRef,
+			tlsIssuerRef:     tlsIntRef,
 			expected:         "ca-tls-v2",
 		},
 		{
 			name:             "admin collision case - same CA issues both admin certs",
 			baseName:         "admin@ca-tls-root",
-			signingIssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
-			tlsIssuerRef:     &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
+			signingIssuerRef: tlsRootRef,
+			tlsIssuerRef:     tlsRootRef,
 			expected:         "admin@ca-tls-root-tls",
 		},
 		{
 			name:             "admin no collision - different CAs for admin certs",
 			baseName:         "admin@ca-org-int",
-			signingIssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
-			tlsIssuerRef:     &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
+			signingIssuerRef: orgIntRef,
+			tlsIssuerRef:     tlsIntRef,
 			expected:         "admin@ca-org-int",
 		},
 	}
@@ -587,13 +545,13 @@ func registerCertAuthNexusMock(t *testing.T, env *testsuite.TestWorkflowEnvironm
 
 func TestCreateCertificateWorkflow(t *testing.T) {
 	// Note: Validation tests for CreateCertificate are in TestNewCreateCertificateWorkflow above.
-	// This test covers execution/orchestration with mocked activities.
+	// This test covers execution/orchestration with mocked activities. The issuer is
+	// always owned by the executing worker (operator for tls, org for org).
 
 	tests := []struct {
 		name             string
-		org              string
-		certType         string
-		caID             string
+		owner            workerconfig.OwnerConfig
+		issuerRef        *fabricpb.CertificateAuthorityRef
 		createKeyPairErr error
 		registerErr      error
 		enrollErr        error
@@ -601,34 +559,37 @@ func TestCreateCertificateWorkflow(t *testing.T) {
 		validateOutput   bool
 	}{
 		{
-			name:           "success - certificate created",
-			org:            testOrg,
-			certType:       "tls",
-			caID:           "int",
+			name:           "success - certificate created by tls issuer on operator worker",
+			owner:          operatorOwner,
+			issuerRef:      tlsIntRef,
+			expectedErr:    nil,
+			validateOutput: true,
+		},
+		{
+			name:           "success - certificate created by org issuer on shard worker",
+			owner:          orgOwner,
+			issuerRef:      orgIntRef,
 			expectedErr:    nil,
 			validateOutput: true,
 		},
 		{
 			name:             "error - keypair generation fails",
-			org:              testOrg,
-			certType:         "org",
-			caID:             "int",
+			owner:            orgOwner,
+			issuerRef:        orgIntRef,
 			createKeyPairErr: errors.New("vault connection failed"),
 			expectedErr:      errors.New("failed to generate key pair"),
 		},
 		{
 			name:        "error - identity registration fails",
-			org:         testOrg,
-			certType:    "tls",
-			caID:        "int",
+			owner:       operatorOwner,
+			issuerRef:   tlsIntRef,
 			registerErr: errors.New("identity already exists"),
 			expectedErr: errors.New("failed to register identity"),
 		},
 		{
 			name:        "error - enrollment fails",
-			org:         testOrg,
-			certType:    "org",
-			caID:        "int",
+			owner:       orgOwner,
+			issuerRef:   orgIntRef,
 			enrollErr:   errors.New("CA rejected enrollment"),
 			expectedErr: errors.New("failed to enroll identity"),
 		},
@@ -639,7 +600,7 @@ func TestCreateCertificateWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows()
+			workflows := NewWorkflows(tt.owner)
 
 			// Register activities before mocking
 			env.RegisterActivityWithOptions(
@@ -696,16 +657,14 @@ func TestCreateCertificateWorkflow(t *testing.T) {
 				}
 				return wf.Execute(ctx)
 			}, &pb.CreateCertificateInput{
-				Org:       tt.org,
-				IssuerRef: &fabricpb.CertificateAuthorityRef{CertType: tt.certType, Id: tt.caID},
+				IssuerRef: tt.issuerRef,
 				Storage: &fabricpb.IdentityRef{
 					KeyRef:  secrets.NewVaultRef("test/keys/storage"),
 					CertRef: secrets.NewVaultRef("test/certs/storage"),
 				},
-				IssuerCertRef: secrets.NewVaultRef("test/certs/issuer"),
 				Subject: &pb.CertificateSubject{
 					CommonName:   "test-identity",
-					Organization: tt.org,
+					Organization: tt.owner.OwnerID(),
 				},
 			})
 
@@ -739,75 +698,82 @@ func TestCreateCertificateWorkflow(t *testing.T) {
 func TestCreateBootstrapAdminWorkflow(t *testing.T) {
 	// Note: Validation tests for CreateBootstrapAdmin are in TestNewCreateBootstrapAdminWorkflow above.
 	// This test covers execution/orchestration with mocked activities.
+	//
+	// The TLS identity comes from a local issuer via bootstrap enrollment when the
+	// issuer is owned by this worker; a foreign TLS issuer (org CA getting TLS from
+	// the operator's chain) is reached via Nexus.
 
 	tests := []struct {
 		name                    string
-		org                     string
-		certType                string
-		caID                    string
+		owner                   workerconfig.OwnerConfig
+		caRef                   *fabricpb.CertificateAuthorityRef
+		tlsIssuer               *fabricpb.CertificateAuthorityRef
 		getStatusErr            error
 		createSigningKeyPairErr error
 		enrollSigningErr        error
 		createTLSKeyPairErr     error
 		enrollTLSErr            error
+		nexusTLSErr             error
 		expectedErr             error
 		validateOutput          bool
 	}{
 		{
-			name:           "success - bootstrap admin created for tls root CA",
-			org:            testOrg,
-			certType:       "tls",
-			caID:           "root",
+			name:           "success - bootstrap admin for tls root CA (local TLS enrollment)",
+			owner:          operatorOwner,
+			caRef:          tlsRootRef,
 			expectedErr:    nil,
 			validateOutput: true,
 		},
 		{
-			name:           "success - bootstrap admin created for org intermediate CA",
-			org:            testOrg,
-			certType:       "org",
-			caID:           "int",
+			name:           "success - bootstrap admin for org int CA (foreign TLS via Nexus)",
+			owner:          orgOwner,
+			caRef:          orgIntRef,
+			tlsIssuer:      tlsIntRef,
 			expectedErr:    nil,
 			validateOutput: true,
 		},
 		{
 			name:         "error - CA never ready",
-			org:          testOrg,
-			certType:     "tls",
-			caID:         "root",
+			owner:        operatorOwner,
+			caRef:        tlsRootRef,
 			getStatusErr: errors.New("pod not ready"),
 			expectedErr:  errors.New("CA did not become ready"),
 		},
 		{
 			name:                    "error - signing keypair generation fails",
-			org:                     testOrg,
-			certType:                "tls",
-			caID:                    "root",
+			owner:                   operatorOwner,
+			caRef:                   tlsRootRef,
 			createSigningKeyPairErr: errors.New("vault unavailable"),
 			expectedErr:             errors.New("failed to generate signing key pair"),
 		},
 		{
 			name:             "error - signing enrollment fails",
-			org:              testOrg,
-			certType:         "tls",
-			caID:             "root",
+			owner:            operatorOwner,
+			caRef:            tlsRootRef,
 			enrollSigningErr: errors.New("CA enrollment rejected"),
 			expectedErr:      errors.New("failed to bootstrap enroll signing identity"),
 		},
 		{
-			name:                "error - TLS keypair generation fails",
-			org:                 testOrg,
-			certType:            "org",
-			caID:                "int",
+			name:                "error - TLS keypair generation fails (local issuer)",
+			owner:               operatorOwner,
+			caRef:               tlsRootRef,
 			createTLSKeyPairErr: errors.New("vault quota exceeded"),
 			expectedErr:         errors.New("failed to generate TLS key pair"),
 		},
 		{
-			name:         "error - TLS enrollment fails",
-			org:          testOrg,
-			certType:     "org",
-			caID:         "int",
+			name:         "error - TLS enrollment fails (local issuer)",
+			owner:        operatorOwner,
+			caRef:        tlsRootRef,
 			enrollTLSErr: errors.New("TLS CA rejected enrollment"),
 			expectedErr:  errors.New("failed to bootstrap enroll TLS identity"),
+		},
+		{
+			name:        "error - foreign TLS issuance via Nexus fails",
+			owner:       orgOwner,
+			caRef:       orgIntRef,
+			tlsIssuer:   tlsIntRef,
+			nexusTLSErr: errors.New("TLS Int CA unavailable"),
+			expectedErr: errors.New("failed to create TLS identity via nexus"),
 		},
 	}
 
@@ -816,7 +782,10 @@ func TestCreateBootstrapAdminWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows()
+			workflows := NewWorkflows(tt.owner)
+
+			// Foreign TLS issuance goes via the CertificateAuthority Nexus service
+			registerCertAuthNexusMock(t, env, tt.nexusTLSErr)
 
 			// Register activities before mocking
 			env.RegisterActivityWithOptions(
@@ -896,11 +865,8 @@ func TestCreateBootstrapAdminWorkflow(t *testing.T) {
 				}
 				return wf.Execute(ctx)
 			}, &pb.CreateBootstrapAdminInput{
-				Org: tt.org,
-				CaRef: &fabricpb.CertificateAuthorityRef{
-					CertType: tt.certType,
-					Id:       tt.caID,
-				},
+				CaRef:     tt.caRef,
+				TlsIssuer: tt.tlsIssuer,
 			})
 
 			var result *pb.CreateBootstrapAdminOutput
@@ -938,12 +904,12 @@ func TestCreateAdminWorkflow(t *testing.T) {
 	// This test covers execution/orchestration with mocked child workflows and Nexus operations.
 	//
 	// CreateAdmin issues the signing cert via a direct CreateCertificate child workflow.
-	// The TLS cert goes via Nexus when the CA is org-owned but the TLS issuer is a shared
-	// TLS CA (cross-namespace); otherwise it is another direct child workflow call.
+	// The TLS cert goes via Nexus when the TLS issuer is foreign (org CA admin getting
+	// TLS from the operator's chain); otherwise it is another direct child workflow call.
 
 	tests := []struct {
 		name           string
-		org            string
+		owner          workerconfig.OwnerConfig
 		caRef          *fabricpb.CertificateAuthorityRef
 		tlsIssuer      *fabricpb.CertificateAuthorityRef
 		signingCertErr error // CreateCertificate child call (signing)
@@ -953,38 +919,38 @@ func TestCreateAdminWorkflow(t *testing.T) {
 	}{
 		{
 			name:           "success - admin created for tls root CA (direct TLS)",
-			org:            testOrg,
-			caRef:          &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
+			owner:          operatorOwner,
+			caRef:          tlsRootRef,
 			expectedErr:    nil,
 			validateOutput: true,
 		},
 		{
 			name:           "success - admin created for org intermediate CA (TLS via Nexus)",
-			org:            testOrg,
-			caRef:          &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
-			tlsIssuer:      &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
+			owner:          orgOwner,
+			caRef:          orgIntRef,
+			tlsIssuer:      tlsIntRef,
 			expectedErr:    nil,
 			validateOutput: true,
 		},
 		{
 			name:           "error - signing identity creation fails",
-			org:            testOrg,
-			caRef:          &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
+			owner:          operatorOwner,
+			caRef:          tlsIntRef,
 			signingCertErr: errors.New("CA enrollment failed"),
 			expectedErr:    errors.New("failed to create admin signing identity"),
 		},
 		{
 			name:        "error - TLS identity creation fails (direct)",
-			org:         testOrg,
-			caRef:       &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
+			owner:       operatorOwner,
+			caRef:       tlsIntRef,
 			tlsCertErr:  errors.New("TLS CA unavailable"),
 			expectedErr: errors.New("failed to create admin TLS identity"),
 		},
 		{
 			name:        "error - TLS identity creation fails (Nexus)",
-			org:         testOrg,
-			caRef:       &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
-			tlsIssuer:   &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
+			owner:       orgOwner,
+			caRef:       orgIntRef,
+			tlsIssuer:   tlsIntRef,
 			tlsCertErr:  errors.New("TLS CA unavailable"),
 			expectedErr: errors.New("failed to create admin TLS identity"),
 		},
@@ -995,7 +961,7 @@ func TestCreateAdminWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows()
+			workflows := NewWorkflows(tt.owner)
 
 			registerChildWorkflowStubs(env)
 
@@ -1027,7 +993,6 @@ func TestCreateAdminWorkflow(t *testing.T) {
 				}
 				return wf.Execute(ctx)
 			}, &pb.CreateAdminInput{
-				Org:       tt.org,
 				CaRef:     tt.caRef,
 				TlsIssuer: tt.tlsIssuer,
 			})
@@ -1066,13 +1031,12 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 	// Note: Validation tests for CreateIdentity are in TestNewCreateIdentityWorkflow above.
 	// This test covers execution/orchestration with mocked child workflows and Nexus operations.
 	//
-	// CreateIdentity issues the signing cert via a direct CreateCertificate child workflow
-	// and the TLS cert via the CertificateAuthority Nexus service (shared TLS CAs live in
-	// the operator namespace).
+	// CreateIdentity runs on a shard worker: the signing cert comes from the org's own
+	// CA via a direct CreateCertificate child workflow and the TLS cert via the
+	// CertificateAuthority Nexus service (shared TLS CAs live in the operator namespace).
 
 	tests := []struct {
 		name           string
-		org            string
 		signingCertErr error // CreateCertificate child call (signing)
 		tlsCertErr     error // Nexus CreateCertificate call (TLS)
 		expectedErr    error
@@ -1080,19 +1044,16 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 	}{
 		{
 			name:           "success - identity created with signing and TLS certs",
-			org:            testOrg,
 			expectedErr:    nil,
 			validateOutput: true,
 		},
 		{
 			name:           "error - signing certificate creation fails",
-			org:            testOrg,
 			signingCertErr: errors.New("CA connection refused"),
 			expectedErr:    errors.New("failed to create signing identity"),
 		},
 		{
 			name:        "error - TLS certificate creation fails",
-			org:         testOrg,
 			tlsCertErr:  errors.New("TLS enrollment failed"),
 			expectedErr: errors.New("failed to create TLS identity"),
 		},
@@ -1103,7 +1064,7 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows()
+			workflows := NewWorkflows(orgOwner)
 
 			registerChildWorkflowStubs(env)
 			registerCertAuthNexusMock(t, env, tt.tlsCertErr)
@@ -1125,10 +1086,9 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 				}
 				return wf.Execute(ctx)
 			}, &pb.CreateIdentityInput{
-				Org:          tt.org,
 				IdentityName: "test-peer",
-				OrgIssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
-				TlsIssuerRef: &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
+				OrgIssuerRef: orgIntRef,
+				TlsIssuerRef: tlsIntRef,
 				SigningStorage: &fabricpb.IdentityRef{
 					KeyRef:  secrets.NewVaultRef("test/keys/signing"),
 					CertRef: secrets.NewVaultRef("test/certs/signing"),
@@ -1139,7 +1099,7 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 				},
 				Subject: &pb.CertificateSubject{
 					CommonName:   "test-peer",
-					Organization: tt.org,
+					Organization: testOrg,
 				},
 				IdentityType: "peer",
 			})

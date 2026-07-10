@@ -11,14 +11,12 @@ import (
 )
 
 func main() {
-	// Initialize configuration from environment
+	// Initialize configuration from environment.
+	// OPERATOR_ID (platform context) is loaded via fx in the infra module.
 	config.InitializeTemporal()
 	config.InitializeVault()
 	config.InitializeKubernetes()
 	config.InitializeWorker()
-	if err := config.InitializeOperator(); err != nil {
-		log.Fatalf("Failed to initialize operator config: %v", err)
-	}
 
 	cfg := config.GetTemporal()
 	log.Println("Connecting to Temporal at", cfg.Address)

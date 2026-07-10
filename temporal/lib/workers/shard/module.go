@@ -22,19 +22,28 @@ import (
 // They receive BootstrapShard via Nexus from the central infra worker and call
 // the shared fabric worker via Nexus for TLS certificate issuance.
 var Module = fx.Module("shard",
-	// Load environment config
+	// Load environment config.
+	// OPERATOR_ID stays available: cluster workflows need the operator's TLS
+	// root CA config for component trust stores (platform-level context).
 	fx.Provide(
 		config.GetTemporal,
 		config.GetVault,
 		config.GetWorker,
 		config.GetKubernetes,
-		config.GetOrg,
-		config.GetOperator,
+		config.LoadOrgConfig,
+		config.LoadOperatorConfig,
 	),
 
-	// Provide fabric-specific config (derived from environment config)
-	fx.Provide(func(orgCfg *config.OrgConfig) fabricconfig.CertificateStoreConfig {
-		return fabricconfig.NewCertificateStoreConfig(*orgCfg)
+	// Worker identity: a shard worker acts AS its org. All owned
+	// workflows/activities (fabric.v1, certauth.v1) receive this OwnerConfig.
+	fx.Provide(func(orgCfg *config.OrgConfig) config.OwnerConfig {
+		return orgCfg
+	}),
+
+	// Provide CertificateStoreConfig for postgres activities, derived from the
+	// worker's owner (each org owns its certificate store)
+	fx.Provide(func(owner config.OwnerConfig) fabricconfig.CertificateStoreConfig {
+		return fabricconfig.NewCertificateStoreConfig(owner)
 	}),
 
 	// Provide temporal worker

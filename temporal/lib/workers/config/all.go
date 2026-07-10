@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -154,37 +153,11 @@ func GetKubernetes() *KubernetesConfig {
 	return kubernetesGlobal
 }
 
-// OrgConfig holds fabric organization identity and provides derived values
+// OrgConfig holds fabric organization identity and provides derived values.
+// Constructed via LoadOrgConfig (from ORG_ID at worker startup) or NewOrgConfig
+// (from a typed Owner input); there is no global singleton.
 type OrgConfig struct {
 	OrgID string
-}
-
-var (
-	orgGlobal *OrgConfig
-	orgOnce   sync.Once
-	orgMu     sync.RWMutex
-)
-
-func InitializeOrg() error {
-	var err error
-	orgOnce.Do(func() {
-		orgID := viper.GetString(orgIDName)
-		if orgID == "" {
-			err = fmt.Errorf("ORG_ID environment variable is required")
-			return
-		}
-		orgGlobal = &OrgConfig{OrgID: orgID}
-	})
-	return err
-}
-
-func GetOrg() *OrgConfig {
-	orgMu.RLock()
-	defer orgMu.RUnlock()
-	if orgGlobal == nil {
-		panic("OrgConfig not initialized - call InitializeOrg() at startup")
-	}
-	return orgGlobal
 }
 
 // ============= Kubernetes Infrastructure =============

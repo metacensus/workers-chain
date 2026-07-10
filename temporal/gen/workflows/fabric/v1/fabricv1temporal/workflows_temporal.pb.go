@@ -21,8 +21,8 @@ type FabricNexusHandler struct{}
 
 // BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
 // This workflow runs on the fabric worker in the "fabric" Temporal namespace and
-// deploys the certificate store and shared TLS certificate authority chain.
-// Called via Nexus from the central infra worker during InitFabric.
+// deploys the certificate store and the operator-owned certificate authorities
+// (in spec order). Called via Nexus from the central infra worker during InitFabric.
 func (h *FabricNexusHandler) BootstrapFabric(name string) nexus.Operation[*v1.BootstrapFabricInput, *v1.BootstrapFabricOutput] {
 	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.BootstrapFabricInput, *v1.BootstrapFabricOutput]{
 		Handler: func(ctx context.Context, input *v1.BootstrapFabricInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.BootstrapFabricOutput], error) {
@@ -36,25 +36,10 @@ func (h *FabricNexusHandler) BootstrapFabric(name string) nexus.Operation[*v1.Bo
 	})
 }
 
-// BootstrapOrgCertificateAuthorities deploys the organization CA chain
-// Org-owned, runs in org namespace, deploys Org Root and Org Intermediate CAs
-func (h *FabricNexusHandler) BootstrapOrgCertificateAuthorities(name string) nexus.Operation[*v1.BootstrapOrgCertificateAuthoritiesInput, *v1.BootstrapOrgCertificateAuthoritiesOutput] {
-	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.BootstrapOrgCertificateAuthoritiesInput, *v1.BootstrapOrgCertificateAuthoritiesOutput]{
-		Handler: func(ctx context.Context, input *v1.BootstrapOrgCertificateAuthoritiesInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.BootstrapOrgCertificateAuthoritiesOutput], error) {
-			o, err := v1.NewBootstrapOrgCertificateAuthoritiesOptions().Build(input.ProtoReflect())
-			if err != nil {
-				return nil, err
-			}
-			return temporalnexus.ExecuteUntypedWorkflow[*v1.BootstrapOrgCertificateAuthoritiesOutput](ctx, opts, o, v1.BootstrapOrgCertificateAuthoritiesWorkflowName, input)
-		},
-		Name: name,
-	})
-}
-
 // BootstrapShard is the entry point for Phase 2 of shard initialization
 // This workflow runs on the shard worker in the org's Temporal namespace
 // (e.g., "fabric-shard-org1") and deploys all Fabric components
-// (CAs, peers, orderers) for the organization.
+// (certificate store, CAs, peers, orderers) for the organization.
 // Called via Nexus from the central worker after Phase 1 completes
 func (h *FabricNexusHandler) BootstrapShard(name string) nexus.Operation[*v1.BootstrapShardInput, *v1.BootstrapShardOutput] {
 	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.BootstrapShardInput, *v1.BootstrapShardOutput]{
@@ -64,21 +49,6 @@ func (h *FabricNexusHandler) BootstrapShard(name string) nexus.Operation[*v1.Boo
 				return nil, err
 			}
 			return temporalnexus.ExecuteUntypedWorkflow[*v1.BootstrapShardOutput](ctx, opts, o, v1.BootstrapShardWorkflowName, input)
-		},
-		Name: name,
-	})
-}
-
-// BootstrapTlsCertificateAuthorities deploys the certificate store and TLS CA chain
-// Operator-owned, runs in operator namespace, deploys TLS Root and TLS Intermediate CAs
-func (h *FabricNexusHandler) BootstrapTlsCertificateAuthorities(name string) nexus.Operation[*v1.BootstrapTlsCertificateAuthoritiesInput, *v1.BootstrapTlsCertificateAuthoritiesOutput] {
-	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.BootstrapTlsCertificateAuthoritiesInput, *v1.BootstrapTlsCertificateAuthoritiesOutput]{
-		Handler: func(ctx context.Context, input *v1.BootstrapTlsCertificateAuthoritiesInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.BootstrapTlsCertificateAuthoritiesOutput], error) {
-			o, err := v1.NewBootstrapTlsCertificateAuthoritiesOptions().Build(input.ProtoReflect())
-			if err != nil {
-				return nil, err
-			}
-			return temporalnexus.ExecuteUntypedWorkflow[*v1.BootstrapTlsCertificateAuthoritiesOutput](ctx, opts, o, v1.BootstrapTlsCertificateAuthoritiesWorkflowName, input)
 		},
 		Name: name,
 	})
@@ -100,8 +70,33 @@ func (h *FabricNexusHandler) CreateCertificateDatabase(name string) nexus.Operat
 	})
 }
 
+// DeployCertificateAuthority deploys one certificate authority described by
+// a CertificateAuthoritySpec. The variant behavior (root vs intermediate,
+// TLS vs org chain) is derived from the spec's structure:
+//   - signing_issuer == nil  -> self-signed signing certificate (root CA)
+//   - signing_issuer != nil  -> signing certificate from a local CA (always same-owner)
+//   - tls_issuer == nil      -> self-signed TLS certificate (TLS Root CA only)
+//   - tls_issuer owned here  -> TLS certificate via a local CreateCertificate child
+//   - tls_issuer foreign     -> TLS certificate via Nexus to the issuer's worker
+//
+// Ownership enforcement (P1/P2): spec.self and spec.signing_issuer MUST be
+// owned by the executing worker (the operator owns "tls" CAs, an org owns
+// "org" CAs); only tls_issuer may be foreign. Specs violating this fail fast.
+func (h *FabricNexusHandler) DeployCertificateAuthority(name string) nexus.Operation[*v1.DeployCertificateAuthorityInput, *v1.DeployCertificateAuthorityOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployCertificateAuthorityInput, *v1.DeployCertificateAuthorityOutput]{
+		Handler: func(ctx context.Context, input *v1.DeployCertificateAuthorityInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployCertificateAuthorityOutput], error) {
+			o, err := v1.NewDeployCertificateAuthorityOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployCertificateAuthorityOutput](ctx, opts, o, v1.DeployCertificateAuthorityWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
 // DeployCertificateStore deploys the shared certificate store (PostgreSQL)
-// used by all certificate authorities in the organization.
+// used by all certificate authorities owned by this worker's owner.
 func (h *FabricNexusHandler) DeployCertificateStore(name string) nexus.Operation[*v1.DeployCertificateStoreInput, *v1.DeployCertificateStoreOutput] {
 	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployCertificateStoreInput, *v1.DeployCertificateStoreOutput]{
 		Handler: func(ctx context.Context, input *v1.DeployCertificateStoreInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployCertificateStoreOutput], error) {
@@ -160,36 +155,6 @@ func (h *FabricNexusHandler) DeployOrderer(name string) nexus.Operation[*v1.Depl
 	})
 }
 
-// DeployOrgIntermediateCertificateAuthority deploys the Organization Intermediate Certificate Authority
-// Org-owned, signing cert from Org Root via direct call, TLS cert via Nexus from TLS Int, admin TLS from TLS Int
-func (h *FabricNexusHandler) DeployOrgIntermediateCertificateAuthority(name string) nexus.Operation[*v1.DeployOrgIntermediateCertificateAuthorityInput, *v1.DeployOrgIntermediateCertificateAuthorityOutput] {
-	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployOrgIntermediateCertificateAuthorityInput, *v1.DeployOrgIntermediateCertificateAuthorityOutput]{
-		Handler: func(ctx context.Context, input *v1.DeployOrgIntermediateCertificateAuthorityInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployOrgIntermediateCertificateAuthorityOutput], error) {
-			o, err := v1.NewDeployOrgIntermediateCertificateAuthorityOptions().Build(input.ProtoReflect())
-			if err != nil {
-				return nil, err
-			}
-			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployOrgIntermediateCertificateAuthorityOutput](ctx, opts, o, v1.DeployOrgIntermediateCertificateAuthorityWorkflowName, input)
-		},
-		Name: name,
-	})
-}
-
-// DeployOrgRootCertificateAuthority deploys the Organization Root Certificate Authority
-// Org-owned, self-signed signing cert, TLS cert via Nexus from TLS Int, admin TLS from TLS Int
-func (h *FabricNexusHandler) DeployOrgRootCertificateAuthority(name string) nexus.Operation[*v1.DeployOrgRootCertificateAuthorityInput, *v1.DeployOrgRootCertificateAuthorityOutput] {
-	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployOrgRootCertificateAuthorityInput, *v1.DeployOrgRootCertificateAuthorityOutput]{
-		Handler: func(ctx context.Context, input *v1.DeployOrgRootCertificateAuthorityInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployOrgRootCertificateAuthorityOutput], error) {
-			o, err := v1.NewDeployOrgRootCertificateAuthorityOptions().Build(input.ProtoReflect())
-			if err != nil {
-				return nil, err
-			}
-			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployOrgRootCertificateAuthorityOutput](ctx, opts, o, v1.DeployOrgRootCertificateAuthorityWorkflowName, input)
-		},
-		Name: name,
-	})
-}
-
 // DeployPeer deploys a Fabric peer node
 // Peers endorse transactions and maintain ledger state
 func (h *FabricNexusHandler) DeployPeer(name string) nexus.Operation[*v1.DeployPeerInput, *v1.DeployPeerOutput] {
@@ -200,36 +165,6 @@ func (h *FabricNexusHandler) DeployPeer(name string) nexus.Operation[*v1.DeployP
 				return nil, err
 			}
 			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployPeerOutput](ctx, opts, o, v1.DeployPeerWorkflowName, input)
-		},
-		Name: name,
-	})
-}
-
-// DeployTlsIntermediateCertificateAuthority deploys the TLS Intermediate Certificate Authority
-// Operator-owned, issued by TLS Root via direct workflow calls, admin TLS from self
-func (h *FabricNexusHandler) DeployTlsIntermediateCertificateAuthority(name string) nexus.Operation[*v1.DeployTlsIntermediateCertificateAuthorityInput, *v1.DeployTlsIntermediateCertificateAuthorityOutput] {
-	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployTlsIntermediateCertificateAuthorityInput, *v1.DeployTlsIntermediateCertificateAuthorityOutput]{
-		Handler: func(ctx context.Context, input *v1.DeployTlsIntermediateCertificateAuthorityInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployTlsIntermediateCertificateAuthorityOutput], error) {
-			o, err := v1.NewDeployTlsIntermediateCertificateAuthorityOptions().Build(input.ProtoReflect())
-			if err != nil {
-				return nil, err
-			}
-			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployTlsIntermediateCertificateAuthorityOutput](ctx, opts, o, v1.DeployTlsIntermediateCertificateAuthorityWorkflowName, input)
-		},
-		Name: name,
-	})
-}
-
-// DeployTlsRootCertificateAuthority deploys the TLS Root Certificate Authority
-// Operator-owned, self-signed signing and TLS certificates, admin TLS from self
-func (h *FabricNexusHandler) DeployTlsRootCertificateAuthority(name string) nexus.Operation[*v1.DeployTlsRootCertificateAuthorityInput, *v1.DeployTlsRootCertificateAuthorityOutput] {
-	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.DeployTlsRootCertificateAuthorityInput, *v1.DeployTlsRootCertificateAuthorityOutput]{
-		Handler: func(ctx context.Context, input *v1.DeployTlsRootCertificateAuthorityInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.DeployTlsRootCertificateAuthorityOutput], error) {
-			o, err := v1.NewDeployTlsRootCertificateAuthorityOptions().Build(input.ProtoReflect())
-			if err != nil {
-				return nil, err
-			}
-			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployTlsRootCertificateAuthorityOutput](ctx, opts, o, v1.DeployTlsRootCertificateAuthorityWorkflowName, input)
 		},
 		Name: name,
 	})

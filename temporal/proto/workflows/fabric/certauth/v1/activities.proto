@@ -61,13 +61,8 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/c
   
   // RegisterIdentityInput specifies the parameters for registering an identity with a CA
   message RegisterIdentityInput {
-    // org is the owner identifier for the CA (operator or organization)
-    string org = 7 [
-      json_name = "Org",
-      (go.field).tags = 'json:"Org" validate:"required"'
-    ];
-  
-    // ca_ref identifies which CA to register with
+    // ca_ref identifies which CA to register with.
+    // Always owned by the executing worker's owner.
     fabric.v1.CertificateAuthorityRef ca_ref = 1 [
       json_name = "CaRef",
       (go.field).tags = 'json:"CaRef" validate:"required"'
@@ -112,13 +107,8 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/c
   // EnrollIdentityInput specifies the parameters for enrolling an identity with a CA.
   // Keys (private) and certs (public) are stored at separate Vault paths.
   message EnrollIdentityInput {
-    // org is the owner identifier for the CA (operator or organization)
-    string org = 11 [
-      json_name = "Org",
-      (go.field).tags = 'json:"Org" validate:"required"'
-    ];
-  
-    // ca_ref identifies which CA to enroll with
+    // ca_ref identifies which CA to enroll with.
+    // Always owned by the executing worker's owner.
     fabric.v1.CertificateAuthorityRef ca_ref = 1 [
       json_name = "CaRef",
       (go.field).tags = 'json:"CaRef" validate:"required"'
@@ -185,13 +175,8 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/c
   
   // RevokeIdentityInput specifies the parameters for revoking an identity from a CA
   message RevokeIdentityInput {
-    // org is the owner identifier for the CA (operator or organization)
-    string org = 5 [
-      json_name = "Org",
-      (go.field).tags = 'json:"Org" validate:"required"'
-    ];
-  
-    // ca_ref identifies which CA to revoke from
+    // ca_ref identifies which CA to revoke from.
+    // Always owned by the executing worker's owner.
     fabric.v1.CertificateAuthorityRef ca_ref = 1 [
       json_name = "CaRef",
       (go.field).tags = 'json:"CaRef" validate:"required"'

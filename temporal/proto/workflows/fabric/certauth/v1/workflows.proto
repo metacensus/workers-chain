@@ -5,7 +5,6 @@ package fabric.certauth.v1;
 import "google/protobuf/duration.proto";
 import "nexus/v1/options.proto";
 import "patch/go.proto";
-import "secrets/v1/secrets.proto";
 import "temporal/v1/temporal.proto";
 import "fabric/v1/fabric.proto";
 import "fabric/certauth/v1/shared.proto";
@@ -14,7 +13,11 @@ option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/c
 
 
 // CertificateAuthority service defines workflows for manipulating a Fabric certificate authority
-// These workflows run on the fabric worker in the org-specific Temporal namespace
+// These workflows run on the fabric/shard worker in the owner-specific Temporal namespace.
+//
+// These workflows act AS their worker's owner (injected at startup); inputs
+// never carry an owner. Locally-referenced CAs are always owned by the
+// executing worker; foreign issuers are reached via Nexus.
 service CertificateAuthority {
     // Enable Nexus for cross-namespace calls from central worker
     option (.nexus.v1.service).tags = "nexus-enabled";
@@ -70,14 +73,9 @@ service CertificateAuthority {
   // CreateCertificateInput specifies the parameters for creating a certificate.
   // Keys (private) and certs (public) are stored at separate Vault paths.
   message CreateCertificateInput {
-    // org is the owner identifier (operator or organization)
-    string org = 1 [
-      json_name = "Org",
-      (go.field).tags = 'json:"Org" validate:"required"'
-    ];
-  
     // issuer_ref identifies which CA signs this certificate.
     // If nil/empty, creates a self-signed certificate.
+    // The issuer is always owned by the executing worker's owner.
     fabric.v1.CertificateAuthorityRef issuer_ref = 2 [
       json_name = "IssuerRef",
       (go.field).tags = 'json:"IssuerRef"'
@@ -117,13 +115,6 @@ service CertificateAuthority {
     // attributes are additional CA attributes for the identity (e.g., hf.IntermediateCA)
     map<string, string> attributes = 8 [json_name = "Attributes"];
   
-    // issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
-    // Used to fetch the issuer's chain for building the full certificate chain
-    secrets.v1.SecretRef issuer_cert_ref = 12 [
-      json_name = "IssuerCertRef",
-      (go.field).tags = 'json:"IssuerCertRef" validate:"required"'
-    ];
-  
     // identity_type specifies the Fabric CA identity type for registration.
     // This determines the OU field in the issued certificate.
     // Valid values: "peer", "orderer", "admin", "client" (default: "client")
@@ -147,13 +138,8 @@ service CertificateAuthority {
   
   // CreateBootstrapAdminInput specifies the parameters for creating a bootstrap admin
   message CreateBootstrapAdminInput {
-    // org is the owner identifier (operator or organization)
-    string org = 1 [
-      json_name = "Org",
-      (go.field).tags = 'json:"Org" validate:"required"'
-    ];
-  
-    // ca_ref identifies which CA to create the bootstrap admin for
+    // ca_ref identifies which CA to create the bootstrap admin for.
+    // Always owned by the executing worker's owner.
     fabric.v1.CertificateAuthorityRef ca_ref = 2 [
       json_name = "CaRef",
       (go.field).tags = 'json:"CaRef" validate:"required"'
@@ -161,6 +147,8 @@ service CertificateAuthority {
   
     // tls_issuer identifies who issues the bootstrap admin's TLS certificate.
     // If nil/empty, uses the CA itself (TLS Root CA case).
+    // May be foreign (operator-owned TLS CA when the executing worker is an org);
+    // foreign issuers are reached via Nexus.
     fabric.v1.CertificateAuthorityRef tls_issuer = 3 [
       json_name = "TlsIssuer",
       (go.field).tags = 'json:"TlsIssuer,omitempty"'
@@ -192,13 +180,8 @@ service CertificateAuthority {
   
   // CreateAdminInput specifies the parameters for creating a permanent admin
   message CreateAdminInput {
-    // org is the owner identifier (operator or organization)
-    string org = 1 [
-      json_name = "Org",
-      (go.field).tags = 'json:"Org" validate:"required"'
-    ];
-  
-    // ca_ref identifies which CA to create the admin for
+    // ca_ref identifies which CA to create the admin for.
+    // Always owned by the executing worker's owner.
     fabric.v1.CertificateAuthorityRef ca_ref = 2 [
       json_name = "CaRef",
       (go.field).tags = 'json:"CaRef" validate:"required"'
@@ -243,12 +226,6 @@ service CertificateAuthority {
   
   // CreateIdentityInput specifies the parameters for creating a Fabric identity
   message CreateIdentityInput {
-    // org is the owner identifier (operator or organization)
-    string org = 1 [
-      json_name = "Org",
-      (go.field).tags = 'json:"Org" validate:"required"'
-    ];
-  
     // identity_name is the unique name for this identity (e.g., "peer0", "orderer0", "admin")
     string identity_name = 2 [
       json_name = "IdentityName",

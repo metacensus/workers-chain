@@ -3,7 +3,6 @@ package fabric
 import (
 	"context"
 	"errors"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -20,7 +19,6 @@ import (
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 	postgresv1mocks "github.com/metacensus/infra/temporal/mocks/workflows/postgres/v1"
 	"github.com/nexus-rpc/sdk-go/nexus"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
@@ -31,67 +29,194 @@ import (
 const testOrg = "testorg"
 const testOperatorID = "metacensus"
 
-func init() {
-	// Initialize global OperatorConfig for tests
-	os.Setenv("OPERATOR_ID", testOperatorID)
-	viper.AutomaticEnv()
-	if err := workerconfig.InitializeOperator(); err != nil {
-		panic("failed to initialize operator config for tests: " + err.Error())
+// Worker identities under test. The fabric worker acts as the operator; a
+// shard worker acts as its org. Tests construct workflows with the identity
+// matching the worker the workflow would run on.
+var (
+	operatorOwner = workerconfig.NewOperatorConfig(testOperatorID)
+	orgOwner      = workerconfig.NewOrgConfig(testOrg)
+)
+
+// CA refs used across tests
+var (
+	tlsRootRef = &pb.CertificateAuthorityRef{CertType: "tls", Id: "root"}
+	tlsIntRef  = &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"}
+	orgRootRef = &pb.CertificateAuthorityRef{CertType: "org", Id: "root"}
+	orgIntRef  = &pb.CertificateAuthorityRef{CertType: "org", Id: "int"}
+)
+
+var testCAValidity = durationpb.New(15 * 365 * 24 * time.Hour)
+
+// caSpec builds a CertificateAuthoritySpec for tests
+func caSpec(self, signingIssuer, tlsIssuer *pb.CertificateAuthorityRef) *pb.CertificateAuthoritySpec {
+	return &pb.CertificateAuthoritySpec{
+		Self:             self,
+		SigningIssuer:    signingIssuer,
+		TlsIssuer:        tlsIssuer,
+		ValidityDuration: testCAValidity,
 	}
 }
+
+// The four CA variants, keyed by the owner whose worker deploys them:
+//   - tls/root, tls/int  -> operator (fabric worker)
+//   - org/root, org/int  -> org (shard worker)
+func tlsRootSpec() *pb.CertificateAuthoritySpec { return caSpec(tlsRootRef, nil, nil) }
+func tlsIntSpec() *pb.CertificateAuthoritySpec  { return caSpec(tlsIntRef, tlsRootRef, tlsRootRef) }
+func orgRootSpec() *pb.CertificateAuthoritySpec { return caSpec(orgRootRef, nil, tlsIntRef) }
+func orgIntSpec() *pb.CertificateAuthoritySpec  { return caSpec(orgIntRef, orgRootRef, tlsIntRef) }
 
 // =============================================================================
 // Constructor / Validation Tests
 // =============================================================================
 // These tests verify input validation without needing a workflow environment.
-// They're fast and focused on the validation logic.
 
 func TestNewCreateCertificateDatabaseWorkflow(t *testing.T) {
 	tests := []struct {
 		name      string
+		owner     workerconfig.OwnerConfig
 		input     *pb.CreateCertificateDatabaseWorkflowInput
 		wantErr   bool
 		errSubstr string
 	}{
 		{
-			name: "success - tls root CA",
+			name:  "success - tls root CA on operator worker",
+			owner: operatorOwner,
 			input: &pb.CreateCertificateDatabaseWorkflowInput{Req: &pb.CreateCertificateDatabaseInput{
-				Org:   testOrg,
-				CaRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
+				CaRef: tlsRootRef,
 			}},
 			wantErr: false,
 		},
 		{
-			name: "success - org intermediate CA",
+			name:  "success - org intermediate CA on shard worker",
+			owner: orgOwner,
 			input: &pb.CreateCertificateDatabaseWorkflowInput{Req: &pb.CreateCertificateDatabaseInput{
-				Org:   testOrg,
-				CaRef: &pb.CertificateAuthorityRef{CertType: "org", Id: "int"},
+				CaRef: orgIntRef,
 			}},
 			wantErr: false,
 		},
 		{
-			name: "error - missing org",
+			name:  "error - nil ca_ref",
+			owner: operatorOwner,
 			input: &pb.CreateCertificateDatabaseWorkflowInput{Req: &pb.CreateCertificateDatabaseInput{
-				CaRef: &pb.CertificateAuthorityRef{CertType: "tls", Id: "root"},
-			}},
-			wantErr:   true,
-			errSubstr: "org is required",
-		},
-		{
-			name: "error - nil ca_ref",
-			input: &pb.CreateCertificateDatabaseWorkflowInput{Req: &pb.CreateCertificateDatabaseInput{
-				Org:   testOrg,
 				CaRef: nil,
 			}},
 			wantErr:   true,
 			errSubstr: "ca_ref is required",
 		},
 		{
-			name: "error - invalid cert type",
+			name:  "error - invalid cert type",
+			owner: operatorOwner,
 			input: &pb.CreateCertificateDatabaseWorkflowInput{Req: &pb.CreateCertificateDatabaseInput{
-				Org:   testOrg,
 				CaRef: &pb.CertificateAuthorityRef{CertType: "invalid", Id: "root"},
 			}},
+			wantErr:   true,
+			errSubstr: "cert_type must be 'tls' or 'org'",
+		},
+		{
+			name:  "error - shard worker given a tls CA (not owned)",
+			owner: orgOwner,
+			input: &pb.CreateCertificateDatabaseWorkflowInput{Req: &pb.CreateCertificateDatabaseInput{
+				CaRef: tlsRootRef,
+			}},
+			wantErr:   true,
+			errSubstr: "not owned",
+		},
+		{
+			name:  "error - operator worker given an org CA (not owned)",
+			owner: operatorOwner,
+			input: &pb.CreateCertificateDatabaseWorkflowInput{Req: &pb.CreateCertificateDatabaseInput{
+				CaRef: orgRootRef,
+			}},
+			wantErr:   true,
+			errSubstr: "not owned",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wf, err := newCreateCertificateDatabaseWorkflow(tt.input, tt.owner)
+			assertConstructorResult(t, wf == nil, err, tt.wantErr, tt.errSubstr)
+		})
+	}
+}
+
+func TestNewDeployCertificateAuthorityWorkflow(t *testing.T) {
+	tests := []struct {
+		name      string
+		owner     workerconfig.OwnerConfig
+		spec      *pb.CertificateAuthoritySpec
+		wantErr   bool
+		errSubstr string
+	}{
+		// One accept case per variant on the matching worker
+		{name: "success - tls/root on operator worker", owner: operatorOwner, spec: tlsRootSpec()},
+		{name: "success - tls/int on operator worker", owner: operatorOwner, spec: tlsIntSpec()},
+		{name: "success - org/root on shard worker", owner: orgOwner, spec: orgRootSpec()},
+		{name: "success - org/int on shard worker", owner: orgOwner, spec: orgIntSpec()},
+
+		// Ownership rejections
+		{
+			name:      "error - shard worker given tls/root spec",
+			owner:     orgOwner,
+			spec:      tlsRootSpec(),
+			wantErr:   true,
+			errSubstr: "not owned",
+		},
+		{
+			name:      "error - shard worker given tls/int spec",
+			owner:     orgOwner,
+			spec:      tlsIntSpec(),
+			wantErr:   true,
+			errSubstr: "not owned",
+		},
+		{
+			name:      "error - operator worker given org/root spec",
+			owner:     operatorOwner,
+			spec:      orgRootSpec(),
+			wantErr:   true,
+			errSubstr: "not owned",
+		},
+		{
+			name:      "error - signing issuer crosses ownership boundary",
+			owner:     orgOwner,
+			spec:      caSpec(orgIntRef, tlsRootRef, tlsIntRef),
+			wantErr:   true,
+			errSubstr: "signing_issuer",
+		},
+
+		// Structural rejections
+		{
+			name:      "error - nil spec",
+			owner:     operatorOwner,
+			spec:      nil,
+			wantErr:   true,
+			errSubstr: "spec is required",
+		},
+		{
+			name:      "error - missing self",
+			owner:     operatorOwner,
+			spec:      caSpec(nil, nil, nil),
+			wantErr:   true,
+			errSubstr: "spec.self is required",
+		},
+		{
+			name:      "error - invalid self cert type",
+			owner:     operatorOwner,
+			spec:      caSpec(&pb.CertificateAuthorityRef{CertType: "bogus", Id: "root"}, nil, nil),
+			wantErr:   true,
+			errSubstr: "cert_type must be 'tls' or 'org'",
+		},
+		{
+			name:      "error - missing self id",
+			owner:     operatorOwner,
+			spec:      caSpec(&pb.CertificateAuthorityRef{CertType: "tls"}, nil, nil),
+			wantErr:   true,
+			errSubstr: "ca id is required",
+		},
+		{
+			name:      "error - invalid tls issuer cert type",
+			owner:     operatorOwner,
+			spec:      caSpec(tlsIntRef, tlsRootRef, &pb.CertificateAuthorityRef{CertType: "bogus", Id: "root"}),
 			wantErr:   true,
 			errSubstr: "cert_type must be 'tls' or 'org'",
 		},
@@ -99,26 +224,10 @@ func TestNewCreateCertificateDatabaseWorkflow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wf, err := newCreateCertificateDatabaseWorkflow(tt.input)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
-					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
-				}
-				if wf != nil {
-					t.Error("expected nil workflow on error")
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if wf == nil {
-					t.Fatal("expected non-nil workflow")
-				}
-			}
+			wf, err := newDeployCertificateAuthorityWorkflow(&pb.DeployCertificateAuthorityWorkflowInput{
+				Req: &pb.DeployCertificateAuthorityInput{Spec: tt.spec},
+			}, tt.owner)
+			assertConstructorResult(t, wf == nil, err, tt.wantErr, tt.errSubstr)
 		})
 	}
 }
@@ -133,45 +242,20 @@ func TestNewDeployPeerWorkflow(t *testing.T) {
 		{
 			name: "success - all required fields",
 			input: &pb.DeployPeerWorkflowInput{Req: &pb.DeployPeerInput{
-				Org: testOrg,
-				Spec: &pb.PeerSpec{
-					Id:        "peer0",
-					OrgIssuer: &pb.CertificateAuthorityRef{CertType: "org", Id: "int"},
-					TlsIssuer: &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-				},
+				Spec: &pb.PeerSpec{Id: "peer0", OrgIssuer: orgIntRef, TlsIssuer: tlsIntRef},
 			}},
 			wantErr: false,
 		},
 		{
-			name: "error - missing org",
-			input: &pb.DeployPeerWorkflowInput{Req: &pb.DeployPeerInput{
-				Spec: &pb.PeerSpec{
-					Id:        "peer0",
-					OrgIssuer: &pb.CertificateAuthorityRef{CertType: "org", Id: "int"},
-					TlsIssuer: &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-				},
-			}},
-			wantErr:   true,
-			errSubstr: "org is required",
-		},
-		{
-			name: "error - nil spec",
-			input: &pb.DeployPeerWorkflowInput{Req: &pb.DeployPeerInput{
-				Org:  testOrg,
-				Spec: nil,
-			}},
+			name:      "error - nil spec",
+			input:     &pb.DeployPeerWorkflowInput{Req: &pb.DeployPeerInput{Spec: nil}},
 			wantErr:   true,
 			errSubstr: "spec is required",
 		},
 		{
 			name: "error - missing org_issuer",
 			input: &pb.DeployPeerWorkflowInput{Req: &pb.DeployPeerInput{
-				Org: testOrg,
-				Spec: &pb.PeerSpec{
-					Id:        "peer0",
-					OrgIssuer: nil,
-					TlsIssuer: &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-				},
+				Spec: &pb.PeerSpec{Id: "peer0", OrgIssuer: nil, TlsIssuer: tlsIntRef},
 			}},
 			wantErr:   true,
 			errSubstr: "spec.org_issuer is required",
@@ -179,12 +263,7 @@ func TestNewDeployPeerWorkflow(t *testing.T) {
 		{
 			name: "error - missing tls_issuer",
 			input: &pb.DeployPeerWorkflowInput{Req: &pb.DeployPeerInput{
-				Org: testOrg,
-				Spec: &pb.PeerSpec{
-					Id:        "peer0",
-					OrgIssuer: &pb.CertificateAuthorityRef{CertType: "org", Id: "int"},
-					TlsIssuer: nil,
-				},
+				Spec: &pb.PeerSpec{Id: "peer0", OrgIssuer: orgIntRef, TlsIssuer: nil},
 			}},
 			wantErr:   true,
 			errSubstr: "spec.tls_issuer is required",
@@ -193,26 +272,8 @@ func TestNewDeployPeerWorkflow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wf, err := newDeployPeerWorkflow(tt.input)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
-					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
-				}
-				if wf != nil {
-					t.Error("expected nil workflow on error")
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if wf == nil {
-					t.Fatal("expected non-nil workflow")
-				}
-			}
+			wf, err := newDeployPeerWorkflow(tt.input, orgOwner)
+			assertConstructorResult(t, wf == nil, err, tt.wantErr, tt.errSubstr)
 		})
 	}
 }
@@ -227,45 +288,20 @@ func TestNewDeployOrdererWorkflow(t *testing.T) {
 		{
 			name: "success - all required fields",
 			input: &pb.DeployOrdererWorkflowInput{Req: &pb.DeployOrdererInput{
-				Org: testOrg,
-				Spec: &pb.OrdererSpec{
-					Id:        "orderer0",
-					OrgIssuer: &pb.CertificateAuthorityRef{CertType: "org", Id: "int"},
-					TlsIssuer: &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-				},
+				Spec: &pb.OrdererSpec{Id: "orderer0", OrgIssuer: orgIntRef, TlsIssuer: tlsIntRef},
 			}},
 			wantErr: false,
 		},
 		{
-			name: "error - missing org",
-			input: &pb.DeployOrdererWorkflowInput{Req: &pb.DeployOrdererInput{
-				Spec: &pb.OrdererSpec{
-					Id:        "orderer0",
-					OrgIssuer: &pb.CertificateAuthorityRef{CertType: "org", Id: "int"},
-					TlsIssuer: &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-				},
-			}},
-			wantErr:   true,
-			errSubstr: "org is required",
-		},
-		{
-			name: "error - nil spec",
-			input: &pb.DeployOrdererWorkflowInput{Req: &pb.DeployOrdererInput{
-				Org:  testOrg,
-				Spec: nil,
-			}},
+			name:      "error - nil spec",
+			input:     &pb.DeployOrdererWorkflowInput{Req: &pb.DeployOrdererInput{Spec: nil}},
 			wantErr:   true,
 			errSubstr: "spec is required",
 		},
 		{
 			name: "error - missing org_issuer",
 			input: &pb.DeployOrdererWorkflowInput{Req: &pb.DeployOrdererInput{
-				Org: testOrg,
-				Spec: &pb.OrdererSpec{
-					Id:        "orderer0",
-					OrgIssuer: nil,
-					TlsIssuer: &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-				},
+				Spec: &pb.OrdererSpec{Id: "orderer0", OrgIssuer: nil, TlsIssuer: tlsIntRef},
 			}},
 			wantErr:   true,
 			errSubstr: "spec.org_issuer is required",
@@ -273,12 +309,7 @@ func TestNewDeployOrdererWorkflow(t *testing.T) {
 		{
 			name: "error - missing tls_issuer",
 			input: &pb.DeployOrdererWorkflowInput{Req: &pb.DeployOrdererInput{
-				Org: testOrg,
-				Spec: &pb.OrdererSpec{
-					Id:        "orderer0",
-					OrgIssuer: &pb.CertificateAuthorityRef{CertType: "org", Id: "int"},
-					TlsIssuer: nil,
-				},
+				Spec: &pb.OrdererSpec{Id: "orderer0", OrgIssuer: orgIntRef, TlsIssuer: nil},
 			}},
 			wantErr:   true,
 			errSubstr: "spec.tls_issuer is required",
@@ -287,26 +318,8 @@ func TestNewDeployOrdererWorkflow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wf, err := newDeployOrdererWorkflow(tt.input)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
-					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
-				}
-				if wf != nil {
-					t.Error("expected nil workflow on error")
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if wf == nil {
-					t.Fatal("expected non-nil workflow")
-				}
-			}
+			wf, err := newDeployOrdererWorkflow(tt.input, orgOwner)
+			assertConstructorResult(t, wf == nil, err, tt.wantErr, tt.errSubstr)
 		})
 	}
 }
@@ -314,174 +327,15 @@ func TestNewDeployOrdererWorkflow(t *testing.T) {
 func TestNewBootstrapFabricWorkflow(t *testing.T) {
 	t.Run("success - valid input", func(t *testing.T) {
 		wf, err := newBootstrapFabricWorkflow(&pb.BootstrapFabricWorkflowInput{Req: &pb.BootstrapFabricInput{
-			Org: testOperatorID,
-		}})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if wf == nil {
-			t.Fatal("expected non-nil workflow")
-		}
+			CertificateAuthorities: []*pb.CertificateAuthoritySpec{tlsRootSpec(), tlsIntSpec()},
+		}}, operatorOwner)
+		assertConstructorResult(t, wf == nil, err, false, "")
 	})
 
-	t.Run("error - missing org", func(t *testing.T) {
-		wf, err := newBootstrapFabricWorkflow(&pb.BootstrapFabricWorkflowInput{Req: &pb.BootstrapFabricInput{}})
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "org is required") {
-			t.Errorf("expected error containing %q, got: %v", "org is required", err)
-		}
-		if wf != nil {
-			t.Error("expected nil workflow on error")
-		}
+	t.Run("error - no certificate authorities", func(t *testing.T) {
+		wf, err := newBootstrapFabricWorkflow(&pb.BootstrapFabricWorkflowInput{Req: &pb.BootstrapFabricInput{}}, operatorOwner)
+		assertConstructorResult(t, wf == nil, err, true, "at least one certificate authority spec is required")
 	})
-}
-
-func TestNewBootstrapTlsCertificateAuthoritiesWorkflow(t *testing.T) {
-	t.Run("success - valid input", func(t *testing.T) {
-		wf, err := newBootstrapTlsCertificateAuthoritiesWorkflow(&pb.BootstrapTlsCertificateAuthoritiesWorkflowInput{
-			Req: &pb.BootstrapTlsCertificateAuthoritiesInput{Org: testOperatorID},
-		})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if wf == nil {
-			t.Fatal("expected non-nil workflow")
-		}
-	})
-
-	t.Run("error - missing org", func(t *testing.T) {
-		wf, err := newBootstrapTlsCertificateAuthoritiesWorkflow(&pb.BootstrapTlsCertificateAuthoritiesWorkflowInput{
-			Req: &pb.BootstrapTlsCertificateAuthoritiesInput{},
-		})
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "org is required") {
-			t.Errorf("expected error containing %q, got: %v", "org is required", err)
-		}
-		if wf != nil {
-			t.Error("expected nil workflow on error")
-		}
-	})
-}
-
-func TestNewBootstrapOrgCertificateAuthoritiesWorkflow(t *testing.T) {
-	t.Run("success - valid input", func(t *testing.T) {
-		wf, err := newBootstrapOrgCertificateAuthoritiesWorkflow(&pb.BootstrapOrgCertificateAuthoritiesWorkflowInput{
-			Req: &pb.BootstrapOrgCertificateAuthoritiesInput{Org: testOrg},
-		})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if wf == nil {
-			t.Fatal("expected non-nil workflow")
-		}
-	})
-
-	t.Run("error - missing org", func(t *testing.T) {
-		wf, err := newBootstrapOrgCertificateAuthoritiesWorkflow(&pb.BootstrapOrgCertificateAuthoritiesWorkflowInput{
-			Req: &pb.BootstrapOrgCertificateAuthoritiesInput{},
-		})
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "org is required") {
-			t.Errorf("expected error containing %q, got: %v", "org is required", err)
-		}
-		if wf != nil {
-			t.Error("expected nil workflow on error")
-		}
-	})
-}
-
-func TestNewDeployTlsRootCertificateAuthorityWorkflow(t *testing.T) {
-	t.Run("success - valid input", func(t *testing.T) {
-		wf, err := newDeployTlsRootCertificateAuthorityWorkflow(&pb.DeployTlsRootCertificateAuthorityWorkflowInput{
-			Req: &pb.DeployTlsRootCertificateAuthorityInput{Org: testOperatorID},
-		})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if wf == nil {
-			t.Fatal("expected non-nil workflow")
-		}
-	})
-
-	t.Run("error - missing org", func(t *testing.T) {
-		wf, err := newDeployTlsRootCertificateAuthorityWorkflow(&pb.DeployTlsRootCertificateAuthorityWorkflowInput{
-			Req: &pb.DeployTlsRootCertificateAuthorityInput{},
-		})
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "org must not be empty") {
-			t.Errorf("expected error containing %q, got: %v", "org must not be empty", err)
-		}
-		if wf != nil {
-			t.Error("expected nil workflow on error")
-		}
-	})
-}
-
-func TestNewDeployOrgRootCertificateAuthorityWorkflow(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     *pb.DeployOrgRootCertificateAuthorityWorkflowInput
-		wantErr   bool
-		errSubstr string
-	}{
-		{
-			name: "success - valid input",
-			input: &pb.DeployOrgRootCertificateAuthorityWorkflowInput{Req: &pb.DeployOrgRootCertificateAuthorityInput{
-				Org:       testOrg,
-				TlsIssuer: &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-			}},
-			wantErr: false,
-		},
-		{
-			name: "error - missing org",
-			input: &pb.DeployOrgRootCertificateAuthorityWorkflowInput{Req: &pb.DeployOrgRootCertificateAuthorityInput{
-				TlsIssuer: &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-			}},
-			wantErr:   true,
-			errSubstr: "org must not be empty",
-		},
-		{
-			name: "error - missing tls_issuer",
-			input: &pb.DeployOrgRootCertificateAuthorityWorkflowInput{Req: &pb.DeployOrgRootCertificateAuthorityInput{
-				Org: testOrg,
-			}},
-			wantErr:   true,
-			errSubstr: "tls_issuer must not be nil",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			wf, err := newDeployOrgRootCertificateAuthorityWorkflow(tt.input)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
-					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
-				}
-				if wf != nil {
-					t.Error("expected nil workflow on error")
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if wf == nil {
-					t.Fatal("expected non-nil workflow")
-				}
-			}
-		})
-	}
 }
 
 func TestNewBootstrapShardWorkflow(t *testing.T) {
@@ -494,23 +348,13 @@ func TestNewBootstrapShardWorkflow(t *testing.T) {
 		{
 			name: "success - valid deployment spec",
 			input: &pb.BootstrapShardWorkflowInput{Req: &pb.BootstrapShardInput{
-				Org:        testOrg,
 				Deployment: testDeploymentSpec(),
 			}},
 			wantErr: false,
 		},
 		{
-			name: "error - missing org",
-			input: &pb.BootstrapShardWorkflowInput{Req: &pb.BootstrapShardInput{
-				Deployment: testDeploymentSpec(),
-			}},
-			wantErr:   true,
-			errSubstr: "org is required",
-		},
-		{
 			name: "error - nil deployment",
 			input: &pb.BootstrapShardWorkflowInput{Req: &pb.BootstrapShardInput{
-				Org:        testOrg,
 				Deployment: nil,
 			}},
 			wantErr:   true,
@@ -519,7 +363,6 @@ func TestNewBootstrapShardWorkflow(t *testing.T) {
 		{
 			name: "error - no certificate authorities",
 			input: &pb.BootstrapShardWorkflowInput{Req: &pb.BootstrapShardInput{
-				Org: testOrg,
 				Deployment: &pb.OrgFabricDeployment{
 					CertificateAuthorities: []*pb.CertificateAuthoritySpec{},
 					Peers:                  []*pb.PeerSpec{{Id: "peer0"}},
@@ -532,13 +375,10 @@ func TestNewBootstrapShardWorkflow(t *testing.T) {
 		{
 			name: "error - no peers",
 			input: &pb.BootstrapShardWorkflowInput{Req: &pb.BootstrapShardInput{
-				Org: testOrg,
 				Deployment: &pb.OrgFabricDeployment{
-					CertificateAuthorities: []*pb.CertificateAuthoritySpec{
-						{Self: &pb.CertificateAuthorityRef{CertType: "org", Id: "root"}},
-					},
-					Peers:    []*pb.PeerSpec{},
-					Orderers: []*pb.OrdererSpec{{Id: "orderer0"}},
+					CertificateAuthorities: []*pb.CertificateAuthoritySpec{orgRootSpec()},
+					Peers:                  []*pb.PeerSpec{},
+					Orderers:               []*pb.OrdererSpec{{Id: "orderer0"}},
 				},
 			}},
 			wantErr:   true,
@@ -547,13 +387,10 @@ func TestNewBootstrapShardWorkflow(t *testing.T) {
 		{
 			name: "error - no orderers",
 			input: &pb.BootstrapShardWorkflowInput{Req: &pb.BootstrapShardInput{
-				Org: testOrg,
 				Deployment: &pb.OrgFabricDeployment{
-					CertificateAuthorities: []*pb.CertificateAuthoritySpec{
-						{Self: &pb.CertificateAuthorityRef{CertType: "org", Id: "root"}},
-					},
-					Peers:    []*pb.PeerSpec{{Id: "peer0"}},
-					Orderers: []*pb.OrdererSpec{},
+					CertificateAuthorities: []*pb.CertificateAuthoritySpec{orgRootSpec()},
+					Peers:                  []*pb.PeerSpec{{Id: "peer0"}},
+					Orderers:               []*pb.OrdererSpec{},
 				},
 			}},
 			wantErr:   true,
@@ -563,26 +400,8 @@ func TestNewBootstrapShardWorkflow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wf, err := newBootstrapShardWorkflow(tt.input)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
-					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
-				}
-				if wf != nil {
-					t.Error("expected nil workflow on error")
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if wf == nil {
-					t.Fatal("expected non-nil workflow")
-				}
-			}
+			wf, err := newBootstrapShardWorkflow(tt.input, orgOwner)
+			assertConstructorResult(t, wf == nil, err, tt.wantErr, tt.errSubstr)
 		})
 	}
 }
@@ -590,6 +409,29 @@ func TestNewBootstrapShardWorkflow(t *testing.T) {
 // =============================================================================
 // Test Helpers
 // =============================================================================
+
+// assertConstructorResult checks a workflow constructor's (wf, err) pair
+func assertConstructorResult(t *testing.T, wfIsNil bool, err error, wantErr bool, errSubstr string) {
+	t.Helper()
+	if wantErr {
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if errSubstr != "" && !strings.Contains(err.Error(), errSubstr) {
+			t.Errorf("expected error containing %q, got: %v", errSubstr, err)
+		}
+		if !wfIsNil {
+			t.Error("expected nil workflow on error")
+		}
+	} else {
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if wfIsNil {
+			t.Fatal("expected non-nil workflow")
+		}
+	}
+}
 
 // registerChildWorkflowStubs registers child workflow stubs for mocking.
 // Stubs return zero values - they're never executed when properly mocked.
@@ -608,38 +450,13 @@ func registerChildWorkflowStubs(env *testsuite.TestWorkflowEnvironment) {
 			return nil, nil
 		})
 
+	register(pb.DeployCertificateAuthorityWorkflowName,
+		func(workflow.Context, *pb.DeployCertificateAuthorityInput) (*pb.DeployCertificateAuthorityOutput, error) {
+			return nil, nil
+		})
+
 	register(pb.CreateCertificateDatabaseWorkflowName,
 		func(workflow.Context, *pb.CreateCertificateDatabaseInput) (*pb.CreateCertificateDatabaseOutput, error) {
-			return nil, nil
-		})
-
-	register(pb.BootstrapTlsCertificateAuthoritiesWorkflowName,
-		func(workflow.Context, *pb.BootstrapTlsCertificateAuthoritiesInput) (*pb.BootstrapTlsCertificateAuthoritiesOutput, error) {
-			return nil, nil
-		})
-
-	register(pb.BootstrapOrgCertificateAuthoritiesWorkflowName,
-		func(workflow.Context, *pb.BootstrapOrgCertificateAuthoritiesInput) (*pb.BootstrapOrgCertificateAuthoritiesOutput, error) {
-			return nil, nil
-		})
-
-	register(pb.DeployTlsRootCertificateAuthorityWorkflowName,
-		func(workflow.Context, *pb.DeployTlsRootCertificateAuthorityInput) (*pb.DeployTlsRootCertificateAuthorityOutput, error) {
-			return nil, nil
-		})
-
-	register(pb.DeployTlsIntermediateCertificateAuthorityWorkflowName,
-		func(workflow.Context, *pb.DeployTlsIntermediateCertificateAuthorityInput) (*pb.DeployTlsIntermediateCertificateAuthorityOutput, error) {
-			return nil, nil
-		})
-
-	register(pb.DeployOrgRootCertificateAuthorityWorkflowName,
-		func(workflow.Context, *pb.DeployOrgRootCertificateAuthorityInput) (*pb.DeployOrgRootCertificateAuthorityOutput, error) {
-			return nil, nil
-		})
-
-	register(pb.DeployOrgIntermediateCertificateAuthorityWorkflowName,
-		func(workflow.Context, *pb.DeployOrgIntermediateCertificateAuthorityInput) (*pb.DeployOrgIntermediateCertificateAuthorityOutput, error) {
 			return nil, nil
 		})
 
@@ -712,6 +529,10 @@ func stubCreatePasswordActivity(ctx context.Context, input *secretspb.CreatePass
 	return &secretspb.CreatePasswordOutput{SecretRef: input.SecretRef}, nil
 }
 
+func stubGetStatusActivity(ctx context.Context, input *kubepb.GetStatusInput) (*kubepb.GetStatusOutput, error) {
+	return &kubepb.GetStatusOutput{}, nil
+}
+
 // registerSecretsActivityStubs registers the secrets activities used by the CA
 // deployment workflows so they can be mocked with OnActivity.
 func registerSecretsActivityStubs(env *testsuite.TestWorkflowEnvironment) {
@@ -769,15 +590,10 @@ func registerCertAuthNexusMock(t *testing.T, env *testsuite.TestWorkflowEnvironm
 
 // testDeploymentSpec returns a standard deployment spec for testing
 func testDeploymentSpec() *pb.OrgFabricDeployment {
-	tlsIntRef := &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"}
-	orgRootRef := &pb.CertificateAuthorityRef{CertType: "org", Id: "root"}
-	orgIntRef := &pb.CertificateAuthorityRef{CertType: "org", Id: "int"}
-	caValidity := durationpb.New(15 * 365 * 24 * time.Hour)
-
 	return &pb.OrgFabricDeployment{
 		CertificateAuthorities: []*pb.CertificateAuthoritySpec{
-			{Self: orgRootRef, SigningIssuer: nil, TlsIssuer: tlsIntRef, ValidityDuration: caValidity},
-			{Self: orgIntRef, SigningIssuer: orgRootRef, TlsIssuer: tlsIntRef, ValidityDuration: caValidity},
+			orgRootSpec(),
+			orgIntSpec(),
 		},
 		Peers: []*pb.PeerSpec{
 			{Id: "peer0", OrgIssuer: orgIntRef, TlsIssuer: tlsIntRef},
@@ -788,6 +604,24 @@ func testDeploymentSpec() *pb.OrgFabricDeployment {
 	}
 }
 
+// assertWorkflowResult checks the workflow error against expectations
+func assertWorkflowResult(t *testing.T, err error, expectedErr error) {
+	t.Helper()
+	if expectedErr == nil {
+		if err != nil {
+			t.Fatalf("unexpected workflow error: %v", err)
+		}
+	} else {
+		if err == nil {
+			t.Fatalf("expected error %v, got nil", expectedErr)
+		}
+		// Temporal serializes workflow errors, breaking Go's error chain, so we check the message.
+		if !strings.Contains(err.Error(), expectedErr.Error()) {
+			t.Fatalf("expected error containing %q, got: %v", expectedErr, err)
+		}
+	}
+}
+
 // =============================================================================
 // Workflow Execution Tests
 // =============================================================================
@@ -795,21 +629,26 @@ func testDeploymentSpec() *pb.OrgFabricDeployment {
 func TestDeployCertificateStoreWorkflow(t *testing.T) {
 	tests := []struct {
 		name                    string
-		org                     string
+		owner                   workerconfig.OwnerConfig
 		createDeploymentErr     error
 		expectedErr             error // nil = success
 		validateDeploymentInput bool  // if true, verify the deployment input
 	}{
 		{
 			name:                "failure - create deployment fails",
-			org:                 testOrg,
+			owner:               orgOwner,
 			createDeploymentErr: errors.New("kubernetes error"),
 			expectedErr:         errors.New("failed to create certificate store deployment"),
 		},
 		{
-			name:                    "success - certificate store deployed",
-			org:                     testOrg,
-			createDeploymentErr:     nil,
+			name:                    "success - certificate store deployed on shard worker",
+			owner:                   orgOwner,
+			expectedErr:             nil,
+			validateDeploymentInput: true,
+		},
+		{
+			name:                    "success - certificate store deployed on operator worker",
+			owner:                   operatorOwner,
 			expectedErr:             nil,
 			validateDeploymentInput: true,
 		},
@@ -820,22 +659,10 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			// Register child workflow stubs
 			registerChildWorkflowStubs(env)
-
-			// Register activities before mocking
-			env.RegisterActivityWithOptions(
-				func(ctx context.Context, input *secretspb.CreatePasswordInput) (*secretspb.CreatePasswordOutput, error) {
-					return &secretspb.CreatePasswordOutput{SecretRef: input.SecretRef}, nil
-				},
-				activity.RegisterOptions{Name: secretspb.CreatePasswordActivityName},
-			)
-			env.RegisterActivityWithOptions(
-				func(ctx context.Context, input *kubepb.GetStatusInput) (*kubepb.GetStatusOutput, error) {
-					return &kubepb.GetStatusOutput{}, nil
-				},
-				activity.RegisterOptions{Name: kubepb.GetStatusActivityName},
-			)
+			registerSecretsActivityStubs(env)
+			env.RegisterActivityWithOptions(stubGetStatusActivity,
+				activity.RegisterOptions{Name: kubepb.GetStatusActivityName})
 
 			// Mock Secrets CreateAccess Nexus operation
 			registerSecretsNexusMock(t, env, nil)
@@ -847,10 +674,14 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 
 			// Mock CreateDeployment child workflow
 			if tt.validateDeploymentInput {
-				// Validate that correct component is passed
+				// The deployment must target the injected owner, not any input value
 				env.OnWorkflow(clusterpb.CreateDeploymentWorkflowName, mock.Anything,
 					mock.MatchedBy(func(input *clusterpb.CreateDeploymentInput) bool {
-						return input.Org == tt.org && input.Component == "certificate-store"
+						ownerCfg, err := workerconfig.NewOwnerConfig(input.GetOwner())
+						return err == nil &&
+							ownerCfg.OwnerID() == tt.owner.OwnerID() &&
+							ownerCfg.IsOperator() == tt.owner.IsOperator() &&
+							input.Component == "certificate-store"
 					})).Return(&clusterpb.CreateDeploymentOutput{
 					DeploymentName: "certificate-store",
 				}, tt.createDeploymentErr)
@@ -860,33 +691,21 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployCertificateStoreInput) (*pb.DeployCertificateStoreOutput, error) {
-				workflows := NewWorkflows()
+				workflows := NewWorkflows(tt.owner)
 				wf, err := workflows.DeployCertificateStore(ctx, &pb.DeployCertificateStoreWorkflowInput{Req: input})
 				if err != nil {
 					return nil, err
 				}
 				return wf.Execute(ctx)
-			}, &pb.DeployCertificateStoreInput{Org: tt.org})
+			}, &pb.DeployCertificateStoreInput{})
 
 			var result *pb.DeployCertificateStoreOutput
 			err := env.GetWorkflowResult(&result)
 
-			if tt.expectedErr == nil {
-				if err != nil {
-					t.Fatalf("unexpected workflow error: %v", err)
-				}
-				if result == nil {
-					t.Fatal("result is nil")
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("expected error %v, got nil", tt.expectedErr)
-				}
-				// Temporal serializes workflow errors, breaking Go's error chain, so we check the message.
-				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
-					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
-				}
+			if tt.expectedErr == nil && err == nil && result == nil {
+				t.Fatal("result is nil")
 			}
+			assertWorkflowResult(t, err, tt.expectedErr)
 		})
 	}
 }
@@ -894,9 +713,8 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 	tests := []struct {
 		name                   string
-		org                    string
-		certType               string
-		caID                   string
+		owner                  workerconfig.OwnerConfig
+		caRef                  *pb.CertificateAuthorityRef
 		generatePasswordErr    error
 		createDatabaseErr      error
 		createUserErr          error
@@ -905,50 +723,44 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 		validateCredentialsRef bool
 	}{
 		{
-			name:                   "success - database created for tls root CA",
-			org:                    testOrg,
-			certType:               "tls",
-			caID:                   "root",
+			name:                   "success - database created for tls root CA on operator worker",
+			owner:                  operatorOwner,
+			caRef:                  tlsRootRef,
 			expectedErr:            nil,
 			validateCredentialsRef: true,
 		},
 		{
-			name:                   "success - database created for org intermediate CA",
-			org:                    testOrg,
-			certType:               "org",
-			caID:                   "int",
+			name:                   "success - database created for org intermediate CA on shard worker",
+			owner:                  orgOwner,
+			caRef:                  orgIntRef,
 			expectedErr:            nil,
 			validateCredentialsRef: true,
 		},
 		{
 			name:                "error - generate password fails",
-			org:                 testOrg,
-			certType:            "tls",
-			caID:                "root",
+			owner:               operatorOwner,
+			caRef:               tlsRootRef,
 			generatePasswordErr: errors.New("vault unavailable"),
 			expectedErr:         errors.New("failed to generate credentials"),
 		},
 		{
 			name:              "error - create database fails",
-			org:               testOrg,
-			certType:          "tls",
-			caID:              "root",
+			owner:             operatorOwner,
+			caRef:             tlsRootRef,
 			createDatabaseErr: errors.New("postgres connection refused"),
 			expectedErr:       errors.New("failed to create database"),
 		},
 		{
 			name:          "error - create user fails",
-			org:           testOrg,
-			certType:      "org",
-			caID:          "int",
+			owner:         orgOwner,
+			caRef:         orgIntRef,
 			createUserErr: errors.New("user already exists with different password"),
 			expectedErr:   errors.New("failed to create user"),
 		},
 		{
 			name:               "error - grant privileges fails",
-			org:                testOrg,
-			certType:           "org",
-			caID:               "int",
+			owner:              orgOwner,
+			caRef:              orgIntRef,
 			grantPrivilegesErr: errors.New("insufficient permissions"),
 			expectedErr:        errors.New("failed to grant privileges"),
 		},
@@ -959,138 +771,93 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			// Register child workflow stubs
 			registerChildWorkflowStubs(env)
+			registerSecretsActivityStubs(env)
+			env.RegisterActivityWithOptions(stubGetStatusActivity,
+				activity.RegisterOptions{Name: kubepb.GetStatusActivityName})
 
-			// Register activities before mocking
-			env.RegisterActivityWithOptions(
-				func(ctx context.Context, input *secretspb.CreatePasswordInput) (*secretspb.CreatePasswordOutput, error) {
-					return &secretspb.CreatePasswordOutput{SecretRef: input.SecretRef}, nil
-				},
-				activity.RegisterOptions{Name: secretspb.CreatePasswordActivityName},
-			)
-			env.RegisterActivityWithOptions(
-				func(ctx context.Context, input *kubepb.GetStatusInput) (*kubepb.GetStatusOutput, error) {
-					return &kubepb.GetStatusOutput{}, nil
-				},
-				activity.RegisterOptions{Name: kubepb.GetStatusActivityName},
-			)
+			// Mock PostgreSQL activities - must register BEFORE OnActivity calls
+			mockPostgresActivities := postgresv1mocks.NewMockPostgresActivities(t)
 
-			// Register and mock activities only if we pass validation
-			if tt.certType == "tls" || tt.certType == "org" {
-				if tt.caID != "" {
-					// Mock PostgreSQL activities - must register BEFORE OnActivity calls
-					mockPostgresActivities := postgresv1mocks.NewMockPostgresActivities(t)
-
-					// Set up mock expectations
-					if tt.createDatabaseErr != nil {
-						mockPostgresActivities.EXPECT().
-							CreateDatabase(mock.Anything, mock.Anything).
-							Return(nil, tt.createDatabaseErr).
-							Maybe()
-					} else if tt.expectedErr == nil ||
-						!strings.Contains(tt.expectedErr.Error(), "failed to create database") {
-						mockPostgresActivities.EXPECT().
-							CreateDatabase(mock.Anything, mock.Anything).
-							Return(&postgrespb.CreateDatabaseOutput{}, nil).
-							Maybe()
-					}
-
-					// Mock CreateUser (now uses CredentialsRef internally)
-					if tt.createUserErr != nil {
-						mockPostgresActivities.EXPECT().
-							CreateUser(mock.Anything, mock.Anything).
-							Return(nil, tt.createUserErr).
-							Maybe()
-					} else if tt.generatePasswordErr == nil && tt.createDatabaseErr == nil {
-						mockPostgresActivities.EXPECT().
-							CreateUser(mock.Anything, mock.Anything).
-							Return(&postgrespb.CreateUserOutput{}, nil).
-							Maybe()
-					}
-
-					// Mock GrantPrivileges
-					if tt.grantPrivilegesErr != nil {
-						mockPostgresActivities.EXPECT().
-							GrantPrivileges(mock.Anything, mock.Anything).
-							Return(nil, tt.grantPrivilegesErr).
-							Maybe()
-					} else if tt.generatePasswordErr == nil && tt.createDatabaseErr == nil && tt.createUserErr == nil {
-						mockPostgresActivities.EXPECT().
-							GrantPrivileges(mock.Anything, mock.Anything).
-							Return(&postgrespb.GrantPrivilegesOutput{}, nil).
-							Maybe()
-					}
-
-					// Register activities - must be before OnActivity calls
-					postgrespb.RegisterPostgresActivities(env, mockPostgresActivities)
-				}
+			if tt.createDatabaseErr != nil {
+				mockPostgresActivities.EXPECT().
+					CreateDatabase(mock.Anything, mock.Anything).
+					Return(nil, tt.createDatabaseErr).
+					Maybe()
+			} else {
+				mockPostgresActivities.EXPECT().
+					CreateDatabase(mock.Anything, mock.Anything).
+					Return(&postgrespb.CreateDatabaseOutput{}, nil).
+					Maybe()
 			}
+
+			if tt.createUserErr != nil {
+				mockPostgresActivities.EXPECT().
+					CreateUser(mock.Anything, mock.Anything).
+					Return(nil, tt.createUserErr).
+					Maybe()
+			} else {
+				mockPostgresActivities.EXPECT().
+					CreateUser(mock.Anything, mock.Anything).
+					Return(&postgrespb.CreateUserOutput{}, nil).
+					Maybe()
+			}
+
+			if tt.grantPrivilegesErr != nil {
+				mockPostgresActivities.EXPECT().
+					GrantPrivileges(mock.Anything, mock.Anything).
+					Return(nil, tt.grantPrivilegesErr).
+					Maybe()
+			} else {
+				mockPostgresActivities.EXPECT().
+					GrantPrivileges(mock.Anything, mock.Anything).
+					Return(&postgrespb.GrantPrivilegesOutput{}, nil).
+					Maybe()
+			}
+
+			// Register activities - must be before OnActivity calls
+			postgrespb.RegisterPostgresActivities(env, mockPostgresActivities)
 
 			// Mock activities using OnActivity (must come after all RegisterActivity calls)
 			env.OnActivity(kubepb.GetStatusActivityName, mock.Anything, mock.Anything).
 				Return(&kubepb.GetStatusOutput{}, nil)
 
-			if tt.certType == "tls" || tt.certType == "org" {
-				if tt.caID != "" {
-					if tt.generatePasswordErr != nil {
-						env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
-							Return(nil, tt.generatePasswordErr).Maybe()
-					} else {
-						env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
-							Return(&secretspb.CreatePasswordOutput{
-								SecretRef: secrets.NewVaultRef("fabric/" + tt.org + "/ca/" + tt.certType + "/" + tt.caID + "/db/credentials"),
-							}, nil).Maybe()
-					}
-				}
+			if tt.generatePasswordErr != nil {
+				env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
+					Return(nil, tt.generatePasswordErr).Maybe()
+			} else {
+				env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
+					Return(&secretspb.CreatePasswordOutput{
+						SecretRef: secrets.NewVaultRef("fabric/" + tt.owner.OwnerID() + "/ca/" + tt.caRef.GetCertType() + "/" + tt.caRef.GetId() + "/db/credentials"),
+					}, nil).Maybe()
 			}
 
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.CreateCertificateDatabaseInput) (*pb.CreateCertificateDatabaseOutput, error) {
-				workflows := NewWorkflows()
+				workflows := NewWorkflows(tt.owner)
 				wf, err := workflows.CreateCertificateDatabase(ctx, &pb.CreateCertificateDatabaseWorkflowInput{Req: input})
 				if err != nil {
 					return nil, err
 				}
 				return wf.Execute(ctx)
 			}, &pb.CreateCertificateDatabaseInput{
-				Org: tt.org,
-				CaRef: &pb.CertificateAuthorityRef{
-					CertType: tt.certType,
-					Id:       tt.caID,
-				},
+				CaRef: tt.caRef,
 			})
 
 			var result *pb.CreateCertificateDatabaseOutput
 			err := env.GetWorkflowResult(&result)
 
-			if tt.expectedErr == nil {
-				if err != nil {
-					t.Fatalf("unexpected workflow error: %v", err)
-				}
-				if result == nil {
-					t.Fatal("result is nil")
-				}
+			assertWorkflowResult(t, err, tt.expectedErr)
 
-				// Validate credentials ref if requested
-				if tt.validateCredentialsRef {
-					if result.CredentialsRef == nil {
-						t.Fatal("credentials_ref is nil")
-					}
-					if result.CredentialsRef.Type == "" {
-						t.Fatal("credentials_ref.type is empty")
-					}
-					if result.CredentialsRef.Ref == nil {
-						t.Fatal("credentials_ref.ref is nil")
-					}
+			if tt.expectedErr == nil && tt.validateCredentialsRef {
+				if result.CredentialsRef == nil {
+					t.Fatal("credentials_ref is nil")
 				}
-			} else {
-				if err == nil {
-					t.Fatalf("expected error %v, got nil", tt.expectedErr)
+				if result.CredentialsRef.Type == "" {
+					t.Fatal("credentials_ref.type is empty")
 				}
-				// Temporal serializes workflow errors, breaking Go's error chain, so we check the message.
-				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
-					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
+				if result.CredentialsRef.Ref == nil {
+					t.Fatal("credentials_ref.ref is nil")
 				}
 			}
 		})
@@ -1100,7 +867,6 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 func TestDeployCouchDbWorkflow(t *testing.T) {
 	tests := []struct {
 		name                string
-		org                 string
 		peerID              string
 		createAccessErr     error
 		createPasswordErr   error
@@ -1110,34 +876,29 @@ func TestDeployCouchDbWorkflow(t *testing.T) {
 	}{
 		{
 			name:        "success - CouchDB deployed and ready",
-			org:         testOrg,
 			peerID:      "peer0",
 			expectedErr: nil,
 		},
 		{
 			name:            "error - create vault access fails",
-			org:             testOrg,
 			peerID:          "peer0",
 			createAccessErr: errors.New("vault policy creation failed"),
 			expectedErr:     ErrCreateAccess,
 		},
 		{
 			name:              "error - create credentials fails",
-			org:               testOrg,
 			peerID:            "peer0",
 			createPasswordErr: errors.New("vault unavailable"),
 			expectedErr:       errors.New("failed to generate couchdb credentials"),
 		},
 		{
 			name:                "error - create deployment fails",
-			org:                 testOrg,
 			peerID:              "peer0",
 			createDeploymentErr: errors.New("kubernetes error"),
 			expectedErr:         errors.New("failed to create couchdb deployment"),
 		},
 		{
 			name:         "error - CouchDB never ready",
-			org:          testOrg,
 			peerID:       "peer0",
 			getStatusErr: errors.New("pod not ready"),
 			expectedErr:  errors.New("CouchDB did not become ready"),
@@ -1149,24 +910,12 @@ func TestDeployCouchDbWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows()
+			workflows := NewWorkflows(orgOwner)
 
-			// Register child workflow stubs
 			registerChildWorkflowStubs(env)
-
-			// Register activities
-			env.RegisterActivityWithOptions(
-				func(ctx context.Context, input *secretspb.CreatePasswordInput) (*secretspb.CreatePasswordOutput, error) {
-					return &secretspb.CreatePasswordOutput{SecretRef: input.SecretRef}, nil
-				},
-				activity.RegisterOptions{Name: secretspb.CreatePasswordActivityName},
-			)
-			env.RegisterActivityWithOptions(
-				func(ctx context.Context, input *kubepb.GetStatusInput) (*kubepb.GetStatusOutput, error) {
-					return &kubepb.GetStatusOutput{}, nil
-				},
-				activity.RegisterOptions{Name: kubepb.GetStatusActivityName},
-			)
+			registerSecretsActivityStubs(env)
+			env.RegisterActivityWithOptions(stubGetStatusActivity,
+				activity.RegisterOptions{Name: kubepb.GetStatusActivityName})
 
 			// Mock Nexus CreateAccess
 			registerSecretsNexusMock(t, env, tt.createAccessErr)
@@ -1199,22 +948,9 @@ func TestDeployCouchDbWorkflow(t *testing.T) {
 					return nil, err
 				}
 				return wf.Execute(ctx)
-			}, &pb.DeployCouchDbInput{Org: tt.org, PeerId: tt.peerID})
+			}, &pb.DeployCouchDbInput{PeerId: tt.peerID})
 
-			err := env.GetWorkflowError()
-
-			if tt.expectedErr == nil {
-				if err != nil {
-					t.Fatalf("unexpected workflow error: %v", err)
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("expected error %v, got nil", tt.expectedErr)
-				}
-				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
-					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
-				}
-			}
+			assertWorkflowResult(t, env.GetWorkflowError(), tt.expectedErr)
 		})
 	}
 }
@@ -1222,7 +958,6 @@ func TestDeployCouchDbWorkflow(t *testing.T) {
 func TestDeployPeerWorkflow(t *testing.T) {
 	tests := []struct {
 		name                string
-		org                 string
 		peerID              string
 		createAccessErr     error
 		createIdentityErr   error
@@ -1231,27 +966,23 @@ func TestDeployPeerWorkflow(t *testing.T) {
 	}{
 		{
 			name:        "success - peer deployed",
-			org:         testOrg,
 			peerID:      "peer0",
 			expectedErr: nil,
 		},
 		{
 			name:            "error - create vault access fails",
-			org:             testOrg,
 			peerID:          "peer0",
 			createAccessErr: errors.New("vault policy creation failed"),
 			expectedErr:     ErrCreateAccess,
 		},
 		{
 			name:              "error - create identity fails",
-			org:               testOrg,
 			peerID:            "peer0",
 			createIdentityErr: errors.New("CA enrollment failed"),
 			expectedErr:       errors.New("failed to create peer identity"),
 		},
 		{
 			name:                "error - create deployment fails",
-			org:                 testOrg,
 			peerID:              "peer0",
 			createDeploymentErr: errors.New("kubernetes error"),
 			expectedErr:         errors.New("failed to create peer deployment"),
@@ -1263,9 +994,8 @@ func TestDeployPeerWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows()
+			workflows := NewWorkflows(orgOwner)
 
-			// Register child workflow stubs
 			registerChildWorkflowStubs(env)
 
 			// Mock Nexus CreateAccess
@@ -1285,28 +1015,10 @@ func TestDeployPeerWorkflow(t *testing.T) {
 				}
 				return wf.Execute(ctx)
 			}, &pb.DeployPeerInput{
-				Org: tt.org,
-				Spec: &pb.PeerSpec{
-					Id:        tt.peerID,
-					OrgIssuer: &pb.CertificateAuthorityRef{CertType: "org", Id: "int"},
-					TlsIssuer: &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-				},
+				Spec: &pb.PeerSpec{Id: tt.peerID, OrgIssuer: orgIntRef, TlsIssuer: tlsIntRef},
 			})
 
-			err := env.GetWorkflowError()
-
-			if tt.expectedErr == nil {
-				if err != nil {
-					t.Fatalf("unexpected workflow error: %v", err)
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("expected error %v, got nil", tt.expectedErr)
-				}
-				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
-					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
-				}
-			}
+			assertWorkflowResult(t, env.GetWorkflowError(), tt.expectedErr)
 		})
 	}
 }
@@ -1314,7 +1026,6 @@ func TestDeployPeerWorkflow(t *testing.T) {
 func TestDeployOrdererWorkflow(t *testing.T) {
 	tests := []struct {
 		name                string
-		org                 string
 		ordererID           string
 		createAccessErr     error
 		createIdentityErr   error
@@ -1323,27 +1034,23 @@ func TestDeployOrdererWorkflow(t *testing.T) {
 	}{
 		{
 			name:        "success - orderer deployed",
-			org:         testOrg,
 			ordererID:   "orderer0",
 			expectedErr: nil,
 		},
 		{
 			name:            "error - create vault access fails",
-			org:             testOrg,
 			ordererID:       "orderer0",
 			createAccessErr: errors.New("vault policy creation failed"),
 			expectedErr:     ErrCreateAccess,
 		},
 		{
 			name:              "error - create identity fails",
-			org:               testOrg,
 			ordererID:         "orderer0",
 			createIdentityErr: errors.New("CA enrollment failed"),
 			expectedErr:       errors.New("failed to create orderer identity"),
 		},
 		{
 			name:                "error - create deployment fails",
-			org:                 testOrg,
 			ordererID:           "orderer0",
 			createDeploymentErr: errors.New("kubernetes error"),
 			expectedErr:         errors.New("failed to create orderer deployment"),
@@ -1355,9 +1062,8 @@ func TestDeployOrdererWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows()
+			workflows := NewWorkflows(orgOwner)
 
-			// Register child workflow stubs
 			registerChildWorkflowStubs(env)
 
 			// Mock Nexus CreateAccess
@@ -1377,46 +1083,42 @@ func TestDeployOrdererWorkflow(t *testing.T) {
 				}
 				return wf.Execute(ctx)
 			}, &pb.DeployOrdererInput{
-				Org: tt.org,
-				Spec: &pb.OrdererSpec{
-					Id:        tt.ordererID,
-					OrgIssuer: &pb.CertificateAuthorityRef{CertType: "org", Id: "int"},
-					TlsIssuer: &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-				},
+				Spec: &pb.OrdererSpec{Id: tt.ordererID, OrgIssuer: orgIntRef, TlsIssuer: tlsIntRef},
 			})
 
-			err := env.GetWorkflowError()
-
-			if tt.expectedErr == nil {
-				if err != nil {
-					t.Fatalf("unexpected workflow error: %v", err)
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("expected error %v, got nil", tt.expectedErr)
-				}
-				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
-					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
-				}
-			}
+			assertWorkflowResult(t, env.GetWorkflowError(), tt.expectedErr)
 		})
 	}
 }
 
 func TestBootstrapFabricWorkflow(t *testing.T) {
 	tests := []struct {
-		name            string
-		bootstrapTlsErr error
-		expectedErr     error
+		name               string
+		deployCertStoreErr error
+		deployCAErr        error  // Error for any CA deployment
+		deployCAFailID     string // Which CA fails (matched on spec.self.id)
+		expectedErr        error
 	}{
 		{
-			name:        "success - shared fabric infrastructure bootstrapped",
+			name:        "success - certificate store and TLS CA chain deployed in order",
 			expectedErr: nil,
 		},
 		{
-			name:            "error - bootstrap TLS CAs fails",
-			bootstrapTlsErr: errors.New("TLS root deployment failed"),
-			expectedErr:     errors.New("bootstrap TLS certificate authorities"),
+			name:               "error - deploy certificate store fails",
+			deployCertStoreErr: errors.New("postgres deployment failed"),
+			expectedErr:        ErrDeployCertificateStore,
+		},
+		{
+			name:           "error - deploy TLS root CA fails",
+			deployCAErr:    errors.New("CA deployment failed"),
+			deployCAFailID: "root",
+			expectedErr:    errors.New("deploy certificate authority (tls-root)"),
+		},
+		{
+			name:           "error - deploy TLS intermediate CA fails",
+			deployCAErr:    errors.New("CA deployment failed"),
+			deployCAFailID: "int",
+			expectedErr:    errors.New("deploy certificate authority (tls-int)"),
 		},
 	}
 
@@ -1425,13 +1127,20 @@ func TestBootstrapFabricWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows()
+			workflows := NewWorkflows(operatorOwner)
 
 			registerChildWorkflowStubs(env)
 
-			// Mock BootstrapTlsCertificateAuthorities child workflow
-			mockChildWorkflow[pb.BootstrapTlsCertificateAuthoritiesOutput](
-				env, pb.BootstrapTlsCertificateAuthoritiesWorkflowName, tt.bootstrapTlsErr)
+			mockChildWorkflow[pb.DeployCertificateStoreOutput](
+				env, pb.DeployCertificateStoreWorkflowName, tt.deployCertStoreErr)
+
+			env.OnWorkflow(pb.DeployCertificateAuthorityWorkflowName, mock.Anything, mock.Anything).
+				Return(func(ctx workflow.Context, input *pb.DeployCertificateAuthorityInput) (*pb.DeployCertificateAuthorityOutput, error) {
+					if tt.deployCAErr != nil && input.GetSpec().GetSelf().GetId() == tt.deployCAFailID {
+						return nil, tt.deployCAErr
+					}
+					return &pb.DeployCertificateAuthorityOutput{}, nil
+				})
 
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.BootstrapFabricInput) (*pb.BootstrapFabricOutput, error) {
@@ -1441,177 +1150,10 @@ func TestBootstrapFabricWorkflow(t *testing.T) {
 				}
 				return wf.Execute(ctx)
 			}, &pb.BootstrapFabricInput{
-				Org:                     testOperatorID,
-				TlsRootValidity:         durationpb.New(15 * 365 * 24 * time.Hour),
-				TlsIntermediateValidity: durationpb.New(5 * 365 * 24 * time.Hour),
+				CertificateAuthorities: []*pb.CertificateAuthoritySpec{tlsRootSpec(), tlsIntSpec()},
 			})
 
-			err := env.GetWorkflowError()
-
-			if tt.expectedErr == nil {
-				if err != nil {
-					t.Fatalf("unexpected workflow error: %v", err)
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("expected error %v, got nil", tt.expectedErr)
-				}
-				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
-					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
-				}
-			}
-		})
-	}
-}
-
-func TestBootstrapTlsCertificateAuthoritiesWorkflow(t *testing.T) {
-	tests := []struct {
-		name               string
-		deployCertStoreErr error
-		deployTlsRootErr   error
-		deployTlsIntErr    error
-		expectedErr        error
-	}{
-		{
-			name:        "success - TLS CA chain bootstrapped",
-			expectedErr: nil,
-		},
-		{
-			name:               "error - deploy certificate store fails",
-			deployCertStoreErr: errors.New("postgres deployment failed"),
-			expectedErr:        ErrDeployCertificateStore,
-		},
-		{
-			name:             "error - deploy TLS root CA fails",
-			deployTlsRootErr: errors.New("CA deployment failed"),
-			expectedErr:      errors.New("deploy TLS Root CA"),
-		},
-		{
-			name:            "error - deploy TLS intermediate CA fails",
-			deployTlsIntErr: errors.New("CA deployment failed"),
-			expectedErr:     errors.New("deploy TLS Intermediate CA"),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			testSuite := &testsuite.WorkflowTestSuite{}
-			env := testSuite.NewTestWorkflowEnvironment()
-
-			workflows := NewWorkflows()
-
-			registerChildWorkflowStubs(env)
-
-			mockChildWorkflow[pb.DeployCertificateStoreOutput](
-				env, pb.DeployCertificateStoreWorkflowName, tt.deployCertStoreErr)
-			mockChildWorkflow[pb.DeployTlsRootCertificateAuthorityOutput](
-				env, pb.DeployTlsRootCertificateAuthorityWorkflowName, tt.deployTlsRootErr)
-			mockChildWorkflow[pb.DeployTlsIntermediateCertificateAuthorityOutput](
-				env, pb.DeployTlsIntermediateCertificateAuthorityWorkflowName, tt.deployTlsIntErr)
-
-			// Execute workflow
-			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.BootstrapTlsCertificateAuthoritiesInput) (*pb.BootstrapTlsCertificateAuthoritiesOutput, error) {
-				wf, err := workflows.BootstrapTlsCertificateAuthorities(ctx, &pb.BootstrapTlsCertificateAuthoritiesWorkflowInput{Req: input})
-				if err != nil {
-					return nil, err
-				}
-				return wf.Execute(ctx)
-			}, &pb.BootstrapTlsCertificateAuthoritiesInput{
-				Org:                     testOperatorID,
-				TlsRootValidity:         durationpb.New(15 * 365 * 24 * time.Hour),
-				TlsIntermediateValidity: durationpb.New(5 * 365 * 24 * time.Hour),
-			})
-
-			err := env.GetWorkflowError()
-
-			if tt.expectedErr == nil {
-				if err != nil {
-					t.Fatalf("unexpected workflow error: %v", err)
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("expected error %v, got nil", tt.expectedErr)
-				}
-				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
-					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
-				}
-			}
-		})
-	}
-}
-
-func TestBootstrapOrgCertificateAuthoritiesWorkflow(t *testing.T) {
-	tests := []struct {
-		name               string
-		deployCertStoreErr error
-		deployOrgRootErr   error
-		deployOrgIntErr    error
-		expectedErr        error
-	}{
-		{
-			name:        "success - org CA chain bootstrapped",
-			expectedErr: nil,
-		},
-		{
-			name:               "error - deploy certificate store fails",
-			deployCertStoreErr: errors.New("postgres deployment failed"),
-			expectedErr:        ErrDeployCertificateStore,
-		},
-		{
-			name:             "error - deploy org root CA fails",
-			deployOrgRootErr: errors.New("CA deployment failed"),
-			expectedErr:      errors.New("deploy Org Root CA"),
-		},
-		{
-			name:            "error - deploy org intermediate CA fails",
-			deployOrgIntErr: errors.New("CA deployment failed"),
-			expectedErr:     errors.New("deploy Org Intermediate CA"),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			testSuite := &testsuite.WorkflowTestSuite{}
-			env := testSuite.NewTestWorkflowEnvironment()
-
-			workflows := NewWorkflows()
-
-			registerChildWorkflowStubs(env)
-
-			mockChildWorkflow[pb.DeployCertificateStoreOutput](
-				env, pb.DeployCertificateStoreWorkflowName, tt.deployCertStoreErr)
-			mockChildWorkflow[pb.DeployOrgRootCertificateAuthorityOutput](
-				env, pb.DeployOrgRootCertificateAuthorityWorkflowName, tt.deployOrgRootErr)
-			mockChildWorkflow[pb.DeployOrgIntermediateCertificateAuthorityOutput](
-				env, pb.DeployOrgIntermediateCertificateAuthorityWorkflowName, tt.deployOrgIntErr)
-
-			// Execute workflow
-			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.BootstrapOrgCertificateAuthoritiesInput) (*pb.BootstrapOrgCertificateAuthoritiesOutput, error) {
-				wf, err := workflows.BootstrapOrgCertificateAuthorities(ctx, &pb.BootstrapOrgCertificateAuthoritiesWorkflowInput{Req: input})
-				if err != nil {
-					return nil, err
-				}
-				return wf.Execute(ctx)
-			}, &pb.BootstrapOrgCertificateAuthoritiesInput{
-				Org:                     testOrg,
-				OrgRootValidity:         durationpb.New(15 * 365 * 24 * time.Hour),
-				OrgIntermediateValidity: durationpb.New(5 * 365 * 24 * time.Hour),
-			})
-
-			err := env.GetWorkflowError()
-
-			if tt.expectedErr == nil {
-				if err != nil {
-					t.Fatalf("unexpected workflow error: %v", err)
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("expected error %v, got nil", tt.expectedErr)
-				}
-				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
-					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
-				}
-			}
+			assertWorkflowResult(t, env.GetWorkflowError(), tt.expectedErr)
 		})
 	}
 }
@@ -1619,8 +1161,9 @@ func TestBootstrapOrgCertificateAuthoritiesWorkflow(t *testing.T) {
 func TestBootstrapShardWorkflow(t *testing.T) {
 	tests := []struct {
 		name                string
-		org                 string
-		bootstrapOrgCAsErr  error
+		deployCertStoreErr  error
+		deployCAErr         error  // Error for any CA deployment
+		deployCAFailID      string // Which CA fails (matched on spec.self.id)
 		deployCouchDbErr    error  // Error for any CouchDB deployment
 		deployCouchDbPeerID string // Which peer's CouchDB fails (if deployCouchDbErr set)
 		deployPeerErr       error  // Error for any peer deployment
@@ -1630,32 +1173,39 @@ func TestBootstrapShardWorkflow(t *testing.T) {
 	}{
 		{
 			name:        "success - full shard bootstrap",
-			org:         testOrg,
 			expectedErr: nil,
 		},
 		{
-			name:               "error - bootstrap org CAs fails",
-			org:                testOrg,
-			bootstrapOrgCAsErr: errors.New("org CA deployment failed"),
-			expectedErr:        errors.New("bootstrap Org certificate authorities"),
+			name:               "error - deploy certificate store fails",
+			deployCertStoreErr: errors.New("postgres deployment failed"),
+			expectedErr:        ErrDeployCertificateStore,
+		},
+		{
+			name:           "error - deploy org root CA fails",
+			deployCAErr:    errors.New("org CA deployment failed"),
+			deployCAFailID: "root",
+			expectedErr:    errors.New("deploy certificate authority (org-root)"),
+		},
+		{
+			name:           "error - deploy org intermediate CA fails",
+			deployCAErr:    errors.New("org CA deployment failed"),
+			deployCAFailID: "int",
+			expectedErr:    errors.New("deploy certificate authority (org-int)"),
 		},
 		{
 			name:                "error - deploy CouchDB for peer0 fails",
-			org:                 testOrg,
 			deployCouchDbErr:    errors.New("CouchDB deployment failed"),
 			deployCouchDbPeerID: "peer0",
 			expectedErr:         errors.New("deploy couchdb for peer0"),
 		},
 		{
 			name:          "error - deploy peer0 fails",
-			org:           testOrg,
 			deployPeerErr: errors.New("peer deployment failed"),
 			deployPeerID:  "peer0",
 			expectedErr:   errors.New("deploy peer peer0"),
 		},
 		{
 			name:             "error - deploy orderer fails",
-			org:              testOrg,
 			deployOrdererErr: errors.New("orderer deployment failed"),
 			expectedErr:      errors.New("deploy orderer orderer0"),
 		},
@@ -1666,14 +1216,20 @@ func TestBootstrapShardWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows()
+			workflows := NewWorkflows(orgOwner)
 
-			// Register child workflow stubs
 			registerChildWorkflowStubs(env)
 
-			// Mock BootstrapOrgCertificateAuthorities child workflow
-			mockChildWorkflow[pb.BootstrapOrgCertificateAuthoritiesOutput](
-				env, pb.BootstrapOrgCertificateAuthoritiesWorkflowName, tt.bootstrapOrgCAsErr)
+			mockChildWorkflow[pb.DeployCertificateStoreOutput](
+				env, pb.DeployCertificateStoreWorkflowName, tt.deployCertStoreErr)
+
+			env.OnWorkflow(pb.DeployCertificateAuthorityWorkflowName, mock.Anything, mock.Anything).
+				Return(func(ctx workflow.Context, input *pb.DeployCertificateAuthorityInput) (*pb.DeployCertificateAuthorityOutput, error) {
+					if tt.deployCAErr != nil && input.GetSpec().GetSelf().GetId() == tt.deployCAFailID {
+						return nil, tt.deployCAErr
+					}
+					return &pb.DeployCertificateAuthorityOutput{}, nil
+				})
 
 			// Mock DeployCouchDb child workflow
 			env.OnWorkflow(pb.DeployCouchDbWorkflowName, mock.Anything, mock.Anything).
@@ -1704,41 +1260,39 @@ func TestBootstrapShardWorkflow(t *testing.T) {
 				}
 				return wf.Execute(ctx)
 			}, &pb.BootstrapShardInput{
-				Org:        tt.org,
 				Deployment: testDeploymentSpec(),
 			})
 
-			err := env.GetWorkflowError()
-
-			if tt.expectedErr == nil {
-				if err != nil {
-					t.Fatalf("unexpected workflow error: %v", err)
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("expected error %v, got nil", tt.expectedErr)
-				}
-				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
-					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
-				}
-			}
+			assertWorkflowResult(t, env.GetWorkflowError(), tt.expectedErr)
 		})
 	}
 }
 
 // =============================================================================
-// Tests for Split CA Deployment Workflows
+// DeployCertificateAuthority Execution Tests
 // =============================================================================
+// One fixture per variant (tls/root, tls/int, org/root, org/int) exercising
+// the single DeployCertificateAuthority workflow.
 
-func TestDeployTlsRootCertificateAuthorityWorkflow(t *testing.T) {
+// executeDeployCA runs DeployCertificateAuthority with the given owner and spec
+func executeDeployCA(env *testsuite.TestWorkflowEnvironment, owner workerconfig.OwnerConfig, spec *pb.CertificateAuthoritySpec) {
+	env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployCertificateAuthorityInput) (*pb.DeployCertificateAuthorityOutput, error) {
+		workflows := NewWorkflows(owner)
+		wf, err := workflows.DeployCertificateAuthority(ctx, &pb.DeployCertificateAuthorityWorkflowInput{Req: input})
+		if err != nil {
+			return nil, err
+		}
+		return wf.Execute(ctx)
+	}, &pb.DeployCertificateAuthorityInput{Spec: spec})
+}
+
+// TestDeployCertificateAuthorityTlsRoot: operator worker, both identities self-signed
+func TestDeployCertificateAuthorityTlsRoot(t *testing.T) {
 	tests := []struct {
 		name                         string
-		org                          string
 		createAccessErr              error
 		createCertificateDatabaseErr error
 		createKeyPairErr             error
-		createSelfSignedCertErr      error
-		createPasswordErr            error
 		createDeploymentErr          error
 		createBootstrapAdminErr      error
 		createAdminErr               error
@@ -1746,42 +1300,35 @@ func TestDeployTlsRootCertificateAuthorityWorkflow(t *testing.T) {
 	}{
 		{
 			name:        "success - TLS Root CA deployed with self-signed certs",
-			org:         testOperatorID,
 			expectedErr: nil,
 		},
 		{
 			name:            "failure - create access fails",
-			org:             testOperatorID,
 			createAccessErr: errors.New("vault policy creation failed"),
 			expectedErr:     ErrCreateAccess,
 		},
 		{
 			name:                         "failure - create certificate database fails",
-			org:                          testOperatorID,
 			createCertificateDatabaseErr: errors.New("postgres unavailable"),
 			expectedErr:                  ErrCreateCertificateDatabase,
 		},
 		{
 			name:             "failure - create key pair fails",
-			org:              testOperatorID,
 			createKeyPairErr: errors.New("vault unavailable"),
 			expectedErr:      errors.New("failed to generate signing key pair"),
 		},
 		{
 			name:                "failure - create deployment fails",
-			org:                 testOperatorID,
 			createDeploymentErr: errors.New("kubernetes error"),
 			expectedErr:         errors.New("failed to deploy CA"),
 		},
 		{
 			name:                    "failure - create bootstrap admin fails",
-			org:                     testOperatorID,
 			createBootstrapAdminErr: errors.New("enrollment failed"),
 			expectedErr:             ErrCreateBootstrapAdmin,
 		},
 		{
 			name:           "failure - create admin fails",
-			org:            testOperatorID,
 			createAdminErr: errors.New("registration failed"),
 			expectedErr:    ErrCreateAdmin,
 		},
@@ -1792,21 +1339,14 @@ func TestDeployTlsRootCertificateAuthorityWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows()
 			registerChildWorkflowStubs(env)
 			registerSecretsActivityStubs(env)
 
-			// Mock Nexus call to secrets.v1.CreateAccess
 			registerSecretsNexusMock(t, env, tt.createAccessErr)
 
-			// Mock CreateCertificateDatabase child workflow
 			mockChildWorkflow[pb.CreateCertificateDatabaseOutput](
-				env,
-				pb.CreateCertificateDatabaseWorkflowName,
-				tt.createCertificateDatabaseErr,
-			)
+				env, pb.CreateCertificateDatabaseWorkflowName, tt.createCertificateDatabaseErr)
 
-			// Mock CreateKeyPair activity
 			if tt.createKeyPairErr != nil {
 				env.OnActivity(secretspb.CreateKeyPairActivityName, mock.Anything, mock.Anything).
 					Return(nil, tt.createKeyPairErr)
@@ -1814,81 +1354,36 @@ func TestDeployTlsRootCertificateAuthorityWorkflow(t *testing.T) {
 				env.OnActivity(secretspb.CreateKeyPairActivityName, mock.Anything, mock.Anything).
 					Return(&secretspb.CreateKeyPairOutput{}, nil)
 			}
-
-			// Mock CreateSelfSignedCertificate activity
 			env.OnActivity(secretspb.CreateSelfSignedCertificateActivityName, mock.Anything, mock.Anything).
-				Return(&secretspb.CreateSelfSignedCertificateOutput{}, tt.createSelfSignedCertErr)
-
-			// Mock CreatePassword activity
+				Return(&secretspb.CreateSelfSignedCertificateOutput{}, nil)
 			env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
-				Return(&secretspb.CreatePasswordOutput{}, tt.createPasswordErr)
+				Return(&secretspb.CreatePasswordOutput{}, nil)
 
-			// Mock CreateDeployment child workflow
 			mockChildWorkflow[clusterpb.CreateDeploymentOutput](
-				env,
-				clusterpb.CreateDeploymentWorkflowName,
-				tt.createDeploymentErr,
-			)
-
-			// Mock CreateBootstrapAdmin child workflow (certauth)
+				env, clusterpb.CreateDeploymentWorkflowName, tt.createDeploymentErr)
 			mockChildWorkflow[certauthpb.CreateBootstrapAdminOutput](
-				env,
-				certauthpb.CreateBootstrapAdminWorkflowName,
-				tt.createBootstrapAdminErr,
-			)
-
-			// Mock CreateAdmin child workflow (certauth)
+				env, certauthpb.CreateBootstrapAdminWorkflowName, tt.createBootstrapAdminErr)
 			mockChildWorkflow[certauthpb.CreateAdminOutput](
-				env,
-				certauthpb.CreateAdminWorkflowName,
-				tt.createAdminErr,
-			)
+				env, certauthpb.CreateAdminWorkflowName, tt.createAdminErr)
 
-			// Execute workflow
-			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployTlsRootCertificateAuthorityInput) (*pb.DeployTlsRootCertificateAuthorityOutput, error) {
-				wf, err := workflows.DeployTlsRootCertificateAuthority(ctx, &pb.DeployTlsRootCertificateAuthorityWorkflowInput{Req: input})
-				if err != nil {
-					return nil, err
-				}
-				return wf.Execute(ctx)
-			}, &pb.DeployTlsRootCertificateAuthorityInput{
-				Org:              tt.org,
-				ValidityDuration: durationpb.New(15 * 365 * 24 * time.Hour),
-			})
+			executeDeployCA(env, operatorOwner, tlsRootSpec())
 
-			err := env.GetWorkflowError()
-
-			if tt.expectedErr == nil {
-				if err != nil {
-					t.Fatalf("unexpected workflow error: %v", err)
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("expected error %v, got nil", tt.expectedErr)
-				}
-				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
-					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
-				}
-			}
+			assertWorkflowResult(t, env.GetWorkflowError(), tt.expectedErr)
 		})
 	}
 }
 
-func TestDeployTlsIntermediateCertificateAuthorityWorkflow(t *testing.T) {
+// TestDeployCertificateAuthorityTlsInt: operator worker, both signing and TLS
+// certificates issued by the (local) TLS Root via direct child workflow calls.
+func TestDeployCertificateAuthorityTlsInt(t *testing.T) {
 	tests := []struct {
 		name                 string
-		createAccessErr      error
-		createCertificateErr error // CreateCertificate child (signing + tls, both direct)
+		createCertificateErr error // CreateCertificate child (signing + tls, both local)
 		expectedErr          error
 	}{
 		{
 			name:        "success - TLS Intermediate CA deployed",
 			expectedErr: nil,
-		},
-		{
-			name:            "failure - create access fails",
-			createAccessErr: errors.New("vault policy creation failed"),
-			expectedErr:     ErrCreateAccess,
 		},
 		{
 			name:                 "failure - create certificate fails",
@@ -1902,11 +1397,10 @@ func TestDeployTlsIntermediateCertificateAuthorityWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows()
 			registerChildWorkflowStubs(env)
 			registerSecretsActivityStubs(env)
 
-			registerSecretsNexusMock(t, env, tt.createAccessErr)
+			registerSecretsNexusMock(t, env, nil)
 
 			mockChildWorkflow[pb.CreateCertificateDatabaseOutput](
 				env, pb.CreateCertificateDatabaseWorkflowName, nil)
@@ -1926,37 +1420,16 @@ func TestDeployTlsIntermediateCertificateAuthorityWorkflow(t *testing.T) {
 			mockChildWorkflow[certauthpb.CreateAdminOutput](
 				env, certauthpb.CreateAdminWorkflowName, nil)
 
-			// Execute workflow
-			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployTlsIntermediateCertificateAuthorityInput) (*pb.DeployTlsIntermediateCertificateAuthorityOutput, error) {
-				wf, err := workflows.DeployTlsIntermediateCertificateAuthority(ctx, &pb.DeployTlsIntermediateCertificateAuthorityWorkflowInput{Req: input})
-				if err != nil {
-					return nil, err
-				}
-				return wf.Execute(ctx)
-			}, &pb.DeployTlsIntermediateCertificateAuthorityInput{
-				Org:              testOperatorID,
-				ValidityDuration: durationpb.New(5 * 365 * 24 * time.Hour),
-			})
+			executeDeployCA(env, operatorOwner, tlsIntSpec())
 
-			err := env.GetWorkflowError()
-
-			if tt.expectedErr == nil {
-				if err != nil {
-					t.Fatalf("unexpected workflow error: %v", err)
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("expected error %v, got nil", tt.expectedErr)
-				}
-				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
-					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
-				}
-			}
+			assertWorkflowResult(t, env.GetWorkflowError(), tt.expectedErr)
 		})
 	}
 }
 
-func TestDeployOrgRootCertificateAuthorityWorkflow(t *testing.T) {
+// TestDeployCertificateAuthorityOrgRoot: shard worker, self-signed signing
+// certificate, TLS certificate from the (foreign) shared TLS Intermediate via Nexus.
+func TestDeployCertificateAuthorityOrgRoot(t *testing.T) {
 	tests := []struct {
 		name            string
 		createAccessErr error
@@ -1984,7 +1457,6 @@ func TestDeployOrgRootCertificateAuthorityWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows()
 			registerChildWorkflowStubs(env)
 			registerSecretsActivityStubs(env)
 
@@ -2011,41 +1483,19 @@ func TestDeployOrgRootCertificateAuthorityWorkflow(t *testing.T) {
 			mockChildWorkflow[certauthpb.CreateAdminOutput](
 				env, certauthpb.CreateAdminWorkflowName, nil)
 
-			// Execute workflow
-			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployOrgRootCertificateAuthorityInput) (*pb.DeployOrgRootCertificateAuthorityOutput, error) {
-				wf, err := workflows.DeployOrgRootCertificateAuthority(ctx, &pb.DeployOrgRootCertificateAuthorityWorkflowInput{Req: input})
-				if err != nil {
-					return nil, err
-				}
-				return wf.Execute(ctx)
-			}, &pb.DeployOrgRootCertificateAuthorityInput{
-				Org:              testOrg,
-				ValidityDuration: durationpb.New(15 * 365 * 24 * time.Hour),
-				TlsIssuer:        &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-			})
+			executeDeployCA(env, orgOwner, orgRootSpec())
 
-			err := env.GetWorkflowError()
-
-			if tt.expectedErr == nil {
-				if err != nil {
-					t.Fatalf("unexpected workflow error: %v", err)
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("expected error %v, got nil", tt.expectedErr)
-				}
-				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
-					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
-				}
-			}
+			assertWorkflowResult(t, env.GetWorkflowError(), tt.expectedErr)
 		})
 	}
 }
 
-func TestDeployOrgIntermediateCertificateAuthorityWorkflow(t *testing.T) {
+// TestDeployCertificateAuthorityOrgInt: shard worker, signing certificate from
+// the (local) Org Root via child workflow, TLS certificate via Nexus.
+func TestDeployCertificateAuthorityOrgInt(t *testing.T) {
 	tests := []struct {
 		name           string
-		signingCertErr error // CreateCertificate child (signing cert from Org Root, direct)
+		signingCertErr error // CreateCertificate child (signing cert from Org Root, local)
 		nexusTlsErr    error // Nexus CreateCertificate call (TLS cert from shared TLS Int)
 		expectedErr    error
 	}{
@@ -2070,7 +1520,6 @@ func TestDeployOrgIntermediateCertificateAuthorityWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows()
 			registerChildWorkflowStubs(env)
 			registerSecretsActivityStubs(env)
 
@@ -2095,32 +1544,43 @@ func TestDeployOrgIntermediateCertificateAuthorityWorkflow(t *testing.T) {
 			mockChildWorkflow[certauthpb.CreateAdminOutput](
 				env, certauthpb.CreateAdminWorkflowName, nil)
 
-			// Execute workflow
-			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployOrgIntermediateCertificateAuthorityInput) (*pb.DeployOrgIntermediateCertificateAuthorityOutput, error) {
-				wf, err := workflows.DeployOrgIntermediateCertificateAuthority(ctx, &pb.DeployOrgIntermediateCertificateAuthorityWorkflowInput{Req: input})
-				if err != nil {
-					return nil, err
-				}
-				return wf.Execute(ctx)
-			}, &pb.DeployOrgIntermediateCertificateAuthorityInput{
-				Org:              testOrg,
-				ValidityDuration: durationpb.New(5 * 365 * 24 * time.Hour),
-				TlsIssuer:        &pb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
-			})
+			executeDeployCA(env, orgOwner, orgIntSpec())
+
+			assertWorkflowResult(t, env.GetWorkflowError(), tt.expectedErr)
+		})
+	}
+}
+
+// TestDeployCertificateAuthorityOwnershipRejection verifies the workflow fails
+// fast (before any side effects) when the spec violates ownership rules.
+func TestDeployCertificateAuthorityOwnershipRejection(t *testing.T) {
+	tests := []struct {
+		name  string
+		owner workerconfig.OwnerConfig
+		spec  *pb.CertificateAuthoritySpec
+	}{
+		{name: "shard worker given tls/root spec", owner: orgOwner, spec: tlsRootSpec()},
+		{name: "shard worker given tls/int spec", owner: orgOwner, spec: tlsIntSpec()},
+		{name: "operator worker given org/root spec", owner: operatorOwner, spec: orgRootSpec()},
+		{name: "operator worker given org/int spec", owner: operatorOwner, spec: orgIntSpec()},
+		{name: "signing issuer crosses ownership boundary", owner: orgOwner, spec: caSpec(orgIntRef, tlsRootRef, tlsIntRef)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestWorkflowEnvironment()
+
+			// No mocks: the workflow must fail during validation, before
+			// touching any activity, child workflow, or Nexus service.
+			executeDeployCA(env, tt.owner, tt.spec)
 
 			err := env.GetWorkflowError()
-
-			if tt.expectedErr == nil {
-				if err != nil {
-					t.Fatalf("unexpected workflow error: %v", err)
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("expected error %v, got nil", tt.expectedErr)
-				}
-				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
-					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
-				}
+			if err == nil {
+				t.Fatal("expected ownership validation error, got nil")
+			}
+			if !strings.Contains(err.Error(), ErrNotOwned.Error()) {
+				t.Fatalf("expected error containing %q, got: %v", ErrNotOwned.Error(), err)
 			}
 		})
 	}

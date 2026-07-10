@@ -17,29 +17,39 @@ import (
 // Sentinel errors for certificate authority workflows
 var (
 	ErrInvalidInput      = errors.New("invalid input")
+	ErrNotOwned          = errors.New("certificate authority not owned by this worker")
 	ErrCreateCertificate = errors.New("create certificate")
 	ErrInvalidCertType   = errors.New("invalid cert type")
 )
 
-// Workflows implements the FabricWorkflows interface
-// Workflows no longer hold global orgConfig - they get org from each workflow's input
-type Workflows struct{}
-
-// NewWorkflows creates a new Workflows instance
-func NewWorkflows() *Workflows {
-	return &Workflows{}
+// Workflows implements the CertificateAuthorityWorkflows interface.
+//
+// Certauth workflows act AS their worker's owner: the owner is injected at
+// worker startup and never carried in workflow inputs. A locally-referenced
+// issuer always belongs to the executing worker's owner; foreign issuers
+// (an org needing a TLS certificate from the operator's TLS chain) are
+// reached via Nexus.
+type Workflows struct {
+	owner config.OwnerConfig
 }
+
+// NewWorkflows creates a new Workflows instance acting as the given owner.
+func NewWorkflows(owner config.OwnerConfig) *Workflows {
+	return &Workflows{owner: owner}
+}
+
 func (w *Workflows) CreateIdentity(ctx workflow.Context, input *pb.CreateIdentityWorkflowInput) (pb.CreateIdentityWorkflow, error) {
-	return newCreateIdentityWorkflow(input)
+	return newCreateIdentityWorkflow(input, w.owner)
 }
 
 type createIdentityWorkflow struct {
 	input *pb.CreateIdentityWorkflowInput
+	owner config.OwnerConfig
 }
 
 // newCreateIdentityWorkflow creates and validates a new createIdentityWorkflow
-func newCreateIdentityWorkflow(input *pb.CreateIdentityWorkflowInput) (*createIdentityWorkflow, error) {
-	w := &createIdentityWorkflow{input: input}
+func newCreateIdentityWorkflow(input *pb.CreateIdentityWorkflowInput, owner config.OwnerConfig) (*createIdentityWorkflow, error) {
+	w := &createIdentityWorkflow{input: input, owner: owner}
 	if err := w.validate(); err != nil {
 		return nil, err
 	}
@@ -49,9 +59,6 @@ func newCreateIdentityWorkflow(input *pb.CreateIdentityWorkflowInput) (*createId
 // validate checks that the workflow input is valid
 func (w *createIdentityWorkflow) validate() error {
 	req := w.input.Req
-	if req.GetOrg() == "" {
-		return fmt.Errorf("%w: org is required", ErrInvalidInput)
-	}
 	if req.GetIdentityName() == "" {
 		return fmt.Errorf("%w: identity_name is required", ErrInvalidInput)
 	}
@@ -60,6 +67,11 @@ func (w *createIdentityWorkflow) validate() error {
 	}
 	if req.GetTlsIssuerRef() == nil {
 		return fmt.Errorf("%w: tls_issuer_ref is required", ErrInvalidInput)
+	}
+	// The identity's signing certificate always comes from a locally-owned CA
+	if !fabricconfig.OwnsCertificateAuthority(w.owner, req.GetOrgIssuerRef()) {
+		return fmt.Errorf("%w: %q does not own CA %s-%s (org_issuer_ref)",
+			ErrNotOwned, w.owner.OwnerID(), req.GetOrgIssuerRef().GetCertType(), req.GetOrgIssuerRef().GetId())
 	}
 	if req.GetSigningStorage() == nil {
 		return fmt.Errorf("%w: signing_storage is required", ErrInvalidInput)
@@ -84,37 +96,18 @@ func (w *createIdentityWorkflow) validate() error {
 
 func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdentityOutput, error) {
 	req := w.input.Req
-	org := req.GetOrg()
-	orgConfig := config.NewOrgConfig(org)
-	operatorConfig := config.GetOperator()
 	identityName := req.GetIdentityName()
 	orgIssuer := req.GetOrgIssuerRef()
 	tlsIssuer := req.GetTlsIssuerRef()
 	signingStorage := req.GetSigningStorage()
 	tlsStorage := req.GetTlsStorage()
 
-	// Get issuer configs to access their admin credentials
-	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
-	var orgIssuerOwner config.OwnerConfig
-	if orgIssuer.GetCertType() == "tls" {
-		orgIssuerOwner = operatorConfig
-	} else {
-		orgIssuerOwner = orgConfig
-	}
-	orgIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(orgIssuerOwner, orgIssuer)
-
-	var tlsIssuerOwner config.OwnerConfig
-	if tlsIssuer.GetCertType() == "tls" {
-		tlsIssuerOwner = operatorConfig
-	} else {
-		tlsIssuerOwner = orgConfig
-	}
-	tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(tlsIssuerOwner, tlsIssuer)
+	// The org issuer is locally owned (validated above)
+	orgIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(w.owner, orgIssuer)
 
 	// Create org identity cert (uses identity_type for proper OU classification)
 	signingPurpose := fmt.Sprintf("identity-%s-signing", identityName)
 	_, err := pb.CreateCertificateChild(ctx, &pb.CreateCertificateInput{
-		Org:       org,
 		IssuerRef: orgIssuer,
 		Profile:   "", // Default profile
 		Subject:   req.GetSubject(),
@@ -123,10 +116,9 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 			KeyRef:  orgIssuerConfig.VaultAdminSigningKeyRef(),
 			CertRef: orgIssuerConfig.VaultAdminSigningCertRef(),
 		},
-		Purpose:       signingPurpose,
-		IssuerCertRef: orgIssuerConfig.VaultSigningCertRef(),
-		Attributes:    req.GetAttributes(),
-		IdentityType:  req.GetIdentityType(), // Pass through for NodeOUs classification
+		Purpose:      signingPurpose,
+		Attributes:   req.GetAttributes(),
+		IdentityType: req.GetIdentityType(), // Pass through for NodeOUs classification
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create signing identity: %w", err)
@@ -135,9 +127,7 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 	// Create TLS client cert
 	// TLS certs don't need identity_type since NodeOUs only applies to org/signing certs
 	tlsPurpose := fmt.Sprintf("identity-%s-tls", identityName)
-
-	_, err = NexusCreateCertificate(ctx, &pb.CreateCertificateInput{
-		Org:       org,
+	tlsReq := &pb.CreateCertificateInput{
 		IssuerRef: tlsIssuer,
 		Profile:   req.GetTlsProfile(),
 		Subject: &pb.CertificateSubject{
@@ -146,11 +136,22 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 			OrganizationalUnit: req.GetSubject().GetOrganizationalUnit(),
 			DnsNames:           req.GetSubject().GetDnsNames(),
 		},
-		Storage:       tlsStorage,
-		Purpose:       tlsPurpose,
-		IssuerCertRef: tlsIssuerConfig.VaultSigningCertRef(),
-	})
+		Storage: tlsStorage,
+		Purpose: tlsPurpose,
+	}
 
+	if fabricconfig.OwnsCertificateAuthority(w.owner, tlsIssuer) {
+		// Local TLS issuer: direct child, authenticated as the issuer's admin
+		tlsIssuerConfig := fabricconfig.NewCertificateAuthorityConfig(w.owner, tlsIssuer)
+		tlsReq.AdminIdentity = &fabricpb.IdentityRef{
+			KeyRef:  tlsIssuerConfig.VaultAdminSigningKeyRef(),
+			CertRef: tlsIssuerConfig.VaultAdminSigningCertRef(),
+		}
+		_, err = pb.CreateCertificateChild(ctx, tlsReq)
+	} else {
+		// Foreign TLS issuer: route via Nexus to the issuer's worker
+		_, err = NexusCreateCertificate(ctx, tlsReq)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to create TLS identity: %w", err)
 	}
@@ -162,16 +163,17 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 }
 
 func (w *Workflows) CreateCertificate(ctx workflow.Context, input *pb.CreateCertificateWorkflowInput) (pb.CreateCertificateWorkflow, error) {
-	return newCreateCertificateWorkflow(input)
+	return newCreateCertificateWorkflow(input, w.owner)
 }
 
 type createCertificateWorkflow struct {
 	input *pb.CreateCertificateWorkflowInput
+	owner config.OwnerConfig
 }
 
 // newCreateCertificateWorkflow creates and validates a new createCertificateWorkflow
-func newCreateCertificateWorkflow(input *pb.CreateCertificateWorkflowInput) (*createCertificateWorkflow, error) {
-	w := &createCertificateWorkflow{input: input}
+func newCreateCertificateWorkflow(input *pb.CreateCertificateWorkflowInput, owner config.OwnerConfig) (*createCertificateWorkflow, error) {
+	w := &createCertificateWorkflow{input: input, owner: owner}
 	if err := w.validate(); err != nil {
 		return nil, err
 	}
@@ -181,9 +183,6 @@ func newCreateCertificateWorkflow(input *pb.CreateCertificateWorkflowInput) (*cr
 // validate checks that the workflow input is valid
 func (w *createCertificateWorkflow) validate() error {
 	req := w.input.Req
-	if req.GetOrg() == "" {
-		return fmt.Errorf("%w: org is required", ErrInvalidInput)
-	}
 	if req.GetIssuerRef() == nil {
 		return fmt.Errorf("%w: issuer_ref is required (use secrets.CreateSelfSignedCertificate for self-signed)", ErrInvalidInput)
 	}
@@ -196,34 +195,28 @@ func (w *createCertificateWorkflow) validate() error {
 	if req.GetStorage().GetCertRef() == nil {
 		return fmt.Errorf("%w: storage.cert_ref is required", ErrInvalidInput)
 	}
-	if req.GetIssuerCertRef() == nil {
-		return fmt.Errorf("%w: issuer_cert_ref is required", ErrInvalidInput)
-	}
 	certType := req.GetIssuerRef().GetCertType()
 	if certType != "tls" && certType != "org" {
 		return fmt.Errorf("%w: issuer cert_type must be 'tls' or 'org', got '%s'", ErrInvalidCertType, certType)
+	}
+	// The referenced issuer is always executed against locally - it must be
+	// owned by this worker's owner. Foreign issuance arrives here via Nexus
+	// on the issuer's own worker.
+	if !fabricconfig.OwnsCertificateAuthority(w.owner, req.GetIssuerRef()) {
+		return fmt.Errorf("%w: %q does not own CA %s-%s (issuer_ref)",
+			ErrNotOwned, w.owner.OwnerID(), req.GetIssuerRef().GetCertType(), req.GetIssuerRef().GetId())
 	}
 	return nil
 }
 
 func (w *createCertificateWorkflow) Execute(ctx workflow.Context) (*pb.CreateCertificateOutput, error) {
 	req := w.input.Req
-	org := req.GetOrg()
-	orgConfig := config.NewOrgConfig(org)
-	operatorConfig := config.GetOperator()
 	issuerRef := req.GetIssuerRef()
-	certType := issuerRef.GetCertType()
 	storage := req.GetStorage()
 
-	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
-	var ownerConfig config.OwnerConfig
-	if certType == "tls" {
-		ownerConfig = operatorConfig
-	} else {
-		ownerConfig = orgConfig
-	}
-
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, issuerRef)
+	// The issuer is locally owned (validated above); all issuer paths derive
+	// from the injected owner
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(w.owner, issuerRef)
 
 	ao := workflow.ActivityOptions{
 		StartToCloseTimeout: 5 * time.Minute,
@@ -256,7 +249,6 @@ func (w *createCertificateWorkflow) Execute(ctx workflow.Context) (*pb.CreateCer
 
 	var registerOutput pb.RegisterIdentityOutput
 	err = workflow.ExecuteActivity(activityCtx, pb.RegisterIdentityActivityName, &pb.RegisterIdentityInput{
-		Org:           org,
 		CaRef:         issuerRef,
 		IdentityName:  identityName,
 		Affiliation:   "",
@@ -268,17 +260,18 @@ func (w *createCertificateWorkflow) Execute(ctx workflow.Context) (*pb.CreateCer
 		return nil, fmt.Errorf("failed to register identity: %w", err)
 	}
 
-	// Keys and certs are stored at separate paths via storage IdentityRef
+	// Keys and certs are stored at separate paths via storage IdentityRef.
+	// The issuer's certificate ref (for chain building) is derived from the
+	// issuer's CA config rather than passed by the caller.
 	var enrollOutput pb.EnrollIdentityOutput
 	err = workflow.ExecuteActivity(activityCtx, pb.EnrollIdentityActivityName, &pb.EnrollIdentityInput{
-		Org:              org,
 		CaRef:            issuerRef,
 		IdentityName:     identityName,
 		EnrollmentSecret: registerOutput.GetEnrollmentSecret(),
 		Storage:          storage, // IdentityRef with key and cert refs
 		Subject:          subject,
-		CaTlsCertRef:     caConfig.VaultTLSCertRef(), // CA's TLS cert for mTLS
-		IssuerCertRef:    req.GetIssuerCertRef(),     // Issuer's cert path for chain building
+		CaTlsCertRef:     caConfig.VaultTLSCertRef(),     // CA's TLS cert for mTLS
+		IssuerCertRef:    caConfig.VaultSigningCertRef(), // Issuer's cert path for chain building
 		Profile:          req.GetProfile(),
 	}).Get(ctx, &enrollOutput)
 	if err != nil {

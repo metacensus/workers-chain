@@ -15,16 +15,17 @@ import (
 )
 
 func (w *Workflows) CreateCertificateDatabase(ctx workflow.Context, input *pb.CreateCertificateDatabaseWorkflowInput) (pb.CreateCertificateDatabaseWorkflow, error) {
-	return newCreateCertificateDatabaseWorkflow(input)
+	return newCreateCertificateDatabaseWorkflow(input, w.owner)
 }
 
 type createCertificateDatabaseWorkflow struct {
 	input *pb.CreateCertificateDatabaseWorkflowInput
+	owner config.OwnerConfig
 }
 
 // newCreateCertificateDatabaseWorkflow creates and validates a new createCertificateDatabaseWorkflow
-func newCreateCertificateDatabaseWorkflow(input *pb.CreateCertificateDatabaseWorkflowInput) (*createCertificateDatabaseWorkflow, error) {
-	w := &createCertificateDatabaseWorkflow{input: input}
+func newCreateCertificateDatabaseWorkflow(input *pb.CreateCertificateDatabaseWorkflowInput, owner config.OwnerConfig) (*createCertificateDatabaseWorkflow, error) {
+	w := &createCertificateDatabaseWorkflow{input: input, owner: owner}
 	if err := w.validate(); err != nil {
 		return nil, err
 	}
@@ -33,37 +34,28 @@ func newCreateCertificateDatabaseWorkflow(input *pb.CreateCertificateDatabaseWor
 
 // validate checks that the workflow input is valid
 func (w *createCertificateDatabaseWorkflow) validate() error {
-	if w.input.Req.GetOrg() == "" {
-		return fmt.Errorf("%w: org is required", ErrInvalidInput)
-	}
 	caRef := w.input.Req.GetCaRef()
 	if caRef == nil {
 		return fmt.Errorf("%w: ca_ref is required", ErrInvalidInput)
 	}
-	certType := caRef.GetCertType()
-	if certType != "tls" && certType != "org" {
-		return fmt.Errorf("%w: cert_type must be 'tls' or 'org', got '%s'", ErrInvalidCertType, certType)
+	if err := validateCARef(caRef); err != nil {
+		return err
+	}
+	if !fabricconfig.OwnsCertificateAuthority(w.owner, caRef) {
+		return fmt.Errorf("%w: %q does not own CA %s-%s",
+			ErrNotOwned, w.owner.OwnerID(), caRef.GetCertType(), caRef.GetId())
 	}
 	return nil
 }
 
+// Execute creates a dedicated database and user for a certificate authority
+// in the owner's certificate store. Both the CA and the certificate store
+// belong to this worker's injected owner.
 func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.CreateCertificateDatabaseOutput, error) {
-	org := w.input.Req.GetOrg()
-	orgConfig := config.NewOrgConfig(org)
-	operatorConfig := config.GetOperator()
 	caRef := w.input.Req.GetCaRef()
-	certType := caRef.GetCertType()
 
-	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
-	var ownerConfig config.OwnerConfig
-	if certType == "tls" {
-		ownerConfig = operatorConfig
-	} else {
-		ownerConfig = orgConfig
-	}
-
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, caRef)
-	certStore := fabricconfig.NewCertificateStoreConfig(orgConfig)
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(w.owner, caRef)
+	certStore := fabricconfig.NewCertificateStoreConfig(w.owner)
 
 	// Wait for certificate store to be ready
 	waitOptions := workflow.ActivityOptions{

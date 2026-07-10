@@ -9,6 +9,7 @@ package clusterfabricv1
 import (
 	_ "github.com/alta/protopatch/patch/gopb"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
+	v1 "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -25,14 +26,11 @@ const (
 
 type CreateNamespaceInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// org is the owner identifier: an organization (e.g., "org1") or, when
-	// is_operator is true, the operator (e.g., "metacensus").
-	// Org namespaces are named "fabric-shard-{org}"; the operator namespace is "fabric".
-	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
-	// is_operator indicates whether this is the operator namespace
-	// When true, network policies will be created to allow cross-namespace
-	// access from fabric shard namespaces to TLS CA services on port 7054
-	IsOperator    bool `protobuf:"varint,2,opt,name=is_operator,json=IsOperator,proto3" json:"IsOperator,omitempty"`
+	// owner identifies who the namespace belongs to.
+	// Org namespaces are named "fabric-shard-{org}"; the operator namespace is
+	// "fabric". Operator namespaces get network policies allowing cross-namespace
+	// access from fabric shard namespaces to TLS CA services on port 7054.
+	Owner         *v1.Owner `protobuf:"bytes,1,opt,name=owner,json=Owner,proto3" json:"Owner" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -67,18 +65,11 @@ func (*CreateNamespaceInput) Descriptor() ([]byte, []int) {
 	return file_cluster_fabric_v1_cluster_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CreateNamespaceInput) GetOrg() string {
+func (x *CreateNamespaceInput) GetOwner() *v1.Owner {
 	if x != nil {
-		return x.Org
+		return x.Owner
 	}
-	return ""
-}
-
-func (x *CreateNamespaceInput) GetIsOperator() bool {
-	if x != nil {
-		return x.IsOperator
-	}
-	return false
+	return nil
 }
 
 type CreateNamespaceOutput struct {
@@ -128,12 +119,10 @@ func (x *CreateNamespaceOutput) GetNamespaceName() string {
 
 type CreateServiceAccountInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// org is the owner identifier: an organization or, when is_operator is true,
-	// the operator.
-	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
-	// is_operator selects operator-owned naming (namespace "fabric") instead of
-	// org-owned naming (namespace "fabric-shard-{org}")
-	IsOperator    bool `protobuf:"varint,2,opt,name=is_operator,json=IsOperator,proto3" json:"IsOperator,omitempty"`
+	// owner identifies who the worker service account belongs to.
+	// Operator-owned naming uses namespace "fabric"; org-owned naming uses
+	// namespace "fabric-shard-{org}".
+	Owner         *v1.Owner `protobuf:"bytes,1,opt,name=owner,json=Owner,proto3" json:"Owner" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -168,18 +157,11 @@ func (*CreateServiceAccountInput) Descriptor() ([]byte, []int) {
 	return file_cluster_fabric_v1_cluster_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *CreateServiceAccountInput) GetOrg() string {
+func (x *CreateServiceAccountInput) GetOwner() *v1.Owner {
 	if x != nil {
-		return x.Org
+		return x.Owner
 	}
-	return ""
-}
-
-func (x *CreateServiceAccountInput) GetIsOperator() bool {
-	if x != nil {
-		return x.IsOperator
-	}
-	return false
+	return nil
 }
 
 type CreateServiceAccountOutput struct {
@@ -220,23 +202,19 @@ func (*CreateServiceAccountOutput) Descriptor() ([]byte, []int) {
 
 type CreateDeploymentInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// org is the owner identifier: an organization (e.g., "org1") or, when
-	// is_operator is true, the operator (e.g., "metacensus").
-	// Used to derive namespace names, service account names, etc.
-	Org string `protobuf:"bytes,1,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
+	// owner identifies who the deployment belongs to.
+	// Used to derive namespace names, service account names, vault paths, etc.
+	Owner *v1.Owner `protobuf:"bytes,1,opt,name=owner,json=Owner,proto3" json:"Owner" validate:"required"`
 	// component specifies which type of deployment to create
 	// Currently supported:
-	//   - "worker": Fabric worker deployment (shared fabric worker when is_operator,
-	//     otherwise a per-org shard worker)
+	//   - "worker": Fabric worker deployment (shared fabric worker when the
+	//     owner is the operator, otherwise a per-org shard worker)
 	//   - "certificate-store": PostgreSQL certificate store
 	//   - "certificate-authority-{certType}-{caID}": Certificate Authority
 	//     where certType is "tls" or "org", and caID is "root" or "int".
 	//     Examples: "certificate-authority-tls-root", "certificate-authority-org-int"
 	//   - "couchdb-{peerId}", "peer{id}", "orderer{id}"
-	Component string `protobuf:"bytes,2,opt,name=component,json=Component,proto3" json:"Component" validate:"required"`
-	// is_operator selects operator-owned naming (namespace "fabric") instead of
-	// org-owned naming (namespace "fabric-shard-{org}")
-	IsOperator    bool `protobuf:"varint,3,opt,name=is_operator,json=IsOperator,proto3" json:"IsOperator,omitempty"`
+	Component     string `protobuf:"bytes,2,opt,name=component,json=Component,proto3" json:"Component" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -271,11 +249,11 @@ func (*CreateDeploymentInput) Descriptor() ([]byte, []int) {
 	return file_cluster_fabric_v1_cluster_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *CreateDeploymentInput) GetOrg() string {
+func (x *CreateDeploymentInput) GetOwner() *v1.Owner {
 	if x != nil {
-		return x.Org
+		return x.Owner
 	}
-	return ""
+	return nil
 }
 
 func (x *CreateDeploymentInput) GetComponent() string {
@@ -283,13 +261,6 @@ func (x *CreateDeploymentInput) GetComponent() string {
 		return x.Component
 	}
 	return ""
-}
-
-func (x *CreateDeploymentInput) GetIsOperator() bool {
-	if x != nil {
-		return x.IsOperator
-	}
-	return false
 }
 
 type CreateDeploymentOutput struct {
@@ -341,29 +312,23 @@ var File_cluster_fabric_v1_cluster_proto protoreflect.FileDescriptor
 
 const file_cluster_fabric_v1_cluster_proto_rawDesc = "" +
 	"\n" +
-	"\x1fcluster/fabric/v1/cluster.proto\x12\x11cluster.fabric.v1\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\x94\x01\n" +
-	"\x14CreateNamespaceInput\x127\n" +
-	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12C\n" +
-	"\vis_operator\x18\x02 \x01(\bB\"ʵ\x03\x1e\xa2\x01\x1bjson:\"IsOperator,omitempty\"R\n" +
-	"IsOperator\"o\n" +
+	"\x1fcluster/fabric/v1/cluster.proto\x12\x11cluster.fabric.v1\x1a\x16fabric/v1/fabric.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"g\n" +
+	"\x14CreateNamespaceInput\x12O\n" +
+	"\x05owner\x18\x01 \x01(\v2\x10.fabric.v1.OwnerB'ʵ\x03#\xa2\x01 json:\"Owner\" validate:\"required\"R\x05Owner\"o\n" +
 	"\x15CreateNamespaceOutput\x12V\n" +
-	"\x0enamespace_name\x18\x01 \x01(\tB/ʵ\x03+\xa2\x01(json:\"NamespaceName\" validate:\"required\"R\rNamespaceName\"\x99\x01\n" +
-	"\x19CreateServiceAccountInput\x127\n" +
-	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12C\n" +
-	"\vis_operator\x18\x02 \x01(\bB\"ʵ\x03\x1e\xa2\x01\x1bjson:\"IsOperator,omitempty\"R\n" +
-	"IsOperator\"\x1c\n" +
-	"\x1aCreateServiceAccountOutput\"\xe0\x01\n" +
-	"\x15CreateDeploymentInput\x127\n" +
-	"\x03org\x18\x01 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12I\n" +
-	"\tcomponent\x18\x02 \x01(\tB+ʵ\x03'\xa2\x01$json:\"Component\" validate:\"required\"R\tComponent\x12C\n" +
-	"\vis_operator\x18\x03 \x01(\bB\"ʵ\x03\x1e\xa2\x01\x1bjson:\"IsOperator,omitempty\"R\n" +
-	"IsOperator\"s\n" +
+	"\x0enamespace_name\x18\x01 \x01(\tB/ʵ\x03+\xa2\x01(json:\"NamespaceName\" validate:\"required\"R\rNamespaceName\"l\n" +
+	"\x19CreateServiceAccountInput\x12O\n" +
+	"\x05owner\x18\x01 \x01(\v2\x10.fabric.v1.OwnerB'ʵ\x03#\xa2\x01 json:\"Owner\" validate:\"required\"R\x05Owner\"\x1c\n" +
+	"\x1aCreateServiceAccountOutput\"\xb3\x01\n" +
+	"\x15CreateDeploymentInput\x12O\n" +
+	"\x05owner\x18\x01 \x01(\v2\x10.fabric.v1.OwnerB'ʵ\x03#\xa2\x01 json:\"Owner\" validate:\"required\"R\x05Owner\x12I\n" +
+	"\tcomponent\x18\x02 \x01(\tB+ʵ\x03'\xa2\x01$json:\"Component\" validate:\"required\"R\tComponent\"s\n" +
 	"\x16CreateDeploymentOutput\x12Y\n" +
-	"\x0fdeployment_name\x18\x01 \x01(\tB0ʵ\x03,\xa2\x01)json:\"DeploymentName\" validate:\"required\"R\x0eDeploymentName2\xfc\x04\n" +
-	"\aCluster\x12\xba\x01\n" +
-	"\x0fCreateNamespace\x12'.cluster.fabric.v1.CreateNamespaceInput\x1a(.cluster.fabric.v1.CreateNamespaceOutput\"T\x8a\xc4\x03P*)cluster/fabric/create-namespace/${! Org }0\x01r!cluster.fabric.v1.CreateNamespace\x12\xd4\x01\n" +
-	"\x14CreateServiceAccount\x12,.cluster.fabric.v1.CreateServiceAccountInput\x1a-.cluster.fabric.v1.CreateServiceAccountOutput\"_\x8a\xc4\x03[*/cluster/fabric/create-service-account/${! Org }0\x01r&cluster.fabric.v1.CreateServiceAccount\x12\xcf\x01\n" +
-	"\x10CreateDeployment\x12(.cluster.fabric.v1.CreateDeploymentInput\x1a).cluster.fabric.v1.CreateDeploymentOutput\"f\x8a\xc4\x03b*:cluster/fabric/create-deployment/${! Org }/${! Component }0\x01r\"cluster.fabric.v1.CreateDeployment\x1a\v\x8a\xc4\x03\a\n" +
+	"\x0fdeployment_name\x18\x01 \x01(\tB0ʵ\x03,\xa2\x01)json:\"DeploymentName\" validate:\"required\"R\x0eDeploymentName2\xd4\x05\n" +
+	"\aCluster\x12\xd7\x01\n" +
+	"\x0fCreateNamespace\x12'.cluster.fabric.v1.CreateNamespaceInput\x1a(.cluster.fabric.v1.CreateNamespaceOutput\"q\x8a\xc4\x03m*Fcluster/fabric/create-namespace/${! Owner.OperatorId.or(Owner.OrgId) }0\x01r!cluster.fabric.v1.CreateNamespace\x12\xf1\x01\n" +
+	"\x14CreateServiceAccount\x12,.cluster.fabric.v1.CreateServiceAccountInput\x1a-.cluster.fabric.v1.CreateServiceAccountOutput\"|\x8a\xc4\x03x*Lcluster/fabric/create-service-account/${! Owner.OperatorId.or(Owner.OrgId) }0\x01r&cluster.fabric.v1.CreateServiceAccount\x12\xed\x01\n" +
+	"\x10CreateDeployment\x12(.cluster.fabric.v1.CreateDeploymentInput\x1a).cluster.fabric.v1.CreateDeploymentOutput\"\x83\x01\x8a\xc4\x03\x7f*Wcluster/fabric/create-deployment/${! Owner.OperatorId.or(Owner.OrgId) }/${! Component }0\x01r\"cluster.fabric.v1.CreateDeployment\x1a\v\x8a\xc4\x03\a\n" +
 	"\x05infraB\xe1\x01\n" +
 	"\x15com.cluster.fabric.v1B\fClusterProtoP\x01ZTgithub.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1;clusterfabricv1\xa2\x02\x03CFX\xaa\x02\x11Cluster.Fabric.V1\xca\x02\x11Cluster\\Fabric\\V1\xe2\x02\x1dCluster\\Fabric\\V1\\GPBMetadata\xea\x02\x13Cluster::Fabric::V1b\x06proto3"
 
@@ -387,19 +352,23 @@ var file_cluster_fabric_v1_cluster_proto_goTypes = []any{
 	(*CreateServiceAccountOutput)(nil), // 3: cluster.fabric.v1.CreateServiceAccountOutput
 	(*CreateDeploymentInput)(nil),      // 4: cluster.fabric.v1.CreateDeploymentInput
 	(*CreateDeploymentOutput)(nil),     // 5: cluster.fabric.v1.CreateDeploymentOutput
+	(*v1.Owner)(nil),                   // 6: fabric.v1.Owner
 }
 var file_cluster_fabric_v1_cluster_proto_depIdxs = []int32{
-	0, // 0: cluster.fabric.v1.Cluster.CreateNamespace:input_type -> cluster.fabric.v1.CreateNamespaceInput
-	2, // 1: cluster.fabric.v1.Cluster.CreateServiceAccount:input_type -> cluster.fabric.v1.CreateServiceAccountInput
-	4, // 2: cluster.fabric.v1.Cluster.CreateDeployment:input_type -> cluster.fabric.v1.CreateDeploymentInput
-	1, // 3: cluster.fabric.v1.Cluster.CreateNamespace:output_type -> cluster.fabric.v1.CreateNamespaceOutput
-	3, // 4: cluster.fabric.v1.Cluster.CreateServiceAccount:output_type -> cluster.fabric.v1.CreateServiceAccountOutput
-	5, // 5: cluster.fabric.v1.Cluster.CreateDeployment:output_type -> cluster.fabric.v1.CreateDeploymentOutput
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	6, // 0: cluster.fabric.v1.CreateNamespaceInput.owner:type_name -> fabric.v1.Owner
+	6, // 1: cluster.fabric.v1.CreateServiceAccountInput.owner:type_name -> fabric.v1.Owner
+	6, // 2: cluster.fabric.v1.CreateDeploymentInput.owner:type_name -> fabric.v1.Owner
+	0, // 3: cluster.fabric.v1.Cluster.CreateNamespace:input_type -> cluster.fabric.v1.CreateNamespaceInput
+	2, // 4: cluster.fabric.v1.Cluster.CreateServiceAccount:input_type -> cluster.fabric.v1.CreateServiceAccountInput
+	4, // 5: cluster.fabric.v1.Cluster.CreateDeployment:input_type -> cluster.fabric.v1.CreateDeploymentInput
+	1, // 6: cluster.fabric.v1.Cluster.CreateNamespace:output_type -> cluster.fabric.v1.CreateNamespaceOutput
+	3, // 7: cluster.fabric.v1.Cluster.CreateServiceAccount:output_type -> cluster.fabric.v1.CreateServiceAccountOutput
+	5, // 8: cluster.fabric.v1.Cluster.CreateDeployment:output_type -> cluster.fabric.v1.CreateDeploymentOutput
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_cluster_fabric_v1_cluster_proto_init() }

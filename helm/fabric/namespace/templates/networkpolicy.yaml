@@ -13,8 +13,12 @@ metadata:
   labels:
     {{- include "fabric.commonLabels" . | nindent 4 }}
 spec:
-  # Apply to all pods in the operator namespace
-  podSelector: {}
+  # Apply only to CA pods. The operator namespace also hosts the
+  # certificate-store Postgres StatefulSet, which must remain reachable by the
+  # local fabric worker on 5432 during bootstrap.
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: certificate-authority
   policyTypes:
     - Ingress
   ingress:

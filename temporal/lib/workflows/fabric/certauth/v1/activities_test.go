@@ -9,6 +9,7 @@ import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1"
 	fabricpb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
+	workerconfig "github.com/metacensus/infra/temporal/lib/workers/config"
 	"github.com/metacensus/infra/temporal/lib/workflows/common"
 	certauth "github.com/metacensus/infra/temporal/lib/workflows/fabric/certauth/v1"
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
@@ -23,20 +24,28 @@ import (
 // covered by integration tests rather than unit tests here. Register/Revoke go
 // through the MultiClientProvider, which lets us inject a mocked Client.
 
-// testOrg mirrors the constant in the internal test package; external test
-// packages cannot reference internal test identifiers.
-const testOrg = "testorg"
+// Test identities mirror the constants in the internal test package; external
+// test packages cannot reference internal test identifiers.
+const externalTestOrg = "testorg"
+
+// Activities under test act as a shard worker's org owner by default; every CA
+// referenced in an activity input belongs to the executing worker's owner.
+var (
+	externalOrgOwner      = workerconfig.NewOrgConfig(externalTestOrg)
+	externalOperatorOwner = workerconfig.NewOperatorConfig("metacensus")
+)
 
 var errVaultUnavailable = errors.New("vault unavailable")
 
 // newTestActivities builds Activities whose client provider hydrates configs via
 // the mocked secret provider and always constructs the given mocked CA client.
-func newTestActivities(secretProvider secrets.SecretProvider, client certauth.Client) *certauth.Activities {
+// Activities act as the given owner (the worker's injected identity).
+func newTestActivities(secretProvider secrets.SecretProvider, client certauth.Client, owner workerconfig.OwnerConfig) *certauth.Activities {
 	clientProvider := common.NewMultiClientProvider(
 		secretProvider,
 		func(certauth.ClientConfig) (certauth.Client, error) { return client, nil },
 	)
-	return certauth.NewActivities(secretProvider, clientProvider)
+	return certauth.NewActivities(secretProvider, clientProvider, owner)
 }
 
 // adminHydrationSecret satisfies both Secret.KeyPair() (identity_key ref) and
@@ -61,6 +70,7 @@ func refWithPath(path string) interface{} {
 func TestActivities_RegisterIdentity(t *testing.T) {
 	tests := []struct {
 		name            string
+		owner           workerconfig.OwnerConfig // nil = org owner (shard worker)
 		input           *pb.RegisterIdentityInput
 		setupSecretMock func(*secretsmocks.MockSecretProvider)
 		setupClientMock func(*certauthmocks.MockClient)
@@ -70,7 +80,6 @@ func TestActivities_RegisterIdentity(t *testing.T) {
 		{
 			name: "success - org CA",
 			input: &pb.RegisterIdentityInput{
-				Org:          testOrg,
 				CaRef:        &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
 				IdentityName: "peer0",
 				IdentityType: "peer",
@@ -95,9 +104,9 @@ func TestActivities_RegisterIdentity(t *testing.T) {
 			want: &pb.RegisterIdentityOutput{EnrollmentSecret: "enroll-secret"},
 		},
 		{
-			name: "success - tls CA uses operator config",
+			name:  "success - tls CA on the operator worker",
+			owner: externalOperatorOwner,
 			input: &pb.RegisterIdentityInput{
-				Org:          testOrg,
 				CaRef:        &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
 				IdentityName: "peer0-tls",
 				IdentityType: "peer",
@@ -119,7 +128,6 @@ func TestActivities_RegisterIdentity(t *testing.T) {
 		{
 			name: "success - explicit admin identity",
 			input: &pb.RegisterIdentityInput{
-				Org:          testOrg,
 				CaRef:        &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
 				IdentityName: "orderer0",
 				IdentityType: "orderer",
@@ -143,7 +151,6 @@ func TestActivities_RegisterIdentity(t *testing.T) {
 		{
 			name: "error - missing ca_ref",
 			input: &pb.RegisterIdentityInput{
-				Org:          testOrg,
 				IdentityName: "peer0",
 			},
 			errSubstr: "ca_ref is required",
@@ -151,7 +158,6 @@ func TestActivities_RegisterIdentity(t *testing.T) {
 		{
 			name: "error - client hydration secret fetch fails",
 			input: &pb.RegisterIdentityInput{
-				Org:          testOrg,
 				CaRef:        &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
 				IdentityName: "peer0",
 			},
@@ -165,7 +171,6 @@ func TestActivities_RegisterIdentity(t *testing.T) {
 		{
 			name: "error - registration fails",
 			input: &pb.RegisterIdentityInput{
-				Org:          testOrg,
 				CaRef:        &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
 				IdentityName: "peer0",
 			},
@@ -184,7 +189,6 @@ func TestActivities_RegisterIdentity(t *testing.T) {
 		{
 			name: "error - registration returns empty secret",
 			input: &pb.RegisterIdentityInput{
-				Org:          testOrg,
 				CaRef:        &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
 				IdentityName: "peer0",
 			},
@@ -216,7 +220,11 @@ func TestActivities_RegisterIdentity(t *testing.T) {
 				tt.setupClientMock(mockClient)
 			}
 
-			activities := newTestActivities(mockSecretProvider, mockClient)
+			owner := tt.owner
+			if owner == nil {
+				owner = externalOrgOwner
+			}
+			activities := newTestActivities(mockSecretProvider, mockClient, owner)
 			env.RegisterActivity(activities.RegisterIdentity)
 
 			val, err := env.ExecuteActivity(activities.RegisterIdentity, tt.input)
@@ -249,6 +257,7 @@ func TestActivities_RegisterIdentity(t *testing.T) {
 func TestActivities_RevokeIdentity(t *testing.T) {
 	tests := []struct {
 		name            string
+		owner           workerconfig.OwnerConfig // nil = org owner (shard worker)
 		input           *pb.RevokeIdentityInput
 		setupSecretMock func(*secretsmocks.MockSecretProvider)
 		setupClientMock func(*certauthmocks.MockClient)
@@ -257,7 +266,6 @@ func TestActivities_RevokeIdentity(t *testing.T) {
 		{
 			name: "success - org CA",
 			input: &pb.RevokeIdentityInput{
-				Org:          testOrg,
 				CaRef:        &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
 				IdentityName: "bootstrap-admin",
 				Reason:       "superseded",
@@ -276,9 +284,9 @@ func TestActivities_RevokeIdentity(t *testing.T) {
 			},
 		},
 		{
-			name: "success - tls CA uses operator config",
+			name:  "success - tls CA on the operator worker",
+			owner: externalOperatorOwner,
 			input: &pb.RevokeIdentityInput{
-				Org:          testOrg,
 				CaRef:        &fabricpb.CertificateAuthorityRef{CertType: "tls", Id: "int"},
 				IdentityName: "bootstrap-admin-tls",
 			},
@@ -298,7 +306,6 @@ func TestActivities_RevokeIdentity(t *testing.T) {
 		{
 			name: "error - missing ca_ref",
 			input: &pb.RevokeIdentityInput{
-				Org:          testOrg,
 				IdentityName: "bootstrap-admin",
 			},
 			errSubstr: "ca_ref is required",
@@ -306,7 +313,6 @@ func TestActivities_RevokeIdentity(t *testing.T) {
 		{
 			name: "error - client hydration secret fetch fails",
 			input: &pb.RevokeIdentityInput{
-				Org:          testOrg,
 				CaRef:        &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
 				IdentityName: "bootstrap-admin",
 			},
@@ -320,7 +326,6 @@ func TestActivities_RevokeIdentity(t *testing.T) {
 		{
 			name: "error - revocation fails",
 			input: &pb.RevokeIdentityInput{
-				Org:          testOrg,
 				CaRef:        &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
 				IdentityName: "bootstrap-admin",
 			},
@@ -352,7 +357,11 @@ func TestActivities_RevokeIdentity(t *testing.T) {
 				tt.setupClientMock(mockClient)
 			}
 
-			activities := newTestActivities(mockSecretProvider, mockClient)
+			owner := tt.owner
+			if owner == nil {
+				owner = externalOrgOwner
+			}
+			activities := newTestActivities(mockSecretProvider, mockClient, owner)
 			env.RegisterActivity(activities.RevokeIdentity)
 
 			val, err := env.ExecuteActivity(activities.RevokeIdentity, tt.input)
@@ -399,7 +408,6 @@ func TestActivities_EnrollIdentity(t *testing.T) {
 		{
 			name: "error - missing ca_ref",
 			input: &pb.EnrollIdentityInput{
-				Org:          testOrg,
 				IdentityName: "peer0",
 				Storage:      storage,
 			},
@@ -408,7 +416,6 @@ func TestActivities_EnrollIdentity(t *testing.T) {
 		{
 			name: "error - missing storage",
 			input: &pb.EnrollIdentityInput{
-				Org:          testOrg,
 				CaRef:        &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
 				IdentityName: "peer0",
 			},
@@ -417,7 +424,6 @@ func TestActivities_EnrollIdentity(t *testing.T) {
 		{
 			name: "error - key secret fetch fails",
 			input: &pb.EnrollIdentityInput{
-				Org:          testOrg,
 				CaRef:        &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
 				IdentityName: "peer0",
 				Storage:      storage,
@@ -432,7 +438,6 @@ func TestActivities_EnrollIdentity(t *testing.T) {
 		{
 			name: "error - key secret missing private key",
 			input: &pb.EnrollIdentityInput{
-				Org:          testOrg,
 				CaRef:        &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
 				IdentityName: "peer0",
 				Storage:      storage,
@@ -447,7 +452,6 @@ func TestActivities_EnrollIdentity(t *testing.T) {
 		{
 			name: "error - CA TLS cert fetch fails",
 			input: &pb.EnrollIdentityInput{
-				Org:          testOrg,
 				CaRef:        &fabricpb.CertificateAuthorityRef{CertType: "org", Id: "int"},
 				IdentityName: "peer0",
 				Storage:      storage,
@@ -475,7 +479,7 @@ func TestActivities_EnrollIdentity(t *testing.T) {
 				tt.setupSecretMock(mockSecretProvider)
 			}
 
-			activities := newTestActivities(mockSecretProvider, certauthmocks.NewMockClient(t))
+			activities := newTestActivities(mockSecretProvider, certauthmocks.NewMockClient(t), externalOrgOwner)
 			env.RegisterActivity(activities.EnrollIdentity)
 
 			_, err := env.ExecuteActivity(activities.EnrollIdentity, tt.input)
@@ -606,7 +610,7 @@ func TestActivities_BootstrapEnrollIdentity(t *testing.T) {
 				tt.setupSecretMock(mockSecretProvider)
 			}
 
-			activities := newTestActivities(mockSecretProvider, certauthmocks.NewMockClient(t))
+			activities := newTestActivities(mockSecretProvider, certauthmocks.NewMockClient(t), externalOrgOwner)
 			env.RegisterActivity(activities.BootstrapEnrollIdentity)
 
 			_, err := env.ExecuteActivity(activities.BootstrapEnrollIdentity, tt.input)

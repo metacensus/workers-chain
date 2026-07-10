@@ -3,6 +3,7 @@ package certauth
 import (
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1"
 	"github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1/certauthv1temporal"
+	"github.com/metacensus/infra/temporal/lib/workers/config"
 	"github.com/metacensus/infra/temporal/lib/workflows/common"
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
 	"go.temporal.io/sdk/worker"
@@ -10,10 +11,11 @@ import (
 )
 
 var Module = fx.Options(
-	// Provide Workflows implementing pb.FabricWorkflows interface
-	// Workflows no longer depend on global orgConfig - they get org from input
-	fx.Provide(func() pb.CertificateAuthorityWorkflows {
-		return NewWorkflows()
+	// Provide Workflows implementing pb.CertificateAuthorityWorkflows interface.
+	// Workflows act AS the worker's owner, injected at startup
+	// (operator on the fabric worker, org on shard workers).
+	fx.Provide(func(owner config.OwnerConfig) pb.CertificateAuthorityWorkflows {
+		return NewWorkflows(owner)
 	}),
 
 	// Provide Client multi-client provider
@@ -31,12 +33,14 @@ var Module = fx.Options(
 	// Activities get:
 	// - secretProvider: for fetching/storing secrets with type safety
 	// - clientProvider: for cached Client access (Register/Revoke operations)
-	// Activities receive owner (org) from their inputs, enabling them to work for any owner
+	// - owner: the worker's injected owner; every CA referenced in an
+	//   activity input belongs to this owner
 	fx.Provide(func(
 		secretProvider secrets.SecretProvider,
 		clientProvider *common.MultiClientProvider[Client, ClientConfig],
+		owner config.OwnerConfig,
 	) *Activities {
-		return NewActivities(secretProvider, clientProvider)
+		return NewActivities(secretProvider, clientProvider, owner)
 	}),
 )
 

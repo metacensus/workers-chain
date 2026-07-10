@@ -9,13 +9,13 @@ type NamespaceValues struct {
 	CommonLabels CommonLabels
 }
 
-// NewNamespaceValues creates values for a fabric namespace
-// The isOperator flag determines whether network policies are created
-// to allow cross-namespace access to TLS CA services
-func NewNamespaceValues(owner config.OwnerConfig, isOperator bool) *NamespaceValues {
+// NewNamespaceValues creates values for a fabric namespace.
+// Operator ownership determines whether network policies are created
+// to allow cross-namespace access to TLS CA services.
+func NewNamespaceValues(owner config.OwnerConfig) *NamespaceValues {
 	return &NamespaceValues{
 		Name:         owner.KubernetesNamespace(),
-		IsOperator:   isOperator,
+		IsOperator:   owner.IsOperator(),
 		CommonLabels: DefaultCommonLabels(),
 	}
 }

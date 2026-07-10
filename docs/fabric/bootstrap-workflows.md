@@ -34,21 +34,51 @@ Fabric deployment requires balancing **security isolation** with **shared infras
 - **K8s Namespace:** `fabric`
 - **Vault Access:** `secret/fabric/tls/*` (TLS CA secrets only)
 - **Nexus Calls:** `secrets.v1.CreateAccess` → Infra
-- **Nexus Services:** Exposes `fabric.certauth.v1.CreateCertificate`
+- **Nexus Services:** Exposes `fabric.certauth.v1.CreateCertificate`, `fabric.v1.BootstrapFabric`
 - **Responsibilities:** TLS CA chain (Root + Intermediate), Certificate Store, TLS certificate issuance
+- **Identity:** Acts AS the operator (`OPERATOR_ID` injected at startup)
 
 ### Shard Workers (per-org deployments)
 - **Temporal Namespace:** `fabric-shard-{org}` (one per org)
 - **K8s Namespace:** `fabric-shard-{org}` (one per org)
 - **Vault Access:** `secret/fabric/shard/{org}/*`
 - **Nexus Calls:** `secrets.v1.CreateAccess` → Infra, `fabric.certauth.v1.CreateCertificate` → Fabric
+- **Nexus Services:** Exposes `fabric.v1.BootstrapShard`
 - **Responsibilities:** Org CA chain, Peers, Orderers, CouchDB, identity management
+- **Identity:** Acts AS its org (`ORG_ID` injected at startup)
 
 **Isolation Strategy:**
 - Temporal namespace boundaries provide workflow history isolation
 - Single task queue name (`infra`) per namespace (no routing complexity)
 - Cross-namespace calls use Temporal Nexus
 - Each worker type has scoped Vault access
+
+---
+
+## Ownership Model
+
+Every fabric/certauth workflow acts **as its worker's owner**, injected at
+startup (`OPERATOR_ID` on the fabric worker, `ORG_ID` on shard workers). No
+workflow input carries an `org` string; Vault paths, Kubernetes namespaces, and
+CA references all derive from the injected owner. The ownership rule: the
+**operator owns `tls` CAs**, an **org owns `org` CAs**.
+
+Workflows that act **on behalf of** others (cell.v1 on the infra worker,
+cluster.fabric.v1 everywhere) carry an explicit typed `Owner` message
+(oneof `operator_id` / `org_id`) in their inputs.
+
+CA deployment is spec-driven: a single `fabric.v1.DeployCertificateAuthority`
+workflow takes a `CertificateAuthoritySpec` (`self`, `signing_issuer`,
+`tls_issuer`, `validity_duration`) and covers all four variants (tls/root,
+tls/int, org/root, org/int). It validates ownership up front:
+
+- `spec.self` and `spec.signing_issuer` MUST be owned by the executing worker
+  (signing issuance never crosses the ownership boundary)
+- `spec.tls_issuer` may be foreign — TLS certs for org CAs are issued by the
+  operator's TLS chain via Nexus
+
+`BootstrapFabric` and `BootstrapShard` carry ordered
+`repeated CertificateAuthoritySpec` and deploy each in order.
 
 ---
 
@@ -81,22 +111,22 @@ Fabric bootstrap has two distinct flows with different lifecycles:
 Run **once per cluster** to establish shared TLS infrastructure. Must complete before any shards can be created.
 
 ```
-cell.v1.InitFabric (Infra Worker, infra namespace)
+cell.v1.InitFabric (Infra Worker, infra namespace, on behalf of the operator)
 │
 ├─ temporal.v1.CreateNamespace (fabric)
-├─ cluster.fabric.v1.CreateNamespace (fabric)
-├─ cluster.fabric.v1.CreateServiceAccount
-├─ secrets.v1.CreateAccess
-├─ cluster.fabric.v1.CreateDeployment (fabric worker)
+├─ cluster.fabric.v1.CreateNamespace (Owner: operator)
+├─ cluster.fabric.v1.CreateServiceAccount (Owner: operator)
+├─ secrets.v1.CreateAccess (WorkerVaultPolicy(operator))
+├─ cluster.fabric.v1.CreateDeployment (Owner: operator, fabric worker)
 ├─ temporal.v1.CreateNexusEndpoint (CreateCertificate)
 ├─ temporal.v1.CreateNexusEndpoint (BootstrapFabric)
 │
-└─ Nexus → fabric.v1.BootstrapFabric (Fabric Worker, fabric namespace)
+└─ Nexus → fabric.v1.BootstrapFabric (Fabric Worker, fabric namespace, acts AS operator)
+           │   input: ordered repeated CertificateAuthoritySpec (tls/root, tls/int)
            │
-           └─ fabric.v1.BootstrapTlsCertificateAuthorities
-              ├─ fabric.v1.DeployCertificateStore
-              ├─ fabric.v1.DeployTlsRootCertificateAuthority
-              └─ fabric.v1.DeployTlsIntermediateCertificateAuthority
+           ├─ fabric.v1.DeployCertificateStore
+           ├─ fabric.v1.DeployCertificateAuthority (spec: tls/root, self-signed)
+           └─ fabric.v1.DeployCertificateAuthority (spec: tls/int, issued by tls/root)
 ```
 
 **Result:** TLS CA infrastructure ready. Fabric worker accepting `CreateCertificate` requests.
@@ -106,23 +136,23 @@ cell.v1.InitFabric (Infra Worker, infra namespace)
 Run **per organization** when a new org joins the network. Can be invoked multiple times.
 
 ```
-cell.v1.InitFabricShard (Infra Worker, infra namespace)
+cell.v1.InitFabricShard (Infra Worker, infra namespace, on behalf of {org})
 │
 ├─ temporal.v1.CreateNamespace (fabric-shard-{org})
-├─ cluster.fabric.v1.CreateNamespace (fabric-shard-{org})
-├─ cluster.fabric.v1.CreateServiceAccount
-├─ secrets.v1.CreateAccess
-├─ cluster.fabric.v1.CreateDeployment (shard worker)
+├─ cluster.fabric.v1.CreateNamespace (Owner: org)
+├─ cluster.fabric.v1.CreateServiceAccount (Owner: org)
+├─ secrets.v1.CreateAccess (WorkerVaultPolicy(org))
+├─ cluster.fabric.v1.CreateDeployment (Owner: org, shard worker)
 ├─ temporal.v1.CreateNexusEndpoint (BootstrapShard)
 │
-└─ Nexus → fabric.v1.BootstrapShard (Shard Worker, fabric-shard-{org} namespace)
+└─ Nexus → fabric.v1.BootstrapShard (Shard Worker, fabric-shard-{org} namespace, acts AS org)
+           │   input: DeploymentSpec with ordered CertificateAuthoritySpec (org/root, org/int)
            │
-           ├─ fabric.v1.BootstrapOrgCertificateAuthorities
-           │  ├─ fabric.v1.DeployCertificateStore
-           │  ├─ fabric.v1.DeployOrgRootCertificateAuthority
-           │  │  └─ Nexus → fabric.certauth.v1.CreateCertificate (Fabric Worker)
-           │  └─ fabric.v1.DeployOrgIntermediateCertificateAuthority
-           │     └─ Nexus → fabric.certauth.v1.CreateCertificate (Fabric Worker)
+           ├─ fabric.v1.DeployCertificateStore
+           ├─ fabric.v1.DeployCertificateAuthority (spec: org/root, TLS via Nexus)
+           │  └─ Nexus → fabric.certauth.v1.CreateCertificate (Fabric Worker)
+           ├─ fabric.v1.DeployCertificateAuthority (spec: org/int, TLS via Nexus)
+           │  └─ Nexus → fabric.certauth.v1.CreateCertificate (Fabric Worker)
            │
            ├─ for each peer:
            │  ├─ fabric.v1.DeployCouchDb
@@ -209,73 +239,65 @@ cell.v1.InitFabricShard ✅
 
 ### Fabric Worker Workflows (fabric.v1 package)
 
-```
-fabric.v1.BootstrapFabric ✅
-└─ fabric.v1.BootstrapTlsCertificateAuthorities ✅
-   ├─ fabric.v1.DeployCertificateStore ✅
-   ├─ fabric.v1.DeployTlsRootCertificateAuthority ✅
-   └─ fabric.v1.DeployTlsIntermediateCertificateAuthority ✅
-```
-
-**TLS CA Deployment Details:**
+The fabric worker acts AS the operator (injected `OPERATOR_ID`); shard workers
+act AS their org (injected `ORG_ID`). The same workflow implementations serve
+both — behavior derives from the injected owner and the CA specs.
 
 ```
-fabric.v1.DeployTlsRootCertificateAuthority ✅
+fabric.v1.BootstrapFabric ✅ (on the fabric worker; specs: tls/root, tls/int)
+├─ fabric.v1.DeployCertificateStore ✅
+└─ for each CertificateAuthoritySpec (in order):
+   └─ fabric.v1.DeployCertificateAuthority ✅
+```
+
+**CA Deployment (single spec-driven workflow, all four variants):**
+
+```
+fabric.v1.DeployCertificateAuthority ✅
+│  validates: spec.self and spec.signing_issuer owned by this worker (fail fast)
+│
 ├─ Nexus → secrets.v1.CreateAccess ✅
 ├─ fabric.v1.CreateCertificateDatabase ✅
-├─ secrets.v1.CreateKeyPair ✅ (signing)
-├─ secrets.v1.CreateSelfSignedCertificate ✅ (signing)
-├─ secrets.v1.CreateKeyPair ✅ (TLS)
-├─ secrets.v1.CreateSelfSignedCertificate ✅ (TLS)
-├─ secrets.v1.CreatePassword ✅ (bootstrap)
-├─ cluster.fabric.v1.CreateDeployment ✅
+│
+├─ signing identity:
+│  ├─ signing_issuer == nil (root CA):
+│  │  ├─ secrets.v1.CreateKeyPair ✅
+│  │  └─ secrets.v1.CreateSelfSignedCertificate ✅
+│  └─ signing_issuer set (intermediate CA, always local):
+│     └─ fabric.certauth.v1.CreateCertificate ✅ (hf.IntermediateCA)
+│
+├─ TLS identity:
+│  ├─ tls_issuer == nil (TLS root only):
+│  │  ├─ secrets.v1.CreateKeyPair ✅
+│  │  └─ secrets.v1.CreateSelfSignedCertificate ✅
+│  ├─ tls_issuer owned locally (operator's TLS CAs):
+│  │  └─ fabric.certauth.v1.CreateCertificate ✅ (local child)
+│  └─ tls_issuer foreign (org CAs):
+│     └─ Nexus → fabric.certauth.v1.CreateCertificate ✅ (Fabric Worker)
+│
+├─ secrets.v1.CreatePassword ✅ (bootstrap admin)
+├─ cluster.fabric.v1.CreateDeployment ✅ (Owner from injected identity)
 ├─ fabric.certauth.v1.CreateBootstrapAdmin ✅
 └─ fabric.certauth.v1.CreateAdmin ✅
 ```
 
-```
-fabric.v1.DeployTlsIntermediateCertificateAuthority ✅
-├─ Nexus → secrets.v1.CreateAccess ✅
-├─ fabric.v1.CreateCertificateDatabase ✅
-├─ fabric.certauth.v1.CreateCertificate ✅ (signing from TLS Root)
-├─ fabric.certauth.v1.CreateCertificate ✅ (TLS from TLS Root)
-├─ secrets.v1.CreatePassword ✅ (bootstrap)
-├─ cluster.fabric.v1.CreateDeployment ✅
-├─ fabric.certauth.v1.CreateBootstrapAdmin ✅
-└─ fabric.certauth.v1.CreateAdmin ✅
-```
+Child workflow IDs are distinguished per spec: `{owner}/deploy-ca/{certType}-{caID}`.
 
 ---
 
 ### Shard Worker Workflows (fabric.v1 package)
 
 ```
-fabric.v1.BootstrapShard 🟡
-├─ fabric.v1.BootstrapOrgCertificateAuthorities ✅
-│  ├─ fabric.v1.DeployCertificateStore ✅
-│  ├─ fabric.v1.DeployOrgRootCertificateAuthority ✅
-│  └─ fabric.v1.DeployOrgIntermediateCertificateAuthority ✅
+fabric.v1.BootstrapShard 🟡 (on a shard worker; specs: org/root, org/int)
+├─ fabric.v1.DeployCertificateStore ✅
+├─ for each CertificateAuthoritySpec (in order):
+│  └─ fabric.v1.DeployCertificateAuthority ✅ (TLS via Nexus → Fabric Worker)
 ├─ for each peer:
 │  ├─ fabric.v1.DeployCouchDb ✅
 │  └─ fabric.v1.DeployPeer ✅
 ├─ for each orderer:
 │  └─ fabric.v1.DeployOrderer ✅
 └─ TODO: chaincode, channel join
-```
-
-**Org CA Deployment Details:**
-
-```
-fabric.v1.DeployOrgRootCertificateAuthority ✅
-├─ Nexus → secrets.v1.CreateAccess ✅
-├─ fabric.v1.CreateCertificateDatabase ✅
-├─ secrets.v1.CreateKeyPair ✅ (signing)
-├─ secrets.v1.CreateSelfSignedCertificate ✅ (signing)
-├─ Nexus → fabric.certauth.v1.CreateCertificate ✅
-├─ secrets.v1.CreatePassword ✅ (bootstrap)
-├─ cluster.fabric.v1.CreateDeployment ✅
-├─ fabric.certauth.v1.CreateBootstrapAdmin ✅
-└─ fabric.certauth.v1.CreateAdmin ✅
 ```
 
 **Component Deployment:**
@@ -309,11 +331,12 @@ fabric.certauth.v1.CreateCertificate ✅
 
 ```
 fabric.certauth.v1.CreateIdentity ✅
-├─ secrets.v1.CreateKeyPair ✅
-├─ fabric.certauth.v1.RegisterIdentity ✅ (org cert)
-├─ fabric.certauth.v1.EnrollIdentity ✅ (org cert)
-├─ fabric.certauth.v1.RegisterIdentity ✅ (TLS cert)
-└─ fabric.certauth.v1.EnrollIdentity ✅ (TLS cert)
+├─ fabric.certauth.v1.CreateCertificate ✅ (org cert, local child)
+└─ TLS identity:
+   ├─ tls_issuer owned locally:
+   │  └─ fabric.certauth.v1.CreateCertificate ✅ (local child)
+   └─ tls_issuer foreign:
+      └─ Nexus → fabric.certauth.v1.CreateCertificate ✅ (issuer's worker)
 ```
 
 ```
@@ -321,14 +344,22 @@ fabric.certauth.v1.CreateBootstrapAdmin ✅
 ├─ kube.v1.GetStatus ✅ (wait for CA readiness)
 ├─ secrets.v1.CreateKeyPair ✅ (signing)
 ├─ fabric.certauth.v1.BootstrapEnrollIdentity ✅ (signing)
-├─ secrets.v1.CreateKeyPair ✅ (TLS)
-└─ fabric.certauth.v1.BootstrapEnrollIdentity ✅ (TLS)
+└─ TLS identity:
+   ├─ tls_issuer owned locally:
+   │  ├─ secrets.v1.CreateKeyPair ✅
+   │  └─ fabric.certauth.v1.BootstrapEnrollIdentity ✅
+   └─ tls_issuer foreign:
+      └─ Nexus → fabric.certauth.v1.CreateCertificate ✅ (issuer's worker)
 ```
 
 ```
 fabric.certauth.v1.CreateAdmin ✅
-├─ fabric.certauth.v1.CreateCertificate ✅ (signing)
-└─ fabric.certauth.v1.CreateCertificate ✅ (TLS)
+├─ fabric.certauth.v1.CreateCertificate ✅ (signing, always local)
+└─ TLS identity:
+   ├─ tls_issuer owned locally:
+   │  └─ fabric.certauth.v1.CreateCertificate ✅ (local child)
+   └─ tls_issuer foreign:
+      └─ Nexus → fabric.certauth.v1.CreateCertificate ✅ (issuer's worker)
 ```
 
 **Activities (fabric.certauth.v1):**

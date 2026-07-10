@@ -30,9 +30,8 @@ const (
 // RegisterIdentityInput specifies the parameters for registering an identity with a CA
 type RegisterIdentityInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// org is the owner identifier for the CA (operator or organization)
-	Org string `protobuf:"bytes,7,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
-	// ca_ref identifies which CA to register with
+	// ca_ref identifies which CA to register with.
+	// Always owned by the executing worker's owner.
 	CaRef *v1.CertificateAuthorityRef `protobuf:"bytes,1,opt,name=ca_ref,json=CaRef,proto3" json:"CaRef" validate:"required"`
 	// identity_name is the unique name for this identity
 	IdentityName string `protobuf:"bytes,2,opt,name=identity_name,json=IdentityName,proto3" json:"IdentityName" validate:"required"`
@@ -76,13 +75,6 @@ func (x *RegisterIdentityInput) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RegisterIdentityInput.ProtoReflect.Descriptor instead.
 func (*RegisterIdentityInput) Descriptor() ([]byte, []int) {
 	return file_fabric_certauth_v1_activities_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *RegisterIdentityInput) GetOrg() string {
-	if x != nil {
-		return x.Org
-	}
-	return ""
 }
 
 func (x *RegisterIdentityInput) GetCaRef() *v1.CertificateAuthorityRef {
@@ -177,9 +169,8 @@ func (x *RegisterIdentityOutput) GetEnrollmentSecret() string {
 // Keys (private) and certs (public) are stored at separate Vault paths.
 type EnrollIdentityInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// org is the owner identifier for the CA (operator or organization)
-	Org string `protobuf:"bytes,11,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
-	// ca_ref identifies which CA to enroll with
+	// ca_ref identifies which CA to enroll with.
+	// Always owned by the executing worker's owner.
 	CaRef *v1.CertificateAuthorityRef `protobuf:"bytes,1,opt,name=ca_ref,json=CaRef,proto3" json:"CaRef" validate:"required"`
 	// identity_name is the name of the identity to enroll
 	IdentityName string `protobuf:"bytes,2,opt,name=identity_name,json=IdentityName,proto3" json:"IdentityName" validate:"required"`
@@ -232,13 +223,6 @@ func (x *EnrollIdentityInput) ProtoReflect() protoreflect.Message {
 // Deprecated: Use EnrollIdentityInput.ProtoReflect.Descriptor instead.
 func (*EnrollIdentityInput) Descriptor() ([]byte, []int) {
 	return file_fabric_certauth_v1_activities_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *EnrollIdentityInput) GetOrg() string {
-	if x != nil {
-		return x.Org
-	}
-	return ""
 }
 
 func (x *EnrollIdentityInput) GetCaRef() *v1.CertificateAuthorityRef {
@@ -346,9 +330,8 @@ func (x *EnrollIdentityOutput) GetIdentity() *v1.IdentityRef {
 // RevokeIdentityInput specifies the parameters for revoking an identity from a CA
 type RevokeIdentityInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// org is the owner identifier for the CA (operator or organization)
-	Org string `protobuf:"bytes,5,opt,name=org,json=Org,proto3" json:"Org" validate:"required"`
-	// ca_ref identifies which CA to revoke from
+	// ca_ref identifies which CA to revoke from.
+	// Always owned by the executing worker's owner.
 	CaRef *v1.CertificateAuthorityRef `protobuf:"bytes,1,opt,name=ca_ref,json=CaRef,proto3" json:"CaRef" validate:"required"`
 	// identity_name is the name of the identity to revoke
 	IdentityName string `protobuf:"bytes,2,opt,name=identity_name,json=IdentityName,proto3" json:"IdentityName" validate:"required"`
@@ -388,13 +371,6 @@ func (x *RevokeIdentityInput) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RevokeIdentityInput.ProtoReflect.Descriptor instead.
 func (*RevokeIdentityInput) Descriptor() ([]byte, []int) {
 	return file_fabric_certauth_v1_activities_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *RevokeIdentityInput) GetOrg() string {
-	if x != nil {
-		return x.Org
-	}
-	return ""
 }
 
 func (x *RevokeIdentityInput) GetCaRef() *v1.CertificateAuthorityRef {
@@ -626,9 +602,8 @@ var File_fabric_certauth_v1_activities_proto protoreflect.FileDescriptor
 
 const file_fabric_certauth_v1_activities_proto_rawDesc = "" +
 	"\n" +
-	"#fabric/certauth/v1/activities.proto\x12\x12fabric.certauth.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x18secrets/v1/secrets.proto\x1a\x1atemporal/v1/temporal.proto\x1a\x16fabric/v1/fabric.proto\x1a\x1ffabric/certauth/v1/shared.proto\"\xf6\x04\n" +
-	"\x15RegisterIdentityInput\x127\n" +
-	"\x03org\x18\a \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12b\n" +
+	"#fabric/certauth/v1/activities.proto\x12\x12fabric.certauth.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x18secrets/v1/secrets.proto\x1a\x1atemporal/v1/temporal.proto\x1a\x16fabric/v1/fabric.proto\x1a\x1ffabric/certauth/v1/shared.proto\"\xbd\x04\n" +
+	"\x15RegisterIdentityInput\x12b\n" +
 	"\x06ca_ref\x18\x01 \x01(\v2\".fabric.v1.CertificateAuthorityRefB'ʵ\x03#\xa2\x01 json:\"CaRef\" validate:\"required\"R\x05CaRef\x12S\n" +
 	"\ridentity_name\x18\x02 \x01(\tB.ʵ\x03*\xa2\x01'json:\"IdentityName\" validate:\"required\"R\fIdentityName\x12 \n" +
 	"\vaffiliation\x18\x03 \x01(\tR\vAffiliation\x12Y\n" +
@@ -641,9 +616,8 @@ const file_fabric_certauth_v1_activities_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"y\n" +
 	"\x16RegisterIdentityOutput\x12_\n" +
-	"\x11enrollment_secret\x18\x01 \x01(\tB2ʵ\x03.\xa2\x01+json:\"EnrollmentSecret\" validate:\"required\"R\x10EnrollmentSecret\"\xcb\x06\n" +
-	"\x13EnrollIdentityInput\x127\n" +
-	"\x03org\x18\v \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12b\n" +
+	"\x11enrollment_secret\x18\x01 \x01(\tB2ʵ\x03.\xa2\x01+json:\"EnrollmentSecret\" validate:\"required\"R\x10EnrollmentSecret\"\x92\x06\n" +
+	"\x13EnrollIdentityInput\x12b\n" +
 	"\x06ca_ref\x18\x01 \x01(\v2\".fabric.v1.CertificateAuthorityRefB'ʵ\x03#\xa2\x01 json:\"CaRef\" validate:\"required\"R\x05CaRef\x12S\n" +
 	"\ridentity_name\x18\x02 \x01(\tB.ʵ\x03*\xa2\x01'json:\"IdentityName\" validate:\"required\"R\fIdentityName\x12_\n" +
 	"\x11enrollment_secret\x18\x03 \x01(\tB2ʵ\x03.\xa2\x01+json:\"EnrollmentSecret\" validate:\"required\"R\x10EnrollmentSecret\x12[\n" +
@@ -654,9 +628,8 @@ const file_fabric_certauth_v1_activities_proto_rawDesc = "" +
 	" \x01(\v2\x15.secrets.v1.SecretRefB/ʵ\x03+\xa2\x01(json:\"IssuerCertRef\" validate:\"required\"R\rIssuerCertRef\x129\n" +
 	"\aprofile\x18\a \x01(\tB\x1fʵ\x03\x1b\xa2\x01\x18json:\"Profile,omitempty\"R\aProfile\"v\n" +
 	"\x14EnrollIdentityOutput\x12^\n" +
-	"\bidentity\x18\x01 \x01(\v2\x16.fabric.v1.IdentityRefB*ʵ\x03&\xa2\x01#json:\"Identity\" validate:\"required\"R\bIdentity\"\x8f\x03\n" +
-	"\x13RevokeIdentityInput\x127\n" +
-	"\x03org\x18\x05 \x01(\tB%ʵ\x03!\xa2\x01\x1ejson:\"Org\" validate:\"required\"R\x03Org\x12b\n" +
+	"\bidentity\x18\x01 \x01(\v2\x16.fabric.v1.IdentityRefB*ʵ\x03&\xa2\x01#json:\"Identity\" validate:\"required\"R\bIdentity\"\xd6\x02\n" +
+	"\x13RevokeIdentityInput\x12b\n" +
 	"\x06ca_ref\x18\x01 \x01(\v2\".fabric.v1.CertificateAuthorityRefB'ʵ\x03#\xa2\x01 json:\"CaRef\" validate:\"required\"R\x05CaRef\x12S\n" +
 	"\ridentity_name\x18\x02 \x01(\tB.ʵ\x03*\xa2\x01'json:\"IdentityName\" validate:\"required\"R\fIdentityName\x12\x16\n" +
 	"\x06reason\x18\x03 \x01(\tR\x06Reason\x12n\n" +

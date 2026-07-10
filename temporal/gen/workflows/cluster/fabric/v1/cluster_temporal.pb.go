@@ -39,9 +39,9 @@ const (
 
 // cluster.fabric.v1.Cluster workflow id expressions
 var (
-	CreateDeploymentIdexpression     = expression.MustParseExpression("cluster/fabric/create-deployment/${! Org }/${! Component }")
-	CreateNamespaceIdexpression      = expression.MustParseExpression("cluster/fabric/create-namespace/${! Org }")
-	CreateServiceAccountIdexpression = expression.MustParseExpression("cluster/fabric/create-service-account/${! Org }")
+	CreateDeploymentIdexpression     = expression.MustParseExpression("cluster/fabric/create-deployment/${! Owner.OperatorId.or(Owner.OrgId) }/${! Component }")
+	CreateNamespaceIdexpression      = expression.MustParseExpression("cluster/fabric/create-namespace/${! Owner.OperatorId.or(Owner.OrgId) }")
+	CreateServiceAccountIdexpression = expression.MustParseExpression("cluster/fabric/create-service-account/${! Owner.OperatorId.or(Owner.OrgId) }")
 )
 
 // ClusterClient describes a client for a(n) cluster.fabric.v1.Cluster worker
@@ -967,7 +967,7 @@ type CreateDeploymentWorkflowInput struct {
 // CreateDeployment orchestrates the deployment of a single resource to Kubernetes
 // This workflow renders a Helm chart with provided values and applies it to the cluster
 //
-// workflow details: (name: "cluster.fabric.v1.CreateDeployment", id: "cluster/fabric/create-deployment/${! Org }/${! Component }")
+// workflow details: (name: "cluster.fabric.v1.CreateDeployment", id: "cluster/fabric/create-deployment/${! Owner.OperatorId.or(Owner.OrgId) }/${! Component }")
 type CreateDeploymentWorkflow interface {
 	// Execute defines the entrypoint to a(n) cluster.fabric.v1.CreateDeployment workflow
 	Execute(ctx workflow.Context) (*CreateDeploymentOutput, error)
@@ -1241,7 +1241,7 @@ type CreateNamespaceWorkflowInput struct {
 // CreateNamespace orchestrates the creation of a Kubernetes namespace
 // This workflow combines Helm chart rendering with Kubernetes resource application
 //
-// workflow details: (name: "cluster.fabric.v1.CreateNamespace", id: "cluster/fabric/create-namespace/${! Org }")
+// workflow details: (name: "cluster.fabric.v1.CreateNamespace", id: "cluster/fabric/create-namespace/${! Owner.OperatorId.or(Owner.OrgId) }")
 type CreateNamespaceWorkflow interface {
 	// Execute defines the entrypoint to a(n) cluster.fabric.v1.CreateNamespace workflow
 	Execute(ctx workflow.Context) (*CreateNamespaceOutput, error)
@@ -1516,7 +1516,7 @@ type CreateServiceAccountWorkflowInput struct {
 // This workflow renders a Helm chart template for service account configuration,
 // then applies the resulting resources to the cluster
 //
-// workflow details: (name: "cluster.fabric.v1.CreateServiceAccount", id: "cluster/fabric/create-service-account/${! Org }")
+// workflow details: (name: "cluster.fabric.v1.CreateServiceAccount", id: "cluster/fabric/create-service-account/${! Owner.OperatorId.or(Owner.OrgId) }")
 type CreateServiceAccountWorkflow interface {
 	// Execute defines the entrypoint to a(n) cluster.fabric.v1.CreateServiceAccount workflow
 	Execute(ctx workflow.Context) (*CreateServiceAccountOutput, error)

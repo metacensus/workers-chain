@@ -166,6 +166,17 @@ type CertificateAuthorityConfig struct {
 	caID        string // "root" for root CAs, or "int" for intermediates
 }
 
+// OwnsCertificateAuthority reports whether the given owner owns the
+// referenced certificate authority. The ownership rule is structural:
+// the operator owns the shared TLS chain (cert_type "tls"), and an org owns
+// its org chain (cert_type "org").
+func OwnsCertificateAuthority(owner OwnerConfig, ref *fabricv1.CertificateAuthorityRef) bool {
+	if owner.IsOperator() {
+		return ref.GetCertType() == "tls"
+	}
+	return ref.GetCertType() == "org"
+}
+
 // NewCertificateAuthorityConfig creates a CertificateAuthorityConfig for the given owner.
 // certType should be "tls" or "org".
 // caID should be "root" for root CAs, or "int" for intermediates.

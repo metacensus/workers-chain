@@ -3,7 +3,6 @@ package cell
 import (
 	"errors"
 	"fmt"
-	"path"
 	"time"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/cell/v1"
@@ -12,20 +11,13 @@ import (
 	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1nexustemporal"
 	secretspb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	temporalpb "github.com/metacensus/infra/temporal/gen/workflows/temporal/v1"
-	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
+	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	"go.temporal.io/sdk/workflow"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 const (
-	// Vault KV v2 path prefixes
-	vaultSecretDataPrefix     = "secret/data"
-	vaultSecretMetadataPrefix = "secret/metadata"
-
-	// Fabric secret path structure
-	fabricSecretBase = "fabric"
-
 	// Nexus endpoint names
 	SecretsCreateAccessNexusEndpoint     = "secrets-CreateAccess"
 	FabricCreateCertificateNexusEndpoint = "fabric-CreateCertificate"
@@ -59,12 +51,19 @@ var (
 	ErrBootstrapShard            = errors.New("bootstrap shard via nexus")
 )
 
-// Workflows implements the CellWorkflows interface
-type Workflows struct{}
+// Workflows implements the CellWorkflows interface.
+//
+// Cell workflows run on the central infra worker and act ON BEHALF OF
+// explicit owners: InitFabric provisions operator-owned shared infrastructure,
+// InitFabricShard provisions one org's infrastructure. The operator identity
+// is injected at startup; children receive typed Owner messages.
+type Workflows struct {
+	operator *config.OperatorConfig
+}
 
-// NewWorkflows creates a new Workflows instance
-func NewWorkflows() *Workflows {
-	return &Workflows{}
+// NewWorkflows creates a new Workflows instance for the given platform operator.
+func NewWorkflows(operator *config.OperatorConfig) *Workflows {
+	return &Workflows{operator: operator}
 }
 
 // BootstrapInfra implements the BootstrapInfra workflow
@@ -143,16 +142,17 @@ func buildTLSCertificateAuthorities() []*fabricpb.CertificateAuthoritySpec {
 
 // InitFabric implements the InitFabric workflow
 func (w *Workflows) InitFabric(ctx workflow.Context, input *pb.InitFabricWorkflowInput) (pb.InitFabricWorkflow, error) {
-	return newInitFabricWorkflow(input)
+	return newInitFabricWorkflow(input, w.operator)
 }
 
 type initFabricWorkflow struct {
-	input *pb.InitFabricWorkflowInput
+	input    *pb.InitFabricWorkflowInput
+	operator *config.OperatorConfig
 }
 
 // newInitFabricWorkflow creates and validates a new initFabricWorkflow
-func newInitFabricWorkflow(input *pb.InitFabricWorkflowInput) (*initFabricWorkflow, error) {
-	w := &initFabricWorkflow{input: input}
+func newInitFabricWorkflow(input *pb.InitFabricWorkflowInput, operator *config.OperatorConfig) (*initFabricWorkflow, error) {
+	w := &initFabricWorkflow{input: input, operator: operator}
 	if err := w.validate(); err != nil {
 		return nil, err
 	}
@@ -172,7 +172,8 @@ func (w *initFabricWorkflow) validate() error {
 // shared fabric worker, wires up the Nexus endpoints it serves, and then bootstraps
 // the shared infrastructure (certificate store + TLS CA chain) via Nexus.
 func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput, error) {
-	operatorCfg := config.GetOperator()
+	operatorCfg := w.operator
+	operatorOwner := operatorCfg.OwnerProto()
 
 	// Create the shared "fabric" Temporal namespace the fabric worker polls
 	if _, err := temporalpb.CreateNamespaceChild(ctx, &temporalpb.CreateNamespaceInput{
@@ -181,19 +182,17 @@ func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput
 		return nil, fmt.Errorf("%w: %w", ErrCreateFabricTemporalNamespace, err)
 	}
 
-	// Create Kubernetes namespace for operator with network policies
-	// IsOperator=true enables NetworkPolicy for cross-namespace TLS CA access
+	// Create Kubernetes namespace for the operator with network policies
+	// (operator ownership enables NetworkPolicy for cross-namespace TLS CA access)
 	if _, err := clusterpb.CreateNamespaceChild(ctx, &clusterpb.CreateNamespaceInput{
-		Org:        operatorCfg.OwnerID(),
-		IsOperator: true,
+		Owner: operatorOwner,
 	}); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateOperatorKubernetesNamespace, err)
 	}
 
 	// Create service account for the shared fabric worker
 	if _, err := clusterpb.CreateServiceAccountChild(ctx, &clusterpb.CreateServiceAccountInput{
-		Org:        operatorCfg.OwnerID(),
-		IsOperator: true,
+		Owner: operatorOwner,
 	}); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateOperatorServiceAccount, err)
 	}
@@ -201,7 +200,7 @@ func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput
 	// Create Vault access policies for operator resources
 	if _, err := secretspb.CreateAccessChild(ctx, &secretspb.CreateAccessInput{
 		PolicyName:          operatorCfg.WorkerVaultPolicyName(),
-		PolicyDocument:      buildOperatorVaultPolicy(*operatorCfg),
+		PolicyDocument:      fabricconfig.WorkerVaultPolicy(operatorCfg),
 		AuthRoleName:        operatorCfg.WorkerVaultAuthRole(),
 		ServiceAccountName:  operatorCfg.WorkerServiceAccountName(),
 		KubernetesNamespace: operatorCfg.KubernetesNamespace(),
@@ -211,9 +210,8 @@ func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput
 
 	// Deploy the shared fabric worker into the "fabric" namespace
 	if _, err := clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
-		Org:        operatorCfg.OwnerID(),
-		Component:  "worker",
-		IsOperator: true,
+		Owner:     operatorOwner,
+		Component: "worker",
 	}); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrDeployFabricSharedWorker, err)
 	}
@@ -237,25 +235,13 @@ func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput
 		return nil, fmt.Errorf("%w: %w", ErrCreateBootstrapFabricEndpoint, err)
 	}
 
-	// Extract validity durations from the CA specs
-	var tlsRootValidity, tlsIntValidity *durationpb.Duration
-	for _, caSpec := range w.input.Req.GetCertificateAuthorities() {
-		if caSpec.GetSelf().GetCertType() == "tls" {
-			if caSpec.GetSelf().GetId() == "root" {
-				tlsRootValidity = caSpec.GetValidityDuration()
-			} else if caSpec.GetSelf().GetId() == "int" {
-				tlsIntValidity = caSpec.GetValidityDuration()
-			}
-		}
-	}
-
-	// Bootstrap shared infrastructure (certificate store + TLS CA chain) via Nexus,
-	// executed by the fabric worker in the "fabric" Temporal namespace
+	// Bootstrap shared infrastructure (certificate store + TLS CA chain) via
+	// Nexus, executed by the fabric worker in the "fabric" Temporal namespace.
+	// The ordered CA specs pass through unchanged - the fabric worker deploys
+	// them as the operator.
 	nexusClient := fabricv1nexustemporal.NewFabricNexusClient(FabricBootstrapFabricNexusEndpoint)
 	if _, err := nexusClient.BootstrapFabric(ctx, &fabricpb.BootstrapFabricInput{
-		Org:                     operatorCfg.OwnerID(),
-		TlsRootValidity:         tlsRootValidity,
-		TlsIntermediateValidity: tlsIntValidity,
+		CertificateAuthorities: w.input.Req.GetCertificateAuthorities(),
 	}, workflow.NexusOperationOptions{
 		ScheduleToCloseTimeout: 30 * time.Minute,
 	}); err != nil {
@@ -263,52 +249,6 @@ func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput
 	}
 
 	return &pb.InitFabricOutput{}, nil
-}
-
-// buildOperatorVaultPolicy creates a Vault policy document for operator resources
-func buildOperatorVaultPolicy(operatorCfg config.OperatorConfig) *vaultpb.PolicyDocument {
-	dataPathPattern := path.Join(vaultSecretDataPrefix, operatorCfg.VaultBasePath(), "*")
-	metadataPathPattern := path.Join(vaultSecretMetadataPrefix, operatorCfg.VaultBasePath(), "*")
-
-	// Allow writing certificates to all shard paths (for TLS cert issuance via Nexus)
-	allOrgCertsPattern := path.Join(vaultSecretDataPrefix, fabricSecretBase, "shard", "*", "certs/*")
-	allOrgCertsMetadataPattern := path.Join(vaultSecretMetadataPrefix, fabricSecretBase, "shard", "*", "certs/*")
-
-	return &vaultpb.PolicyDocument{
-		Rules: []*vaultpb.PolicyRule{
-			// Operator namespace: full access
-			{
-				Path: dataPathPattern,
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_CREATE,
-					vaultpb.Capability_CAPABILITY_READ,
-					vaultpb.Capability_CAPABILITY_UPDATE,
-					vaultpb.Capability_CAPABILITY_LIST,
-				},
-			},
-			{
-				Path: metadataPathPattern,
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_LIST,
-					vaultpb.Capability_CAPABILITY_READ,
-				},
-			},
-			// All org namespaces: write access to certs/* only (for TLS issuance)
-			{
-				Path: allOrgCertsPattern,
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_CREATE,
-					vaultpb.Capability_CAPABILITY_UPDATE,
-				},
-			},
-			{
-				Path: allOrgCertsMetadataPattern,
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_READ,
-				},
-			},
-		},
-	}
 }
 
 // InitFabricShard implements the InitFabricShard workflow
@@ -337,9 +277,11 @@ func (w *initFabricShardWorkflow) validate() error {
 	return nil
 }
 
-// Execute orchestrates the complete initialization of a Fabric shard.
+// Execute orchestrates the complete initialization of a Fabric shard,
+// acting on behalf of the org being provisioned.
 func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricShardOutput, error) {
-	orgCfg := config.OrgConfig{OrgID: w.input.Req.Org}
+	orgCfg := config.NewOrgConfig(w.input.Req.Org)
+	orgOwner := orgCfg.OwnerProto()
 
 	// Create Temporal namespace
 	if _, err := temporalpb.CreateNamespaceChild(ctx, &temporalpb.CreateNamespaceInput{
@@ -350,22 +292,22 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 
 	// Create Kubernetes namespace
 	if _, err := clusterpb.CreateNamespaceChild(ctx, &clusterpb.CreateNamespaceInput{
-		Org: w.input.Req.Org,
+		Owner: orgOwner,
 	}); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateKubernetesNamespace, err)
 	}
 
-	// Create service account for fabric worker
+	// Create service account for the shard worker
 	if _, err := clusterpb.CreateServiceAccountChild(ctx, &clusterpb.CreateServiceAccountInput{
-		Org: w.input.Req.Org,
+		Owner: orgOwner,
 	}); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateServiceAccount, err)
 	}
 
-	// Create Vault access policies for the fabric worker
+	// Create Vault access policies for the shard worker
 	if _, err := secretspb.CreateAccessChild(ctx, &secretspb.CreateAccessInput{
 		PolicyName:          orgCfg.WorkerVaultPolicyName(),
-		PolicyDocument:      buildFabricWorkerPolicy(orgCfg),
+		PolicyDocument:      fabricconfig.WorkerVaultPolicy(orgCfg),
 		AuthRoleName:        orgCfg.WorkerVaultAuthRole(),
 		ServiceAccountName:  orgCfg.WorkerServiceAccountName(),
 		KubernetesNamespace: orgCfg.KubernetesNamespace(),
@@ -373,9 +315,9 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 		return nil, fmt.Errorf("%w: %w", ErrCreateVaultAccess, err)
 	}
 
-	// Deploy fabric worker pod
+	// Deploy shard worker pod
 	if _, err := clusterpb.CreateDeploymentChild(ctx, &clusterpb.CreateDeploymentInput{
-		Org:       w.input.Req.Org,
+		Owner:     orgOwner,
 		Component: "worker",
 	}); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrDeployFabricWorker, err)
@@ -390,45 +332,16 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 		return nil, fmt.Errorf("%w: %w", ErrCreateNexusEndpoint, err)
 	}
 
-	// Call BootstrapShard workflow via Nexus
+	// Call BootstrapShard workflow via Nexus - the shard worker deploys the
+	// org's components as the org (its injected identity)
 	nexusClient := fabricv1nexustemporal.NewFabricNexusClient(orgCfg.NexusEndpointBootstrapShard())
-	bootstrapOutput, err := nexusClient.BootstrapShard(ctx, &fabricpb.BootstrapShardInput{
-		Org:        w.input.Req.Org,
+	if _, err := nexusClient.BootstrapShard(ctx, &fabricpb.BootstrapShardInput{
 		Deployment: w.input.Req.GetDeployment(),
 	}, workflow.NexusOperationOptions{
 		ScheduleToCloseTimeout: 30 * time.Minute,
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrBootstrapShard, err)
 	}
-	_ = bootstrapOutput
 
 	return &pb.InitFabricShardOutput{}, nil
-}
-
-// buildFabricWorkerPolicy creates a Vault policy document for a shard worker
-func buildFabricWorkerPolicy(orgCfg config.OrgConfig) *vaultpb.PolicyDocument {
-	dataPathPattern := path.Join(vaultSecretDataPrefix, orgCfg.VaultBasePath(), "*")
-	metadataPathPattern := path.Join(vaultSecretMetadataPrefix, orgCfg.VaultBasePath(), "*")
-
-	return &vaultpb.PolicyDocument{
-		Rules: []*vaultpb.PolicyRule{
-			{
-				Path: dataPathPattern,
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_CREATE,
-					vaultpb.Capability_CAPABILITY_READ,
-					vaultpb.Capability_CAPABILITY_UPDATE,
-					vaultpb.Capability_CAPABILITY_LIST,
-				},
-			},
-			{
-				Path: metadataPathPattern,
-				Capabilities: []vaultpb.Capability{
-					vaultpb.Capability_CAPABILITY_LIST,
-					vaultpb.Capability_CAPABILITY_READ,
-				},
-			},
-		},
-	}
 }

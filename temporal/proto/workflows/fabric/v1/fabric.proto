@@ -9,6 +9,25 @@ import "secrets/v1/secrets.proto";
 import "temporal/v1/temporal.proto";
 
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1";
+
+// Owner identifies who owns a set of resources: the operator (shared
+// infrastructure such as the TLS CA chain) or a single organization
+// (per-org shard infrastructure).
+//
+// Workflows that act ON BEHALF OF an owner (infra worker: cell, cluster)
+// take an explicit Owner. Workflows that act AS their owner (fabric/shard
+// workers) never take an Owner input - the owner is injected into the
+// worker at startup (OPERATOR_ID / ORG_ID).
+message Owner {
+  oneof id {
+    // operator_id identifies the operator (e.g., "metacensus")
+    string operator_id = 1 [json_name = "OperatorId"];
+
+    // org_id identifies an organization (e.g., "org1")
+    string org_id = 2 [json_name = "OrgId"];
+  }
+}
+
 // OrgFabricDeployment represents the complete fabric deployment configuration
 // Passed as required input to BootstrapShard - no defaults, caller must specify all components
 message OrgFabricDeployment {

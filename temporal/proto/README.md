@@ -80,13 +80,8 @@
       - [Workflows](#fabric-v1-fabric-workflows)
         - [fabric.v1.BootstrapFabric](#fabric-v1-bootstrapfabric-workflow)
         - [fabric.v1.BootstrapShard](#fabric-v1-bootstrapshard-workflow)
-        - [fabric.v1.BootstrapTlsCertificateAuthorities](#fabric-v1-bootstraptlscertificateauthorities-workflow)
-        - [fabric.v1.BootstrapOrgCertificateAuthorities](#fabric-v1-bootstraporgcertificateauthorities-workflow)
         - [fabric.v1.DeployCertificateStore](#fabric-v1-deploycertificatestore-workflow)
-        - [fabric.v1.DeployTlsRootCertificateAuthority](#fabric-v1-deploytlsrootcertificateauthority-workflow)
-        - [fabric.v1.DeployTlsIntermediateCertificateAuthority](#fabric-v1-deploytlsintermediatecertificateauthority-workflow)
-        - [fabric.v1.DeployOrgRootCertificateAuthority](#fabric-v1-deployorgrootcertificateauthority-workflow)
-        - [fabric.v1.DeployOrgIntermediateCertificateAuthority](#fabric-v1-deployorgintermediatecertificateauthority-workflow)
+        - [fabric.v1.DeployCertificateAuthority](#fabric-v1-deploycertificateauthority-workflow)
         - [fabric.v1.CreateCertificateDatabase](#fabric-v1-createcertificatedatabase-workflow)
         - [fabric.v1.DeployCouchDb](#fabric-v1-deploycouchdb-workflow)
         - [fabric.v1.DeployPeer](#fabric-v1-deploypeer-workflow)
@@ -95,16 +90,14 @@
   - Messages
     - [fabric.v1.BootstrapFabricInput](#fabric-v1-bootstrapfabricinput)
     - [fabric.v1.BootstrapFabricOutput](#fabric-v1-bootstrapfabricoutput)
-    - [fabric.v1.BootstrapOrgCertificateAuthoritiesInput](#fabric-v1-bootstraporgcertificateauthoritiesinput)
-    - [fabric.v1.BootstrapOrgCertificateAuthoritiesOutput](#fabric-v1-bootstraporgcertificateauthoritiesoutput)
     - [fabric.v1.BootstrapShardInput](#fabric-v1-bootstrapshardinput)
     - [fabric.v1.BootstrapShardOutput](#fabric-v1-bootstrapshardoutput)
-    - [fabric.v1.BootstrapTlsCertificateAuthoritiesInput](#fabric-v1-bootstraptlscertificateauthoritiesinput)
-    - [fabric.v1.BootstrapTlsCertificateAuthoritiesOutput](#fabric-v1-bootstraptlscertificateauthoritiesoutput)
     - [fabric.v1.CertificateAuthorityRef](#fabric-v1-certificateauthorityref)
     - [fabric.v1.CertificateAuthoritySpec](#fabric-v1-certificateauthorityspec)
     - [fabric.v1.CreateCertificateDatabaseInput](#fabric-v1-createcertificatedatabaseinput)
     - [fabric.v1.CreateCertificateDatabaseOutput](#fabric-v1-createcertificatedatabaseoutput)
+    - [fabric.v1.DeployCertificateAuthorityInput](#fabric-v1-deploycertificateauthorityinput)
+    - [fabric.v1.DeployCertificateAuthorityOutput](#fabric-v1-deploycertificateauthorityoutput)
     - [fabric.v1.DeployCertificateStoreInput](#fabric-v1-deploycertificatestoreinput)
     - [fabric.v1.DeployCertificateStoreOutput](#fabric-v1-deploycertificatestoreoutput)
     - [fabric.v1.DeployChainCodeInput](#fabric-v1-deploychaincodeinput)
@@ -113,19 +106,12 @@
     - [fabric.v1.DeployCouchDbOutput](#fabric-v1-deploycouchdboutput)
     - [fabric.v1.DeployOrdererInput](#fabric-v1-deployordererinput)
     - [fabric.v1.DeployOrdererOutput](#fabric-v1-deployordereroutput)
-    - [fabric.v1.DeployOrgIntermediateCertificateAuthorityInput](#fabric-v1-deployorgintermediatecertificateauthorityinput)
-    - [fabric.v1.DeployOrgIntermediateCertificateAuthorityOutput](#fabric-v1-deployorgintermediatecertificateauthorityoutput)
-    - [fabric.v1.DeployOrgRootCertificateAuthorityInput](#fabric-v1-deployorgrootcertificateauthorityinput)
-    - [fabric.v1.DeployOrgRootCertificateAuthorityOutput](#fabric-v1-deployorgrootcertificateauthorityoutput)
     - [fabric.v1.DeployPeerInput](#fabric-v1-deploypeerinput)
     - [fabric.v1.DeployPeerOutput](#fabric-v1-deploypeeroutput)
-    - [fabric.v1.DeployTlsIntermediateCertificateAuthorityInput](#fabric-v1-deploytlsintermediatecertificateauthorityinput)
-    - [fabric.v1.DeployTlsIntermediateCertificateAuthorityOutput](#fabric-v1-deploytlsintermediatecertificateauthorityoutput)
-    - [fabric.v1.DeployTlsRootCertificateAuthorityInput](#fabric-v1-deploytlsrootcertificateauthorityinput)
-    - [fabric.v1.DeployTlsRootCertificateAuthorityOutput](#fabric-v1-deploytlsrootcertificateauthorityoutput)
     - [fabric.v1.IdentityRef](#fabric-v1-identityref)
     - [fabric.v1.OrdererSpec](#fabric-v1-ordererspec)
     - [fabric.v1.OrgFabricDeployment](#fabric-v1-orgfabricdeployment)
+    - [fabric.v1.Owner](#fabric-v1-owner)
     - [fabric.v1.PeerSpec](#fabric-v1-peerspec)
 - [helm.v1](#helm-v1)
   - Services
@@ -1008,6 +994,10 @@ InitFabricShardOutput indicates the result of shard initialization
 Cluster defines workflows for infrastructure provisioning on Kubernetes
 These workflows orchestrate the creation and management of cluster resources
 by composing Helm (for templating) and Kubernetes (for deployment) activities
+
+These workflows act ON BEHALF OF an explicit, typed Owner: the caller states
+who the resources belong to and all naming (namespaces, service accounts,
+vault paths) is derived from that owner exactly once.
 </pre>
 
 <a name="cluster-fabric-v1-cluster-workflows"></a>
@@ -1031,27 +1021,17 @@ This workflow combines Helm chart rendering with Kubernetes resource application
 <th>Description</th>
 </tr>
 <tr>
-<td>is_operator</td>
-<td>bool</td>
+<td>owner</td>
+<td><a href="#fabric-v1-owner">fabric.v1.Owner</a></td>
 <td><pre>
-is_operator indicates whether this is the operator namespace
-When true, network policies will be created to allow cross-namespace
-access from fabric shard namespaces to TLS CA services on port 7054<br>
+owner identifies who the namespace belongs to.
+Org namespaces are named "fabric-shard-{org}"; the operator namespace is
+"fabric". Operator namespaces get network policies allowing cross-namespace
+access from fabric shard namespaces to TLS CA services on port 7054.<br>
 
-json_name: IsOperator
-go_name: IsOperator
-go_tags: json:"IsOperator,omitempty"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier: an organization (e.g., "org1") or, when
-is_operator is true, the operator (e.g., "metacensus").
-Org namespaces are named "fabric-shard-{org}"; the operator namespace is "fabric".<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
+json_name: Owner
+go_name: Owner
+go_tags: json:"Owner" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1079,7 +1059,7 @@ go_tags: json:"NamespaceName" validate:"required"</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>cluster/fabric/create-namespace/${! Org }</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>cluster/fabric/create-namespace/${! Owner.OperatorId.or(Owner.OrgId) }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -1102,25 +1082,16 @@ then applies the resulting resources to the cluster
 <th>Description</th>
 </tr>
 <tr>
-<td>is_operator</td>
-<td>bool</td>
+<td>owner</td>
+<td><a href="#fabric-v1-owner">fabric.v1.Owner</a></td>
 <td><pre>
-is_operator selects operator-owned naming (namespace "fabric") instead of
-org-owned naming (namespace "fabric-shard-{org}")<br>
+owner identifies who the worker service account belongs to.
+Operator-owned naming uses namespace "fabric"; org-owned naming uses
+namespace "fabric-shard-{org}".<br>
 
-json_name: IsOperator
-go_name: IsOperator
-go_tags: json:"IsOperator,omitempty"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier: an organization or, when is_operator is true,
-the operator.<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
+json_name: Owner
+go_name: Owner
+go_tags: json:"Owner" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1132,7 +1103,7 @@ go_tags: json:"Org" validate:"required"</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>cluster/fabric/create-service-account/${! Org }</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>cluster/fabric/create-service-account/${! Owner.OperatorId.or(Owner.OrgId) }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -1159,8 +1130,8 @@ This workflow renders a Helm chart with provided values and applies it to the cl
 <td><pre>
 component specifies which type of deployment to create
 Currently supported:
-  - "worker": Fabric worker deployment (shared fabric worker when is_operator,
-      otherwise a per-org shard worker)
+  - "worker": Fabric worker deployment (shared fabric worker when the
+      owner is the operator, otherwise a per-org shard worker)
   - "certificate-store": PostgreSQL certificate store
   - "certificate-authority-{certType}-{caID}": Certificate Authority
       where certType is "tls" or "org", and caID is "root" or "int".
@@ -1171,26 +1142,15 @@ json_name: Component
 go_name: Component
 go_tags: json:"Component" validate:"required"</pre></td>
 </tr><tr>
-<td>is_operator</td>
-<td>bool</td>
+<td>owner</td>
+<td><a href="#fabric-v1-owner">fabric.v1.Owner</a></td>
 <td><pre>
-is_operator selects operator-owned naming (namespace "fabric") instead of
-org-owned naming (namespace "fabric-shard-{org}")<br>
+owner identifies who the deployment belongs to.
+Used to derive namespace names, service account names, vault paths, etc.<br>
 
-json_name: IsOperator
-go_name: IsOperator
-go_tags: json:"IsOperator,omitempty"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier: an organization (e.g., "org1") or, when
-is_operator is true, the operator (e.g., "metacensus").
-Used to derive namespace names, service account names, etc.<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
+json_name: Owner
+go_name: Owner
+go_tags: json:"Owner" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1218,7 +1178,7 @@ go_tags: json:"DeploymentName" validate:"required"</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>cluster/fabric/create-deployment/${! Org }/${! Component }</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>cluster/fabric/create-deployment/${! Owner.OperatorId.or(Owner.OrgId) }/${! Component }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>     
 
@@ -1240,8 +1200,8 @@ go_tags: json:"DeploymentName" validate:"required"</pre></td>
 <td><pre>
 component specifies which type of deployment to create
 Currently supported:
-  - "worker": Fabric worker deployment (shared fabric worker when is_operator,
-      otherwise a per-org shard worker)
+  - "worker": Fabric worker deployment (shared fabric worker when the
+      owner is the operator, otherwise a per-org shard worker)
   - "certificate-store": PostgreSQL certificate store
   - "certificate-authority-{certType}-{caID}": Certificate Authority
       where certType is "tls" or "org", and caID is "root" or "int".
@@ -1252,26 +1212,15 @@ json_name: Component
 go_name: Component
 go_tags: json:"Component" validate:"required"</pre></td>
 </tr><tr>
-<td>is_operator</td>
-<td>bool</td>
+<td>owner</td>
+<td><a href="#fabric-v1-owner">fabric.v1.Owner</a></td>
 <td><pre>
-is_operator selects operator-owned naming (namespace "fabric") instead of
-org-owned naming (namespace "fabric-shard-{org}")<br>
+owner identifies who the deployment belongs to.
+Used to derive namespace names, service account names, vault paths, etc.<br>
 
-json_name: IsOperator
-go_name: IsOperator
-go_tags: json:"IsOperator,omitempty"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier: an organization (e.g., "org1") or, when
-is_operator is true, the operator (e.g., "metacensus").
-Used to derive namespace names, service account names, etc.<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
+json_name: Owner
+go_name: Owner
+go_tags: json:"Owner" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1310,27 +1259,17 @@ go_tags: json:"DeploymentName" validate:"required"</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>is_operator</td>
-<td>bool</td>
+<td>owner</td>
+<td><a href="#fabric-v1-owner">fabric.v1.Owner</a></td>
 <td><pre>
-is_operator indicates whether this is the operator namespace
-When true, network policies will be created to allow cross-namespace
-access from fabric shard namespaces to TLS CA services on port 7054<br>
+owner identifies who the namespace belongs to.
+Org namespaces are named "fabric-shard-{org}"; the operator namespace is
+"fabric". Operator namespaces get network policies allowing cross-namespace
+access from fabric shard namespaces to TLS CA services on port 7054.<br>
 
-json_name: IsOperator
-go_name: IsOperator
-go_tags: json:"IsOperator,omitempty"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier: an organization (e.g., "org1") or, when
-is_operator is true, the operator (e.g., "metacensus").
-Org namespaces are named "fabric-shard-{org}"; the operator namespace is "fabric".<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
+json_name: Owner
+go_name: Owner
+go_tags: json:"Owner" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1369,25 +1308,16 @@ go_tags: json:"NamespaceName" validate:"required"</pre></td>
 <th>Description</th>
 </tr>
 <tr>
-<td>is_operator</td>
-<td>bool</td>
+<td>owner</td>
+<td><a href="#fabric-v1-owner">fabric.v1.Owner</a></td>
 <td><pre>
-is_operator selects operator-owned naming (namespace "fabric") instead of
-org-owned naming (namespace "fabric-shard-{org}")<br>
+owner identifies who the worker service account belongs to.
+Operator-owned naming uses namespace "fabric"; org-owned naming uses
+namespace "fabric-shard-{org}".<br>
 
-json_name: IsOperator
-go_name: IsOperator
-go_tags: json:"IsOperator,omitempty"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier: an organization or, when is_operator is true,
-the operator.<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
+json_name: Owner
+go_name: Owner
+go_tags: json:"Owner" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1462,7 +1392,8 @@ go_name: Attributes</pre></td>
 <td>ca_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
-ca_ref identifies which CA to register with<br>
+ca_ref identifies which CA to register with.
+Always owned by the executing worker's owner.<br>
 
 json_name: CaRef
 go_name: CaRef
@@ -1485,15 +1416,6 @@ identity_type specifies the type of identity (e.g., "admin", "peer", "orderer", 
 json_name: IdentityType
 go_name: IdentityType
 go_tags: json:"IdentityType"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier for the CA (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1538,7 +1460,8 @@ This is the second step in identity creation - enrollment uses the secret from r
 <td>ca_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
-ca_ref identifies which CA to enroll with<br>
+ca_ref identifies which CA to enroll with.
+Always owned by the executing worker's owner.<br>
 
 json_name: CaRef
 go_name: CaRef
@@ -1580,15 +1503,6 @@ Used to fetch the issuer's chain for building the full certificate chain<br>
 json_name: IssuerCertRef
 go_name: IssuerCertRef
 go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier for the CA (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr><tr>
 <td>profile</td>
 <td>string</td>
@@ -1673,7 +1587,8 @@ go_tags: json:"AdminIdentity" validate:"required"</pre></td>
 <td>ca_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
-ca_ref identifies which CA to revoke from<br>
+ca_ref identifies which CA to revoke from.
+Always owned by the executing worker's owner.<br>
 
 json_name: CaRef
 go_name: CaRef
@@ -1687,15 +1602,6 @@ identity_name is the name of the identity to revoke<br>
 json_name: IdentityName
 go_name: IdentityName
 go_tags: json:"IdentityName" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier for the CA (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr><tr>
 <td>reason</td>
 <td>string</td>
@@ -1838,7 +1744,11 @@ go_tags: json:"Identity" validate:"required"</pre></td>
 
 <pre>
 CertificateAuthority service defines workflows for manipulating a Fabric certificate authority
-These workflows run on the fabric worker in the org-specific Temporal namespace
+These workflows run on the fabric/shard worker in the owner-specific Temporal namespace.
+
+These workflows act AS their worker's owner (injected at startup); inputs
+never carry an owner. Locally-referenced CAs are always owned by the
+executing worker; foreign issuers are reached via Nexus.
 </pre>
 
 <a name="fabric-certauth-v1-certificateauthority-workflows"></a>
@@ -1893,34 +1803,16 @@ json_name: IdentityType
 go_name: IdentityType
 go_tags: json:"IdentityType,omitempty"</pre></td>
 </tr><tr>
-<td>issuer_cert_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
-Used to fetch the issuer's chain for building the full certificate chain<br>
-
-json_name: IssuerCertRef
-go_name: IssuerCertRef
-go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
-</tr><tr>
 <td>issuer_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
 issuer_ref identifies which CA signs this certificate.
-If nil/empty, creates a self-signed certificate.<br>
+If nil/empty, creates a self-signed certificate.
+The issuer is always owned by the executing worker's owner.<br>
 
 json_name: IssuerRef
 go_name: IssuerRef
 go_tags: json:"IssuerRef"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr><tr>
 <td>profile</td>
 <td>string</td>
@@ -2010,26 +1902,20 @@ Creates both signing and TLS client certs for the bootstrap admin.
 <td>ca_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
-ca_ref identifies which CA to create the bootstrap admin for<br>
+ca_ref identifies which CA to create the bootstrap admin for.
+Always owned by the executing worker's owner.<br>
 
 json_name: CaRef
 go_name: CaRef
 go_tags: json:"CaRef" validate:"required"</pre></td>
 </tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
 <td>tls_issuer</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
 tls_issuer identifies who issues the bootstrap admin's TLS certificate.
-If nil/empty, uses the CA itself (TLS Root CA case).<br>
+If nil/empty, uses the CA itself (TLS Root CA case).
+May be foreign (operator-owned TLS CA when the executing worker is an org);
+foreign issuers are reached via Nexus.<br>
 
 json_name: TlsIssuer
 go_name: TlsIssuer
@@ -2105,20 +1991,12 @@ Creates both signing and TLS client certs for the permanent admin.
 <td>ca_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
-ca_ref identifies which CA to create the admin for<br>
+ca_ref identifies which CA to create the admin for.
+Always owned by the executing worker's owner.<br>
 
 json_name: CaRef
 go_name: CaRef
 go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr><tr>
 <td>signing_issuer</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
@@ -2234,15 +2112,6 @@ The OU is critical for NodeOUs classification in the MSP.<br>
 json_name: IdentityType
 go_name: IdentityType
 go_tags: json:"IdentityType,omitempty"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr><tr>
 <td>org_issuer_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
@@ -2526,20 +2395,12 @@ CreateAdminInput specifies the parameters for creating a permanent admin
 <td>ca_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
-ca_ref identifies which CA to create the admin for<br>
+ca_ref identifies which CA to create the admin for.
+Always owned by the executing worker's owner.<br>
 
 json_name: CaRef
 go_name: CaRef
 go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr><tr>
 <td>signing_issuer</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
@@ -2626,26 +2487,20 @@ CreateBootstrapAdminInput specifies the parameters for creating a bootstrap admi
 <td>ca_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
-ca_ref identifies which CA to create the bootstrap admin for<br>
+ca_ref identifies which CA to create the bootstrap admin for.
+Always owned by the executing worker's owner.<br>
 
 json_name: CaRef
 go_name: CaRef
 go_tags: json:"CaRef" validate:"required"</pre></td>
 </tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
 <td>tls_issuer</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
 tls_issuer identifies who issues the bootstrap admin's TLS certificate.
-If nil/empty, uses the CA itself (TLS Root CA case).<br>
+If nil/empty, uses the CA itself (TLS Root CA case).
+May be foreign (operator-owned TLS CA when the executing worker is an org);
+foreign issuers are reached via Nexus.<br>
 
 json_name: TlsIssuer
 go_name: TlsIssuer
@@ -2745,34 +2600,16 @@ json_name: IdentityType
 go_name: IdentityType
 go_tags: json:"IdentityType,omitempty"</pre></td>
 </tr><tr>
-<td>issuer_cert_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-issuer_cert_ref points to the issuing CA's certificate path (certs/ path)
-Used to fetch the issuer's chain for building the full certificate chain<br>
-
-json_name: IssuerCertRef
-go_name: IssuerCertRef
-go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
-</tr><tr>
 <td>issuer_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
 issuer_ref identifies which CA signs this certificate.
-If nil/empty, creates a self-signed certificate.<br>
+If nil/empty, creates a self-signed certificate.
+The issuer is always owned by the executing worker's owner.<br>
 
 json_name: IssuerRef
 go_name: IssuerRef
 go_tags: json:"IssuerRef"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr><tr>
 <td>profile</td>
 <td>string</td>
@@ -2909,15 +2746,6 @@ The OU is critical for NodeOUs classification in the MSP.<br>
 json_name: IdentityType
 go_name: IdentityType
 go_tags: json:"IdentityType,omitempty"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr><tr>
 <td>org_issuer_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
@@ -3059,7 +2887,8 @@ Keys (private) and certs (public) are stored at separate Vault paths.
 <td>ca_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
-ca_ref identifies which CA to enroll with<br>
+ca_ref identifies which CA to enroll with.
+Always owned by the executing worker's owner.<br>
 
 json_name: CaRef
 go_name: CaRef
@@ -3101,15 +2930,6 @@ Used to fetch the issuer's chain for building the full certificate chain<br>
 json_name: IssuerCertRef
 go_name: IssuerCertRef
 go_tags: json:"IssuerCertRef" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier for the CA (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr><tr>
 <td>profile</td>
 <td>string</td>
@@ -3215,7 +3035,8 @@ go_name: Attributes</pre></td>
 <td>ca_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
-ca_ref identifies which CA to register with<br>
+ca_ref identifies which CA to register with.
+Always owned by the executing worker's owner.<br>
 
 json_name: CaRef
 go_name: CaRef
@@ -3238,15 +3059,6 @@ identity_type specifies the type of identity (e.g., "admin", "peer", "orderer", 
 json_name: IdentityType
 go_name: IdentityType
 go_tags: json:"IdentityType"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier for the CA (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3331,7 +3143,8 @@ go_tags: json:"AdminIdentity" validate:"required"</pre></td>
 <td>ca_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
-ca_ref identifies which CA to revoke from<br>
+ca_ref identifies which CA to revoke from.
+Always owned by the executing worker's owner.<br>
 
 json_name: CaRef
 go_name: CaRef
@@ -3345,15 +3158,6 @@ identity_name is the name of the identity to revoke<br>
 json_name: IdentityName
 go_name: IdentityName
 go_tags: json:"IdentityName" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier for the CA (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr><tr>
 <td>reason</td>
 <td>string</td>
@@ -3404,9 +3208,12 @@ go_name: Revoked</pre></td>
 
 <pre>
 Fabric service defines workflows for deploying Fabric infrastructure.
-Shared (operator-owned) workflows run on the fabric worker in the "fabric"
-Temporal namespace; per-org workflows run on shard workers in
-"fabric-shard-{org}" Temporal namespaces.
+
+These workflows act AS their worker's owner: the shared fabric worker acts
+as the operator (in the "fabric" Temporal namespace), and each shard worker
+acts as its org (in "fabric-shard-{org}" Temporal namespaces). The owner is
+injected at worker startup and never carried in workflow inputs; all Vault
+paths and Kubernetes namespaces are derived from that injected identity.
 </pre>
 
 <a name="fabric-v1-fabric-workflows"></a>
@@ -3419,8 +3226,8 @@ Temporal namespace; per-org workflows run on shard workers in
 <pre>
 BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
 This workflow runs on the fabric worker in the "fabric" Temporal namespace and
-deploys the certificate store and shared TLS certificate authority chain.
-Called via Nexus from the central infra worker during InitFabric.
+deploys the certificate store and the operator-owned certificate authorities
+(in spec order). Called via Nexus from the central infra worker during InitFabric.
 </pre>
 
 **Input:** [fabric.v1.BootstrapFabricInput](#fabric-v1-bootstrapfabricinput)
@@ -3432,33 +3239,16 @@ Called via Nexus from the central infra worker during InitFabric.
 <th>Description</th>
 </tr>
 <tr>
-<td>org</td>
-<td>string</td>
+<td>certificate_authorities</td>
+<td><a href="#fabric-v1-certificateauthorityspec">fabric.v1.CertificateAuthoritySpec</a></td>
 <td><pre>
-org is the owner identifier (operator)
-The certificate store and TLS CAs are created in the operator's namespace<br>
+certificate_authorities specifies the operator-owned CAs to deploy, in order
+(e.g., TLS Root before TLS Intermediate). Every spec's self and signing_issuer
+must be operator-owned ("tls" chain).<br>
 
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_intermediate_validity</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-tls_intermediate_validity specifies how long the TLS Intermediate CA certificates are valid<br>
-
-json_name: TlsIntermediateValidity
-go_name: TlsIntermediateValidity
-go_tags: json:"TlsIntermediateValidity,omitempty"</pre></td>
-</tr><tr>
-<td>tls_root_validity</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-tls_root_validity specifies how long the TLS Root CA certificates are valid<br>
-
-json_name: TlsRootValidity
-go_name: TlsRootValidity
-go_tags: json:"TlsRootValidity,omitempty"</pre></td>
+json_name: CertificateAuthorities
+go_name: CertificateAuthorities
+go_tags: json:"CertificateAuthorities" validate:"required,min=1"</pre></td>
 </tr>
 </table>
 
@@ -3482,7 +3272,7 @@ go_tags: json:"TlsRootValidity,omitempty"</pre></td>
 BootstrapShard is the entry point for Phase 2 of shard initialization
 This workflow runs on the shard worker in the org's Temporal namespace
 (e.g., "fabric-shard-org1") and deploys all Fabric components
-(CAs, peers, orderers) for the organization.
+(certificate store, CAs, peers, orderers) for the organization.
 Called via Nexus from the central worker after Phase 1 completes
 </pre>
 
@@ -3499,21 +3289,13 @@ Called via Nexus from the central worker after Phase 1 completes
 <td><a href="#fabric-v1-orgfabricdeployment">fabric.v1.OrgFabricDeployment</a></td>
 <td><pre>
 deployment is the complete fabric deployment configuration (required)
-Caller must specify all CAs, peers, and orderers - no defaults<br>
+Caller must specify all CAs, peers, and orderers - no defaults.
+All resources are created in the executing worker's (org's) namespace
+and vault paths.<br>
 
 json_name: Deployment
 go_name: Deployment
 go_tags: json:"Deployment" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the organization identifier (required)
-All resources will be created in the org's namespace and vault paths<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3530,154 +3312,17 @@ go_tags: json:"Org" validate:"required"</pre></td>
 </table>
 
 ---
-<a name="fabric-v1-bootstraptlscertificateauthorities-workflow"></a>
-### fabric.v1.BootstrapTlsCertificateAuthorities
-
-<pre>
-BootstrapTlsCertificateAuthorities deploys the certificate store and TLS CA chain
-Operator-owned, runs in operator namespace, deploys TLS Root and TLS Intermediate CAs
-</pre>
-
-**Input:** [fabric.v1.BootstrapTlsCertificateAuthoritiesInput](#fabric-v1-bootstraptlscertificateauthoritiesinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator)
-Certificate store and TLS CAs will be created in operator namespace<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_intermediate_validity</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-tls_intermediate_validity specifies how long the TLS Intermediate CA certificates are valid<br>
-
-json_name: TlsIntermediateValidity
-go_name: TlsIntermediateValidity
-go_tags: json:"TlsIntermediateValidity,omitempty"</pre></td>
-</tr><tr>
-<td>tls_root_validity</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-tls_root_validity specifies how long the TLS Root CA certificates are valid<br>
-
-json_name: TlsRootValidity
-go_name: TlsRootValidity
-go_tags: json:"TlsRootValidity,omitempty"</pre></td>
-</tr>
-</table>
-
-**Output:** [fabric.v1.BootstrapTlsCertificateAuthoritiesOutput](#fabric-v1-bootstraptlscertificateauthoritiesoutput)
-
-
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/${! Org }/bootstrap-tls-certificate-authorities</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-</table>
-
----
-<a name="fabric-v1-bootstraporgcertificateauthorities-workflow"></a>
-### fabric.v1.BootstrapOrgCertificateAuthorities
-
-<pre>
-BootstrapOrgCertificateAuthorities deploys the organization CA chain
-Org-owned, runs in org namespace, deploys Org Root and Org Intermediate CAs
-</pre>
-
-**Input:** [fabric.v1.BootstrapOrgCertificateAuthoritiesInput](#fabric-v1-bootstraporgcertificateauthoritiesinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (organization)
-Org CAs will be created in this org's namespace<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>org_intermediate_validity</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-org_intermediate_validity specifies how long the Org Intermediate CA certificates are valid<br>
-
-json_name: OrgIntermediateValidity
-go_name: OrgIntermediateValidity
-go_tags: json:"OrgIntermediateValidity,omitempty"</pre></td>
-</tr><tr>
-<td>org_root_validity</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-org_root_validity specifies how long the Org Root CA certificates are valid<br>
-
-json_name: OrgRootValidity
-go_name: OrgRootValidity
-go_tags: json:"OrgRootValidity,omitempty"</pre></td>
-</tr>
-</table>
-
-**Output:** [fabric.v1.BootstrapOrgCertificateAuthoritiesOutput](#fabric-v1-bootstraporgcertificateauthoritiesoutput)
-
-
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/${! Org }/bootstrap-org-certificate-authorities</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-</table>
-
----
 <a name="fabric-v1-deploycertificatestore-workflow"></a>
 ### fabric.v1.DeployCertificateStore
 
 <pre>
 DeployCertificateStore deploys the shared certificate store (PostgreSQL)
-used by all certificate authorities in the organization.
+used by all certificate authorities owned by this worker's owner.
 </pre>
 
 **Input:** [fabric.v1.DeployCertificateStoreInput](#fabric-v1-deploycertificatestoreinput)
 
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)
-The certificate store will be created in this owner's namespace<br>
 
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr>
-</table>
 
 **Output:** [fabric.v1.DeployCertificateStoreOutput](#fabric-v1-deploycertificatestoreoutput)
 
@@ -3692,15 +3337,25 @@ go_tags: json:"Org" validate:"required"</pre></td>
 </table>
 
 ---
-<a name="fabric-v1-deploytlsrootcertificateauthority-workflow"></a>
-### fabric.v1.DeployTlsRootCertificateAuthority
+<a name="fabric-v1-deploycertificateauthority-workflow"></a>
+### fabric.v1.DeployCertificateAuthority
 
 <pre>
-DeployTlsRootCertificateAuthority deploys the TLS Root Certificate Authority
-Operator-owned, self-signed signing and TLS certificates, admin TLS from self
+DeployCertificateAuthority deploys one certificate authority described by
+a CertificateAuthoritySpec. The variant behavior (root vs intermediate,
+TLS vs org chain) is derived from the spec's structure:
+  - signing_issuer == nil  -> self-signed signing certificate (root CA)
+  - signing_issuer != nil  -> signing certificate from a local CA (always same-owner)
+  - tls_issuer == nil      -> self-signed TLS certificate (TLS Root CA only)
+  - tls_issuer owned here  -> TLS certificate via a local CreateCertificate child
+  - tls_issuer foreign     -> TLS certificate via Nexus to the issuer's worker
+
+Ownership enforcement (P1/P2): spec.self and spec.signing_issuer MUST be
+owned by the executing worker (the operator owns "tls" CAs, an org owns
+"org" CAs); only tls_issuer may be foreign. Specs violating this fail fast.
 </pre>
 
-**Input:** [fabric.v1.DeployTlsRootCertificateAuthorityInput](#fabric-v1-deploytlsrootcertificateauthorityinput)
+**Input:** [fabric.v1.DeployCertificateAuthorityInput](#fabric-v1-deploycertificateauthorityinput)
 
 <table>
 <tr>
@@ -3709,27 +3364,20 @@ Operator-owned, self-signed signing and TLS certificates, admin TLS from self
 <th>Description</th>
 </tr>
 <tr>
-<td>org</td>
-<td>string</td>
+<td>spec</td>
+<td><a href="#fabric-v1-certificateauthorityspec">fabric.v1.CertificateAuthoritySpec</a></td>
 <td><pre>
-org is the owner identifier (operator)<br>
+spec describes the CA: its identity, who issues its signing certificate
+(nil = self-signed), who issues its TLS certificate (nil = self-signed),
+and how long its certificates are valid.<br>
 
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration specifies how long the CA certificates are valid<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration,omitempty"</pre></td>
+json_name: Spec
+go_name: Spec
+go_tags: json:"Spec" validate:"required"</pre></td>
 </tr>
 </table>
 
-**Output:** [fabric.v1.DeployTlsRootCertificateAuthorityOutput](#fabric-v1-deploytlsrootcertificateauthorityoutput)
+**Output:** [fabric.v1.DeployCertificateAuthorityOutput](#fabric-v1-deploycertificateauthorityoutput)
 
 
 
@@ -3737,175 +3385,7 @@ go_tags: json:"ValidityDuration,omitempty"</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/${! Org }/ca/tls-root</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-</table>
-
----
-<a name="fabric-v1-deploytlsintermediatecertificateauthority-workflow"></a>
-### fabric.v1.DeployTlsIntermediateCertificateAuthority
-
-<pre>
-DeployTlsIntermediateCertificateAuthority deploys the TLS Intermediate Certificate Authority
-Operator-owned, issued by TLS Root via direct workflow calls, admin TLS from self
-</pre>
-
-**Input:** [fabric.v1.DeployTlsIntermediateCertificateAuthorityInput](#fabric-v1-deploytlsintermediatecertificateauthorityinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration specifies how long the CA certificates are valid<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration,omitempty"</pre></td>
-</tr>
-</table>
-
-**Output:** [fabric.v1.DeployTlsIntermediateCertificateAuthorityOutput](#fabric-v1-deploytlsintermediatecertificateauthorityoutput)
-
-
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/${! Org }/ca/tls-int</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-</table>
-
----
-<a name="fabric-v1-deployorgrootcertificateauthority-workflow"></a>
-### fabric.v1.DeployOrgRootCertificateAuthority
-
-<pre>
-DeployOrgRootCertificateAuthority deploys the Organization Root Certificate Authority
-Org-owned, self-signed signing cert, TLS cert via Nexus from TLS Int, admin TLS from TLS Int
-</pre>
-
-**Input:** [fabric.v1.DeployOrgRootCertificateAuthorityInput](#fabric-v1-deployorgrootcertificateauthorityinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_issuer</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-tls_issuer identifies the TLS Intermediate CA (always TLS Int for Org Root)<br>
-
-json_name: TlsIssuer
-go_name: TlsIssuer
-go_tags: json:"TlsIssuer" validate:"required"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration specifies how long the CA certificates are valid<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration,omitempty"</pre></td>
-</tr>
-</table>
-
-**Output:** [fabric.v1.DeployOrgRootCertificateAuthorityOutput](#fabric-v1-deployorgrootcertificateauthorityoutput)
-
-
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/${! Org }/ca/org-root</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-</table>
-
----
-<a name="fabric-v1-deployorgintermediatecertificateauthority-workflow"></a>
-### fabric.v1.DeployOrgIntermediateCertificateAuthority
-
-<pre>
-DeployOrgIntermediateCertificateAuthority deploys the Organization Intermediate Certificate Authority
-Org-owned, signing cert from Org Root via direct call, TLS cert via Nexus from TLS Int, admin TLS from TLS Int
-</pre>
-
-**Input:** [fabric.v1.DeployOrgIntermediateCertificateAuthorityInput](#fabric-v1-deployorgintermediatecertificateauthorityinput)
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_issuer</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-tls_issuer identifies the TLS Intermediate CA (always TLS Int for Org Intermediate)<br>
-
-json_name: TlsIssuer
-go_name: TlsIssuer
-go_tags: json:"TlsIssuer" validate:"required"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration specifies how long the CA certificates are valid<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration,omitempty"</pre></td>
-</tr>
-</table>
-
-**Output:** [fabric.v1.DeployOrgIntermediateCertificateAuthorityOutput](#fabric-v1-deployorgintermediatecertificateauthorityoutput)
-
-
-
-**Defaults:**
-
-<table>
-<tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/${! Org }/ca/org-int</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/deploy-certificate-authority/${! Spec.Self.CertType }-${! Spec.Self.Id }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
@@ -3931,20 +3411,12 @@ isolated database to store issued certificates and revocation information.
 <td>ca_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
-ca_ref identifies which CA this database is for<br>
+ca_ref identifies which CA this database is for.
+The CA must be owned by the executing worker's owner.<br>
 
 json_name: CaRef
 go_name: CaRef
 go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3994,15 +3466,6 @@ CouchDB provides rich query support for Fabric state database
 <th>Description</th>
 </tr>
 <tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
 <td>peer_id</td>
 <td>string</td>
 <td><pre>
@@ -4044,15 +3507,6 @@ Peers endorse transactions and maintain ledger state
 <th>Description</th>
 </tr>
 <tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
 <td>spec</td>
 <td><a href="#fabric-v1-peerspec">fabric.v1.PeerSpec</a></td>
 <td><pre>
@@ -4094,15 +3548,6 @@ Orderers provide consensus and block ordering services
 <th>Description</th>
 </tr>
 <tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
 <td>spec</td>
 <td><a href="#fabric-v1-ordererspec">fabric.v1.OrdererSpec</a></td>
 <td><pre>
@@ -4152,15 +3597,6 @@ chain_code_id identifies this chaincode (e.g., "asset-transfer", "fabcar")<br>
 json_name: ChainCodeId
 go_name: ChainCodeId
 go_tags: json:"ChainCodeId" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4193,33 +3629,16 @@ BootstrapFabricInput specifies parameters for bootstrapping shared Fabric infras
 <th>Description</th>
 </tr>
 <tr>
-<td>org</td>
-<td>string</td>
+<td>certificate_authorities</td>
+<td><a href="#fabric-v1-certificateauthorityspec">fabric.v1.CertificateAuthoritySpec</a></td>
 <td><pre>
-org is the owner identifier (operator)
-The certificate store and TLS CAs are created in the operator's namespace<br>
+certificate_authorities specifies the operator-owned CAs to deploy, in order
+(e.g., TLS Root before TLS Intermediate). Every spec's self and signing_issuer
+must be operator-owned ("tls" chain).<br>
 
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_intermediate_validity</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-tls_intermediate_validity specifies how long the TLS Intermediate CA certificates are valid<br>
-
-json_name: TlsIntermediateValidity
-go_name: TlsIntermediateValidity
-go_tags: json:"TlsIntermediateValidity,omitempty"</pre></td>
-</tr><tr>
-<td>tls_root_validity</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-tls_root_validity specifies how long the TLS Root CA certificates are valid<br>
-
-json_name: TlsRootValidity
-go_name: TlsRootValidity
-go_tags: json:"TlsRootValidity,omitempty"</pre></td>
+json_name: CertificateAuthorities
+go_name: CertificateAuthorities
+go_tags: json:"CertificateAuthorities" validate:"required,min=1"</pre></td>
 </tr>
 </table>
 
@@ -4230,61 +3649,6 @@ go_tags: json:"TlsRootValidity,omitempty"</pre></td>
 
 <pre>
 BootstrapFabricOutput indicates the result of shared Fabric infrastructure bootstrapping
-</pre>
-
-
-
-<a name="fabric-v1-bootstraporgcertificateauthoritiesinput"></a>
-### fabric.v1.BootstrapOrgCertificateAuthoritiesInput
-
-<pre>
-BootstrapOrgCertificateAuthoritiesInput specifies parameters for bootstrapping Org CA infrastructure
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (organization)
-Org CAs will be created in this org's namespace<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>org_intermediate_validity</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-org_intermediate_validity specifies how long the Org Intermediate CA certificates are valid<br>
-
-json_name: OrgIntermediateValidity
-go_name: OrgIntermediateValidity
-go_tags: json:"OrgIntermediateValidity,omitempty"</pre></td>
-</tr><tr>
-<td>org_root_validity</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-org_root_validity specifies how long the Org Root CA certificates are valid<br>
-
-json_name: OrgRootValidity
-go_name: OrgRootValidity
-go_tags: json:"OrgRootValidity,omitempty"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-bootstraporgcertificateauthoritiesoutput"></a>
-### fabric.v1.BootstrapOrgCertificateAuthoritiesOutput
-
-<pre>
-BootstrapOrgCertificateAuthoritiesOutput indicates the result of Org CA infrastructure bootstrapping
 </pre>
 
 
@@ -4307,21 +3671,13 @@ BootstrapShardInput specifies the parameters for bootstrapping a Fabric shard
 <td><a href="#fabric-v1-orgfabricdeployment">fabric.v1.OrgFabricDeployment</a></td>
 <td><pre>
 deployment is the complete fabric deployment configuration (required)
-Caller must specify all CAs, peers, and orderers - no defaults<br>
+Caller must specify all CAs, peers, and orderers - no defaults.
+All resources are created in the executing worker's (org's) namespace
+and vault paths.<br>
 
 json_name: Deployment
 go_name: Deployment
 go_tags: json:"Deployment" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the organization identifier (required)
-All resources will be created in the org's namespace and vault paths<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4332,61 +3688,6 @@ go_tags: json:"Org" validate:"required"</pre></td>
 
 <pre>
 BootstrapShardOutput indicates the result of shard bootstrapping
-</pre>
-
-
-
-<a name="fabric-v1-bootstraptlscertificateauthoritiesinput"></a>
-### fabric.v1.BootstrapTlsCertificateAuthoritiesInput
-
-<pre>
-BootstrapTlsCertificateAuthoritiesInput specifies parameters for bootstrapping TLS CA infrastructure
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator)
-Certificate store and TLS CAs will be created in operator namespace<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_intermediate_validity</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-tls_intermediate_validity specifies how long the TLS Intermediate CA certificates are valid<br>
-
-json_name: TlsIntermediateValidity
-go_name: TlsIntermediateValidity
-go_tags: json:"TlsIntermediateValidity,omitempty"</pre></td>
-</tr><tr>
-<td>tls_root_validity</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-tls_root_validity specifies how long the TLS Root CA certificates are valid<br>
-
-json_name: TlsRootValidity
-go_name: TlsRootValidity
-go_tags: json:"TlsRootValidity,omitempty"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-bootstraptlscertificateauthoritiesoutput"></a>
-### fabric.v1.BootstrapTlsCertificateAuthoritiesOutput
-
-<pre>
-BootstrapTlsCertificateAuthoritiesOutput indicates the result of TLS CA infrastructure bootstrapping
 </pre>
 
 
@@ -4501,20 +3802,12 @@ CreateCertificateDatabaseInput specifies the parameters for creating a certifica
 <td>ca_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
 <td><pre>
-ca_ref identifies which CA this database is for<br>
+ca_ref identifies which CA this database is for.
+The CA must be owned by the executing worker's owner.<br>
 
 json_name: CaRef
 go_name: CaRef
 go_tags: json:"CaRef" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator or organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4547,11 +3840,11 @@ go_tags: json:"CredentialsRef" validate:"required"</pre></td>
 
 
 
-<a name="fabric-v1-deploycertificatestoreinput"></a>
-### fabric.v1.DeployCertificateStoreInput
+<a name="fabric-v1-deploycertificateauthorityinput"></a>
+### fabric.v1.DeployCertificateAuthorityInput
 
 <pre>
-DeployCertificateStoreInput specifies the parameters for deploying the certificate store
+DeployCertificateAuthorityInput specifies the CA to deploy
 </pre>
 
 <table>
@@ -4561,17 +3854,37 @@ DeployCertificateStoreInput specifies the parameters for deploying the certifica
 <th>Description</th>
 </tr>
 <tr>
-<td>org</td>
-<td>string</td>
+<td>spec</td>
+<td><a href="#fabric-v1-certificateauthorityspec">fabric.v1.CertificateAuthoritySpec</a></td>
 <td><pre>
-org is the owner identifier (operator or organization)
-The certificate store will be created in this owner's namespace<br>
+spec describes the CA: its identity, who issues its signing certificate
+(nil = self-signed), who issues its TLS certificate (nil = self-signed),
+and how long its certificates are valid.<br>
 
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
+json_name: Spec
+go_name: Spec
+go_tags: json:"Spec" validate:"required"</pre></td>
 </tr>
 </table>
+
+
+
+<a name="fabric-v1-deploycertificateauthorityoutput"></a>
+### fabric.v1.DeployCertificateAuthorityOutput
+
+<pre>
+DeployCertificateAuthorityOutput indicates the result of CA deployment
+</pre>
+
+
+
+<a name="fabric-v1-deploycertificatestoreinput"></a>
+### fabric.v1.DeployCertificateStoreInput
+
+<pre>
+DeployCertificateStoreInput specifies the parameters for deploying the certificate store.
+The store is created in the executing worker's (owner's) namespace.
+</pre>
 
 
 
@@ -4606,15 +3919,6 @@ chain_code_id identifies this chaincode (e.g., "asset-transfer", "fabcar")<br>
 json_name: ChainCodeId
 go_name: ChainCodeId
 go_tags: json:"ChainCodeId" validate:"required"</pre></td>
-</tr><tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -4643,15 +3947,6 @@ DeployCouchDbInput specifies the parameters for deploying a CouchDB instance
 <th>Description</th>
 </tr>
 <tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
 <td>peer_id</td>
 <td>string</td>
 <td><pre>
@@ -4688,15 +3983,6 @@ DeployOrdererInput specifies the parameters for deploying a Fabric orderer
 <th>Description</th>
 </tr>
 <tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
 <td>spec</td>
 <td><a href="#fabric-v1-ordererspec">fabric.v1.OrdererSpec</a></td>
 <td><pre>
@@ -4719,114 +4005,6 @@ DeployOrdererOutput indicates the result of orderer deployment
 
 
 
-<a name="fabric-v1-deployorgintermediatecertificateauthorityinput"></a>
-### fabric.v1.DeployOrgIntermediateCertificateAuthorityInput
-
-<pre>
-DeployOrgIntermediateCertificateAuthorityInput specifies parameters for deploying Org Intermediate CA
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_issuer</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-tls_issuer identifies the TLS Intermediate CA (always TLS Int for Org Intermediate)<br>
-
-json_name: TlsIssuer
-go_name: TlsIssuer
-go_tags: json:"TlsIssuer" validate:"required"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration specifies how long the CA certificates are valid<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration,omitempty"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-deployorgintermediatecertificateauthorityoutput"></a>
-### fabric.v1.DeployOrgIntermediateCertificateAuthorityOutput
-
-<pre>
-DeployOrgIntermediateCertificateAuthorityOutput indicates the result of Org Intermediate CA deployment
-</pre>
-
-
-
-<a name="fabric-v1-deployorgrootcertificateauthorityinput"></a>
-### fabric.v1.DeployOrgRootCertificateAuthorityInput
-
-<pre>
-DeployOrgRootCertificateAuthorityInput specifies parameters for deploying Org Root CA
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>tls_issuer</td>
-<td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
-<td><pre>
-tls_issuer identifies the TLS Intermediate CA (always TLS Int for Org Root)<br>
-
-json_name: TlsIssuer
-go_name: TlsIssuer
-go_tags: json:"TlsIssuer" validate:"required"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration specifies how long the CA certificates are valid<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration,omitempty"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-deployorgrootcertificateauthorityoutput"></a>
-### fabric.v1.DeployOrgRootCertificateAuthorityOutput
-
-<pre>
-DeployOrgRootCertificateAuthorityOutput indicates the result of Org Root CA deployment
-</pre>
-
-
-
 <a name="fabric-v1-deploypeerinput"></a>
 ### fabric.v1.DeployPeerInput
 
@@ -4841,15 +4019,6 @@ DeployPeerInput specifies the parameters for deploying a Fabric peer
 <th>Description</th>
 </tr>
 <tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (organization)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
 <td>spec</td>
 <td><a href="#fabric-v1-peerspec">fabric.v1.PeerSpec</a></td>
 <td><pre>
@@ -4868,96 +4037,6 @@ go_tags: json:"Spec" validate:"required"</pre></td>
 
 <pre>
 DeployPeerOutput indicates the result of peer deployment
-</pre>
-
-
-
-<a name="fabric-v1-deploytlsintermediatecertificateauthorityinput"></a>
-### fabric.v1.DeployTlsIntermediateCertificateAuthorityInput
-
-<pre>
-DeployTlsIntermediateCertificateAuthorityInput specifies parameters for deploying TLS Intermediate CA
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration specifies how long the CA certificates are valid<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration,omitempty"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-deploytlsintermediatecertificateauthorityoutput"></a>
-### fabric.v1.DeployTlsIntermediateCertificateAuthorityOutput
-
-<pre>
-DeployTlsIntermediateCertificateAuthorityOutput indicates the result of TLS Intermediate CA deployment
-</pre>
-
-
-
-<a name="fabric-v1-deploytlsrootcertificateauthorityinput"></a>
-### fabric.v1.DeployTlsRootCertificateAuthorityInput
-
-<pre>
-DeployTlsRootCertificateAuthorityInput specifies parameters for deploying TLS Root CA
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>org</td>
-<td>string</td>
-<td><pre>
-org is the owner identifier (operator)<br>
-
-json_name: Org
-go_name: Org
-go_tags: json:"Org" validate:"required"</pre></td>
-</tr><tr>
-<td>validity_duration</td>
-<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
-<td><pre>
-validity_duration specifies how long the CA certificates are valid<br>
-
-json_name: ValidityDuration
-go_name: ValidityDuration
-go_tags: json:"ValidityDuration,omitempty"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-v1-deploytlsrootcertificateauthorityoutput"></a>
-### fabric.v1.DeployTlsRootCertificateAuthorityOutput
-
-<pre>
-DeployTlsRootCertificateAuthorityOutput indicates the result of TLS Root CA deployment
 </pre>
 
 
@@ -5089,6 +4168,47 @@ peers specifies the peers to deploy<br>
 json_name: Peers
 go_name: Peers
 go_tags: json:"Peers" validate:"required,min=1"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="fabric-v1-owner"></a>
+### fabric.v1.Owner
+
+<pre>
+Owner identifies who owns a set of resources: the operator (shared
+infrastructure such as the TLS CA chain) or a single organization
+(per-org shard infrastructure).
+
+Workflows that act ON BEHALF OF an owner (infra worker: cell, cluster)
+take an explicit Owner. Workflows that act AS their owner (fabric/shard
+workers) never take an Owner input - the owner is injected into the
+worker at startup (OPERATOR_ID / ORG_ID).
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>operator_id</td>
+<td>string</td>
+<td><pre>
+operator_id identifies the operator (e.g., "metacensus")<br>
+
+json_name: OperatorId
+go_name: OperatorId</pre></td>
+</tr><tr>
+<td>org_id</td>
+<td>string</td>
+<td><pre>
+org_id identifies an organization (e.g., "org1")<br>
+
+json_name: OrgId
+go_name: OrgId</pre></td>
 </tr>
 </table>
 

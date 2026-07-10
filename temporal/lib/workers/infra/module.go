@@ -19,13 +19,16 @@ import (
 // cluster provisioning. Fabric-specific work (TLS CAs, certificate issuance,
 // shard components) is delegated via Nexus to the fabric and shard workers.
 var Module = fx.Module("infra",
-	// Load environment config
+	// Load environment config.
+	// The infra worker acts ON BEHALF OF explicit owners; the operator config
+	// provides platform-level context (operator identity for InitFabric and
+	// TLS root trust for cluster deployments).
 	fx.Provide(
 		config.GetTemporal,
 		config.GetVault,
 		config.GetWorker,
 		config.GetKubernetes,
-		config.GetOperator,
+		config.LoadOperatorConfig,
 	),
 
 	// Provide temporal worker

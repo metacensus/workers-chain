@@ -27,23 +27,32 @@ var (
 	ErrParseKey                = errors.New("failed to parse key")
 )
 
-// Activities implements the Fabric activities
+// Activities implements the Fabric activities.
+//
+// Activities act AS their worker's owner (injected at startup): every CA
+// referenced in an activity input belongs to the executing worker's owner,
+// so all CA paths derive from the injected owner.
 type Activities struct {
 	// secretProvider provides access to fetch and store secrets
 	secretProvider secrets.SecretProvider
 
 	// clientProvider manages cached Clients for Register/Revoke operations
 	clientProvider *common.MultiClientProvider[Client, ClientConfig]
+
+	// owner identifies whose CAs this worker operates
+	owner config.OwnerConfig
 }
 
-// NewActivities creates a new Activities instance
+// NewActivities creates a new Activities instance acting as the given owner
 func NewActivities(
 	secretProvider secrets.SecretProvider,
 	clientProvider *common.MultiClientProvider[Client, ClientConfig],
+	owner config.OwnerConfig,
 ) *Activities {
 	return &Activities{
 		secretProvider: secretProvider,
 		clientProvider: clientProvider,
+		owner:          owner,
 	}
 }
 
@@ -100,16 +109,8 @@ func (a *Activities) RegisterIdentity(ctx context.Context, req *pb.RegisterIdent
 	}
 	identityName := req.GetIdentityName()
 
-	// Create owner config from input - enables activities to work for any owner
-	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
-	var ownerConfig config.OwnerConfig
-	certType := caRef.GetCertType()
-	if certType == "tls" {
-		ownerConfig = config.GetOperator()
-	} else {
-		ownerConfig = config.NewOrgConfig(req.GetOrg())
-	}
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, caRef)
+	// Locally-referenced CAs always belong to this worker's injected owner
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(a.owner, caRef)
 
 	// Create config with explicit admin identity (nil = use default permanent admin)
 	hydrator := NewConfig(caConfig, req.GetAdminIdentity())
@@ -177,16 +178,8 @@ func (a *Activities) EnrollIdentity(ctx context.Context, req *pb.EnrollIdentityI
 
 	identityName := req.GetIdentityName()
 
-	// Create owner config from input - enables activities to work for any owner
-	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
-	var ownerConfig config.OwnerConfig
-	certType := caRef.GetCertType()
-	if certType == "tls" {
-		ownerConfig = config.GetOperator()
-	} else {
-		ownerConfig = config.NewOrgConfig(req.GetOrg())
-	}
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, caRef)
+	// Locally-referenced CAs always belong to this worker's injected owner
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(a.owner, caRef)
 
 	// Get storage refs from identity
 	storage := req.GetStorage()
@@ -303,14 +296,8 @@ func (a *Activities) RevokeIdentity(ctx context.Context, req *pb.RevokeIdentityI
 	}
 	identityName := req.GetIdentityName()
 
-	// Use operator config for TLS CAs (shared), org config for Org CAs (per-org)
-	var ownerConfig config.OwnerConfig
-	if caRef.GetCertType() == "tls" {
-		ownerConfig = config.GetOperator()
-	} else {
-		ownerConfig = config.NewOrgConfig(req.GetOrg())
-	}
-	caConfig := fabricconfig.NewCertificateAuthorityConfig(ownerConfig, caRef)
+	// Locally-referenced CAs always belong to this worker's injected owner
+	caConfig := fabricconfig.NewCertificateAuthorityConfig(a.owner, caRef)
 
 	// Create config with explicit admin identity (nil = use default permanent admin)
 	hydrator := NewConfig(caConfig, req.GetAdminIdentity())
