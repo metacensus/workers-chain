@@ -719,6 +719,11 @@ func TestCreateAdminWorkflow(t *testing.T) {
 			registerCertAuthNexusMock(t, env, tt.nexusTLSErr)
 			registerCSRPipelineStubs(t, env)
 
+			// Capture the privileged signing-path SignCsr request so we can
+			// assert the registrar grant is actually wired through (a silent
+			// mis-wire here yields a powerless org admin).
+			var gotSigningInput *pb.SignCsrInput
+
 			// Mock SignCsr - distinguish signing ("" profile) from local TLS
 			// ("tls" profile).
 			env.OnActivity(pb.SignCsrActivityName, mock.Anything, mock.Anything).
@@ -728,6 +733,7 @@ func TestCreateAdminWorkflow(t *testing.T) {
 							return nil, tt.tlsSignErr
 						}
 					} else {
+						gotSigningInput = input
 						if tt.signingCertErr != nil {
 							return nil, tt.signingCertErr
 						}
@@ -763,6 +769,30 @@ func TestCreateAdminWorkflow(t *testing.T) {
 					}
 					if result.TlsIdentity == nil {
 						t.Error("tls_identity is nil")
+					}
+
+					// Assert the privileged signing-path CSR is wired correctly:
+					// the identity registered must be the CA's admin CN, it must
+					// carry the full registrar grant, and it must be registered
+					// by the CA's own bootstrap admin (the bootstrap-vs-permanent
+					// selection). A stub that ignored these would silently mint a
+					// powerless admin.
+					caConfig := fabricconfig.NewCertificateAuthorityConfig(tt.owner, tt.caRef)
+					si := gotSigningInput
+					if si == nil {
+						t.Fatal("signing-path SignCsr was never invoked")
+					}
+					if got, want := si.GetIdentityName(), caConfig.AdminCommonName(); got != want {
+						t.Errorf("signing identity name = %q, want %q", got, want)
+					}
+					if got := si.GetAttributes()["hf.Registrar.Roles"]; got != "*" {
+						t.Errorf("hf.Registrar.Roles = %q, want %q", got, "*")
+					}
+					// Signing issuer defaults to the CA itself, so the registrar
+					// is the CA's bootstrap admin.
+					wantKeyRef := caConfig.VaultBootstrapAdminSigningKeyRef().String()
+					if got := si.GetAdminIdentity().GetKeyRef().String(); got != wantKeyRef {
+						t.Errorf("signing registrar key ref = %q, want bootstrap admin %q", got, wantKeyRef)
 					}
 				}
 			} else {

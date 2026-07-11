@@ -544,16 +544,10 @@ func (ca CertificateAuthorityConfig) BootstrapAdminUsername() string {
 
 // ------------ Helper Functions ------------
 
-// sanitizeForPostgres converts a string to PostgreSQL-safe identifier format
+// sanitizeForPostgres converts a string to PostgreSQL-safe identifier format:
+// lowercase, with hyphens replaced by underscores. Lowercasing matters because
+// PostgreSQL folds unquoted identifiers to lowercase, so an OwnerID with any
+// uppercase would otherwise produce a Vault-path/DB-identifier mismatch.
 func sanitizeForPostgres(s string) string {
-	// PostgreSQL identifiers: lowercase, replace hyphens with underscores
-	result := ""
-	for _, c := range s {
-		if c == '-' {
-			result += "_"
-		} else {
-			result += string(c)
-		}
-	}
-	return result
+	return strings.ReplaceAll(strings.ToLower(s), "-", "_")
 }

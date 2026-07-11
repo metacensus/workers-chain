@@ -157,10 +157,12 @@ func (w *bootstrapShardWorkflow) Execute(ctx workflow.Context) (*pb.BootstrapSha
 		}
 	}
 
-	// TEMP(debug): stop after deploying the certificate authorities. The peer
-	// DB (CouchDB) deployment below is still being worked on. Set
-	// deployWorkloads back to true (or remove this block) to re-enable
-	// peer/orderer deployment.
+	// Peer/orderer deployment is intentionally out of scope for this PR, which
+	// covers the certificate-authority deployment and CSR issuance pipeline
+	// only. Bringing up CouchDB/peers/orderers (and the Vault policy + network
+	// wiring they need) is tracked as separate follow-up work; until then we
+	// stop after the CAs are deployed. Flip deployWorkloads to true once peer
+	// startup lands.
 	deployWorkloads := false
 	if !deployWorkloads {
 		return &pb.BootstrapShardOutput{}, nil

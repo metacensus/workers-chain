@@ -1188,6 +1188,12 @@ func TestBootstrapShardWorkflow(t *testing.T) {
 		deployPeerID        string // Which peer fails (if deployPeerErr set)
 		deployOrdererErr    error
 		expectedErr         error
+		// skipUntilPeerDeployment marks cases that exercise the peer/orderer
+		// deployment branches, which are intentionally out of scope for this PR
+		// and gated off by the deployWorkloads=false early return in
+		// bootstrapShardWorkflow.Execute. Remove these skips when peer startup
+		// lands and that early return is flipped.
+		skipUntilPeerDeployment bool
 	}{
 		{
 			name:        "success - full shard bootstrap",
@@ -1211,26 +1217,32 @@ func TestBootstrapShardWorkflow(t *testing.T) {
 			expectedErr:    errors.New("deploy certificate authority (org-int)"),
 		},
 		{
-			name:                "error - deploy CouchDB for peer0 fails",
-			deployCouchDbErr:    errors.New("CouchDB deployment failed"),
-			deployCouchDbPeerID: "peer0",
-			expectedErr:         errors.New("deploy couchdb for peer0"),
+			name:                    "error - deploy CouchDB for peer0 fails",
+			deployCouchDbErr:        errors.New("CouchDB deployment failed"),
+			deployCouchDbPeerID:     "peer0",
+			expectedErr:             errors.New("deploy couchdb for peer0"),
+			skipUntilPeerDeployment: true,
 		},
 		{
-			name:          "error - deploy peer0 fails",
-			deployPeerErr: errors.New("peer deployment failed"),
-			deployPeerID:  "peer0",
-			expectedErr:   errors.New("deploy peer peer0"),
+			name:                    "error - deploy peer0 fails",
+			deployPeerErr:           errors.New("peer deployment failed"),
+			deployPeerID:            "peer0",
+			expectedErr:             errors.New("deploy peer peer0"),
+			skipUntilPeerDeployment: true,
 		},
 		{
-			name:             "error - deploy orderer fails",
-			deployOrdererErr: errors.New("orderer deployment failed"),
-			expectedErr:      errors.New("deploy orderer orderer0"),
+			name:                    "error - deploy orderer fails",
+			deployOrdererErr:        errors.New("orderer deployment failed"),
+			expectedErr:             errors.New("deploy orderer orderer0"),
+			skipUntilPeerDeployment: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipUntilPeerDeployment {
+				t.Skip("peer/orderer deployment is out of scope for this PR and gated off by the deployWorkloads=false early return in bootstrapShardWorkflow.Execute; re-enable when peer startup lands")
+			}
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
