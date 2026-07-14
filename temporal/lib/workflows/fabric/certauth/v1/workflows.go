@@ -55,8 +55,8 @@ func newCreateIdentityWorkflow(input *pb.CreateIdentityWorkflowInput, owner conf
 // validate checks that the workflow input is valid
 func (w *createIdentityWorkflow) validate() error {
 	req := w.input.Req
-	if req.GetIdentityName() == "" {
-		return fmt.Errorf("%w: identity_name is required", ErrInvalidInput)
+	if req.GetCommonName() == "" {
+		return fmt.Errorf("%w: common_name is required", ErrInvalidInput)
 	}
 	if req.GetOrgIssuerRef() == nil {
 		return fmt.Errorf("%w: org_issuer_ref is required", ErrInvalidInput)
@@ -105,7 +105,8 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 		ctx,
 		w.owner,
 		orgIssuer,
-		req.GetSubject(),
+		req.GetCommonName(),
+		nil, // signing cert carries no SANs
 		req.GetIdentityType(),
 		req.GetAttributes(),
 		"", // default profile
@@ -121,17 +122,12 @@ func (w *createIdentityWorkflow) Execute(ctx workflow.Context) (*pb.CreateIdenti
 	// branches on ownership - local signs inline, foreign crosses via Nexus
 	// with only the public CSR. TLS certs don't set identity_type (NodeOUs only
 	// applies to org/signing certs).
-	tlsSubject := &pb.CertificateSubject{
-		CommonName:         req.GetSubject().GetCommonName(),
-		Organization:       req.GetSubject().GetOrganization(),
-		OrganizationalUnit: req.GetSubject().GetOrganizationalUnit(),
-		DnsNames:           req.GetSubject().GetDnsNames(),
-	}
 	_, err = IssueCertificate(
 		ctx,
 		w.owner,
 		tlsIssuer,
-		tlsSubject,
+		req.GetCommonName(),
+		req.GetHosts(),
 		"",  // no identity type for TLS
 		nil, // no attributes
 		req.GetTlsProfile(),

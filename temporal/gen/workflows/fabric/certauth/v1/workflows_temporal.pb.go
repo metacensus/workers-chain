@@ -42,8 +42,8 @@ const (
 var (
 	CreateAdminIdexpression          = expression.MustParseExpression("fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }")
 	CreateBootstrapAdminIdexpression = expression.MustParseExpression("fabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }")
-	CreateIdentityIdexpression       = expression.MustParseExpression("fabric/create-identity/${! Subject.CommonName }")
-	SignCertificateIdexpression      = expression.MustParseExpression("fabric/sign-certificate/${! Subject.CommonName }")
+	CreateIdentityIdexpression       = expression.MustParseExpression("fabric/create-identity/${! CommonName }")
+	SignCertificateIdexpression      = expression.MustParseExpression("fabric/sign-certificate/${! CommonName }")
 )
 
 // CertificateAuthorityClient describes a client for a(n) fabric.certauth.v1.CertificateAuthority worker
@@ -1841,7 +1841,7 @@ type CreateIdentityWorkflowInput struct {
 // Used for creating peer, orderer, admin, and client identities.
 // This is the production workflow for identity creation (not bootstrap).
 //
-// workflow details: (name: "fabric.certauth.v1.CreateIdentity", id: "fabric/create-identity/${! Subject.CommonName }")
+// workflow details: (name: "fabric.certauth.v1.CreateIdentity", id: "fabric/create-identity/${! CommonName }")
 type CreateIdentityWorkflow interface {
 	// Execute defines the entrypoint to a(n) fabric.certauth.v1.CreateIdentity workflow
 	Execute(ctx workflow.Context) (*CreateIdentityOutput, error)
@@ -2123,7 +2123,7 @@ type SignCertificateWorkflowInput struct {
 // private key and never writes into the caller's Vault subtree. The caller
 // stores the returned certificate itself.
 //
-// workflow details: (name: "fabric.certauth.v1.SignCertificate", id: "fabric/sign-certificate/${! Subject.CommonName }")
+// workflow details: (name: "fabric.certauth.v1.SignCertificate", id: "fabric/sign-certificate/${! CommonName }")
 type SignCertificateWorkflow interface {
 	// Execute defines the entrypoint to a(n) fabric.certauth.v1.SignCertificate workflow
 	Execute(ctx workflow.Context) (*SignCertificateOutput, error)

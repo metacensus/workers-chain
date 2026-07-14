@@ -316,9 +316,10 @@ type GenerateCsrInput struct {
 	// up-front by secrets.EnsureKeyPair; this activity only reads it. Always
 	// within the executing worker's own subtree.
 	KeyRef *v11.SecretRef `protobuf:"bytes,1,opt,name=key_ref,json=KeyRef,proto3" json:"KeyRef" validate:"required"`
-	// subject specifies the CSR subject. CommonName becomes the CSR CN and
-	// dns_names become the requested SANs.
-	Subject       *CertificateSubject `protobuf:"bytes,2,opt,name=subject,json=Subject,proto3" json:"Subject" validate:"required"`
+	// common_name becomes the CSR CN.
+	CommonName string `protobuf:"bytes,2,opt,name=common_name,json=CommonName,proto3" json:"CommonName" validate:"required"`
+	// hosts are the requested Subject Alternative Names.
+	Hosts         []string `protobuf:"bytes,3,rep,name=hosts,json=Hosts,proto3" json:"Hosts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -360,9 +361,16 @@ func (x *GenerateCsrInput) GetKeyRef() *v11.SecretRef {
 	return nil
 }
 
-func (x *GenerateCsrInput) GetSubject() *CertificateSubject {
+func (x *GenerateCsrInput) GetCommonName() string {
 	if x != nil {
-		return x.Subject
+		return x.CommonName
+	}
+	return ""
+}
+
+func (x *GenerateCsrInput) GetHosts() []string {
+	if x != nil {
+		return x.Hosts
 	}
 	return nil
 }
@@ -606,7 +614,7 @@ var File_fabric_certauth_v1_activities_proto protoreflect.FileDescriptor
 
 const file_fabric_certauth_v1_activities_proto_rawDesc = "" +
 	"\n" +
-	"#fabric/certauth/v1/activities.proto\x12\x12fabric.certauth.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x18secrets/v1/secrets.proto\x1a\x1atemporal/v1/temporal.proto\x1a\x16fabric/v1/fabric.proto\x1a\x1ffabric/certauth/v1/shared.proto\"\xd6\x02\n" +
+	"#fabric/certauth/v1/activities.proto\x12\x12fabric.certauth.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x18secrets/v1/secrets.proto\x1a\x1atemporal/v1/temporal.proto\x1a\x16fabric/v1/fabric.proto\"\xd6\x02\n" +
 	"\x13RevokeIdentityInput\x12b\n" +
 	"\x06ca_ref\x18\x01 \x01(\v2\".fabric.v1.CertificateAuthorityRefB'ʵ\x03#\xa2\x01 json:\"CaRef\" validate:\"required\"R\x05CaRef\x12S\n" +
 	"\ridentity_name\x18\x02 \x01(\tB.ʵ\x03*\xa2\x01'json:\"IdentityName\" validate:\"required\"R\fIdentityName\x12\x16\n" +
@@ -624,10 +632,12 @@ const file_fabric_certauth_v1_activities_proto_rawDesc = "" +
 	"\x0fissuer_cert_ref\x18\a \x01(\v2\x15.secrets.v1.SecretRefB%ʵ\x03!\xa2\x01\x1ejson:\"IssuerCertRef,omitempty\"R\rIssuerCertRef\"\xbe\x01\n" +
 	"\x18BootstrapEnrollCsrOutput\x12Y\n" +
 	"\x0fcertificate_pem\x18\x01 \x01(\fB0ʵ\x03,\xa2\x01)json:\"CertificatePem\" validate:\"required\"R\x0eCertificatePem\x12G\n" +
-	"\tchain_pem\x18\x02 \x01(\fB*ʵ\x03&\xa2\x01#json:\"ChainPem\" validate:\"required\"R\bChainPem\"\xd9\x01\n" +
+	"\tchain_pem\x18\x02 \x01(\fB*ʵ\x03&\xa2\x01#json:\"ChainPem\" validate:\"required\"R\bChainPem\"\xf0\x01\n" +
 	"\x10GenerateCsrInput\x12X\n" +
-	"\akey_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB(ʵ\x03$\xa2\x01!json:\"KeyRef\" validate:\"required\"R\x06KeyRef\x12k\n" +
-	"\asubject\x18\x02 \x01(\v2&.fabric.certauth.v1.CertificateSubjectB)ʵ\x03%\xa2\x01\"json:\"Subject\" validate:\"required\"R\aSubject\"V\n" +
+	"\akey_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB(ʵ\x03$\xa2\x01!json:\"KeyRef\" validate:\"required\"R\x06KeyRef\x12M\n" +
+	"\vcommon_name\x18\x02 \x01(\tB,ʵ\x03(\xa2\x01%json:\"CommonName\" validate:\"required\"R\n" +
+	"CommonName\x123\n" +
+	"\x05hosts\x18\x03 \x03(\tB\x1dʵ\x03\x19\xa2\x01\x16json:\"Hosts,omitempty\"R\x05Hosts\"V\n" +
 	"\x11GenerateCsrOutput\x12A\n" +
 	"\acsr_pem\x18\x01 \x01(\fB(ʵ\x03$\xa2\x01!json:\"CsrPem\" validate:\"required\"R\x06CsrPem\"\x9a\a\n" +
 	"\fSignCsrInput\x12b\n" +
@@ -684,7 +694,6 @@ var file_fabric_certauth_v1_activities_proto_goTypes = []any{
 	(*v1.CertificateAuthorityRef)(nil), // 9: fabric.v1.CertificateAuthorityRef
 	(*v1.IdentityRef)(nil),             // 10: fabric.v1.IdentityRef
 	(*v11.SecretRef)(nil),              // 11: secrets.v1.SecretRef
-	(*CertificateSubject)(nil),         // 12: fabric.certauth.v1.CertificateSubject
 }
 var file_fabric_certauth_v1_activities_proto_depIdxs = []int32{
 	9,  // 0: fabric.certauth.v1.RevokeIdentityInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
@@ -693,25 +702,24 @@ var file_fabric_certauth_v1_activities_proto_depIdxs = []int32{
 	11, // 3: fabric.certauth.v1.BootstrapEnrollCsrInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
 	11, // 4: fabric.certauth.v1.BootstrapEnrollCsrInput.issuer_cert_ref:type_name -> secrets.v1.SecretRef
 	11, // 5: fabric.certauth.v1.GenerateCsrInput.key_ref:type_name -> secrets.v1.SecretRef
-	12, // 6: fabric.certauth.v1.GenerateCsrInput.subject:type_name -> fabric.certauth.v1.CertificateSubject
-	9,  // 7: fabric.certauth.v1.SignCsrInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	8,  // 8: fabric.certauth.v1.SignCsrInput.attributes:type_name -> fabric.certauth.v1.SignCsrInput.AttributesEntry
-	11, // 9: fabric.certauth.v1.SignCsrInput.issuer_cert_ref:type_name -> secrets.v1.SecretRef
-	11, // 10: fabric.certauth.v1.SignCsrInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
-	10, // 11: fabric.certauth.v1.SignCsrInput.admin_identity:type_name -> fabric.v1.IdentityRef
-	0,  // 12: fabric.certauth.v1.Identity.RevokeIdentity:input_type -> fabric.certauth.v1.RevokeIdentityInput
-	4,  // 13: fabric.certauth.v1.Identity.GenerateCsr:input_type -> fabric.certauth.v1.GenerateCsrInput
-	2,  // 14: fabric.certauth.v1.Identity.BootstrapEnrollCsr:input_type -> fabric.certauth.v1.BootstrapEnrollCsrInput
-	6,  // 15: fabric.certauth.v1.Identity.SignCsr:input_type -> fabric.certauth.v1.SignCsrInput
-	1,  // 16: fabric.certauth.v1.Identity.RevokeIdentity:output_type -> fabric.certauth.v1.RevokeIdentityOutput
-	5,  // 17: fabric.certauth.v1.Identity.GenerateCsr:output_type -> fabric.certauth.v1.GenerateCsrOutput
-	3,  // 18: fabric.certauth.v1.Identity.BootstrapEnrollCsr:output_type -> fabric.certauth.v1.BootstrapEnrollCsrOutput
-	7,  // 19: fabric.certauth.v1.Identity.SignCsr:output_type -> fabric.certauth.v1.SignCsrOutput
-	16, // [16:20] is the sub-list for method output_type
-	12, // [12:16] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	9,  // 6: fabric.certauth.v1.SignCsrInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	8,  // 7: fabric.certauth.v1.SignCsrInput.attributes:type_name -> fabric.certauth.v1.SignCsrInput.AttributesEntry
+	11, // 8: fabric.certauth.v1.SignCsrInput.issuer_cert_ref:type_name -> secrets.v1.SecretRef
+	11, // 9: fabric.certauth.v1.SignCsrInput.ca_tls_cert_ref:type_name -> secrets.v1.SecretRef
+	10, // 10: fabric.certauth.v1.SignCsrInput.admin_identity:type_name -> fabric.v1.IdentityRef
+	0,  // 11: fabric.certauth.v1.Identity.RevokeIdentity:input_type -> fabric.certauth.v1.RevokeIdentityInput
+	4,  // 12: fabric.certauth.v1.Identity.GenerateCsr:input_type -> fabric.certauth.v1.GenerateCsrInput
+	2,  // 13: fabric.certauth.v1.Identity.BootstrapEnrollCsr:input_type -> fabric.certauth.v1.BootstrapEnrollCsrInput
+	6,  // 14: fabric.certauth.v1.Identity.SignCsr:input_type -> fabric.certauth.v1.SignCsrInput
+	1,  // 15: fabric.certauth.v1.Identity.RevokeIdentity:output_type -> fabric.certauth.v1.RevokeIdentityOutput
+	5,  // 16: fabric.certauth.v1.Identity.GenerateCsr:output_type -> fabric.certauth.v1.GenerateCsrOutput
+	3,  // 17: fabric.certauth.v1.Identity.BootstrapEnrollCsr:output_type -> fabric.certauth.v1.BootstrapEnrollCsrOutput
+	7,  // 18: fabric.certauth.v1.Identity.SignCsr:output_type -> fabric.certauth.v1.SignCsrOutput
+	15, // [15:19] is the sub-list for method output_type
+	11, // [11:15] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_fabric_certauth_v1_activities_proto_init() }
@@ -719,7 +727,6 @@ func file_fabric_certauth_v1_activities_proto_init() {
 	if File_fabric_certauth_v1_activities_proto != nil {
 		return
 	}
-	file_fabric_certauth_v1_shared_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

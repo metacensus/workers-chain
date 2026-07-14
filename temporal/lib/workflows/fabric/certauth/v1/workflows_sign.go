@@ -40,8 +40,8 @@ func (w *signCertificateWorkflow) validate() error {
 	if req.GetIssuerRef() == nil {
 		return fmt.Errorf("%w: issuer_ref is required", ErrInvalidInput)
 	}
-	if req.GetSubject() == nil || req.GetSubject().GetCommonName() == "" {
-		return fmt.Errorf("%w: subject.common_name is required", ErrInvalidInput)
+	if req.GetCommonName() == "" {
+		return fmt.Errorf("%w: common_name is required", ErrInvalidInput)
 	}
 	if len(req.GetCsrPem()) == 0 {
 		return fmt.Errorf("%w: csr_pem is required", ErrInvalidInput)
@@ -76,7 +76,7 @@ func (w *signCertificateWorkflow) Execute(ctx workflow.Context) (*pb.SignCertifi
 	// never chooses the registrar, so the issuer signs as its own default
 	// permanent admin.
 	signOutput, err := signCsrLocal(ctx, activityCtx, w.owner, issuerRef,
-		req.GetSubject().GetCommonName(), identityType, req.GetAttributes(),
+		req.GetCommonName(), identityType, req.GetAttributes(),
 		req.GetCsrPem(), req.GetHosts(), req.GetProfile(), nil)
 	if err != nil {
 		return nil, err

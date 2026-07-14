@@ -328,13 +328,8 @@ func (w *deployPeerWorkflow) Execute(ctx workflow.Context) (*pb.DeployPeerOutput
 	// The CreateIdentity workflow handles both org and TLS certificates
 	// IdentityType "peer" ensures the certificate gets OU=peer for NodeOUs classification
 	_, err = certauthpb.CreateIdentityChild(ctx, &certauthpb.CreateIdentityInput{
-		IdentityName: peerConfig.IdentityName(),
-		Subject: &certauthpb.CertificateSubject{
-			CommonName:         peerConfig.CommonName(),
-			Organization:       w.owner.OwnerID(),
-			OrganizationalUnit: peerConfig.OrganizationalUnit(),
-			DnsNames:           peerConfig.TLSDNSNames(),
-		},
+		CommonName:   peerConfig.CommonName(),
+		Hosts:        peerConfig.TLSDNSNames(),
 		OrgIssuerRef: spec.GetOrgIssuer(),
 		TlsIssuerRef: spec.GetTlsIssuer(),
 		SigningStorage: &pb.IdentityRef{
@@ -409,13 +404,8 @@ func (w *deployOrdererWorkflow) Execute(ctx workflow.Context) (*pb.DeployOrderer
 	// The CreateIdentity workflow handles both org and TLS certificates
 	// IdentityType "orderer" ensures the certificate gets OU=orderer for NodeOUs classification
 	_, err = certauthpb.CreateIdentityChild(ctx, &certauthpb.CreateIdentityInput{
-		IdentityName: ordererConfig.IdentityName(),
-		Subject: &certauthpb.CertificateSubject{
-			CommonName:         ordererConfig.CommonName(),
-			Organization:       w.owner.OwnerID(),
-			OrganizationalUnit: ordererConfig.OrganizationalUnit(),
-			DnsNames:           ordererConfig.TLSDNSNames(),
-		},
+		CommonName:   ordererConfig.CommonName(),
+		Hosts:        ordererConfig.TLSDNSNames(),
 		OrgIssuerRef: spec.GetOrgIssuer(),
 		TlsIssuerRef: spec.GetTlsIssuer(),
 		SigningStorage: &pb.IdentityRef{

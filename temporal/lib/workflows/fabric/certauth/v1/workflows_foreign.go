@@ -56,7 +56,8 @@ func IssueCertificate(
 	ctx workflow.Context,
 	owner config.OwnerConfig,
 	issuerRef *fabricpb.CertificateAuthorityRef,
-	subject *pb.CertificateSubject,
+	commonName string,
+	hosts []string,
 	identityType string,
 	attributes map[string]string,
 	profile string,
@@ -66,8 +67,8 @@ func IssueCertificate(
 	if issuerRef == nil {
 		return nil, fmt.Errorf("%w: issuer ref is required", ErrInvalidInput)
 	}
-	if subject == nil || subject.GetCommonName() == "" {
-		return nil, fmt.Errorf("%w: subject.common_name is required", ErrInvalidInput)
+	if commonName == "" {
+		return nil, fmt.Errorf("%w: common_name is required", ErrInvalidInput)
 	}
 	if storage == nil || storage.GetKeyRef() == nil || storage.GetCertRef() == nil {
 		return nil, fmt.Errorf("%w: storage with key_ref and cert_ref is required", ErrInvalidInput)
@@ -75,7 +76,7 @@ func IssueCertificate(
 
 	activityCtx := workflow.WithActivityOptions(ctx, issuanceActivityOptions())
 
-	csrPEM, err := ensureKeyAndCsr(ctx, activityCtx, storage.GetKeyRef(), subject)
+	csrPEM, err := ensureKeyAndCsr(ctx, activityCtx, storage.GetKeyRef(), commonName, hosts)
 	if err != nil {
 		return nil, err
 	}
@@ -91,8 +92,8 @@ func IssueCertificate(
 		// Local issuer (P3): sign inline with the SignCsr activity, using
 		// adminIdentity as the registrar.
 		signOutput, err := signCsrLocal(ctx, activityCtx, owner, issuerRef,
-			subject.GetCommonName(), identityType, attributes,
-			csrPEM, subject.GetDnsNames(), profile, adminIdentity)
+			commonName, identityType, attributes,
+			csrPEM, hosts, profile, adminIdentity)
 		if err != nil {
 			return nil, err
 		}
@@ -103,11 +104,11 @@ func IssueCertificate(
 		signOutput, err := NexusSignCertificate(ctx, &pb.SignCertificateInput{
 			IssuerRef:    issuerRef,
 			Profile:      profile,
-			Subject:      subject,
+			CommonName:   commonName,
 			IdentityType: identityType,
 			Attributes:   attributes,
 			CsrPem:       csrPEM,
-			Hosts:        subject.GetDnsNames(),
+			Hosts:        hosts,
 		})
 		if err != nil {
 			return nil, err
@@ -133,14 +134,15 @@ func BootstrapIssueCertificate(
 	ctx workflow.Context,
 	caURL string,
 	bootstrapCredentialsRef *secretspb.SecretRef,
-	subject *pb.CertificateSubject,
+	commonName string,
+	hosts []string,
 	profile string,
 	storage *fabricpb.IdentityRef,
 	issuerCertRef *secretspb.SecretRef,
 	caTLSCertRef *secretspb.SecretRef,
 ) (*fabricpb.IdentityRef, error) {
-	if subject == nil || subject.GetCommonName() == "" {
-		return nil, fmt.Errorf("%w: subject.common_name is required", ErrInvalidInput)
+	if commonName == "" {
+		return nil, fmt.Errorf("%w: common_name is required", ErrInvalidInput)
 	}
 	if storage == nil || storage.GetKeyRef() == nil || storage.GetCertRef() == nil {
 		return nil, fmt.Errorf("%w: storage with key_ref and cert_ref is required", ErrInvalidInput)
@@ -148,7 +150,7 @@ func BootstrapIssueCertificate(
 
 	activityCtx := workflow.WithActivityOptions(ctx, issuanceActivityOptions())
 
-	csrPEM, err := ensureKeyAndCsr(ctx, activityCtx, storage.GetKeyRef(), subject)
+	csrPEM, err := ensureKeyAndCsr(ctx, activityCtx, storage.GetKeyRef(), commonName, hosts)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +160,7 @@ func BootstrapIssueCertificate(
 		CaUrl:                   caURL,
 		BootstrapCredentialsRef: bootstrapCredentialsRef,
 		CsrPem:                  csrPEM,
-		Hosts:                   subject.GetDnsNames(),
+		Hosts:                   hosts,
 		Profile:                 profile,
 		CaTlsCertRef:            caTLSCertRef,
 		IssuerCertRef:           issuerCertRef,
@@ -203,7 +205,7 @@ func signCsrLocal(
 		Hosts:         hosts,
 		Profile:       profile,
 		IssuerCertRef: caConfig.VaultSigningCertRef(), // issuer's own cert path for chain building
-		CaTlsCertRef:  caConfig.VaultTLSCertRef(),      // CA's TLS cert for mTLS to the CA server
+		CaTlsCertRef:  caConfig.VaultTLSCertRef(),     // CA's TLS cert for mTLS to the CA server
 		AdminIdentity: adminIdentity,
 	}).Get(ctx, &signOutput)
 	if err != nil {
@@ -219,7 +221,8 @@ func ensureKeyAndCsr(
 	ctx workflow.Context,
 	activityCtx workflow.Context,
 	keyRef *secretspb.SecretRef,
-	subject *pb.CertificateSubject,
+	commonName string,
+	hosts []string,
 ) ([]byte, error) {
 	if err := workflow.ExecuteActivity(activityCtx, secretspb.EnsureKeyPairActivityName, &secretspb.EnsureKeyPairInput{
 		SecretRef: keyRef,
@@ -229,8 +232,9 @@ func ensureKeyAndCsr(
 
 	var genOutput pb.GenerateCsrOutput
 	if err := workflow.ExecuteActivity(activityCtx, pb.GenerateCsrActivityName, &pb.GenerateCsrInput{
-		KeyRef:  keyRef,
-		Subject: subject,
+		KeyRef:     keyRef,
+		CommonName: commonName,
+		Hosts:      hosts,
 	}).Get(ctx, &genOutput); err != nil {
 		return nil, fmt.Errorf("failed to generate CSR: %w", err)
 	}

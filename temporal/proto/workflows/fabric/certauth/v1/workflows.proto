@@ -7,7 +7,6 @@ import "nexus/v1/options.proto";
 import "patch/go.proto";
 import "temporal/v1/temporal.proto";
 import "fabric/v1/fabric.proto";
-import "fabric/certauth/v1/shared.proto";
 
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1;certauthv1";
 
@@ -37,7 +36,7 @@ service CertificateAuthority {
       option (temporal.v1.workflow) = {
         name: "fabric.certauth.v1.SignCertificate"
         // Org-qualified subject CN is globally unique within the issuer's namespace.
-        id: 'fabric/sign-certificate/${! Subject.CommonName }'
+        id: 'fabric/sign-certificate/${! CommonName }'
         id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
         workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
       };
@@ -73,7 +72,7 @@ service CertificateAuthority {
         name: "fabric.certauth.v1.CreateIdentity"
         // Org-qualified subject CN (e.g. "peer0@org1") is globally unique
         // within the owner's namespace, unlike the bare identity name.
-        id: 'fabric/create-identity/${! Subject.CommonName }'
+        id: 'fabric/create-identity/${! CommonName }'
         id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
         workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
       };
@@ -103,13 +102,12 @@ service CertificateAuthority {
       (go.field).tags = 'json:"Profile"'
     ];
 
-    // subject specifies the certificate subject fields. The CommonName MUST be
-    // org-qualified (e.g. "peer0@org1"); it is used both for CA registration
-    // and to satisfy Fabric CA's requirement that the CSR CN equals the
-    // enrollment ID.
-    CertificateSubject subject = 3 [
-      json_name = "Subject",
-      (go.field).tags = 'json:"Subject" validate:"required"'
+    // common_name is the certificate subject CN. It MUST be org-qualified (e.g.
+    // "peer0@org1"); it is used both for CA registration and to satisfy Fabric
+    // CA's requirement that the CSR CN equals the enrollment ID.
+    string common_name = 3 [
+      json_name = "CommonName",
+      (go.field).tags = 'json:"CommonName" validate:"required"'
     ];
 
     // identity_type specifies the Fabric CA identity type for registration.
@@ -244,16 +242,17 @@ service CertificateAuthority {
   
   // CreateIdentityInput specifies the parameters for creating a Fabric identity
   message CreateIdentityInput {
-    // identity_name is the unique name for this identity (e.g., "peer0", "orderer0", "admin")
-    string identity_name = 2 [
-      json_name = "IdentityName",
-      (go.field).tags = 'json:"IdentityName" validate:"required"'
+    // common_name is the org-qualified subject CN, used for both issued certs and
+    // as the CA registration name (Fabric CA requires CN == enrollment ID).
+    string common_name = 2 [
+      json_name = "CommonName",
+      (go.field).tags = 'json:"CommonName" validate:"required"'
     ];
-  
-    // subject specifies the certificate subject fields
-    CertificateSubject subject = 3 [
-      json_name = "Subject",
-      (go.field).tags = 'json:"Subject" validate:"required"'
+
+    // hosts are the requested Subject Alternative Names for the TLS certificate.
+    repeated string hosts = 3 [
+      json_name = "Hosts",
+      (go.field).tags = 'json:"Hosts,omitempty"'
     ];
   
     // org_issuer_ref identifies which Org CA issues the identity certificate

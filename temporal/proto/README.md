@@ -56,7 +56,6 @@
   - Messages
     - [fabric.certauth.v1.BootstrapEnrollCsrInput](#fabric-certauth-v1-bootstrapenrollcsrinput)
     - [fabric.certauth.v1.BootstrapEnrollCsrOutput](#fabric-certauth-v1-bootstrapenrollcsroutput)
-    - [fabric.certauth.v1.CertificateSubject](#fabric-certauth-v1-certificatesubject)
     - [fabric.certauth.v1.CreateAdminInput](#fabric-certauth-v1-createadmininput)
     - [fabric.certauth.v1.CreateAdminOutput](#fabric-certauth-v1-createadminoutput)
     - [fabric.certauth.v1.CreateBootstrapAdminInput](#fabric-certauth-v1-createbootstrapadmininput)
@@ -1445,6 +1444,24 @@ all-caps acronyms in derived identifiers (Future/Async helpers).
 <th>Description</th>
 </tr>
 <tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name becomes the CSR CN.<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+hosts are the requested Subject Alternative Names.<br>
+
+json_name: Hosts
+go_name: Hosts
+go_tags: json:"Hosts,omitempty"</pre></td>
+</tr><tr>
 <td>key_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
@@ -1455,16 +1472,6 @@ within the executing worker's own subtree.<br>
 json_name: KeyRef
 go_name: KeyRef
 go_tags: json:"KeyRef" validate:"required"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the CSR subject. CommonName becomes the CSR CN and
-dns_names become the requested SANs.<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1802,6 +1809,17 @@ attributes are additional CA attributes for the registration record.<br>
 json_name: Attributes
 go_name: Attributes</pre></td>
 </tr><tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the certificate subject CN. It MUST be org-qualified (e.g.
+"peer0@org1"); it is used both for CA registration and to satisfy Fabric
+CA's requirement that the CSR CN equals the enrollment ID.<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
 <td>csr_pem</td>
 <td>bytes</td>
 <td><pre>
@@ -1850,18 +1868,6 @@ profile determines key usages ("ca", "tls", or "" for default identity)<br>
 json_name: Profile
 go_name: Profile
 go_tags: json:"Profile"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the certificate subject fields. The CommonName MUST be
-org-qualified (e.g. "peer0@org1"); it is used both for CA registration
-and to satisfy Fabric CA's requirement that the CSR CN equals the
-enrollment ID.<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -1898,7 +1904,7 @@ go_tags: json:"ChainPem" validate:"required"</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/sign-certificate/${! Subject.CommonName }</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/sign-certificate/${! CommonName }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
 </table>
 
@@ -2114,14 +2120,24 @@ attributes are additional CA attributes for the identity<br>
 json_name: Attributes
 go_name: Attributes</pre></td>
 </tr><tr>
-<td>identity_name</td>
+<td>common_name</td>
 <td>string</td>
 <td><pre>
-identity_name is the unique name for this identity (e.g., "peer0", "orderer0", "admin")<br>
+common_name is the org-qualified subject CN, used for both issued certs and
+as the CA registration name (Fabric CA requires CN == enrollment ID).<br>
 
-json_name: IdentityName
-go_name: IdentityName
-go_tags: json:"IdentityName" validate:"required"</pre></td>
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+hosts are the requested Subject Alternative Names for the TLS certificate.<br>
+
+json_name: Hosts
+go_name: Hosts
+go_tags: json:"Hosts,omitempty"</pre></td>
 </tr><tr>
 <td>identity_type</td>
 <td>string</td>
@@ -2153,15 +2169,6 @@ signing_storage is where to store the signing identity (key + certificate)<br>
 json_name: SigningStorage
 go_name: SigningStorage
 go_tags: json:"SigningStorage" validate:"required"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the certificate subject fields<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
 </tr><tr>
 <td>tls_issuer_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
@@ -2226,7 +2233,7 @@ go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 
 <table>
 <tr><th>Name</th><th>Value</th></tr>
-<tr><td>id</td><td><pre><code>fabric/create-identity/${! Subject.CommonName }</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>fabric/create-identity/${! CommonName }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
 </table>     
 
@@ -2352,60 +2359,6 @@ chain_pem is the PEM-encoded full chain (leaf + issuer chain to root).<br>
 json_name: ChainPem
 go_name: ChainPem
 go_tags: json:"ChainPem" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="fabric-certauth-v1-certificatesubject"></a>
-### fabric.certauth.v1.CertificateSubject
-
-<pre>
-CertificateSubject defines the subject fields for a certificate
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>common_name</td>
-<td>string</td>
-<td><pre>
-common_name is the CN for the certificate subject<br>
-
-json_name: CommonName
-go_name: CommonName
-go_tags: json:"CommonName" validate:"required"</pre></td>
-</tr><tr>
-<td>dns_names</td>
-<td>string</td>
-<td><pre>
-dns_names are Subject Alternative Names for TLS certificates<br>
-
-json_name: DnsNames
-go_name: DnsNames
-go_tags: json:"DnsNames,omitempty"</pre></td>
-</tr><tr>
-<td>organization</td>
-<td>string</td>
-<td><pre>
-organization is the O for the certificate subject<br>
-
-json_name: Organization
-go_name: Organization
-go_tags: json:"Organization"</pre></td>
-</tr><tr>
-<td>organizational_unit</td>
-<td>string</td>
-<td><pre>
-organizational_unit is the OU for the certificate subject<br>
-
-json_name: OrganizationalUnit
-go_name: OrganizationalUnit
-go_tags: json:"OrganizationalUnit"</pre></td>
 </tr>
 </table>
 
@@ -2610,14 +2563,24 @@ attributes are additional CA attributes for the identity<br>
 json_name: Attributes
 go_name: Attributes</pre></td>
 </tr><tr>
-<td>identity_name</td>
+<td>common_name</td>
 <td>string</td>
 <td><pre>
-identity_name is the unique name for this identity (e.g., "peer0", "orderer0", "admin")<br>
+common_name is the org-qualified subject CN, used for both issued certs and
+as the CA registration name (Fabric CA requires CN == enrollment ID).<br>
 
-json_name: IdentityName
-go_name: IdentityName
-go_tags: json:"IdentityName" validate:"required"</pre></td>
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+hosts are the requested Subject Alternative Names for the TLS certificate.<br>
+
+json_name: Hosts
+go_name: Hosts
+go_tags: json:"Hosts,omitempty"</pre></td>
 </tr><tr>
 <td>identity_type</td>
 <td>string</td>
@@ -2649,15 +2612,6 @@ signing_storage is where to store the signing identity (key + certificate)<br>
 json_name: SigningStorage
 go_name: SigningStorage
 go_tags: json:"SigningStorage" validate:"required"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the certificate subject fields<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
 </tr><tr>
 <td>tls_issuer_ref</td>
 <td><a href="#fabric-v1-certificateauthorityref">fabric.v1.CertificateAuthorityRef</a></td>
@@ -2767,6 +2721,24 @@ GenerateCsrInput specifies where the private key lives (key owner side).
 <th>Description</th>
 </tr>
 <tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name becomes the CSR CN.<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+hosts are the requested Subject Alternative Names.<br>
+
+json_name: Hosts
+go_name: Hosts
+go_tags: json:"Hosts,omitempty"</pre></td>
+</tr><tr>
 <td>key_ref</td>
 <td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
 <td><pre>
@@ -2777,16 +2749,6 @@ within the executing worker's own subtree.<br>
 json_name: KeyRef
 go_name: KeyRef
 go_tags: json:"KeyRef" validate:"required"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the CSR subject. CommonName becomes the CSR CN and
-dns_names become the requested SANs.<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -2927,6 +2889,17 @@ attributes are additional CA attributes for the registration record.<br>
 json_name: Attributes
 go_name: Attributes</pre></td>
 </tr><tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name is the certificate subject CN. It MUST be org-qualified (e.g.
+"peer0@org1"); it is used both for CA registration and to satisfy Fabric
+CA's requirement that the CSR CN equals the enrollment ID.<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
 <td>csr_pem</td>
 <td>bytes</td>
 <td><pre>
@@ -2975,18 +2948,6 @@ profile determines key usages ("ca", "tls", or "" for default identity)<br>
 json_name: Profile
 go_name: Profile
 go_tags: json:"Profile"</pre></td>
-</tr><tr>
-<td>subject</td>
-<td><a href="#fabric-certauth-v1-certificatesubject">fabric.certauth.v1.CertificateSubject</a></td>
-<td><pre>
-subject specifies the certificate subject fields. The CommonName MUST be
-org-qualified (e.g. "peer0@org1"); it is used both for CA registration
-and to satisfy Fabric CA's requirement that the CSR CN equals the
-enrollment ID.<br>
-
-json_name: Subject
-go_name: Subject
-go_tags: json:"Subject" validate:"required"</pre></td>
 </tr>
 </table>
 

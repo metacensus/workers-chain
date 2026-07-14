@@ -283,12 +283,9 @@ func (w *deployCertificateAuthorityWorkflow) ensureSigningIdentity(
 		ctx,
 		w.owner,
 		signingIssuerRef,
-		&certauthpb.CertificateSubject{
-			CommonName:         caConfig.ComponentName(),
-			Organization:       w.owner.OwnerID(),
-			OrganizationalUnit: caConfig.OrganizationalUnit(),
-		},
-		"", // no identity type
+		caConfig.ComponentName(),
+		nil, // CA signing cert carries no SANs
+		"",  // no identity type
 		map[string]string{
 			"hf.IntermediateCA": "true",
 		},
@@ -347,17 +344,13 @@ func (w *deployCertificateAuthorityWorkflow) ensureTLSIdentity(
 	// (the operator's TLS chain issuing for an org CA) is reached via Nexus with
 	// only the public CSR crossing the boundary. Either way the CA's TLS private
 	// key is generated and kept in this worker's own subtree.
-	tlsCommonName := certauth.ComputeTLSCommonName(caConfig.ComponentName(), spec.GetSigningIssuer(), tlsIssuerRef)
+	tlsCommonName := certauth.TLSEnrollmentCommonName(w.owner, caConfig.ComponentName(), spec.GetSigningIssuer(), tlsIssuerRef)
 	if _, err := certauth.IssueCertificate(
 		ctx,
 		w.owner,
 		tlsIssuerRef,
-		&certauthpb.CertificateSubject{
-			CommonName:         tlsCommonName,
-			Organization:       w.owner.OwnerID(),
-			OrganizationalUnit: caConfig.OrganizationalUnit(),
-			DnsNames:           caConfig.TLSDNSNames(),
-		},
+		tlsCommonName,
+		caConfig.TLSDNSNames(),
 		"",  // no identity type
 		nil, // no attributes
 		"tls",

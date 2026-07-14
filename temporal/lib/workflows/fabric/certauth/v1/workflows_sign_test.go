@@ -20,9 +20,9 @@ import (
 func TestNewSignCertificateWorkflow(t *testing.T) {
 	validReq := func() *pb.SignCertificateInput {
 		return &pb.SignCertificateInput{
-			IssuerRef: tlsIntRef,
-			Subject:   &pb.CertificateSubject{CommonName: "peer0@testorg"},
-			CsrPem:    []byte("-----BEGIN CERTIFICATE REQUEST-----\nx\n-----END CERTIFICATE REQUEST-----"),
+			IssuerRef:  tlsIntRef,
+			CommonName: "peer0@testorg",
+			CsrPem:     []byte("-----BEGIN CERTIFICATE REQUEST-----\nx\n-----END CERTIFICATE REQUEST-----"),
 		}
 	}
 
@@ -47,7 +47,7 @@ func TestNewSignCertificateWorkflow(t *testing.T) {
 		{
 			name:      "invalid - missing common_name",
 			owner:     operatorOwner,
-			mutate:    func(r *pb.SignCertificateInput) { r.Subject = &pb.CertificateSubject{} },
+			mutate:    func(r *pb.SignCertificateInput) { r.CommonName = "" },
 			wantErr:   true,
 			errSubstr: "common_name is required",
 		},
@@ -130,7 +130,7 @@ func TestSignCertificateWorkflow(t *testing.T) {
 				return wf.Execute(ctx)
 			}, &pb.SignCertificateInput{
 				IssuerRef:    tlsIntRef,
-				Subject:      &pb.CertificateSubject{CommonName: "peer0@testorg"},
+				CommonName:   "peer0@testorg",
 				IdentityType: "peer",
 				CsrPem:       []byte("-----BEGIN CERTIFICATE REQUEST-----\nx\n-----END CERTIFICATE REQUEST-----"),
 			})

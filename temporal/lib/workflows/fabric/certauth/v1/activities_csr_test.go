@@ -48,8 +48,9 @@ func TestActivities_GenerateCsr(t *testing.T) {
 		env.RegisterActivity(activities.GenerateCsr)
 
 		val, err := env.ExecuteActivity(activities.GenerateCsr, &pb.GenerateCsrInput{
-			KeyRef:  keyRef,
-			Subject: &pb.CertificateSubject{CommonName: "peer0@testorg", DnsNames: []string{"peer0.testorg"}},
+			KeyRef:     keyRef,
+			CommonName: "peer0@testorg",
+			Hosts:      []string{"peer0.testorg"},
 		})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -72,8 +73,8 @@ func TestActivities_GenerateCsr(t *testing.T) {
 		env.RegisterActivity(activities.GenerateCsr)
 
 		_, err := env.ExecuteActivity(activities.GenerateCsr, &pb.GenerateCsrInput{
-			KeyRef:  keyRef,
-			Subject: &pb.CertificateSubject{CommonName: "peer0@testorg"},
+			KeyRef:     keyRef,
+			CommonName: "peer0@testorg",
 		})
 		if err == nil || !strings.Contains(err.Error(), "failed to fetch key") {
 			t.Fatalf("expected fetch-key error, got: %v", err)
@@ -86,7 +87,7 @@ func TestActivities_GenerateCsr(t *testing.T) {
 		activities := newTestActivities(secretsmocks.NewMockSecretProvider(t), certauthmocks.NewMockClient(t), externalOrgOwner)
 		env.RegisterActivity(activities.GenerateCsr)
 		_, err := env.ExecuteActivity(activities.GenerateCsr, &pb.GenerateCsrInput{
-			Subject: &pb.CertificateSubject{CommonName: "peer0@testorg"},
+			CommonName: "peer0@testorg",
 		})
 		if err == nil || !strings.Contains(err.Error(), "key_ref is required") {
 			t.Fatalf("expected key_ref validation error, got: %v", err)
@@ -99,8 +100,7 @@ func TestActivities_GenerateCsr(t *testing.T) {
 		activities := newTestActivities(secretsmocks.NewMockSecretProvider(t), certauthmocks.NewMockClient(t), externalOrgOwner)
 		env.RegisterActivity(activities.GenerateCsr)
 		_, err := env.ExecuteActivity(activities.GenerateCsr, &pb.GenerateCsrInput{
-			KeyRef:  keyRef,
-			Subject: &pb.CertificateSubject{},
+			KeyRef: keyRef,
 		})
 		if err == nil || !strings.Contains(err.Error(), "common_name is required") {
 			t.Fatalf("expected common_name validation error, got: %v", err)

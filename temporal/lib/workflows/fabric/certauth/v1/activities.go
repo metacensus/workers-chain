@@ -224,9 +224,8 @@ func (a *Activities) GenerateCsr(ctx context.Context, req *pb.GenerateCsrInput) 
 	if keyRef == nil {
 		return nil, fmt.Errorf("%w: key_ref is required", ErrInvalidActivityInput)
 	}
-	subject := req.GetSubject()
-	if subject == nil || subject.GetCommonName() == "" {
-		return nil, fmt.Errorf("%w: subject.common_name is required", ErrInvalidActivityInput)
+	if req.GetCommonName() == "" {
+		return nil, fmt.Errorf("%w: common_name is required", ErrInvalidActivityInput)
 	}
 
 	secret, err := a.secretProvider.FetchSecret(ctx, keyRef)
@@ -238,9 +237,9 @@ func (a *Activities) GenerateCsr(ctx context.Context, req *pb.GenerateCsrInput) 
 		return nil, fmt.Errorf("%w: failed to parse key pair: %w", ErrFetchSecret, err)
 	}
 
-	csrInfo := &api.CSRInfo{CN: subject.GetCommonName()}
-	if len(subject.GetDnsNames()) > 0 {
-		csrInfo.Hosts = subject.GetDnsNames()
+	csrInfo := &api.CSRInfo{CN: req.GetCommonName()}
+	if len(req.GetHosts()) > 0 {
+		csrInfo.Hosts = req.GetHosts()
 	}
 
 	csrPEM, err := GenerateCSR(keyPair.PrivateKey, csrInfo)

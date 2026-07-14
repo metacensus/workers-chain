@@ -40,11 +40,10 @@ type SignCertificateInput struct {
 	IssuerRef *v1.CertificateAuthorityRef `protobuf:"bytes,1,opt,name=issuer_ref,json=IssuerRef,proto3" json:"IssuerRef" validate:"required"`
 	// profile determines key usages ("ca", "tls", or "" for default identity)
 	Profile string `protobuf:"bytes,2,opt,name=profile,json=Profile,proto3" json:"Profile"`
-	// subject specifies the certificate subject fields. The CommonName MUST be
-	// org-qualified (e.g. "peer0@org1"); it is used both for CA registration
-	// and to satisfy Fabric CA's requirement that the CSR CN equals the
-	// enrollment ID.
-	Subject *CertificateSubject `protobuf:"bytes,3,opt,name=subject,json=Subject,proto3" json:"Subject" validate:"required"`
+	// common_name is the certificate subject CN. It MUST be org-qualified (e.g.
+	// "peer0@org1"); it is used both for CA registration and to satisfy Fabric
+	// CA's requirement that the CSR CN equals the enrollment ID.
+	CommonName string `protobuf:"bytes,3,opt,name=common_name,json=CommonName,proto3" json:"CommonName" validate:"required"`
 	// identity_type specifies the Fabric CA identity type for registration.
 	// This determines the OU field in the issued certificate (server-set).
 	// Valid values: "peer", "orderer", "admin", "client" (default: "client").
@@ -104,11 +103,11 @@ func (x *SignCertificateInput) GetProfile() string {
 	return ""
 }
 
-func (x *SignCertificateInput) GetSubject() *CertificateSubject {
+func (x *SignCertificateInput) GetCommonName() string {
 	if x != nil {
-		return x.Subject
+		return x.CommonName
 	}
-	return nil
+	return ""
 }
 
 func (x *SignCertificateInput) GetIdentityType() string {
@@ -450,10 +449,11 @@ func (x *CreateAdminOutput) GetTlsIdentity() *v1.IdentityRef {
 // CreateIdentityInput specifies the parameters for creating a Fabric identity
 type CreateIdentityInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// identity_name is the unique name for this identity (e.g., "peer0", "orderer0", "admin")
-	IdentityName string `protobuf:"bytes,2,opt,name=identity_name,json=IdentityName,proto3" json:"IdentityName" validate:"required"`
-	// subject specifies the certificate subject fields
-	Subject *CertificateSubject `protobuf:"bytes,3,opt,name=subject,json=Subject,proto3" json:"Subject" validate:"required"`
+	// common_name is the org-qualified subject CN, used for both issued certs and
+	// as the CA registration name (Fabric CA requires CN == enrollment ID).
+	CommonName string `protobuf:"bytes,2,opt,name=common_name,json=CommonName,proto3" json:"CommonName" validate:"required"`
+	// hosts are the requested Subject Alternative Names for the TLS certificate.
+	Hosts []string `protobuf:"bytes,3,rep,name=hosts,json=Hosts,proto3" json:"Hosts,omitempty"`
 	// org_issuer_ref identifies which Org CA issues the identity certificate
 	// Typically the Org Intermediate CA (org/v1)
 	OrgIssuerRef *v1.CertificateAuthorityRef `protobuf:"bytes,4,opt,name=org_issuer_ref,json=OrgIssuerRef,proto3" json:"OrgIssuerRef" validate:"required"`
@@ -507,16 +507,16 @@ func (*CreateIdentityInput) Descriptor() ([]byte, []int) {
 	return file_fabric_certauth_v1_workflows_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *CreateIdentityInput) GetIdentityName() string {
+func (x *CreateIdentityInput) GetCommonName() string {
 	if x != nil {
-		return x.IdentityName
+		return x.CommonName
 	}
 	return ""
 }
 
-func (x *CreateIdentityInput) GetSubject() *CertificateSubject {
+func (x *CreateIdentityInput) GetHosts() []string {
 	if x != nil {
-		return x.Subject
+		return x.Hosts
 	}
 	return nil
 }
@@ -629,12 +629,13 @@ var File_fabric_certauth_v1_workflows_proto protoreflect.FileDescriptor
 
 const file_fabric_certauth_v1_workflows_proto_rawDesc = "" +
 	"\n" +
-	"\"fabric/certauth/v1/workflows.proto\x12\x12fabric.certauth.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\x1a\x16fabric/v1/fabric.proto\x1a\x1ffabric/certauth/v1/shared.proto\"\x80\x05\n" +
+	"\"fabric/certauth/v1/workflows.proto\x12\x12fabric.certauth.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\x1a\x16fabric/v1/fabric.proto\"\xe2\x04\n" +
 	"\x14SignCertificateInput\x12n\n" +
 	"\n" +
 	"issuer_ref\x18\x01 \x01(\v2\".fabric.v1.CertificateAuthorityRefB+ʵ\x03'\xa2\x01$json:\"IssuerRef\" validate:\"required\"R\tIssuerRef\x12/\n" +
-	"\aprofile\x18\x02 \x01(\tB\x15ʵ\x03\x11\xa2\x01\x0ejson:\"Profile\"R\aProfile\x12k\n" +
-	"\asubject\x18\x03 \x01(\v2&.fabric.certauth.v1.CertificateSubjectB)ʵ\x03%\xa2\x01\"json:\"Subject\" validate:\"required\"R\aSubject\x12I\n" +
+	"\aprofile\x18\x02 \x01(\tB\x15ʵ\x03\x11\xa2\x01\x0ejson:\"Profile\"R\aProfile\x12M\n" +
+	"\vcommon_name\x18\x03 \x01(\tB,ʵ\x03(\xa2\x01%json:\"CommonName\" validate:\"required\"R\n" +
+	"CommonName\x12I\n" +
 	"\ridentity_type\x18\x04 \x01(\tB$ʵ\x03 \xa2\x01\x1djson:\"IdentityType,omitempty\"R\fIdentityType\x12X\n" +
 	"\n" +
 	"attributes\x18\x05 \x03(\v28.fabric.certauth.v1.SignCertificateInput.AttributesEntryR\n" +
@@ -663,10 +664,11 @@ const file_fabric_certauth_v1_workflows_proto_rawDesc = "" +
 	"\x11validity_duration\x18\x05 \x01(\v2\x19.google.protobuf.DurationB(ʵ\x03$\xa2\x01!json:\"ValidityDuration,omitempty\"R\x10ValidityDuration\"\xf3\x01\n" +
 	"\x11CreateAdminOutput\x12t\n" +
 	"\x10signing_identity\x18\x01 \x01(\v2\x16.fabric.v1.IdentityRefB1ʵ\x03-\xa2\x01*json:\"SigningIdentity\" validate:\"required\"R\x0fSigningIdentity\x12h\n" +
-	"\ftls_identity\x18\x02 \x01(\v2\x16.fabric.v1.IdentityRefB-ʵ\x03)\xa2\x01&json:\"TlsIdentity\" validate:\"required\"R\vTlsIdentity\"\xc3\a\n" +
-	"\x13CreateIdentityInput\x12S\n" +
-	"\ridentity_name\x18\x02 \x01(\tB.ʵ\x03*\xa2\x01'json:\"IdentityName\" validate:\"required\"R\fIdentityName\x12k\n" +
-	"\asubject\x18\x03 \x01(\v2&.fabric.certauth.v1.CertificateSubjectB)ʵ\x03%\xa2\x01\"json:\"Subject\" validate:\"required\"R\aSubject\x12x\n" +
+	"\ftls_identity\x18\x02 \x01(\v2\x16.fabric.v1.IdentityRefB-ʵ\x03)\xa2\x01&json:\"TlsIdentity\" validate:\"required\"R\vTlsIdentity\"\x85\a\n" +
+	"\x13CreateIdentityInput\x12M\n" +
+	"\vcommon_name\x18\x02 \x01(\tB,ʵ\x03(\xa2\x01%json:\"CommonName\" validate:\"required\"R\n" +
+	"CommonName\x123\n" +
+	"\x05hosts\x18\x03 \x03(\tB\x1dʵ\x03\x19\xa2\x01\x16json:\"Hosts,omitempty\"R\x05Hosts\x12x\n" +
 	"\x0eorg_issuer_ref\x18\x04 \x01(\v2\".fabric.v1.CertificateAuthorityRefB.ʵ\x03*\xa2\x01'json:\"OrgIssuerRef\" validate:\"required\"R\fOrgIssuerRef\x12x\n" +
 	"\x0etls_issuer_ref\x18\x05 \x01(\v2\".fabric.v1.CertificateAuthorityRefB.ʵ\x03*\xa2\x01'json:\"TlsIssuerRef\" validate:\"required\"R\fTlsIssuerRef\x12q\n" +
 	"\x0fsigning_storage\x18\x06 \x01(\v2\x16.fabric.v1.IdentityRefB0ʵ\x03,\xa2\x01)json:\"SigningStorage\" validate:\"required\"R\x0eSigningStorage\x12e\n" +
@@ -684,12 +686,12 @@ const file_fabric_certauth_v1_workflows_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf6\x01\n" +
 	"\x14CreateIdentityOutput\x12t\n" +
 	"\x10signing_identity\x18\x01 \x01(\v2\x16.fabric.v1.IdentityRefB1ʵ\x03-\xa2\x01*json:\"SigningIdentity\" validate:\"required\"R\x0fSigningIdentity\x12h\n" +
-	"\ftls_identity\x18\x02 \x01(\v2\x16.fabric.v1.IdentityRefB-ʵ\x03)\xa2\x01&json:\"TlsIdentity\" validate:\"required\"R\vTlsIdentity2\xef\x06\n" +
-	"\x14CertificateAuthority\x12\xc7\x01\n" +
-	"\x0fSignCertificate\x12(.fabric.certauth.v1.SignCertificateInput\x1a).fabric.certauth.v1.SignCertificateOutput\"_\x8a\xc4\x03[*0fabric/sign-certificate/${! Subject.CommonName }0\x02r\"fabric.certauth.v1.SignCertificate\xa0\x01\x02\x12\xe9\x01\n" +
+	"\ftls_identity\x18\x02 \x01(\v2\x16.fabric.v1.IdentityRefB-ʵ\x03)\xa2\x01&json:\"TlsIdentity\" validate:\"required\"R\vTlsIdentity2\xdf\x06\n" +
+	"\x14CertificateAuthority\x12\xbf\x01\n" +
+	"\x0fSignCertificate\x12(.fabric.certauth.v1.SignCertificateInput\x1a).fabric.certauth.v1.SignCertificateOutput\"W\x8a\xc4\x03S*(fabric/sign-certificate/${! CommonName }0\x02r\"fabric.certauth.v1.SignCertificate\xa0\x01\x02\x12\xe9\x01\n" +
 	"\x14CreateBootstrapAdmin\x12-.fabric.certauth.v1.CreateBootstrapAdminInput\x1a..fabric.certauth.v1.CreateBootstrapAdminOutput\"r\x8a\xc4\x03n*Afabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }0\x01r'fabric.certauth.v1.CreateBootstrapAdmin\x12\xbb\x01\n" +
-	"\vCreateAdmin\x12$.fabric.certauth.v1.CreateAdminInput\x1a%.fabric.certauth.v1.CreateAdminOutput\"_\x8a\xc4\x03[*7fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }0\x01r\x1efabric.certauth.v1.CreateAdmin\x12\xc2\x01\n" +
-	"\x0eCreateIdentity\x12'.fabric.certauth.v1.CreateIdentityInput\x1a(.fabric.certauth.v1.CreateIdentityOutput\"]\x8a\xc4\x03Y*/fabric/create-identity/${! Subject.CommonName }0\x02r!fabric.certauth.v1.CreateIdentity\xa0\x01\x02\x1a\x1e\x8a\xc4\x03\a\n" +
+	"\vCreateAdmin\x12$.fabric.certauth.v1.CreateAdminInput\x1a%.fabric.certauth.v1.CreateAdminOutput\"_\x8a\xc4\x03[*7fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }0\x01r\x1efabric.certauth.v1.CreateAdmin\x12\xba\x01\n" +
+	"\x0eCreateIdentity\x12'.fabric.certauth.v1.CreateIdentityInput\x1a(.fabric.certauth.v1.CreateIdentityOutput\"U\x8a\xc4\x03Q*'fabric/create-identity/${! CommonName }0\x02r!fabric.certauth.v1.CreateIdentity\xa0\x01\x02\x1a\x1e\x8a\xc4\x03\a\n" +
 	"\x05infraʂ\x04\x0f\x12\rnexus-enabledB\xe4\x01\n" +
 	"\x16com.fabric.certauth.v1B\x0eWorkflowsProtoP\x01ZPgithub.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1;certauthv1\xa2\x02\x03FCX\xaa\x02\x12Fabric.Certauth.V1\xca\x02\x12Fabric\\Certauth\\V1\xe2\x02\x1eFabric\\Certauth\\V1\\GPBMetadata\xea\x02\x14Fabric::Certauth::V1b\x06proto3"
 
@@ -718,46 +720,43 @@ var file_fabric_certauth_v1_workflows_proto_goTypes = []any{
 	nil,                                // 8: fabric.certauth.v1.SignCertificateInput.AttributesEntry
 	nil,                                // 9: fabric.certauth.v1.CreateIdentityInput.AttributesEntry
 	(*v1.CertificateAuthorityRef)(nil), // 10: fabric.v1.CertificateAuthorityRef
-	(*CertificateSubject)(nil),         // 11: fabric.certauth.v1.CertificateSubject
-	(*durationpb.Duration)(nil),        // 12: google.protobuf.Duration
-	(*v1.IdentityRef)(nil),             // 13: fabric.v1.IdentityRef
+	(*durationpb.Duration)(nil),        // 11: google.protobuf.Duration
+	(*v1.IdentityRef)(nil),             // 12: fabric.v1.IdentityRef
 }
 var file_fabric_certauth_v1_workflows_proto_depIdxs = []int32{
 	10, // 0: fabric.certauth.v1.SignCertificateInput.issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	11, // 1: fabric.certauth.v1.SignCertificateInput.subject:type_name -> fabric.certauth.v1.CertificateSubject
-	8,  // 2: fabric.certauth.v1.SignCertificateInput.attributes:type_name -> fabric.certauth.v1.SignCertificateInput.AttributesEntry
-	10, // 3: fabric.certauth.v1.CreateBootstrapAdminInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	10, // 4: fabric.certauth.v1.CreateBootstrapAdminInput.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	12, // 5: fabric.certauth.v1.CreateBootstrapAdminInput.validity_duration:type_name -> google.protobuf.Duration
-	13, // 6: fabric.certauth.v1.CreateBootstrapAdminOutput.signing_identity:type_name -> fabric.v1.IdentityRef
-	13, // 7: fabric.certauth.v1.CreateBootstrapAdminOutput.tls_identity:type_name -> fabric.v1.IdentityRef
-	10, // 8: fabric.certauth.v1.CreateAdminInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	10, // 9: fabric.certauth.v1.CreateAdminInput.signing_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	10, // 10: fabric.certauth.v1.CreateAdminInput.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
-	12, // 11: fabric.certauth.v1.CreateAdminInput.validity_duration:type_name -> google.protobuf.Duration
-	13, // 12: fabric.certauth.v1.CreateAdminOutput.signing_identity:type_name -> fabric.v1.IdentityRef
-	13, // 13: fabric.certauth.v1.CreateAdminOutput.tls_identity:type_name -> fabric.v1.IdentityRef
-	11, // 14: fabric.certauth.v1.CreateIdentityInput.subject:type_name -> fabric.certauth.v1.CertificateSubject
-	10, // 15: fabric.certauth.v1.CreateIdentityInput.org_issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	10, // 16: fabric.certauth.v1.CreateIdentityInput.tls_issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	13, // 17: fabric.certauth.v1.CreateIdentityInput.signing_storage:type_name -> fabric.v1.IdentityRef
-	13, // 18: fabric.certauth.v1.CreateIdentityInput.tls_storage:type_name -> fabric.v1.IdentityRef
-	9,  // 19: fabric.certauth.v1.CreateIdentityInput.attributes:type_name -> fabric.certauth.v1.CreateIdentityInput.AttributesEntry
-	13, // 20: fabric.certauth.v1.CreateIdentityOutput.signing_identity:type_name -> fabric.v1.IdentityRef
-	13, // 21: fabric.certauth.v1.CreateIdentityOutput.tls_identity:type_name -> fabric.v1.IdentityRef
-	0,  // 22: fabric.certauth.v1.CertificateAuthority.SignCertificate:input_type -> fabric.certauth.v1.SignCertificateInput
-	2,  // 23: fabric.certauth.v1.CertificateAuthority.CreateBootstrapAdmin:input_type -> fabric.certauth.v1.CreateBootstrapAdminInput
-	4,  // 24: fabric.certauth.v1.CertificateAuthority.CreateAdmin:input_type -> fabric.certauth.v1.CreateAdminInput
-	6,  // 25: fabric.certauth.v1.CertificateAuthority.CreateIdentity:input_type -> fabric.certauth.v1.CreateIdentityInput
-	1,  // 26: fabric.certauth.v1.CertificateAuthority.SignCertificate:output_type -> fabric.certauth.v1.SignCertificateOutput
-	3,  // 27: fabric.certauth.v1.CertificateAuthority.CreateBootstrapAdmin:output_type -> fabric.certauth.v1.CreateBootstrapAdminOutput
-	5,  // 28: fabric.certauth.v1.CertificateAuthority.CreateAdmin:output_type -> fabric.certauth.v1.CreateAdminOutput
-	7,  // 29: fabric.certauth.v1.CertificateAuthority.CreateIdentity:output_type -> fabric.certauth.v1.CreateIdentityOutput
-	26, // [26:30] is the sub-list for method output_type
-	22, // [22:26] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	8,  // 1: fabric.certauth.v1.SignCertificateInput.attributes:type_name -> fabric.certauth.v1.SignCertificateInput.AttributesEntry
+	10, // 2: fabric.certauth.v1.CreateBootstrapAdminInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	10, // 3: fabric.certauth.v1.CreateBootstrapAdminInput.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	11, // 4: fabric.certauth.v1.CreateBootstrapAdminInput.validity_duration:type_name -> google.protobuf.Duration
+	12, // 5: fabric.certauth.v1.CreateBootstrapAdminOutput.signing_identity:type_name -> fabric.v1.IdentityRef
+	12, // 6: fabric.certauth.v1.CreateBootstrapAdminOutput.tls_identity:type_name -> fabric.v1.IdentityRef
+	10, // 7: fabric.certauth.v1.CreateAdminInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	10, // 8: fabric.certauth.v1.CreateAdminInput.signing_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	10, // 9: fabric.certauth.v1.CreateAdminInput.tls_issuer:type_name -> fabric.v1.CertificateAuthorityRef
+	11, // 10: fabric.certauth.v1.CreateAdminInput.validity_duration:type_name -> google.protobuf.Duration
+	12, // 11: fabric.certauth.v1.CreateAdminOutput.signing_identity:type_name -> fabric.v1.IdentityRef
+	12, // 12: fabric.certauth.v1.CreateAdminOutput.tls_identity:type_name -> fabric.v1.IdentityRef
+	10, // 13: fabric.certauth.v1.CreateIdentityInput.org_issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	10, // 14: fabric.certauth.v1.CreateIdentityInput.tls_issuer_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	12, // 15: fabric.certauth.v1.CreateIdentityInput.signing_storage:type_name -> fabric.v1.IdentityRef
+	12, // 16: fabric.certauth.v1.CreateIdentityInput.tls_storage:type_name -> fabric.v1.IdentityRef
+	9,  // 17: fabric.certauth.v1.CreateIdentityInput.attributes:type_name -> fabric.certauth.v1.CreateIdentityInput.AttributesEntry
+	12, // 18: fabric.certauth.v1.CreateIdentityOutput.signing_identity:type_name -> fabric.v1.IdentityRef
+	12, // 19: fabric.certauth.v1.CreateIdentityOutput.tls_identity:type_name -> fabric.v1.IdentityRef
+	0,  // 20: fabric.certauth.v1.CertificateAuthority.SignCertificate:input_type -> fabric.certauth.v1.SignCertificateInput
+	2,  // 21: fabric.certauth.v1.CertificateAuthority.CreateBootstrapAdmin:input_type -> fabric.certauth.v1.CreateBootstrapAdminInput
+	4,  // 22: fabric.certauth.v1.CertificateAuthority.CreateAdmin:input_type -> fabric.certauth.v1.CreateAdminInput
+	6,  // 23: fabric.certauth.v1.CertificateAuthority.CreateIdentity:input_type -> fabric.certauth.v1.CreateIdentityInput
+	1,  // 24: fabric.certauth.v1.CertificateAuthority.SignCertificate:output_type -> fabric.certauth.v1.SignCertificateOutput
+	3,  // 25: fabric.certauth.v1.CertificateAuthority.CreateBootstrapAdmin:output_type -> fabric.certauth.v1.CreateBootstrapAdminOutput
+	5,  // 26: fabric.certauth.v1.CertificateAuthority.CreateAdmin:output_type -> fabric.certauth.v1.CreateAdminOutput
+	7,  // 27: fabric.certauth.v1.CertificateAuthority.CreateIdentity:output_type -> fabric.certauth.v1.CreateIdentityOutput
+	24, // [24:28] is the sub-list for method output_type
+	20, // [20:24] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_fabric_certauth_v1_workflows_proto_init() }
@@ -765,7 +764,6 @@ func file_fabric_certauth_v1_workflows_proto_init() {
 	if File_fabric_certauth_v1_workflows_proto != nil {
 		return
 	}
-	file_fabric_certauth_v1_shared_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

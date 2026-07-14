@@ -185,7 +185,7 @@ func TestNewCreateAdminWorkflow(t *testing.T) {
 func TestNewCreateIdentityWorkflow(t *testing.T) {
 	validInput := func() *pb.CreateIdentityInput {
 		return &pb.CreateIdentityInput{
-			IdentityName: "test-identity",
+			CommonName:   "test-identity@testorg",
 			OrgIssuerRef: orgIntRef,
 			TlsIssuerRef: tlsIntRef,
 			SigningStorage: &fabricpb.IdentityRef{
@@ -213,11 +213,11 @@ func TestNewCreateIdentityWorkflow(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:      "error - missing identity name",
+			name:      "error - missing common name",
 			owner:     orgOwner,
-			mutate:    func(in *pb.CreateIdentityInput) { in.IdentityName = "" },
+			mutate:    func(in *pb.CreateIdentityInput) { in.CommonName = "" },
 			wantErr:   true,
-			errSubstr: "identity_name is required",
+			errSubstr: "common_name is required",
 		},
 		{
 			name:      "error - missing org_issuer_ref",
@@ -270,80 +270,109 @@ func TestNewCreateIdentityWorkflow(t *testing.T) {
 // Helper Function Tests
 // =============================================================================
 
-func TestComputeTLSCommonName(t *testing.T) {
+func TestTLSEnrollmentCommonName(t *testing.T) {
+	// operator owns tls/* CAs; an org owns org/* CAs. So a tls issuer is foreign
+	// (shared) to an org owner, and local to the operator owner.
 	tests := []struct {
 		name             string
+		owner            workerconfig.OwnerConfig
 		baseName         string
 		signingIssuerRef *fabricpb.CertificateAuthorityRef
 		tlsIssuerRef     *fabricpb.CertificateAuthorityRef
 		expected         string
 	}{
 		{
-			name:             "both nil - self-signed - returns base name",
-			baseName:         "ca-tls-root",
-			signingIssuerRef: nil,
-			tlsIssuerRef:     nil,
-			expected:         "ca-tls-root",
+			name:         "self-signed (tls issuer nil) - returns base name",
+			owner:        operatorOwner,
+			baseName:     "certificate-authority-tls-root",
+			tlsIssuerRef: nil,
+			expected:     "certificate-authority-tls-root",
 		},
 		{
-			name:             "signing nil - self-signed signing - returns base name",
-			baseName:         "ca-tls-root",
-			signingIssuerRef: nil,
-			tlsIssuerRef:     tlsRootRef,
-			expected:         "ca-tls-root",
-		},
-		{
-			name:             "tls nil - self-signed tls - returns base name",
-			baseName:         "ca-tls-root",
-			signingIssuerRef: tlsRootRef,
-			tlsIssuerRef:     nil,
-			expected:         "ca-tls-root",
-		},
-		{
-			name:             "same CA issues both - collision - returns base name with -tls suffix",
-			baseName:         "ca-tls-int",
+			name:             "local same CA issues both - '-tls' suffix",
+			owner:            operatorOwner,
+			baseName:         "certificate-authority-tls-int",
 			signingIssuerRef: tlsRootRef,
 			tlsIssuerRef:     tlsRootRef,
-			expected:         "ca-tls-int-tls",
+			expected:         "certificate-authority-tls-int-tls",
 		},
 		{
-			name:             "different CAs - no collision - returns base name",
-			baseName:         "ca-org-int",
+			name:             "local different CAs - no suffix",
+			owner:            operatorOwner,
+			baseName:         "certificate-authority-tls-int",
+			signingIssuerRef: tlsIntRef,
+			tlsIssuerRef:     tlsRootRef,
+			expected:         "certificate-authority-tls-int",
+		},
+		{
+			name:             "foreign CA - org int getting TLS from operator - owner-qualified",
+			owner:            orgOwner,
+			baseName:         "certificate-authority-org-int",
 			signingIssuerRef: orgRootRef,
 			tlsIssuerRef:     tlsIntRef,
-			expected:         "ca-org-int",
+			expected:         "certificate-authority-org-int@testorg",
 		},
 		{
-			name:             "different ID same type - no collision - returns base name",
-			baseName:         "ca-tls-v2",
-			signingIssuerRef: tlsRootRef,
+			name:             "foreign CA - org root (self-signed signing) - owner-qualified",
+			owner:            orgOwner,
+			baseName:         "certificate-authority-org-root",
+			signingIssuerRef: nil,
 			tlsIssuerRef:     tlsIntRef,
-			expected:         "ca-tls-v2",
+			expected:         "certificate-authority-org-root@testorg",
 		},
 		{
-			name:             "admin collision case - same CA issues both admin certs",
-			baseName:         "admin@ca-tls-root",
-			signingIssuerRef: tlsRootRef,
-			tlsIssuerRef:     tlsRootRef,
-			expected:         "admin@ca-tls-root-tls",
-		},
-		{
-			name:             "admin no collision - different CAs for admin certs",
-			baseName:         "admin@ca-org-int",
+			name:             "foreign admin TLS cert - double-@ owner-qualified",
+			owner:            orgOwner,
+			baseName:         "admin@certificate-authority-org-int",
 			signingIssuerRef: orgIntRef,
 			tlsIssuerRef:     tlsIntRef,
-			expected:         "admin@ca-org-int",
+			expected:         "admin@certificate-authority-org-int@testorg",
+		},
+		{
+			name:             "foreign bootstrap-admin TLS cert - double-@ owner-qualified",
+			owner:            orgOwner,
+			baseName:         "bootstrap-admin@certificate-authority-org-int",
+			signingIssuerRef: orgIntRef,
+			tlsIssuerRef:     tlsIntRef,
+			expected:         "bootstrap-admin@certificate-authority-org-int@testorg",
+		},
+		{
+			name:             "local admin same CA issues both - '-tls' suffix, unqualified",
+			owner:            operatorOwner,
+			baseName:         "admin@certificate-authority-tls-root",
+			signingIssuerRef: tlsRootRef,
+			tlsIssuerRef:     tlsRootRef,
+			expected:         "admin@certificate-authority-tls-root-tls",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := ComputeTLSCommonName(tt.baseName, tt.signingIssuerRef, tt.tlsIssuerRef)
+			result := TLSEnrollmentCommonName(tt.owner, tt.baseName, tt.signingIssuerRef, tt.tlsIssuerRef)
 			if result != tt.expected {
-				t.Errorf("ComputeTLSCommonName(%q, %v, %v) = %q, want %q",
-					tt.baseName, tt.signingIssuerRef, tt.tlsIssuerRef, result, tt.expected)
+				t.Errorf("TLSEnrollmentCommonName(%s, %q, %v, %v) = %q, want %q",
+					tt.owner.OwnerID(), tt.baseName, tt.signingIssuerRef, tt.tlsIssuerRef, result, tt.expected)
 			}
 		})
+	}
+}
+
+// TestTLSEnrollmentCommonName_DistinctOwners is the #4 regression: two orgs whose
+// CAs share the operator TLS CA must present distinct enrollment CNs, or their
+// registry records clobber each other.
+func TestTLSEnrollmentCommonName_DistinctOwners(t *testing.T) {
+	orgA := workerconfig.NewOrgConfig("org-a")
+	orgB := workerconfig.NewOrgConfig("org-b")
+	base := "certificate-authority-org-int"
+
+	cnA := TLSEnrollmentCommonName(orgA, base, orgRootRef, tlsIntRef)
+	cnB := TLSEnrollmentCommonName(orgB, base, orgRootRef, tlsIntRef)
+
+	if cnA == cnB {
+		t.Fatalf("distinct owners produced identical foreign-TLS CN %q (collision not fixed)", cnA)
+	}
+	if cnA != base+"@org-a" || cnB != base+"@org-b" {
+		t.Errorf("unexpected owner-qualified CNs: orgA=%q orgB=%q", cnA, cnB)
 	}
 }
 
@@ -563,7 +592,7 @@ func TestCreateBootstrapAdminWorkflow(t *testing.T) {
 			env.OnActivity(pb.GenerateCsrActivityName, mock.Anything, mock.Anything).
 				Return(func(ctx context.Context, input *pb.GenerateCsrInput) (*pb.GenerateCsrOutput, error) {
 					cnMu.Lock()
-					csrCNByKeyRef[input.GetKeyRef().String()] = input.GetSubject().GetCommonName()
+					csrCNByKeyRef[input.GetKeyRef().String()] = input.GetCommonName()
 					cnMu.Unlock()
 					return &pb.GenerateCsrOutput{CsrPem: []byte("test-csr")}, nil
 				})
@@ -867,7 +896,7 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 				}
 				return wf.Execute(ctx)
 			}, &pb.CreateIdentityInput{
-				IdentityName: "test-peer",
+				CommonName:   "test-peer@testorg",
 				OrgIssuerRef: orgIntRef,
 				TlsIssuerRef: tlsIntRef,
 				SigningStorage: &fabricpb.IdentityRef{
@@ -877,10 +906,6 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 				TlsStorage: &fabricpb.IdentityRef{
 					KeyRef:  secrets.NewVaultRef("test/keys/tls"),
 					CertRef: secrets.NewVaultRef("test/certs/tls"),
-				},
-				Subject: &pb.CertificateSubject{
-					CommonName:   "test-peer",
-					Organization: testOrg,
 				},
 				IdentityType: "peer",
 			})
