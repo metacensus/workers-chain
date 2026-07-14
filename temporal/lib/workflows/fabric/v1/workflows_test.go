@@ -220,6 +220,14 @@ func TestNewDeployCertificateAuthorityWorkflow(t *testing.T) {
 			wantErr:   true,
 			errSubstr: "cert_type must be 'tls' or 'org'",
 		},
+		{
+			name:  "error - non-positive validity duration",
+			owner: operatorOwner,
+			// valid tls/root self-signed spec, but validity omitted (zero)
+			spec:      &pb.CertificateAuthoritySpec{Self: tlsRootRef},
+			wantErr:   true,
+			errSubstr: "validity_duration must be positive",
+		},
 	}
 
 	for _, tt := range tests {

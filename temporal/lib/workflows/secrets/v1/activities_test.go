@@ -354,6 +354,22 @@ func TestCreateSelfSignedCertificateActivity(t *testing.T) {
 			expectFetch: true,
 			expectStore: true,
 		},
+		{
+			// Zero/omitted validity would yield NotAfter == NotBefore; the
+			// generator rejects it after the key is fetched, before storing.
+			name: "error - non-positive validity duration",
+			input: &pb.CreateSelfSignedCertificateInput{
+				KeyRef:       testSecretRef("fabric/shard/org1/ca/key"),
+				CertRef:      testSecretRef("fabric/shard/org1/ca/cert"),
+				CommonName:   "org1-ca",
+				Organization: "org1",
+				// ValidityDuration omitted → zero
+			},
+			fetchSecret: validKeySecret,
+			expectErr:   true,
+			expectFetch: true,
+			expectStore: false,
+		},
 		// Layer 3: Provider errors
 		{
 			name: "error - provider fetch fails",

@@ -129,6 +129,12 @@ func (w *deployCertificateAuthorityWorkflow) validate() error {
 			return err
 		}
 	}
+	// A non-positive validity would produce certificates with NotAfter <=
+	// NotBefore. Reject before any provisioning begins. GetValidityDuration()
+	// on a nil duration returns a zero AsDuration(), so this also catches unset.
+	if spec.GetValidityDuration().AsDuration() <= 0 {
+		return fmt.Errorf("%w: spec.validity_duration must be positive", ErrInvalidInput)
+	}
 	return nil
 }
 
