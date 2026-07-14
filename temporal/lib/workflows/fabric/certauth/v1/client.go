@@ -190,7 +190,7 @@ func (c *bootstrapClient) EnrollWithCSR(ctx context.Context, csrPEM []byte, prof
 	}
 	enrollURL := baseURL.String() + "/enroll"
 
-	req, err := http.NewRequest("POST", enrollURL, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", enrollURL, bytes.NewReader(body))
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: failed to create HTTP request: %v", ErrEnroll, err)
 	}
