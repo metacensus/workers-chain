@@ -190,19 +190,19 @@
       - [Workflows](#secrets-v1-secrets-workflows)
         - [secrets.v1.CreateAccess](#secrets-v1-createaccess-workflow)
       - [Activities](#secrets-v1-secrets-activities)
-        - [secrets.v1.CreatePassword](#secrets-v1-createpassword-activity)
+        - [secrets.v1.EnsurePassword](#secrets-v1-ensurepassword-activity)
         - [secrets.v1.EnsureKeyPair](#secrets-v1-ensurekeypair-activity)
         - [secrets.v1.CreateSelfSignedCertificate](#secrets-v1-createselfsignedcertificate-activity)
         - [secrets.v1.StoreCertificate](#secrets-v1-storecertificate-activity)
   - Messages
     - [secrets.v1.CreateAccessInput](#secrets-v1-createaccessinput)
     - [secrets.v1.CreateAccessOutput](#secrets-v1-createaccessoutput)
-    - [secrets.v1.CreatePasswordInput](#secrets-v1-createpasswordinput)
-    - [secrets.v1.CreatePasswordOutput](#secrets-v1-createpasswordoutput)
     - [secrets.v1.CreateSelfSignedCertificateInput](#secrets-v1-createselfsignedcertificateinput)
     - [secrets.v1.CreateSelfSignedCertificateOutput](#secrets-v1-createselfsignedcertificateoutput)
     - [secrets.v1.EnsureKeyPairInput](#secrets-v1-ensurekeypairinput)
     - [secrets.v1.EnsureKeyPairOutput](#secrets-v1-ensurekeypairoutput)
+    - [secrets.v1.EnsurePasswordInput](#secrets-v1-ensurepasswordinput)
+    - [secrets.v1.EnsurePasswordOutput](#secrets-v1-ensurepasswordoutput)
     - [secrets.v1.SecretRef](#secrets-v1-secretref)
     - [secrets.v1.StoreCertificateInput](#secrets-v1-storecertificateinput)
     - [secrets.v1.StoreCertificateOutput](#secrets-v1-storecertificateoutput)
@@ -6648,14 +6648,18 @@ go_tags: json:"PolicyName" validate:"required"</pre></td>
 ### Activities
 
 ---
-<a name="secrets-v1-createpassword-activity"></a>
-### secrets.v1.CreatePassword
+<a name="secrets-v1-ensurepassword-activity"></a>
+### secrets.v1.EnsurePassword
 
 <pre>
-CreatePassword generates a secure password and stores it with the given username.
+EnsurePassword get-or-creates credentials at secret_ref: it returns the
+existing password when present, and generates + stores a new one only when
+the backend reports the secret absent. Get-or-create keeps the stored
+password stable across reruns so it cannot desync from a consumer (e.g. a
+PostgreSQL role) that was provisioned from an earlier value.
 </pre>
 
-**Input:** [secrets.v1.CreatePasswordInput](#secrets-v1-createpasswordinput)
+**Input:** [secrets.v1.EnsurePasswordInput](#secrets-v1-ensurepasswordinput)
 
 <table>
 <tr>
@@ -6684,7 +6688,7 @@ go_tags: json:"Username" validate:"required"</pre></td>
 </tr>
 </table>
 
-**Output:** [secrets.v1.CreatePasswordOutput](#secrets-v1-createpasswordoutput)
+**Output:** [secrets.v1.EnsurePasswordOutput](#secrets-v1-ensurepasswordoutput)
 
 <table>
 <tr>
@@ -7028,67 +7032,6 @@ go_tags: json:"PolicyName" validate:"required"</pre></td>
 
 
 
-<a name="secrets-v1-createpasswordinput"></a>
-### secrets.v1.CreatePasswordInput
-
-<pre>
-CreatePasswordInput specifies where to store generated credentials
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>secret_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-secret_ref is where credentials should be stored<br>
-
-json_name: SecretRef
-go_name: SecretRef
-go_tags: json:"SecretRef" validate:"required"</pre></td>
-</tr><tr>
-<td>username</td>
-<td>string</td>
-<td><pre>
-username to store alongside the generated password<br>
-
-json_name: Username
-go_name: Username
-go_tags: json:"Username" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
-<a name="secrets-v1-createpasswordoutput"></a>
-### secrets.v1.CreatePasswordOutput
-
-<pre>
-CreatePasswordOutput confirms credentials were stored
-</pre>
-
-<table>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-<tr>
-<td>secret_ref</td>
-<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
-<td><pre>
-json_name: SecretRef
-go_name: SecretRef
-go_tags: json:"SecretRef" validate:"required"</pre></td>
-</tr>
-</table>
-
-
-
 <a name="secrets-v1-createselfsignedcertificateinput"></a>
 ### secrets.v1.CreateSelfSignedCertificateInput
 
@@ -7238,6 +7181,67 @@ go_tags: json:"SecretRef" validate:"required"</pre></td>
 
 <pre>
 EnsureKeyPairOutput confirms a key pair is present at secret_ref.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-ensurepasswordinput"></a>
+### secrets.v1.EnsurePasswordInput
+
+<pre>
+EnsurePasswordInput specifies where to store generated credentials
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>secret_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+secret_ref is where credentials should be stored<br>
+
+json_name: SecretRef
+go_name: SecretRef
+go_tags: json:"SecretRef" validate:"required"</pre></td>
+</tr><tr>
+<td>username</td>
+<td>string</td>
+<td><pre>
+username to store alongside the generated password<br>
+
+json_name: Username
+go_name: Username
+go_tags: json:"Username" validate:"required"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-ensurepasswordoutput"></a>
+### secrets.v1.EnsurePasswordOutput
+
+<pre>
+EnsurePasswordOutput confirms credentials were stored
 </pre>
 
 <table>

@@ -86,8 +86,8 @@ func (x *SecretRef) GetRef() *structpb.Struct {
 	return nil
 }
 
-// CreatePasswordInput specifies where to store generated credentials
-type CreatePasswordInput struct {
+// EnsurePasswordInput specifies where to store generated credentials
+type EnsurePasswordInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// secret_ref is where credentials should be stored
 	SecretRef *SecretRef `protobuf:"bytes,1,opt,name=secret_ref,json=SecretRef,proto3" json:"SecretRef" validate:"required"`
@@ -97,20 +97,20 @@ type CreatePasswordInput struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreatePasswordInput) Reset() {
-	*x = CreatePasswordInput{}
+func (x *EnsurePasswordInput) Reset() {
+	*x = EnsurePasswordInput{}
 	mi := &file_secrets_v1_secrets_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreatePasswordInput) String() string {
+func (x *EnsurePasswordInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreatePasswordInput) ProtoMessage() {}
+func (*EnsurePasswordInput) ProtoMessage() {}
 
-func (x *CreatePasswordInput) ProtoReflect() protoreflect.Message {
+func (x *EnsurePasswordInput) ProtoReflect() protoreflect.Message {
 	mi := &file_secrets_v1_secrets_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -122,47 +122,47 @@ func (x *CreatePasswordInput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreatePasswordInput.ProtoReflect.Descriptor instead.
-func (*CreatePasswordInput) Descriptor() ([]byte, []int) {
+// Deprecated: Use EnsurePasswordInput.ProtoReflect.Descriptor instead.
+func (*EnsurePasswordInput) Descriptor() ([]byte, []int) {
 	return file_secrets_v1_secrets_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *CreatePasswordInput) GetSecretRef() *SecretRef {
+func (x *EnsurePasswordInput) GetSecretRef() *SecretRef {
 	if x != nil {
 		return x.SecretRef
 	}
 	return nil
 }
 
-func (x *CreatePasswordInput) GetUsername() string {
+func (x *EnsurePasswordInput) GetUsername() string {
 	if x != nil {
 		return x.Username
 	}
 	return ""
 }
 
-// CreatePasswordOutput confirms credentials were stored
-type CreatePasswordOutput struct {
+// EnsurePasswordOutput confirms credentials were stored
+type EnsurePasswordOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SecretRef     *SecretRef             `protobuf:"bytes,1,opt,name=secret_ref,json=SecretRef,proto3" json:"SecretRef" validate:"required"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreatePasswordOutput) Reset() {
-	*x = CreatePasswordOutput{}
+func (x *EnsurePasswordOutput) Reset() {
+	*x = EnsurePasswordOutput{}
 	mi := &file_secrets_v1_secrets_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreatePasswordOutput) String() string {
+func (x *EnsurePasswordOutput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreatePasswordOutput) ProtoMessage() {}
+func (*EnsurePasswordOutput) ProtoMessage() {}
 
-func (x *CreatePasswordOutput) ProtoReflect() protoreflect.Message {
+func (x *EnsurePasswordOutput) ProtoReflect() protoreflect.Message {
 	mi := &file_secrets_v1_secrets_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -174,12 +174,12 @@ func (x *CreatePasswordOutput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreatePasswordOutput.ProtoReflect.Descriptor instead.
-func (*CreatePasswordOutput) Descriptor() ([]byte, []int) {
+// Deprecated: Use EnsurePasswordOutput.ProtoReflect.Descriptor instead.
+func (*EnsurePasswordOutput) Descriptor() ([]byte, []int) {
 	return file_secrets_v1_secrets_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *CreatePasswordOutput) GetSecretRef() *SecretRef {
+func (x *EnsurePasswordOutput) GetSecretRef() *SecretRef {
 	if x != nil {
 		return x.SecretRef
 	}
@@ -686,11 +686,11 @@ const file_secrets_v1_secrets_proto_rawDesc = "" +
 	"\tSecretRef\x12:\n" +
 	"\x04type\x18\x01 \x01(\tB&ʵ\x03\"\xa2\x01\x1fjson:\"Type\" validate:\"required\"R\x04Type\x12P\n" +
 	"\x03ref\x18\x02 \x01(\v2\x17.google.protobuf.StructB%ʵ\x03!\xa2\x01\x1ejson:\"Ref\" validate:\"required\"R\x03Ref\"\xc0\x01\n" +
-	"\x13CreatePasswordInput\x12a\n" +
+	"\x13EnsurePasswordInput\x12a\n" +
 	"\n" +
 	"secret_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB+ʵ\x03'\xa2\x01$json:\"SecretRef\" validate:\"required\"R\tSecretRef\x12F\n" +
 	"\busername\x18\x02 \x01(\tB*ʵ\x03&\xa2\x01#json:\"Username\" validate:\"required\"R\bUsername\"y\n" +
-	"\x14CreatePasswordOutput\x12a\n" +
+	"\x14EnsurePasswordOutput\x12a\n" +
 	"\n" +
 	"secret_ref\x18\x01 \x01(\v2\x15.secrets.v1.SecretRefB+ʵ\x03'\xa2\x01$json:\"SecretRef\" validate:\"required\"R\tSecretRef\"w\n" +
 	"\x12EnsureKeyPairInput\x12a\n" +
@@ -730,7 +730,7 @@ const file_secrets_v1_secrets_proto_rawDesc = "" +
 	"PolicyName\x12T\n" +
 	"\x0eauth_role_name\x18\x02 \x01(\tB.ʵ\x03*\xa2\x01'json:\"AuthRoleName\" validate:\"required\"R\fAuthRoleName2\xad\x06\n" +
 	"\aSecrets\x12\x86\x01\n" +
-	"\x0eCreatePassword\x12\x1f.secrets.v1.CreatePasswordInput\x1a .secrets.v1.CreatePasswordOutput\"1\x92\xc4\x03\x1f\x12\x02\b<:\x19secrets.v1.CreatePassword҂\x04\n" +
+	"\x0eEnsurePassword\x12\x1f.secrets.v1.EnsurePasswordInput\x1a .secrets.v1.EnsurePasswordOutput\"1\x92\xc4\x03\x1f\x12\x02\b<:\x19secrets.v1.EnsurePassword҂\x04\n" +
 	"\x12\bactivity\x12\x82\x01\n" +
 	"\rEnsureKeyPair\x12\x1e.secrets.v1.EnsureKeyPairInput\x1a\x1f.secrets.v1.EnsureKeyPairOutput\"0\x92\xc4\x03\x1e\x12\x02\b<:\x18secrets.v1.EnsureKeyPair҂\x04\n" +
 	"\x12\bactivity\x12\xbb\x01\n" +
@@ -759,8 +759,8 @@ func file_secrets_v1_secrets_proto_rawDescGZIP() []byte {
 var file_secrets_v1_secrets_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_secrets_v1_secrets_proto_goTypes = []any{
 	(*SecretRef)(nil),                         // 0: secrets.v1.SecretRef
-	(*CreatePasswordInput)(nil),               // 1: secrets.v1.CreatePasswordInput
-	(*CreatePasswordOutput)(nil),              // 2: secrets.v1.CreatePasswordOutput
+	(*EnsurePasswordInput)(nil),               // 1: secrets.v1.EnsurePasswordInput
+	(*EnsurePasswordOutput)(nil),              // 2: secrets.v1.EnsurePasswordOutput
 	(*EnsureKeyPairInput)(nil),                // 3: secrets.v1.EnsureKeyPairInput
 	(*EnsureKeyPairOutput)(nil),               // 4: secrets.v1.EnsureKeyPairOutput
 	(*CreateSelfSignedCertificateInput)(nil),  // 5: secrets.v1.CreateSelfSignedCertificateInput
@@ -775,8 +775,8 @@ var file_secrets_v1_secrets_proto_goTypes = []any{
 }
 var file_secrets_v1_secrets_proto_depIdxs = []int32{
 	11, // 0: secrets.v1.SecretRef.ref:type_name -> google.protobuf.Struct
-	0,  // 1: secrets.v1.CreatePasswordInput.secret_ref:type_name -> secrets.v1.SecretRef
-	0,  // 2: secrets.v1.CreatePasswordOutput.secret_ref:type_name -> secrets.v1.SecretRef
+	0,  // 1: secrets.v1.EnsurePasswordInput.secret_ref:type_name -> secrets.v1.SecretRef
+	0,  // 2: secrets.v1.EnsurePasswordOutput.secret_ref:type_name -> secrets.v1.SecretRef
 	0,  // 3: secrets.v1.EnsureKeyPairInput.secret_ref:type_name -> secrets.v1.SecretRef
 	0,  // 4: secrets.v1.EnsureKeyPairOutput.secret_ref:type_name -> secrets.v1.SecretRef
 	0,  // 5: secrets.v1.CreateSelfSignedCertificateInput.key_ref:type_name -> secrets.v1.SecretRef
@@ -786,12 +786,12 @@ var file_secrets_v1_secrets_proto_depIdxs = []int32{
 	0,  // 9: secrets.v1.StoreCertificateInput.cert_ref:type_name -> secrets.v1.SecretRef
 	0,  // 10: secrets.v1.StoreCertificateOutput.cert_ref:type_name -> secrets.v1.SecretRef
 	13, // 11: secrets.v1.CreateAccessInput.policy_document:type_name -> vault.v1.PolicyDocument
-	1,  // 12: secrets.v1.Secrets.CreatePassword:input_type -> secrets.v1.CreatePasswordInput
+	1,  // 12: secrets.v1.Secrets.EnsurePassword:input_type -> secrets.v1.EnsurePasswordInput
 	3,  // 13: secrets.v1.Secrets.EnsureKeyPair:input_type -> secrets.v1.EnsureKeyPairInput
 	5,  // 14: secrets.v1.Secrets.CreateSelfSignedCertificate:input_type -> secrets.v1.CreateSelfSignedCertificateInput
 	7,  // 15: secrets.v1.Secrets.StoreCertificate:input_type -> secrets.v1.StoreCertificateInput
 	9,  // 16: secrets.v1.Secrets.CreateAccess:input_type -> secrets.v1.CreateAccessInput
-	2,  // 17: secrets.v1.Secrets.CreatePassword:output_type -> secrets.v1.CreatePasswordOutput
+	2,  // 17: secrets.v1.Secrets.EnsurePassword:output_type -> secrets.v1.EnsurePasswordOutput
 	4,  // 18: secrets.v1.Secrets.EnsureKeyPair:output_type -> secrets.v1.EnsureKeyPairOutput
 	6,  // 19: secrets.v1.Secrets.CreateSelfSignedCertificate:output_type -> secrets.v1.CreateSelfSignedCertificateOutput
 	8,  // 20: secrets.v1.Secrets.StoreCertificate:output_type -> secrets.v1.StoreCertificateOutput

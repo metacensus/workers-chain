@@ -520,8 +520,8 @@ func stubCreateSelfSignedCertificateActivity(ctx context.Context, input *secrets
 	return &secretspb.CreateSelfSignedCertificateOutput{}, nil
 }
 
-func stubCreatePasswordActivity(ctx context.Context, input *secretspb.CreatePasswordInput) (*secretspb.CreatePasswordOutput, error) {
-	return &secretspb.CreatePasswordOutput{SecretRef: input.SecretRef}, nil
+func stubEnsurePasswordActivity(ctx context.Context, input *secretspb.EnsurePasswordInput) (*secretspb.EnsurePasswordOutput, error) {
+	return &secretspb.EnsurePasswordOutput{SecretRef: input.SecretRef}, nil
 }
 
 func stubGetStatusActivity(ctx context.Context, input *kubepb.GetStatusInput) (*kubepb.GetStatusOutput, error) {
@@ -553,8 +553,8 @@ func registerSecretsActivityStubs(env *testsuite.TestWorkflowEnvironment) {
 		activity.RegisterOptions{Name: secretspb.EnsureKeyPairActivityName})
 	env.RegisterActivityWithOptions(stubCreateSelfSignedCertificateActivity,
 		activity.RegisterOptions{Name: secretspb.CreateSelfSignedCertificateActivityName})
-	env.RegisterActivityWithOptions(stubCreatePasswordActivity,
-		activity.RegisterOptions{Name: secretspb.CreatePasswordActivityName})
+	env.RegisterActivityWithOptions(stubEnsurePasswordActivity,
+		activity.RegisterOptions{Name: secretspb.EnsurePasswordActivityName})
 	env.RegisterActivityWithOptions(stubStoreCertificateActivity,
 		activity.RegisterOptions{Name: secretspb.StoreCertificateActivityName})
 	env.RegisterActivityWithOptions(stubGenerateCsrActivity,
@@ -686,8 +686,8 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 			registerSecretsNexusMock(t, env, nil)
 
 			// Mock activities
-			env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
-				Return(&secretspb.CreatePasswordOutput{SecretRef: secrets.NewVaultRef("test/path")}, nil)
+			env.OnActivity(secretspb.EnsurePasswordActivityName, mock.Anything, mock.Anything).
+				Return(&secretspb.EnsurePasswordOutput{SecretRef: secrets.NewVaultRef("test/path")}, nil)
 			env.OnActivity(kubepb.GetStatusActivityName, mock.Anything, mock.Anything).Return(&kubepb.GetStatusOutput{}, nil)
 
 			// Mock CreateDeployment child workflow
@@ -841,11 +841,11 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 				Return(&kubepb.GetStatusOutput{}, nil)
 
 			if tt.generatePasswordErr != nil {
-				env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
+				env.OnActivity(secretspb.EnsurePasswordActivityName, mock.Anything, mock.Anything).
 					Return(nil, tt.generatePasswordErr).Maybe()
 			} else {
-				env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
-					Return(&secretspb.CreatePasswordOutput{
+				env.OnActivity(secretspb.EnsurePasswordActivityName, mock.Anything, mock.Anything).
+					Return(&secretspb.EnsurePasswordOutput{
 						SecretRef: secrets.NewVaultRef("fabric/" + tt.owner.OwnerID() + "/ca/" + tt.caRef.GetCertType() + "/" + tt.caRef.GetId() + "/db/credentials"),
 					}, nil).Maybe()
 			}
@@ -938,13 +938,13 @@ func TestDeployCouchDbWorkflow(t *testing.T) {
 			// Mock Nexus CreateAccess
 			registerSecretsNexusMock(t, env, tt.createAccessErr)
 
-			// Mock CreatePassword activity
+			// Mock EnsurePassword activity
 			if tt.createPasswordErr != nil {
-				env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
+				env.OnActivity(secretspb.EnsurePasswordActivityName, mock.Anything, mock.Anything).
 					Return(nil, tt.createPasswordErr)
 			} else {
-				env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
-					Return(&secretspb.CreatePasswordOutput{}, nil)
+				env.OnActivity(secretspb.EnsurePasswordActivityName, mock.Anything, mock.Anything).
+					Return(&secretspb.EnsurePasswordOutput{}, nil)
 			}
 
 			// Mock CreateDeployment child workflow
@@ -1386,8 +1386,8 @@ func TestDeployCertificateAuthorityTlsRoot(t *testing.T) {
 			}
 			env.OnActivity(secretspb.CreateSelfSignedCertificateActivityName, mock.Anything, mock.Anything).
 				Return(&secretspb.CreateSelfSignedCertificateOutput{}, nil)
-			env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
-				Return(&secretspb.CreatePasswordOutput{}, nil)
+			env.OnActivity(secretspb.EnsurePasswordActivityName, mock.Anything, mock.Anything).
+				Return(&secretspb.EnsurePasswordOutput{}, nil)
 
 			mockChildWorkflow[clusterpb.CreateDeploymentOutput](
 				env, clusterpb.CreateDeploymentWorkflowName, tt.createDeploymentErr)
@@ -1445,8 +1445,8 @@ func TestDeployCertificateAuthorityTlsInt(t *testing.T) {
 					return &certauthpb.SignCsrOutput{CertificatePem: []byte("test-cert"), ChainPem: []byte("test-chain")}, nil
 				})
 
-			env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
-				Return(&secretspb.CreatePasswordOutput{}, nil)
+			env.OnActivity(secretspb.EnsurePasswordActivityName, mock.Anything, mock.Anything).
+				Return(&secretspb.EnsurePasswordOutput{}, nil)
 
 			mockChildWorkflow[clusterpb.CreateDeploymentOutput](
 				env, clusterpb.CreateDeploymentWorkflowName, nil)
@@ -1508,8 +1508,8 @@ func TestDeployCertificateAuthorityOrgRoot(t *testing.T) {
 				Return(&secretspb.EnsureKeyPairOutput{}, nil)
 			env.OnActivity(secretspb.CreateSelfSignedCertificateActivityName, mock.Anything, mock.Anything).
 				Return(&secretspb.CreateSelfSignedCertificateOutput{}, nil)
-			env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
-				Return(&secretspb.CreatePasswordOutput{}, nil)
+			env.OnActivity(secretspb.EnsurePasswordActivityName, mock.Anything, mock.Anything).
+				Return(&secretspb.EnsurePasswordOutput{}, nil)
 
 			mockChildWorkflow[clusterpb.CreateDeploymentOutput](
 				env, clusterpb.CreateDeploymentWorkflowName, nil)
@@ -1574,8 +1574,8 @@ func TestDeployCertificateAuthorityOrgInt(t *testing.T) {
 					return &certauthpb.SignCsrOutput{CertificatePem: []byte("test-cert"), ChainPem: []byte("test-chain")}, nil
 				})
 
-			env.OnActivity(secretspb.CreatePasswordActivityName, mock.Anything, mock.Anything).
-				Return(&secretspb.CreatePasswordOutput{}, nil)
+			env.OnActivity(secretspb.EnsurePasswordActivityName, mock.Anything, mock.Anything).
+				Return(&secretspb.EnsurePasswordOutput{}, nil)
 
 			mockChildWorkflow[clusterpb.CreateDeploymentOutput](
 				env, clusterpb.CreateDeploymentWorkflowName, nil)

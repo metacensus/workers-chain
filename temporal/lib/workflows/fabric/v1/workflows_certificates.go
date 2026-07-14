@@ -99,7 +99,7 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 
 	// Generate credentials
 	credentialsRef := caConfig.VaultDatabaseUserRef()
-	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
+	err = workflow.ExecuteActivity(activityCtx, secretspb.EnsurePasswordActivityName, &secretspb.EnsurePasswordInput{
 		SecretRef: credentialsRef,
 		Username:  caConfig.DatabaseUsername(),
 	}).Get(activityCtx, nil)

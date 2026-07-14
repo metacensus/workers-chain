@@ -53,7 +53,7 @@ func (w *deployCertificateStoreWorkflow) Execute(ctx workflow.Context) (*pb.Depl
 	}
 
 	credentialsRef := certStore.VaultAdminRef()
-	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
+	err = workflow.ExecuteActivity(activityCtx, secretspb.EnsurePasswordActivityName, &secretspb.EnsurePasswordInput{
 		SecretRef: credentialsRef,
 		Username:  "admin",
 	}).Get(ctx, nil)
@@ -193,7 +193,7 @@ func (w *deployCertificateAuthorityWorkflow) Execute(ctx workflow.Context) (*pb.
 	}
 
 	// Step 5: bootstrap admin credentials
-	if err := workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
+	if err := workflow.ExecuteActivity(activityCtx, secretspb.EnsurePasswordActivityName, &secretspb.EnsurePasswordInput{
 		SecretRef: caConfig.VaultBootstrapAdminCredentialsRef(),
 		Username:  caConfig.BootstrapAdminUsername(),
 	}).Get(ctx, nil); err != nil {

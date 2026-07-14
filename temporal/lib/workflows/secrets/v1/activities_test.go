@@ -66,56 +66,62 @@ func validKeyPairSecret() Secret {
 	return FromKeyPair(kp)
 }
 
-func TestCreatePasswordActivity(t *testing.T) {
+// TestEnsurePasswordActivity verifies the get-or-create semantics: an existing
+// password is reused (never overwritten, so it can't desync from a consumer
+// already provisioned from it), an absent secret (ErrSecretNotFound) triggers
+// generation + store, and any other fetch error is fatal.
+func TestEnsurePasswordActivity(t *testing.T) {
+	existingPassword := FromCredentials(&Credentials{Username: "admin", Password: "existing-secret"})
+
 	tests := []struct {
 		name        string
-		input       *pb.CreatePasswordInput
-		providerErr error
+		input       *pb.EnsurePasswordInput
+		fetchSecret Secret
+		fetchErr    error
+		storeErr    error
+		expectFetch bool
+		expectStore bool
 		expectErr   bool
 	}{
 		// Layer 1: Validation errors
 		{
-			name: "error - missing secret_ref",
-			input: &pb.CreatePasswordInput{
-				SecretRef: nil,
-				Username:  "admin",
-			},
+			name:      "error - missing secret_ref",
+			input:     &pb.EnsurePasswordInput{SecretRef: nil, Username: "admin"},
 			expectErr: true,
 		},
-		// Layer 2: Success cases
+		// Layer 2: get-or-create behavior
 		{
-			name: "success - creates password with username",
-			input: &pb.CreatePasswordInput{
-				SecretRef: testSecretRef("fabric/shard/org1/admin"),
-				Username:  "admin",
-			},
-			expectErr: false,
+			name:        "success - password absent, generates and stores",
+			input:       &pb.EnsurePasswordInput{SecretRef: testSecretRef("fabric/shard/org1/admin"), Username: "admin"},
+			fetchErr:    ErrSecretNotFound,
+			expectFetch: true,
+			expectStore: true,
+			expectErr:   false,
 		},
 		{
-			name: "success - creates password with empty username",
-			input: &pb.CreatePasswordInput{
-				SecretRef: testSecretRef("fabric/shard/org1/service"),
-				Username:  "",
-			},
-			expectErr: false,
+			name:        "success - password exists, reuses without storing",
+			input:       &pb.EnsurePasswordInput{SecretRef: testSecretRef("fabric/shard/org1/admin"), Username: "admin"},
+			fetchSecret: existingPassword,
+			expectFetch: true,
+			expectStore: false,
+			expectErr:   false,
 		},
 		// Layer 3: Provider errors
 		{
-			name: "error - provider connection refused",
-			input: &pb.CreatePasswordInput{
-				SecretRef: testSecretRef("fabric/shard/org1/admin"),
-				Username:  "admin",
-			},
-			providerErr: errProviderConnectionRefused,
+			name:        "error - transient fetch failure is fatal (no overwrite)",
+			input:       &pb.EnsurePasswordInput{SecretRef: testSecretRef("fabric/shard/org1/admin"), Username: "admin"},
+			fetchErr:    errProviderConnectionRefused,
+			expectFetch: true,
+			expectStore: false,
 			expectErr:   true,
 		},
 		{
-			name: "error - provider forbidden",
-			input: &pb.CreatePasswordInput{
-				SecretRef: testSecretRef("fabric/shard/org1/admin"),
-				Username:  "admin",
-			},
-			providerErr: errProviderForbidden,
+			name:        "error - store fails after generation",
+			input:       &pb.EnsurePasswordInput{SecretRef: testSecretRef("fabric/shard/org1/admin"), Username: "admin"},
+			fetchErr:    ErrSecretNotFound,
+			storeErr:    errProviderForbidden,
+			expectFetch: true,
+			expectStore: true,
 			expectErr:   true,
 		},
 	}
@@ -127,39 +133,42 @@ func TestCreatePasswordActivity(t *testing.T) {
 
 			mockProvider := newMockSecretProvider(t)
 
-			// Conditional mock: only expect provider call if input passes validation
-			if tt.input.SecretRef != nil {
+			if tt.expectFetch {
+				mockProvider.On("FetchSecret", mock.Anything, tt.input.SecretRef).
+					Return(tt.fetchSecret, tt.fetchErr).Maybe()
+			}
+			if tt.expectStore {
 				mockProvider.On("UpdateSecret", mock.Anything, tt.input.SecretRef, mock.MatchedBy(func(secret Secret) bool {
-					// Verify the secret contains credentials
 					_, hasUsername := secret["username"]
 					_, hasPassword := secret["password"]
 					return hasUsername && hasPassword
-				})).Return(tt.providerErr).Maybe()
+				})).Return(tt.storeErr).Maybe()
 			}
 
 			activities := NewActivities(mockProvider)
-			env.RegisterActivity(activities.CreatePassword)
+			env.RegisterActivity(activities.EnsurePassword)
 
-			val, err := env.ExecuteActivity(activities.CreatePassword, tt.input)
+			val, err := env.ExecuteActivity(activities.EnsurePassword, tt.input)
 
 			if tt.expectErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
 				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				var result *pb.CreatePasswordOutput
-				if err := val.Get(&result); err != nil {
-					t.Fatalf("error getting result: %v", err)
-				}
-				if result == nil {
-					t.Fatal("result is nil")
-				}
-				if result.SecretRef == nil {
-					t.Fatal("result.SecretRef is nil")
-				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			var result *pb.EnsurePasswordOutput
+			if err := val.Get(&result); err != nil {
+				t.Fatalf("error getting result: %v", err)
+			}
+			if result == nil || result.SecretRef == nil {
+				t.Fatal("result or result.SecretRef is nil")
+			}
+			// When the password already exists it must be reused, not overwritten.
+			if !tt.expectStore {
+				mockProvider.AssertNotCalled(t, "UpdateSecret", mock.Anything, mock.Anything, mock.Anything)
 			}
 		})
 	}

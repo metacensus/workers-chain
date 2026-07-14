@@ -10,7 +10,7 @@ import (
 
 // Sentinel errors
 var (
-	ErrCreatePassword              = errors.New("create password")
+	ErrEnsurePassword              = errors.New("ensure password")
 	ErrEnsureKeyPair               = errors.New("ensure key pair")
 	ErrCreateSelfSignedCertificate = errors.New("create self-signed certificate")
 )
@@ -25,28 +25,43 @@ func NewActivities(provider SecretProvider) *Activities {
 	return &Activities{provider: provider}
 }
 
-// CreatePassword generates a password and stores it with the given username
-func (a *Activities) CreatePassword(ctx context.Context, req *pb.CreatePasswordInput) (*pb.CreatePasswordOutput, error) {
+// EnsurePassword get-or-creates credentials at secret_ref.
+//
+// It fetches the existing secret first and reuses it when present; a new
+// password is generated and stored ONLY when the backend explicitly reports the
+// secret is absent (ErrSecretNotFound). A transient fetch failure is fatal: a
+// possibly-valid password must never be overwritten, because rotating the stored
+// value would desync it from a consumer already provisioned from the old one
+// (e.g. a PostgreSQL role whose CreateUser is a no-op when the role exists).
+func (a *Activities) EnsurePassword(ctx context.Context, req *pb.EnsurePasswordInput) (*pb.EnsurePasswordOutput, error) {
 	ref := req.GetSecretRef()
 	if ref == nil {
-		return nil, fmt.Errorf("%w: secret_ref is required", ErrCreatePassword)
+		return nil, fmt.Errorf("%w: secret_ref is required", ErrEnsurePassword)
 	}
 
-	password, err := GeneratePassword()
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCreatePassword, err)
+	_, err := a.provider.FetchSecret(ctx, ref)
+	switch {
+	case err == nil:
+		// Password already exists: reuse it, do not overwrite.
+		return &pb.EnsurePasswordOutput{SecretRef: ref}, nil
+	case errors.Is(err, ErrSecretNotFound):
+		// Absent: generate and persist fresh credentials.
+		password, err := GeneratePassword()
+		if err != nil {
+			return nil, fmt.Errorf("%w: %w", ErrEnsurePassword, err)
+		}
+		secret := FromCredentials(&Credentials{
+			Username: req.GetUsername(),
+			Password: password,
+		})
+		if err := a.provider.UpdateSecret(ctx, ref, secret); err != nil {
+			return nil, fmt.Errorf("%w: %w", ErrEnsurePassword, err)
+		}
+		return &pb.EnsurePasswordOutput{SecretRef: ref}, nil
+	default:
+		// Transient/permission error: do NOT touch a possibly-valid password.
+		return nil, fmt.Errorf("%w: fetch existing password: %w", ErrEnsurePassword, err)
 	}
-
-	creds := &Credentials{
-		Username: req.GetUsername(),
-		Password: password,
-	}
-	secret := FromCredentials(creds)
-	if err := a.provider.UpdateSecret(ctx, ref, secret); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCreatePassword, err)
-	}
-
-	return &pb.CreatePasswordOutput{SecretRef: ref}, nil
 }
 
 // EnsureKeyPair get-or-creates an ECDSA key pair at secret_ref.

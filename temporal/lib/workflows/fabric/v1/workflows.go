@@ -242,7 +242,7 @@ func (w *deployCouchDbWorkflow) Execute(ctx workflow.Context) (*pb.DeployCouchDb
 	}
 
 	credentialsRef := couchDbConfig.VaultAdminRef()
-	err = workflow.ExecuteActivity(activityCtx, secretspb.CreatePasswordActivityName, &secretspb.CreatePasswordInput{
+	err = workflow.ExecuteActivity(activityCtx, secretspb.EnsurePasswordActivityName, &secretspb.EnsurePasswordInput{
 		SecretRef: credentialsRef,
 		Username:  "admin",
 	}).Get(ctx, nil)
