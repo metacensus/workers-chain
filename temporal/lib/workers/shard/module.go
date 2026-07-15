@@ -6,6 +6,9 @@ import (
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	clusterfabric "github.com/metacensus/infra/temporal/lib/workflows/cluster/fabric/v1"
 	certauth "github.com/metacensus/infra/temporal/lib/workflows/fabric/certauth/v1"
+	channel "github.com/metacensus/infra/temporal/lib/workflows/fabric/channel/v1"
+	orderer "github.com/metacensus/infra/temporal/lib/workflows/fabric/orderer/v1"
+	peer "github.com/metacensus/infra/temporal/lib/workflows/fabric/peer/v1"
 	fabric "github.com/metacensus/infra/temporal/lib/workflows/fabric/v1"
 	helm "github.com/metacensus/infra/temporal/lib/workflows/helm/v1"
 	kube "github.com/metacensus/infra/temporal/lib/workflows/kube/v1"
@@ -59,6 +62,9 @@ var Module = fx.Module("shard",
 	secrets.Module,
 	clusterfabric.Module,
 	certauth.Module,
+	channel.Module,
+	orderer.Module,
+	peer.Module,
 	fabric.Module,
 	postgres.Module,
 
@@ -71,6 +77,10 @@ var Module = fx.Module("shard",
 		clusterfabric.RegisterWorkflows,
 		certauth.RegisterActivities,
 		certauth.RegisterWorkflows,
+		// Channel-lifecycle activities (config/governance + peer/orderer membership)
+		channel.RegisterActivities,
+		orderer.RegisterActivities,
+		peer.RegisterActivities,
 		fabric.RegisterWorkflows,
 		// Handles BootstrapShard Nexus calls from the central infra worker
 		fabric.RegisterNexusService,

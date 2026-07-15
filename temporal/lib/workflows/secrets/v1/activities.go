@@ -13,6 +13,7 @@ var (
 	ErrEnsurePassword              = errors.New("ensure password")
 	ErrEnsureKeyPair               = errors.New("ensure key pair")
 	ErrCreateSelfSignedCertificate = errors.New("create self-signed certificate")
+	ErrStoreGenesisBlock           = errors.New("store genesis block")
 )
 
 // Activities implements the SecretsActivities interface
@@ -140,6 +141,12 @@ func (a *Activities) CreateSelfSignedCertificate(ctx context.Context, req *pb.Cr
 	}
 
 	return &pb.CreateSelfSignedCertificateOutput{CertRef: certRef}, nil
+}
+
+// StoreGenesisBlock stores a Fabric channel genesis block in the secret backend.
+// Stub: fails loudly until the storage logic lands.
+func (a *Activities) StoreGenesisBlock(_ context.Context, _ *pb.StoreGenesisBlockInput) (*pb.StoreGenesisBlockOutput, error) {
+	return nil, fmt.Errorf("store genesis block: %w", ErrStoreGenesisBlock)
 }
 
 // StoreCertificate stores certificate data at the specified location.

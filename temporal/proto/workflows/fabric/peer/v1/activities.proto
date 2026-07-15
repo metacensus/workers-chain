@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package fabric.peer.v1;
+
+import "temporal/v1/temporal.proto";
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/peer/v1;peerv1";
+
+// Peer service defines activities that act on a peer node's membership in a
+// channel (peer channel CLI).
+// Activities are NOT exposed via Nexus (only workflows can be called cross-namespace).
+service Peer {
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {task_queue: "infra"};
+
+  // ChannelFetch fetches a block from an orderer for the peer to use when joining a channel.
+  // Runs: peer channel fetch oldest <channel>.block -c <channel>
+  // Also used to fetch the latest config block for follower joins.
+  rpc ChannelFetch(ChannelFetchInput) returns (ChannelFetchOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.peer.v1.ChannelFetch"
+      schedule_to_close_timeout: {seconds: 300}
+    };
+  }
+
+  // ChannelJoin joins the peer node to a channel using a previously fetched block.
+  // Runs: peer channel join -b <channel>.block
+  rpc ChannelJoin(ChannelJoinInput) returns (ChannelJoinOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.peer.v1.ChannelJoin"
+      schedule_to_close_timeout: {seconds: 300}
+    };
+  }
+}
+
+// ==================== ChannelFetch Activity Messages ====================
+
+message ChannelFetchInput {}
+
+message ChannelFetchOutput {}
+
+// ==================== ChannelJoin Activity Messages ====================
+
+message ChannelJoinInput {}
+
+message ChannelJoinOutput {}
