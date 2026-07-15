@@ -47,6 +47,7 @@ const (
 	EnsureKeyPairActivityName               = "secrets.v1.EnsureKeyPair"
 	EnsurePasswordActivityName              = "secrets.v1.EnsurePassword"
 	StoreCertificateActivityName            = "secrets.v1.StoreCertificate"
+	StoreGenesisBlockActivityName           = "secrets.v1.StoreGenesisBlock"
 )
 
 // SecretsClient describes a client for a(n) secrets.v1.Secrets worker
@@ -714,6 +715,10 @@ type SecretsActivities interface {
 	// StoreCertificate stores certificate data at the specified location.
 	// Implemented as an activity to keep certificate data out of workflow history.
 	StoreCertificate(ctx context.Context, req *StoreCertificateInput) (*StoreCertificateOutput, error)
+
+	// StoreGenesisBlock stores a Fabric channel genesis block in the secret backend.
+	// Enables cross-org access to the genesis block during channel join operations.
+	StoreGenesisBlock(ctx context.Context, req *StoreGenesisBlockInput) (*StoreGenesisBlockOutput, error)
 }
 
 // RegisterSecretsActivities registers activities with a worker
@@ -722,6 +727,7 @@ func RegisterSecretsActivities(r worker.ActivityRegistry, activities SecretsActi
 	RegisterEnsureKeyPairActivity(r, activities.EnsureKeyPair)
 	RegisterEnsurePasswordActivity(r, activities.EnsurePassword)
 	RegisterStoreCertificateActivity(r, activities.StoreCertificate)
+	RegisterStoreGenesisBlockActivity(r, activities.StoreGenesisBlock)
 }
 
 // RegisterCreateSelfSignedCertificateActivity registers a secrets.v1.CreateSelfSignedCertificate activity
@@ -1804,6 +1810,270 @@ func (o *StoreCertificateLocalActivityOptions) WithScheduleToCloseTimeout(d time
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
 func (o *StoreCertificateLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *StoreCertificateLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterStoreGenesisBlockActivity registers a secrets.v1.StoreGenesisBlock activity
+func RegisterStoreGenesisBlockActivity(r worker.ActivityRegistry, fn func(context.Context, *StoreGenesisBlockInput) (*StoreGenesisBlockOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: StoreGenesisBlockActivityName,
+	})
+}
+
+// StoreGenesisBlockFuture describes a(n) secrets.v1.StoreGenesisBlock activity execution
+type StoreGenesisBlockFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *StoreGenesisBlockFuture) Get(ctx workflow.Context) (*StoreGenesisBlockOutput, error) {
+	var resp StoreGenesisBlockOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *StoreGenesisBlockFuture) Select(sel workflow.Selector, fn func(*StoreGenesisBlockFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// StoreGenesisBlock stores a Fabric channel genesis block in the secret backend.
+// Enables cross-org access to the genesis block during channel join operations.
+func StoreGenesisBlock(ctx workflow.Context, req *StoreGenesisBlockInput, options ...*StoreGenesisBlockActivityOptions) (*StoreGenesisBlockOutput, error) {
+	return StoreGenesisBlockAsync(ctx, req, options...).Get(ctx)
+}
+
+// StoreGenesisBlock stores a Fabric channel genesis block in the secret backend.
+// Enables cross-org access to the genesis block during channel join operations.
+func StoreGenesisBlockAsync(ctx workflow.Context, req *StoreGenesisBlockInput, options ...*StoreGenesisBlockActivityOptions) *StoreGenesisBlockFuture {
+	var o *StoreGenesisBlockActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewStoreGenesisBlockActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &StoreGenesisBlockFuture{Future: errF}
+	}
+	activity := StoreGenesisBlockActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &StoreGenesisBlockFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// StoreGenesisBlock stores a Fabric channel genesis block in the secret backend.
+// Enables cross-org access to the genesis block during channel join operations.
+func StoreGenesisBlockLocal(ctx workflow.Context, req *StoreGenesisBlockInput, options ...*StoreGenesisBlockLocalActivityOptions) (*StoreGenesisBlockOutput, error) {
+	return StoreGenesisBlockLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// StoreGenesisBlock stores a Fabric channel genesis block in the secret backend.
+// Enables cross-org access to the genesis block during channel join operations.
+func StoreGenesisBlockLocalAsync(ctx workflow.Context, req *StoreGenesisBlockInput, options ...*StoreGenesisBlockLocalActivityOptions) *StoreGenesisBlockFuture {
+	var o *StoreGenesisBlockLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewStoreGenesisBlockLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &StoreGenesisBlockFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = StoreGenesisBlockActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &StoreGenesisBlockFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// StoreGenesisBlockActivityOptions provides configuration for a(n) secrets.v1.StoreGenesisBlock activity
+type StoreGenesisBlockActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewStoreGenesisBlockActivityOptions initializes a new StoreGenesisBlockActivityOptions value
+func NewStoreGenesisBlockActivityOptions() *StoreGenesisBlockActivityOptions {
+	return &StoreGenesisBlockActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *StoreGenesisBlockActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = SecretsTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *StoreGenesisBlockActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *StoreGenesisBlockActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *StoreGenesisBlockActivityOptions) WithDataConverter(dc converter.DataConverter) *StoreGenesisBlockActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *StoreGenesisBlockActivityOptions) WithHeartbeatTimeout(d time.Duration) *StoreGenesisBlockActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *StoreGenesisBlockActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *StoreGenesisBlockActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *StoreGenesisBlockActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *StoreGenesisBlockActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *StoreGenesisBlockActivityOptions) WithScheduleToStartTimeout(d time.Duration) *StoreGenesisBlockActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *StoreGenesisBlockActivityOptions) WithStartToCloseTimeout(d time.Duration) *StoreGenesisBlockActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *StoreGenesisBlockActivityOptions) WithTaskQueue(tq string) *StoreGenesisBlockActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *StoreGenesisBlockActivityOptions) WithWaitForCancellation(wait bool) *StoreGenesisBlockActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// StoreGenesisBlockLocalActivityOptions provides configuration for a(n) secrets.v1.StoreGenesisBlock activity
+type StoreGenesisBlockLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *StoreGenesisBlockInput) (*StoreGenesisBlockOutput, error)
+}
+
+// NewStoreGenesisBlockLocalActivityOptions initializes a new StoreGenesisBlockLocalActivityOptions value
+func NewStoreGenesisBlockLocalActivityOptions() *StoreGenesisBlockLocalActivityOptions {
+	return &StoreGenesisBlockLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *StoreGenesisBlockLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom secrets.v1.StoreGenesisBlock implementation
+func (o *StoreGenesisBlockLocalActivityOptions) Local(fn func(context.Context, *StoreGenesisBlockInput) (*StoreGenesisBlockOutput, error)) *StoreGenesisBlockLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *StoreGenesisBlockLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *StoreGenesisBlockLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *StoreGenesisBlockLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *StoreGenesisBlockLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *StoreGenesisBlockLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *StoreGenesisBlockLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *StoreGenesisBlockLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *StoreGenesisBlockLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *StoreGenesisBlockLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *StoreGenesisBlockLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }

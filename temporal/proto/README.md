@@ -73,6 +73,57 @@
     - [fabric.certauth.v1.SignCsrInput](#fabric-certauth-v1-signcsrinput)
     - [fabric.certauth.v1.SignCsrInput.AttributesEntry](#fabric-certauth-v1-signcsrinput-attributesentry)
     - [fabric.certauth.v1.SignCsrOutput](#fabric-certauth-v1-signcsroutput)
+- [fabric.channel.v1](#fabric-channel-v1)
+  - Services
+    - [fabric.channel.v1.Channel](#fabric-channel-v1-channel)
+      - [Activities](#fabric-channel-v1-channel-activities)
+        - [fabric.channel.v1.GenerateConfigTx](#fabric-channel-v1-generateconfigtx-activity)
+        - [fabric.channel.v1.GenerateGenesisBlock](#fabric-channel-v1-generategenesisblock-activity)
+        - [fabric.channel.v1.FetchConfig](#fabric-channel-v1-fetchconfig-activity)
+        - [fabric.channel.v1.ComputeConfigUpdate](#fabric-channel-v1-computeconfigupdate-activity)
+        - [fabric.channel.v1.SignConfigUpdate](#fabric-channel-v1-signconfigupdate-activity)
+        - [fabric.channel.v1.SubmitConfigUpdate](#fabric-channel-v1-submitconfigupdate-activity)
+        - [fabric.channel.v1.GenerateOrgDefinition](#fabric-channel-v1-generateorgdefinition-activity)
+        - [fabric.channel.v1.CollectSignatures](#fabric-channel-v1-collectsignatures-activity)
+  - Messages
+    - [fabric.channel.v1.CollectSignaturesInput](#fabric-channel-v1-collectsignaturesinput)
+    - [fabric.channel.v1.CollectSignaturesOutput](#fabric-channel-v1-collectsignaturesoutput)
+    - [fabric.channel.v1.ComputeConfigUpdateInput](#fabric-channel-v1-computeconfigupdateinput)
+    - [fabric.channel.v1.ComputeConfigUpdateOutput](#fabric-channel-v1-computeconfigupdateoutput)
+    - [fabric.channel.v1.FetchConfigInput](#fabric-channel-v1-fetchconfiginput)
+    - [fabric.channel.v1.FetchConfigOutput](#fabric-channel-v1-fetchconfigoutput)
+    - [fabric.channel.v1.GenerateConfigTxInput](#fabric-channel-v1-generateconfigtxinput)
+    - [fabric.channel.v1.GenerateConfigTxOutput](#fabric-channel-v1-generateconfigtxoutput)
+    - [fabric.channel.v1.GenerateGenesisBlockInput](#fabric-channel-v1-generategenesisblockinput)
+    - [fabric.channel.v1.GenerateGenesisBlockOutput](#fabric-channel-v1-generategenesisblockoutput)
+    - [fabric.channel.v1.GenerateOrgDefinitionInput](#fabric-channel-v1-generateorgdefinitioninput)
+    - [fabric.channel.v1.GenerateOrgDefinitionOutput](#fabric-channel-v1-generateorgdefinitionoutput)
+    - [fabric.channel.v1.SignConfigUpdateInput](#fabric-channel-v1-signconfigupdateinput)
+    - [fabric.channel.v1.SignConfigUpdateOutput](#fabric-channel-v1-signconfigupdateoutput)
+    - [fabric.channel.v1.SubmitConfigUpdateInput](#fabric-channel-v1-submitconfigupdateinput)
+    - [fabric.channel.v1.SubmitConfigUpdateOutput](#fabric-channel-v1-submitconfigupdateoutput)
+- [fabric.orderer.v1](#fabric-orderer-v1)
+  - Services
+    - [fabric.orderer.v1.Orderer](#fabric-orderer-v1-orderer)
+      - [Activities](#fabric-orderer-v1-orderer-activities)
+        - [fabric.orderer.v1.ChannelJoin](#fabric-orderer-v1-channeljoin-activity)
+        - [fabric.orderer.v1.WaitForActive](#fabric-orderer-v1-waitforactive-activity)
+  - Messages
+    - [fabric.orderer.v1.ChannelJoinInput](#fabric-orderer-v1-channeljoininput)
+    - [fabric.orderer.v1.ChannelJoinOutput](#fabric-orderer-v1-channeljoinoutput)
+    - [fabric.orderer.v1.WaitForActiveInput](#fabric-orderer-v1-waitforactiveinput)
+    - [fabric.orderer.v1.WaitForActiveOutput](#fabric-orderer-v1-waitforactiveoutput)
+- [fabric.peer.v1](#fabric-peer-v1)
+  - Services
+    - [fabric.peer.v1.Peer](#fabric-peer-v1-peer)
+      - [Activities](#fabric-peer-v1-peer-activities)
+        - [fabric.peer.v1.ChannelFetch](#fabric-peer-v1-channelfetch-activity)
+        - [fabric.peer.v1.ChannelJoin](#fabric-peer-v1-channeljoin-activity)
+  - Messages
+    - [fabric.peer.v1.ChannelFetchInput](#fabric-peer-v1-channelfetchinput)
+    - [fabric.peer.v1.ChannelFetchOutput](#fabric-peer-v1-channelfetchoutput)
+    - [fabric.peer.v1.ChannelJoinInput](#fabric-peer-v1-channeljoininput)
+    - [fabric.peer.v1.ChannelJoinOutput](#fabric-peer-v1-channeljoinoutput)
 - [fabric.v1](#fabric-v1)
   - Services
     - [fabric.v1.Fabric](#fabric-v1-fabric)
@@ -221,6 +272,7 @@
         - [secrets.v1.EnsureKeyPair](#secrets-v1-ensurekeypair-activity)
         - [secrets.v1.CreateSelfSignedCertificate](#secrets-v1-createselfsignedcertificate-activity)
         - [secrets.v1.StoreCertificate](#secrets-v1-storecertificate-activity)
+        - [secrets.v1.StoreGenesisBlock](#secrets-v1-storegenesisblock-activity)
   - Messages
     - [secrets.v1.CreateAccessInput](#secrets-v1-createaccessinput)
     - [secrets.v1.CreateAccessOutput](#secrets-v1-createaccessoutput)
@@ -233,6 +285,8 @@
     - [secrets.v1.SecretRef](#secrets-v1-secretref)
     - [secrets.v1.StoreCertificateInput](#secrets-v1-storecertificateinput)
     - [secrets.v1.StoreCertificateOutput](#secrets-v1-storecertificateoutput)
+    - [secrets.v1.StoreGenesisBlockInput](#secrets-v1-storegenesisblockinput)
+    - [secrets.v1.StoreGenesisBlockOutput](#secrets-v1-storegenesisblockoutput)
 - [temporal.v1](#temporal-v1)
   - Services
     - [temporal.v1.Admin](#temporal-v1-admin)
@@ -3215,6 +3269,408 @@ go_name: ChainPem
 go_tags: json:"ChainPem" validate:"required"</pre></td>
 </tr>
 </table>
+
+
+
+<a name="fabric-channel-v1"></a>
+# fabric.channel.v1
+
+<a name="fabric-channel-v1-services"></a>
+## Services
+
+<a name="fabric-channel-v1-channel"></a>
+## fabric.channel.v1.Channel
+
+<pre>
+Channel service defines activities whose subject is a channel's configuration
+and governance: genesis/configtx generation, the config-update lifecycle
+(fetch -> compute -> sign -> submit), and org-addition governance.
+These shell out to configtxgen/configtxlator and (as a client) the peer CLI,
+but they act on the channel config, not on any single node.
+Activities are NOT exposed via Nexus (only workflows can be called cross-namespace).
+</pre>   
+
+<a name="fabric-channel-v1-channel-activities"></a>
+### Activities
+
+---
+<a name="fabric-channel-v1-generateconfigtx-activity"></a>
+### fabric.channel.v1.GenerateConfigTx
+
+<pre>
+GenerateConfigTx generates a configtx.yaml from org MSP definitions.
+Used as input to configtxgen for genesis block creation.
+</pre>
+
+**Input:** [fabric.channel.v1.GenerateConfigTxInput](#fabric-channel-v1-generateconfigtxinput)
+
+
+
+**Output:** [fabric.channel.v1.GenerateConfigTxOutput](#fabric-channel-v1-generateconfigtxoutput)
+
+ 
+
+---
+<a name="fabric-channel-v1-generategenesisblock-activity"></a>
+### fabric.channel.v1.GenerateGenesisBlock
+
+<pre>
+GenerateGenesisBlock creates the channel genesis block using configtxgen.
+Runs: configtxgen -profile <Profile> -outputBlock genesis.block -channelID <channel>
+</pre>
+
+**Input:** [fabric.channel.v1.GenerateGenesisBlockInput](#fabric-channel-v1-generategenesisblockinput)
+
+
+
+**Output:** [fabric.channel.v1.GenerateGenesisBlockOutput](#fabric-channel-v1-generategenesisblockoutput)
+
+ 
+
+---
+<a name="fabric-channel-v1-fetchconfig-activity"></a>
+### fabric.channel.v1.FetchConfig
+
+<pre>
+FetchConfig fetches and decodes the current channel configuration block.
+Runs: peer channel fetch config then configtxlator proto_decode --type common.Block
+Extracts: .data.data[0].payload.data.config
+</pre>
+
+**Input:** [fabric.channel.v1.FetchConfigInput](#fabric-channel-v1-fetchconfiginput)
+
+
+
+**Output:** [fabric.channel.v1.FetchConfigOutput](#fabric-channel-v1-fetchconfigoutput)
+
+ 
+
+---
+<a name="fabric-channel-v1-computeconfigupdate-activity"></a>
+### fabric.channel.v1.ComputeConfigUpdate
+
+<pre>
+ComputeConfigUpdate computes the config update delta between original and modified configs.
+Encodes both configs with configtxlator proto_encode, then runs configtxlator compute_update.
+</pre>
+
+**Input:** [fabric.channel.v1.ComputeConfigUpdateInput](#fabric-channel-v1-computeconfigupdateinput)
+
+
+
+**Output:** [fabric.channel.v1.ComputeConfigUpdateOutput](#fabric-channel-v1-computeconfigupdateoutput)
+
+ 
+
+---
+<a name="fabric-channel-v1-signconfigupdate-activity"></a>
+### fabric.channel.v1.SignConfigUpdate
+
+<pre>
+SignConfigUpdate signs a channel config update with the org admin identity.
+Runs: peer channel signconfigtx -f <update.pb>
+Called by each org that needs to sign for multi-org config updates.
+</pre>
+
+**Input:** [fabric.channel.v1.SignConfigUpdateInput](#fabric-channel-v1-signconfigupdateinput)
+
+
+
+**Output:** [fabric.channel.v1.SignConfigUpdateOutput](#fabric-channel-v1-signconfigupdateoutput)
+
+ 
+
+---
+<a name="fabric-channel-v1-submitconfigupdate-activity"></a>
+### fabric.channel.v1.SubmitConfigUpdate
+
+<pre>
+SubmitConfigUpdate wraps a config update in an envelope and submits it to the orderer.
+Runs: peer channel update -f <envelope.pb>
+</pre>
+
+**Input:** [fabric.channel.v1.SubmitConfigUpdateInput](#fabric-channel-v1-submitconfigupdateinput)
+
+
+
+**Output:** [fabric.channel.v1.SubmitConfigUpdateOutput](#fabric-channel-v1-submitconfigupdateoutput)
+
+ 
+
+---
+<a name="fabric-channel-v1-generateorgdefinition-activity"></a>
+### fabric.channel.v1.GenerateOrgDefinition
+
+<pre>
+GenerateOrgDefinition creates an org MSP definition for use in AddOrgToChannel.
+Produces the org definition JSON to be added to the channel's Application.groups.
+</pre>
+
+**Input:** [fabric.channel.v1.GenerateOrgDefinitionInput](#fabric-channel-v1-generateorgdefinitioninput)
+
+
+
+**Output:** [fabric.channel.v1.GenerateOrgDefinitionOutput](#fabric-channel-v1-generateorgdefinitionoutput)
+
+ 
+
+---
+<a name="fabric-channel-v1-collectsignatures-activity"></a>
+### fabric.channel.v1.CollectSignatures
+
+<pre>
+CollectSignatures gathers required config update signatures from existing channel admins.
+Requires signatures from a MAJORITY of existing channel admins for org additions.
+
+NOTE: this waits on other orgs (cross-org, possibly human-gated) and can routinely
+exceed a single activity timeout. When implemented it is better modeled as workflow
+signals / a child workflow than one long-running activity.
+</pre>
+
+**Input:** [fabric.channel.v1.CollectSignaturesInput](#fabric-channel-v1-collectsignaturesinput)
+
+
+
+**Output:** [fabric.channel.v1.CollectSignaturesOutput](#fabric-channel-v1-collectsignaturesoutput)
+
+   
+
+<a name="fabric-channel-v1-messages"></a>
+## Messages
+
+<a name="fabric-channel-v1-collectsignaturesinput"></a>
+### fabric.channel.v1.CollectSignaturesInput
+
+
+
+<a name="fabric-channel-v1-collectsignaturesoutput"></a>
+### fabric.channel.v1.CollectSignaturesOutput
+
+
+
+<a name="fabric-channel-v1-computeconfigupdateinput"></a>
+### fabric.channel.v1.ComputeConfigUpdateInput
+
+
+
+<a name="fabric-channel-v1-computeconfigupdateoutput"></a>
+### fabric.channel.v1.ComputeConfigUpdateOutput
+
+
+
+<a name="fabric-channel-v1-fetchconfiginput"></a>
+### fabric.channel.v1.FetchConfigInput
+
+
+
+<a name="fabric-channel-v1-fetchconfigoutput"></a>
+### fabric.channel.v1.FetchConfigOutput
+
+
+
+<a name="fabric-channel-v1-generateconfigtxinput"></a>
+### fabric.channel.v1.GenerateConfigTxInput
+
+
+
+<a name="fabric-channel-v1-generateconfigtxoutput"></a>
+### fabric.channel.v1.GenerateConfigTxOutput
+
+
+
+<a name="fabric-channel-v1-generategenesisblockinput"></a>
+### fabric.channel.v1.GenerateGenesisBlockInput
+
+
+
+<a name="fabric-channel-v1-generategenesisblockoutput"></a>
+### fabric.channel.v1.GenerateGenesisBlockOutput
+
+
+
+<a name="fabric-channel-v1-generateorgdefinitioninput"></a>
+### fabric.channel.v1.GenerateOrgDefinitionInput
+
+
+
+<a name="fabric-channel-v1-generateorgdefinitionoutput"></a>
+### fabric.channel.v1.GenerateOrgDefinitionOutput
+
+
+
+<a name="fabric-channel-v1-signconfigupdateinput"></a>
+### fabric.channel.v1.SignConfigUpdateInput
+
+
+
+<a name="fabric-channel-v1-signconfigupdateoutput"></a>
+### fabric.channel.v1.SignConfigUpdateOutput
+
+
+
+<a name="fabric-channel-v1-submitconfigupdateinput"></a>
+### fabric.channel.v1.SubmitConfigUpdateInput
+
+
+
+<a name="fabric-channel-v1-submitconfigupdateoutput"></a>
+### fabric.channel.v1.SubmitConfigUpdateOutput
+
+
+
+<a name="fabric-orderer-v1"></a>
+# fabric.orderer.v1
+
+<a name="fabric-orderer-v1-services"></a>
+## Services
+
+<a name="fabric-orderer-v1-orderer"></a>
+## fabric.orderer.v1.Orderer
+
+<pre>
+Orderer service defines activities that act on an orderer node's
+participation in a channel (channel participation API via osnadmin).
+Activities are NOT exposed via Nexus (only workflows can be called cross-namespace).
+</pre>   
+
+<a name="fabric-orderer-v1-orderer-activities"></a>
+### Activities
+
+---
+<a name="fabric-orderer-v1-channeljoin-activity"></a>
+### fabric.orderer.v1.ChannelJoin
+
+<pre>
+ChannelJoin joins an orderer node to a channel via the channel participation API.
+Uses a genesis block to join as CONSENTER; uses a config block to join as FOLLOWER.
+Runs: osnadmin channel join --config-block <block>
+</pre>
+
+**Input:** [fabric.orderer.v1.ChannelJoinInput](#fabric-orderer-v1-channeljoininput)
+
+
+
+**Output:** [fabric.orderer.v1.ChannelJoinOutput](#fabric-orderer-v1-channeljoinoutput)
+
+ 
+
+---
+<a name="fabric-orderer-v1-waitforactive-activity"></a>
+### fabric.orderer.v1.WaitForActive
+
+<pre>
+WaitForActive polls osnadmin channel list until the orderer reaches the desired status.
+For consenters: waits for consensusRelation = "consenter" and status = "active".
+For followers: waits for block height to match the cluster before promotion.
+
+NOTE: this can routinely run long. When implemented it should use a heartbeat
+timeout with a short start_to_close + retries rather than one long attempt.
+</pre>
+
+**Input:** [fabric.orderer.v1.WaitForActiveInput](#fabric-orderer-v1-waitforactiveinput)
+
+
+
+**Output:** [fabric.orderer.v1.WaitForActiveOutput](#fabric-orderer-v1-waitforactiveoutput)
+
+   
+
+<a name="fabric-orderer-v1-messages"></a>
+## Messages
+
+<a name="fabric-orderer-v1-channeljoininput"></a>
+### fabric.orderer.v1.ChannelJoinInput
+
+
+
+<a name="fabric-orderer-v1-channeljoinoutput"></a>
+### fabric.orderer.v1.ChannelJoinOutput
+
+
+
+<a name="fabric-orderer-v1-waitforactiveinput"></a>
+### fabric.orderer.v1.WaitForActiveInput
+
+
+
+<a name="fabric-orderer-v1-waitforactiveoutput"></a>
+### fabric.orderer.v1.WaitForActiveOutput
+
+
+
+<a name="fabric-peer-v1"></a>
+# fabric.peer.v1
+
+<a name="fabric-peer-v1-services"></a>
+## Services
+
+<a name="fabric-peer-v1-peer"></a>
+## fabric.peer.v1.Peer
+
+<pre>
+Peer service defines activities that act on a peer node's membership in a
+channel (peer channel CLI).
+Activities are NOT exposed via Nexus (only workflows can be called cross-namespace).
+</pre>   
+
+<a name="fabric-peer-v1-peer-activities"></a>
+### Activities
+
+---
+<a name="fabric-peer-v1-channelfetch-activity"></a>
+### fabric.peer.v1.ChannelFetch
+
+<pre>
+ChannelFetch fetches a block from an orderer for the peer to use when joining a channel.
+Runs: peer channel fetch oldest <channel>.block -c <channel>
+Also used to fetch the latest config block for follower joins.
+</pre>
+
+**Input:** [fabric.peer.v1.ChannelFetchInput](#fabric-peer-v1-channelfetchinput)
+
+
+
+**Output:** [fabric.peer.v1.ChannelFetchOutput](#fabric-peer-v1-channelfetchoutput)
+
+ 
+
+---
+<a name="fabric-peer-v1-channeljoin-activity"></a>
+### fabric.peer.v1.ChannelJoin
+
+<pre>
+ChannelJoin joins the peer node to a channel using a previously fetched block.
+Runs: peer channel join -b <channel>.block
+</pre>
+
+**Input:** [fabric.peer.v1.ChannelJoinInput](#fabric-peer-v1-channeljoininput)
+
+
+
+**Output:** [fabric.peer.v1.ChannelJoinOutput](#fabric-peer-v1-channeljoinoutput)
+
+   
+
+<a name="fabric-peer-v1-messages"></a>
+## Messages
+
+<a name="fabric-peer-v1-channelfetchinput"></a>
+### fabric.peer.v1.ChannelFetchInput
+
+
+
+<a name="fabric-peer-v1-channelfetchoutput"></a>
+### fabric.peer.v1.ChannelFetchOutput
+
+
+
+<a name="fabric-peer-v1-channeljoininput"></a>
+### fabric.peer.v1.ChannelJoinInput
+
+
+
+<a name="fabric-peer-v1-channeljoinoutput"></a>
+### fabric.peer.v1.ChannelJoinOutput
 
 
 
@@ -7273,7 +7729,24 @@ json_name: CertRef
 go_name: CertRef
 go_tags: json:"CertRef" validate:"required"</pre></td>
 </tr>
-</table>   
+</table> 
+
+---
+<a name="secrets-v1-storegenesisblock-activity"></a>
+### secrets.v1.StoreGenesisBlock
+
+<pre>
+StoreGenesisBlock stores a Fabric channel genesis block in the secret backend.
+Enables cross-org access to the genesis block during channel join operations.
+</pre>
+
+**Input:** [secrets.v1.StoreGenesisBlockInput](#secrets-v1-storegenesisblockinput)
+
+
+
+**Output:** [secrets.v1.StoreGenesisBlockOutput](#secrets-v1-storegenesisblockoutput)
+
+   
 
 <a name="secrets-v1-messages"></a>
 ## Messages
@@ -7710,6 +8183,16 @@ go_name: CertRef
 go_tags: json:"CertRef" validate:"required"</pre></td>
 </tr>
 </table>
+
+
+
+<a name="secrets-v1-storegenesisblockinput"></a>
+### secrets.v1.StoreGenesisBlockInput
+
+
+
+<a name="secrets-v1-storegenesisblockoutput"></a>
+### secrets.v1.StoreGenesisBlockOutput
 
 
 
