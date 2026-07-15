@@ -4,6 +4,8 @@
 # Organization identifier (e.g., "org1", "acme-corp")
 org: "org1"
 
+namespace: "fabric-shard-org1"
+
 # Peer identifier (e.g., "peer0", "peer1")
 peerId: "peer0"
 
@@ -18,8 +20,8 @@ replicas: 1
 
 # Vault configuration for CSI driver
 vault:
-  roleName: "fabric-org1-couchdb-peer0"
-  secretPath: "secret/data/fabric/org1/couchdb/peer0/admin"
+  roleName: "fabric-shard-org1-couchdb-peer0"
+  secretPath: "secret/data/fabric/shard/org1/keys/peer/peer0/couchdb"
 
 # Service configuration
 service:

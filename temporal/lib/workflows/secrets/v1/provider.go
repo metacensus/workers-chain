@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
+	vault "github.com/metacensus/infra/temporal/lib/workflows/vault/v1"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -21,6 +22,12 @@ var (
 	ErrUnknownSecretType = errors.New("unknown secret type")
 	ErrFetchSecret       = errors.New("failed to fetch secret")
 	ErrStoreSecret       = errors.New("failed to store secret")
+
+	// ErrSecretNotFound is returned by FetchSecret when the backend reports the
+	// secret does not exist (as opposed to a transient/permission failure).
+	// This lets callers safely distinguish "absent, create it" from "error,
+	// don't touch it" without coupling to a specific backend's error types.
+	ErrSecretNotFound = errors.New("secret not found")
 )
 
 // SecretClient provides low-level generic secret operations.
@@ -94,6 +101,11 @@ func (p *secretProvider) FetchSecret(ctx context.Context, ref *pb.SecretRef) (Se
 	}
 	secret, err := client.FetchSecretByRef(ctx, ref.GetRef().AsMap())
 	if err != nil {
+		// Translate the backend's not-found into a backend-agnostic sentinel so
+		// callers can distinguish absence from other failures.
+		if errors.Is(err, vault.ErrNotFound) {
+			return nil, fmt.Errorf("%w: %w", ErrSecretNotFound, err)
+		}
 		return nil, fmt.Errorf("%w: %w", ErrFetchSecret, err)
 	}
 	return Secret(secret), nil

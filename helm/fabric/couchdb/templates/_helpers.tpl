@@ -7,7 +7,7 @@ couchdb-{{ .Values.peerId }}
 {{- end }}
 
 {{- define "couchdb.namespace" -}}
-fabric-{{ .Values.org }}
+{{ .Values.namespace }}
 {{- end }}
 
 {{- define "couchdb.serviceName" -}}

@@ -47,6 +47,10 @@ go test -tags=integration ./workflows/...
 | Activities | `activities_test.go` | Client | - |
 | Client | `client_test.go` | Real system | `integration` |
 
+## Pattern: Ownership Model
+
+Workflows execute in exactly one security context — their worker's owner. Owner configs, typed `Owner` inputs, Nexus boundaries, and Vault policy generation are governed by [docs/strategy/OWNERSHIP.md](../docs/strategy/OWNERSHIP.md). Read it before adding workflows that touch Vault paths or Kubernetes namespaces.
+
 ## Terraform Workflows Architecture
 
 The `workflows/terraform/v1/` package provides **generic, composable workflows** for declarative infrastructure deployment via Terraform.

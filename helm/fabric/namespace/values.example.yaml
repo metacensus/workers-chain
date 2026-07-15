@@ -1,7 +1,14 @@
 # Fabric namespace configuration
-# The namespace name should follow the pattern: fabric-{org-id}
+# Org namespaces follow the pattern "fabric-shard-{org-id}";
+# the shared operator namespace is named "fabric".
 # This value must be provided at deployment time
-name: fabric-example-org
+name: fabric-shard-example-org
+
+# isOperator indicates whether this is the operator namespace
+# When true, network policies are created to allow cross-namespace
+# access from fabric shard namespaces to TLS CA services on port 7054
+# This should only be true for the operator namespace ("fabric")
+isOperator: false
 
 # Common labels to apply to all resources
 commonLabels:

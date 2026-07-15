@@ -4,6 +4,8 @@
 # Organization identifier (e.g., "org1", "acme-corp")
 org: "org1"
 
+namespace: "fabric-shard-org1"
+
 # Peer identifier (e.g., "peer0", "peer1")
 peerId: "peer0"
 
@@ -21,15 +23,17 @@ msp:
   id: "org1MSP"
 
 # Vault configuration for CSI driver
+# Org CA paths live in the org's shard tree; the TLS root CA cert lives in the
+# operator's shared tree (here operator "metacensus").
 vault:
-  roleName: "fabric-org1-peer0"
-  mspSigningPath: "secret/data/fabric/org1/peer/peer0/signing"
-  mspRootCaCertPath: "secret/data/fabric/org1/ca/org/root/signing"
-  mspIntCaCertPath: "secret/data/fabric/org1/ca/org/v1/signing"
-  tlsPath: "secret/data/fabric/org1/peer/peer0/tls"
-  tlsRootCaCertPath: "secret/data/fabric/org1/ca/tls/root/signing"
-  tlsIntCaCertPath: "secret/data/fabric/org1/ca/tls/v1/signing"
-  couchdbPath: "secret/data/fabric/org1/couchdb/peer0/admin"
+  roleName: "fabric-shard-org1-peer0"
+  mspSigningKeyPath: "secret/data/fabric/shard/org1/keys/peer/peer0/signing"
+  mspSigningCertPath: "secret/data/fabric/shard/org1/certs/peer/peer0/signing"
+  mspRootCaCertPath: "secret/data/fabric/shard/org1/certs/ca/org/root/signing"
+  tlsKeyPath: "secret/data/fabric/shard/org1/keys/peer/peer0/tls"
+  tlsCertPath: "secret/data/fabric/shard/org1/certs/peer/peer0/tls"
+  tlsRootCaCertPath: "secret/data/fabric/metacensus/certs/ca/tls/root/signing"
+  couchdbPath: "secret/data/fabric/shard/org1/keys/peer/peer0/couchdb"
 
 # Service configuration
 service:
@@ -41,11 +45,11 @@ service:
 # Gossip protocol configuration
 gossip:
   bootstrap: ""
-  externalEndpoint: "peer0.fabric-org1.svc.cluster.local:7051"
+  externalEndpoint: "peer0.fabric-shard-org1.svc.cluster.local:7051"
 
 # CouchDB state database
 couchdb:
-  address: "couchdb-peer0.fabric-org1.svc.cluster.local:5984"
+  address: "couchdb-peer0.fabric-shard-org1.svc.cluster.local:5984"
 
 # Persistence configuration
 persistence:

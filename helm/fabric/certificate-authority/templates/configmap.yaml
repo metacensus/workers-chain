@@ -51,11 +51,10 @@ data:
       # CA signing certificates are provided via Vault CSI driver (separate from TLS)
       certfile: /mnt/secrets-store/signing-cert
       keyfile: /mnt/secrets-store/signing-private-key
-      {{- if .Values.vault.signingChainPath }}
-      # Chain file contains parent CA certs for x509 verification
-      # Required for intermediate CAs to verify client certificate chains
+      # Chain file contains the CA's full certificate chain for x509 verification.
+      # Required for intermediate CAs to verify client certificates they issue.
+      # Root CAs have chain = leaf cert (self-signed), so this is harmless for them.
       chainfile: /mnt/secrets-store/signing-chain
-      {{- end }}
     
     #############################################################################
     # Registry Configuration

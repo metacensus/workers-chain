@@ -7,7 +7,7 @@ Shared helper functions for Fabric Orderer chart
 {{- end }}
 
 {{- define "orderer.namespace" -}}
-fabric-{{ .Values.org }}
+{{ .Values.namespace }}
 {{- end }}
 
 {{- define "orderer.serviceName" -}}

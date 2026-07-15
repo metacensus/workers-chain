@@ -214,7 +214,7 @@ func TestCreateUserActivity(t *testing.T) {
 		{
 			name: "success - creates new user",
 			input: &pb.CreateUserInput{
-				CredentialsRef: secrets.NewVaultRef("fabric/org1/db/user"),
+				CredentialsRef: secrets.NewVaultRef("fabric/shard/org1/db/user"),
 			},
 			setupSecretMock: func(m *secretsmocks.MockSecretProvider) {
 				m.EXPECT().
@@ -236,7 +236,7 @@ func TestCreateUserActivity(t *testing.T) {
 		{
 			name: "success - user already exists",
 			input: &pb.CreateUserInput{
-				CredentialsRef: secrets.NewVaultRef("fabric/org1/db/user"),
+				CredentialsRef: secrets.NewVaultRef("fabric/shard/org1/db/user"),
 			},
 			setupSecretMock: func(m *secretsmocks.MockSecretProvider) {
 				m.EXPECT().
@@ -260,7 +260,7 @@ func TestCreateUserActivity(t *testing.T) {
 		{
 			name: "error - failed to fetch credentials",
 			input: &pb.CreateUserInput{
-				CredentialsRef: secrets.NewVaultRef("fabric/org1/db/user"),
+				CredentialsRef: secrets.NewVaultRef("fabric/shard/org1/db/user"),
 			},
 			setupSecretMock: func(m *secretsmocks.MockSecretProvider) {
 				m.EXPECT().

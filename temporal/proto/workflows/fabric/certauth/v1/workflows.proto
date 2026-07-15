@@ -1,0 +1,314 @@
+syntax = "proto3";
+
+package fabric.certauth.v1;
+
+import "fabric/v1/fabric.proto";
+import "google/protobuf/duration.proto";
+import "nexus/v1/options.proto";
+import "patch/go.proto";
+import "temporal/v1/temporal.proto";
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1;certauthv1";
+
+// CertificateAuthority service defines workflows for manipulating a Fabric certificate authority
+// These workflows run on the fabric/shard worker in the owner-specific Temporal namespace.
+//
+// These workflows act AS their worker's owner (injected at startup); inputs
+// never carry an owner. Locally-referenced CAs are always owned by the
+// executing worker; foreign issuers are reached via Nexus.
+service CertificateAuthority {
+  // Enable Nexus for cross-namespace calls from central worker
+  option (.nexus.v1.service).tags = "nexus-enabled";
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {task_queue: "infra"};
+
+  // SignCertificate signs an externally-generated CSR with a CA owned by the
+  // executing worker and returns only the public certificate + chain.
+  //
+  // This is the CROSS-OWNER issuance primitive: the key owner (e.g. a shard)
+  // generates the private key + CSR locally and sends only the public CSR
+  // here via Nexus; the issuer (e.g. the operator's TLS CA) never sees the
+  // private key and never writes into the caller's Vault subtree. The caller
+  // stores the returned certificate itself.
+  rpc SignCertificate(SignCertificateInput) returns (SignCertificateOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.certauth.v1.SignCertificate"
+      // Org-qualified subject CN is globally unique within the issuer's namespace.
+      id: 'fabric/sign-certificate/${! CommonName }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+    };
+  }
+
+  // CreateBootstrapAdmin creates the bootstrap admin identity for a CA
+  // This is called after CA deployment to enroll using bootstrap credentials.
+  // Creates both signing and TLS client certs for the bootstrap admin.
+  rpc CreateBootstrapAdmin(CreateBootstrapAdminInput) returns (CreateBootstrapAdminOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.certauth.v1.CreateBootstrapAdmin"
+      id: 'fabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // CreateAdmin creates the permanent admin identity for a CA
+  // Uses the bootstrap admin to register/enroll a new permanent admin.
+  // Creates both signing and TLS client certs for the permanent admin.
+  rpc CreateAdmin(CreateAdminInput) returns (CreateAdminOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.certauth.v1.CreateAdmin"
+      id: 'fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // CreateIdentity creates a full Fabric identity with both org and TLS certificates
+  // Used for creating peer, orderer, admin, and client identities.
+  // This is the production workflow for identity creation (not bootstrap).
+  rpc CreateIdentity(CreateIdentityInput) returns (CreateIdentityOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.certauth.v1.CreateIdentity"
+      // Org-qualified subject CN (e.g. "peer0@org1") is globally unique
+      // within the owner's namespace, unlike the bare identity name.
+      id: 'fabric/create-identity/${! CommonName }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+    };
+  }
+}
+
+// ==================== SignCertificate Workflow Messages ====================
+
+// SignCertificateInput specifies the parameters for signing an externally
+// generated CSR with a CA owned by the executing worker.
+//
+// Only public material crosses the ownership boundary: a CSR comes in, a
+// certificate + chain go out. Deliberately carries NO storage location, NO
+// admin identity, and NO key references - the issuer signs as its own CA's
+// admin and never touches the caller's Vault subtree.
+message SignCertificateInput {
+  // issuer_ref identifies which CA signs this certificate.
+  // Always owned by the executing worker's owner (validated in the workflow).
+  fabric.v1.CertificateAuthorityRef issuer_ref = 1 [
+    json_name = "IssuerRef",
+    (go.field).tags = 'json:"IssuerRef" validate:"required"'
+  ];
+
+  // profile determines key usages ("ca", "tls", or "" for default identity)
+  string profile = 2 [
+    json_name = "Profile",
+    (go.field).tags = 'json:"Profile"'
+  ];
+
+  // common_name is the certificate subject CN. It MUST be org-qualified (e.g.
+  // "peer0@org1"); it is used both for CA registration and to satisfy Fabric
+  // CA's requirement that the CSR CN equals the enrollment ID.
+  string common_name = 3 [
+    json_name = "CommonName",
+    (go.field).tags = 'json:"CommonName" validate:"required"'
+  ];
+
+  // identity_type specifies the Fabric CA identity type for registration.
+  // This determines the OU field in the issued certificate (server-set).
+  // Valid values: "peer", "orderer", "admin", "client" (default: "client").
+  string identity_type = 4 [
+    json_name = "IdentityType",
+    (go.field).tags = 'json:"IdentityType,omitempty"'
+  ];
+
+  // attributes are additional CA attributes for the registration record.
+  map<string, string> attributes = 5 [json_name = "Attributes"];
+
+  // csr_pem is the PEM-encoded certificate signing request. The private key
+  // that generated it never leaves the caller.
+  bytes csr_pem = 6 [
+    json_name = "CsrPem",
+    (go.field).tags = 'json:"CsrPem" validate:"required"'
+  ];
+
+  // hosts are the requested Subject Alternative Names for the signed cert.
+  repeated string hosts = 7 [
+    json_name = "Hosts",
+    (go.field).tags = 'json:"Hosts,omitempty"'
+  ];
+}
+
+// SignCertificateOutput returns only public certificate material.
+message SignCertificateOutput {
+  // certificate_pem is the PEM-encoded leaf certificate.
+  bytes certificate_pem = 1 [
+    json_name = "CertificatePem",
+    (go.field).tags = 'json:"CertificatePem" validate:"required"'
+  ];
+
+  // chain_pem is the PEM-encoded full chain (leaf + issuer chain to root).
+  bytes chain_pem = 2 [
+    json_name = "ChainPem",
+    (go.field).tags = 'json:"ChainPem" validate:"required"'
+  ];
+}
+
+// ==================== CreateBootstrapAdmin Workflow Messages ====================
+
+// CreateBootstrapAdminInput specifies the parameters for creating a bootstrap admin
+message CreateBootstrapAdminInput {
+  // ca_ref identifies which CA to create the bootstrap admin for.
+  // Always owned by the executing worker's owner.
+  fabric.v1.CertificateAuthorityRef ca_ref = 2 [
+    json_name = "CaRef",
+    (go.field).tags = 'json:"CaRef" validate:"required"'
+  ];
+
+  // tls_issuer identifies who issues the bootstrap admin's TLS certificate.
+  // If nil/empty, uses the CA itself (TLS Root CA case).
+  // May be foreign (operator-owned TLS CA when the executing worker is an org);
+  // foreign issuers are reached via Nexus.
+  fabric.v1.CertificateAuthorityRef tls_issuer = 3 [
+    json_name = "TlsIssuer",
+    (go.field).tags = 'json:"TlsIssuer,omitempty"'
+  ];
+
+  // validity_duration specifies how long the bootstrap admin certificates are valid.
+  google.protobuf.Duration validity_duration = 4 [
+    json_name = "ValidityDuration",
+    (go.field).tags = 'json:"ValidityDuration,omitempty"'
+  ];
+}
+
+// CreateBootstrapAdminOutput indicates the result of bootstrap admin creation
+message CreateBootstrapAdminOutput {
+  // signing_identity points to the bootstrap admin's signing identity
+  fabric.v1.IdentityRef signing_identity = 1 [
+    json_name = "SigningIdentity",
+    (go.field).tags = 'json:"SigningIdentity" validate:"required"'
+  ];
+
+  // tls_identity points to the bootstrap admin's TLS client identity
+  fabric.v1.IdentityRef tls_identity = 2 [
+    json_name = "TlsIdentity",
+    (go.field).tags = 'json:"TlsIdentity" validate:"required"'
+  ];
+}
+
+// ==================== CreateAdmin Workflow Messages ====================
+
+// CreateAdminInput specifies the parameters for creating a permanent admin
+message CreateAdminInput {
+  // ca_ref identifies which CA to create the admin for.
+  // Always owned by the executing worker's owner.
+  fabric.v1.CertificateAuthorityRef ca_ref = 2 [
+    json_name = "CaRef",
+    (go.field).tags = 'json:"CaRef" validate:"required"'
+  ];
+
+  // signing_issuer identifies who issues the admin's signing certificate.
+  // Per Fabric CA constraints, this should be the CA itself (admin must be in CA's database).
+  fabric.v1.CertificateAuthorityRef signing_issuer = 3 [
+    json_name = "SigningIssuer",
+    (go.field).tags = 'json:"SigningIssuer,omitempty"'
+  ];
+
+  // tls_issuer identifies who issues the admin's TLS certificate.
+  fabric.v1.CertificateAuthorityRef tls_issuer = 4 [
+    json_name = "TlsIssuer",
+    (go.field).tags = 'json:"TlsIssuer,omitempty"'
+  ];
+
+  // validity_duration specifies how long the admin certificates are valid.
+  google.protobuf.Duration validity_duration = 5 [
+    json_name = "ValidityDuration",
+    (go.field).tags = 'json:"ValidityDuration,omitempty"'
+  ];
+}
+
+// CreateAdminOutput indicates the result of admin creation
+message CreateAdminOutput {
+  // signing_identity points to the admin's signing identity
+  fabric.v1.IdentityRef signing_identity = 1 [
+    json_name = "SigningIdentity",
+    (go.field).tags = 'json:"SigningIdentity" validate:"required"'
+  ];
+
+  // tls_identity points to the admin's TLS client identity
+  fabric.v1.IdentityRef tls_identity = 2 [
+    json_name = "TlsIdentity",
+    (go.field).tags = 'json:"TlsIdentity" validate:"required"'
+  ];
+}
+
+// ==================== CreateIdentity Workflow Messages ====================
+
+// CreateIdentityInput specifies the parameters for creating a Fabric identity
+message CreateIdentityInput {
+  // common_name is the org-qualified subject CN, used for both issued certs and
+  // as the CA registration name (Fabric CA requires CN == enrollment ID).
+  string common_name = 2 [
+    json_name = "CommonName",
+    (go.field).tags = 'json:"CommonName" validate:"required"'
+  ];
+
+  // hosts are the requested Subject Alternative Names for the TLS certificate.
+  repeated string hosts = 3 [
+    json_name = "Hosts",
+    (go.field).tags = 'json:"Hosts,omitempty"'
+  ];
+
+  // org_issuer_ref identifies which Org CA issues the identity certificate
+  // Typically the Org Intermediate CA (org/v1)
+  fabric.v1.CertificateAuthorityRef org_issuer_ref = 4 [
+    json_name = "OrgIssuerRef",
+    (go.field).tags = 'json:"OrgIssuerRef" validate:"required"'
+  ];
+
+  // tls_issuer_ref identifies which TLS CA issues the TLS certificate
+  // Typically the TLS Intermediate CA (tls/v1)
+  fabric.v1.CertificateAuthorityRef tls_issuer_ref = 5 [
+    json_name = "TlsIssuerRef",
+    (go.field).tags = 'json:"TlsIssuerRef" validate:"required"'
+  ];
+
+  // signing_storage is where to store the signing identity (key + certificate)
+  fabric.v1.IdentityRef signing_storage = 6 [
+    json_name = "SigningStorage",
+    (go.field).tags = 'json:"SigningStorage" validate:"required"'
+  ];
+
+  // tls_storage is where to store the TLS identity (key + certificate)
+  fabric.v1.IdentityRef tls_storage = 7 [
+    json_name = "TlsStorage",
+    (go.field).tags = 'json:"TlsStorage" validate:"required"'
+  ];
+
+  // attributes are additional CA attributes for the identity
+  map<string, string> attributes = 8 [json_name = "Attributes"];
+
+  // tls_profile specifies the TLS signing profile ("tls" for server/client, "" for client-only)
+  string tls_profile = 9 [
+    json_name = "TlsProfile",
+    (go.field).tags = 'json:"TlsProfile"'
+  ];
+
+  // identity_type specifies the Fabric CA identity type for registration.
+  // This determines the OU field in the issued certificate.
+  // Valid values: "peer", "orderer", "admin", "client" (default: "client")
+  // The OU is critical for NodeOUs classification in the MSP.
+  string identity_type = 10 [
+    json_name = "IdentityType",
+    (go.field).tags = 'json:"IdentityType,omitempty"'
+  ];
+}
+
+// CreateIdentityOutput indicates the result of identity creation
+message CreateIdentityOutput {
+  // signing_identity points to the created signing identity
+  fabric.v1.IdentityRef signing_identity = 1 [
+    json_name = "SigningIdentity",
+    (go.field).tags = 'json:"SigningIdentity" validate:"required"'
+  ];
+
+  // tls_identity points to the created TLS identity
+  fabric.v1.IdentityRef tls_identity = 2 [
+    json_name = "TlsIdentity",
+    (go.field).tags = 'json:"TlsIdentity" validate:"required"'
+  ];
+}

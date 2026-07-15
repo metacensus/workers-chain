@@ -14,9 +14,13 @@ type KeyPair struct {
 	PublicKey  []byte
 }
 
-// Certificate represents a certificate (PEM-encoded)
+// Certificate represents a certificate with its chain (PEM-encoded)
+// Per cert-design.md, all certificate paths store both:
+//   - certificate: the leaf certificate only
+//   - chain: the full chain (leaf + issuer chain, or just leaf for root CAs)
 type Certificate struct {
-	Certificate []byte
+	Certificate []byte // Leaf certificate only
+	Chain       []byte // Full chain (leaf + issuer chain to root)
 }
 
 // IdentityCredentials represents a complete identity (keypair + certificate)
@@ -48,9 +52,11 @@ func FromKeyPair(kp *KeyPair) Secret {
 }
 
 // FromCertificate creates a Secret from Certificate
+// Stores both certificate (leaf) and chain (full chain including leaf)
 func FromCertificate(cert *Certificate) Secret {
 	return Secret{
 		"certificate": string(cert.Certificate),
+		"chain":       string(cert.Chain),
 	}
 }
 
@@ -100,7 +106,7 @@ func (s Secret) KeyPair() (*KeyPair, error) {
 	}, nil
 }
 
-// Certificate extracts a certificate from the secret
+// Certificate extracts a certificate with chain from the secret
 func (s Secret) Certificate() (*Certificate, error) {
 	certificate, ok := s["certificate"].(string)
 	if !ok {
@@ -110,7 +116,15 @@ func (s Secret) Certificate() (*Certificate, error) {
 			return nil, fmt.Errorf("missing or invalid certificate in secret")
 		}
 	}
-	return &Certificate{Certificate: []byte(certificate)}, nil
+	// Chain is optional for backwards compatibility
+	chain := certificate // Default to certificate if no chain
+	if c, ok := s["chain"].(string); ok && c != "" {
+		chain = c
+	}
+	return &Certificate{
+		Certificate: []byte(certificate),
+		Chain:       []byte(chain),
+	}, nil
 }
 
 // IdentityCredentials extracts identity credentials (keypair + certificate) from the secret

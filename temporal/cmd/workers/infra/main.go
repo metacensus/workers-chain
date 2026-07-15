@@ -11,7 +11,8 @@ import (
 )
 
 func main() {
-	// Initialize configuration from environment
+	// Initialize configuration from environment.
+	// OPERATOR_ID (platform context) is loaded via fx in the infra module.
 	config.InitializeTemporal()
 	config.InitializeVault()
 	config.InitializeKubernetes()

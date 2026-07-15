@@ -12,6 +12,7 @@ import (
 	namespacev1 "go.temporal.io/api/namespace/v1"
 	"go.temporal.io/api/nexus/v1"
 	osv1 "go.temporal.io/api/operatorservice/v1"
+	"go.temporal.io/api/serviceerror"
 	wsv1 "go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/testsuite"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -21,7 +22,12 @@ var (
 	// Test error sentinels for client errors
 	errNamespaceNotFound = errors.New("namespace not found")
 	errConnectionRefused = errors.New("connection refused")
-	errNexusConflict     = errors.New("nexus endpoint already exists")
+	// errNexusConflict mirrors the typed AlreadyExists error the operator service
+	// returns (message: "... already registered"), so idempotency is exercised by type.
+	errNexusConflict = serviceerror.NewAlreadyExists("Endpoint with name existing-endpoint already registered")
+	// errNamespaceExists mirrors the typed NamespaceAlreadyExists error the namespace
+	// client returns when a namespace is registered twice.
+	errNamespaceExists = serviceerror.NewNamespaceAlreadyExists("Namespace already exists")
 )
 
 func TestRegisterNamespaceActivity(t *testing.T) {
@@ -29,12 +35,13 @@ func TestRegisterNamespaceActivity(t *testing.T) {
 		name             string
 		input            *pb.RegisterNamespaceInput
 		clientErr        error
+		idempotentOK     bool // clientErr is returned but the activity should treat it as success
 		expectedDuration time.Duration
 	}{
 		{
 			name: "success with default retention",
 			input: &pb.RegisterNamespaceInput{
-				Name:      "fabric-org1",
+				Name:      "fabric-shard-org1",
 				Retention: nil, // Use default (30 days)
 			},
 			expectedDuration: 30 * 24 * time.Hour,
@@ -42,7 +49,7 @@ func TestRegisterNamespaceActivity(t *testing.T) {
 		{
 			name: "success with custom retention",
 			input: &pb.RegisterNamespaceInput{
-				Name:      "fabric-org2",
+				Name:      "fabric-shard-org2",
 				Retention: durationpb.New(7 * 24 * time.Hour), // 7 days
 			},
 			expectedDuration: 7 * 24 * time.Hour,
@@ -62,6 +69,15 @@ func TestRegisterNamespaceActivity(t *testing.T) {
 				Retention: nil,
 			},
 			clientErr: errConnectionRefused,
+		},
+		{
+			name: "idempotent - namespace already exists",
+			input: &pb.RegisterNamespaceInput{
+				Name:      "fabric",
+				Retention: nil,
+			},
+			clientErr:    errNamespaceExists,
+			idempotentOK: true,
 		},
 	}
 
@@ -96,13 +112,13 @@ func TestRegisterNamespaceActivity(t *testing.T) {
 			// Execute activity
 			val, err := env.ExecuteActivity(activities.RegisterNamespace, tt.input)
 
-			if tt.clientErr != nil {
+			if tt.clientErr != nil && !tt.idempotentOK {
 				// Expect error
 				if err == nil {
 					t.Fatal("expected error, got nil")
 				}
 			} else {
-				// Expect success
+				// Expect success (including the idempotent "already exists" case)
 				if err != nil {
 					t.Fatalf("unexpected error from ExecuteActivity: %v", err)
 				}
@@ -130,11 +146,11 @@ func TestDescribeNamespaceActivity(t *testing.T) {
 		{
 			name: "success - registered namespace",
 			input: &pb.DescribeNamespaceInput{
-				Name: "fabric-org1",
+				Name: "fabric-shard-org1",
 			},
 			mockResponse: &wsv1.DescribeNamespaceResponse{
 				NamespaceInfo: &namespacev1.NamespaceInfo{
-					Name:  "fabric-org1",
+					Name:  "fabric-shard-org1",
 					State: enums.NAMESPACE_STATE_REGISTERED,
 				},
 			},

@@ -9,4 +9,11 @@ metadata:
   name: {{ include "fabric.namespace" . }}
   labels:
     {{- include "fabric.commonLabels" . | nindent 4 }}
+    # Marks this namespace as hosting a Temporal worker (the fabric / shard
+    # worker). Selected by module.temporal's frontend ingress allowlist
+    # (allowed_caller_namespace_labels) so the worker may reach Temporal.
+    metacensus.io/temporal-worker: "true"
+    # Fabric namespaces host workers and components that authenticate to Vault.
+    # Vault auth roles still bind access to exact service accounts.
+    metacensus.io/vault-client: "true"
 

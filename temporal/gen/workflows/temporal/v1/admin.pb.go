@@ -77,7 +77,7 @@ func (NamespaceState) EnumDescriptor() ([]byte, []int) {
 // CreateNamespaceInput specifies parameters for creating a Temporal namespace
 type CreateNamespaceInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// name is the name of the namespace to create (e.g., "fabric-org1", "tenant-acme")
+	// name is the name of the namespace to create (e.g., "fabric-shard-org1", "tenant-acme")
 	// This will be used as the workflow ID to ensure idempotency
 	Name string `protobuf:"bytes,1,opt,name=name,json=Name,proto3" json:"Name" validate:"required"`
 	// retention is the duration to retain workflow history

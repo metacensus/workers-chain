@@ -7,6 +7,7 @@ import (
 // OrdererValues represents the Helm values for a Fabric orderer deployment
 type OrdererValues struct {
 	Org            string
+	Namespace      string
 	OrdererId      string
 	Image          ImageConfig
 	Replicas       int
@@ -26,15 +27,19 @@ type OrdererMspConfig struct {
 	Id string
 }
 
-// OrdererVaultConfig represents Vault paths for orderer certificates
+// OrdererVaultConfig represents Vault paths for orderer certificates and keys.
+// Keys (private) and certs (public) are stored at separate paths.
 type OrdererVaultConfig struct {
-	RoleName          string
-	MspSigningPath    string
-	MspRootCaCertPath string // Org Root CA cert for cacerts/
-	MspIntCaCertPath  string // Org Int CA cert for intermediatecerts/
-	TlsPath           string
-	TlsRootCaCertPath string // TLS Root CA cert
-	TlsIntCaCertPath  string // TLS Int CA cert
+	RoleName string
+	// Keys (private) - separate paths for private keys
+	MspSigningKeyPath string // Orderer signing private key
+	TlsKeyPath        string // Orderer TLS private key
+	// Certs (public) - separate paths for certificates + chains
+	MspSigningCertPath string // Orderer signing cert + chain
+	TlsCertPath        string // Orderer TLS cert + chain
+	// CA root certs for trust stores (public, root only)
+	MspRootCaCertPath string // Org Root CA cert for MSP cacerts/
+	TlsRootCaCertPath string // TLS Root CA cert for TLS trust store
 }
 
 // OrdererServiceConfig represents service port configuration for an orderer
@@ -52,20 +57,22 @@ type OrdererProbeConfig struct {
 	TimeoutSeconds      int
 }
 
-// NewOrdererValues creates OrdererValues from OrdererConfig
-// This ensures consistency between Helm values and workflow/activity configuration
-func NewOrdererValues(ordererConfig fabricconfig.OrdererConfig) *OrdererValues {
-	fabricCfg := fabricconfig.NewFabricConfig(ordererConfig.OrgConfig)
-
-	// Get the CA configs for cert paths
-	// MSP needs: Root CA in cacerts/, Intermediate CA in intermediatecerts/
-	orgRootCA := fabricCfg.CertificateAuthority("org", "root")
-	orgIntCA := fabricCfg.CertificateAuthority("org", "v1")
-	tlsRootCA := fabricCfg.CertificateAuthority("tls", "root")
-	tlsIntCA := fabricCfg.CertificateAuthority("tls", "v1")
-
+// NewOrdererValues creates OrdererValues from OrdererConfig and CA configurations.
+// The CA configs are passed explicitly to support shared TLS CAs owned by the operator
+// while org CAs remain owned by the organization.
+//
+// Parameters:
+//   - ordererConfig: Configuration for the orderer itself
+//   - orgRootCA: Org Root CA config (for MSP cacerts/)
+//   - tlsRootCA: TLS Root CA config (for TLS trust store)
+func NewOrdererValues(
+	ordererConfig fabricconfig.OrdererConfig,
+	orgRootCA fabricconfig.CertificateAuthorityConfig,
+	tlsRootCA fabricconfig.CertificateAuthorityConfig,
+) *OrdererValues {
 	return &OrdererValues{
-		Org:       ordererConfig.OrgID,
+		Org:       ordererConfig.OwnerID(),
+		Namespace: ordererConfig.KubernetesNamespace(),
 		OrdererId: ordererConfig.OrdererID(),
 		Image:     DefaultImageConfig("orderer", ""),
 		Replicas:  1, // Single instance per orderer StatefulSet
@@ -73,13 +80,16 @@ func NewOrdererValues(ordererConfig fabricconfig.OrdererConfig) *OrdererValues {
 			Id: ordererConfig.MSPID(),
 		},
 		Vault: OrdererVaultConfig{
-			RoleName:          ordererConfig.AuthRoleName(),
-			MspSigningPath:    "secret/data/" + ordererConfig.VaultSigningRef().GetRef().Fields["path"].GetStringValue(),
-			MspRootCaCertPath: "secret/data/" + orgRootCA.VaultSigningRef().GetRef().Fields["path"].GetStringValue(),
-			MspIntCaCertPath:  "secret/data/" + orgIntCA.VaultSigningRef().GetRef().Fields["path"].GetStringValue(),
-			TlsPath:           "secret/data/" + ordererConfig.VaultTLSRef().GetRef().Fields["path"].GetStringValue(),
-			TlsRootCaCertPath: "secret/data/" + tlsRootCA.VaultSigningRef().GetRef().Fields["path"].GetStringValue(),
-			TlsIntCaCertPath:  "secret/data/" + tlsIntCA.VaultSigningRef().GetRef().Fields["path"].GetStringValue(),
+			RoleName: ordererConfig.AuthRoleName(),
+			// Keys (private)
+			MspSigningKeyPath: "secret/data/" + ordererConfig.VaultSigningKeyRef().GetRef().Fields["path"].GetStringValue(),
+			TlsKeyPath:        "secret/data/" + ordererConfig.VaultTLSKeyRef().GetRef().Fields["path"].GetStringValue(),
+			// Certs (public) - contain {certificate, chain}
+			MspSigningCertPath: "secret/data/" + ordererConfig.VaultSigningCertRef().GetRef().Fields["path"].GetStringValue(),
+			TlsCertPath:        "secret/data/" + ordererConfig.VaultTLSCertRef().GetRef().Fields["path"].GetStringValue(),
+			// CA root certs for trust stores (root CA only)
+			MspRootCaCertPath: "secret/data/" + orgRootCA.VaultSigningCertRef().GetRef().Fields["path"].GetStringValue(),
+			TlsRootCaCertPath: "secret/data/" + tlsRootCA.VaultSigningCertRef().GetRef().Fields["path"].GetStringValue(),
 		},
 		Service: OrdererServiceConfig{
 			Type:           "ClusterIP",

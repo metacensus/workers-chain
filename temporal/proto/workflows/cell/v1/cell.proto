@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package cell.v1;
 
+import "fabric/v1/fabric.proto";
 import "patch/go.proto";
 import "temporal/v1/temporal.proto";
 
@@ -29,16 +30,19 @@ service Cell {
     };
   }
 
+  // InitFabric orchestrates the initialization of operator-level Fabric infrastructure
+  // This workflow deploys shared infrastructure (TLS CAs, cert store) in the operator namespace
+  // and runs once at platform bootstrap time.
+  rpc InitFabric(InitFabricInput) returns (InitFabricOutput) {
+    // Workflow execution metadata
+    option (temporal.v1.workflow) = {
+      name: "cell.v1.InitFabric"
+      id: 'cell/init-fabric'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
   // InitFabricShard orchestrates the complete initialization of a Fabric shard
-  // This root workflow executes in the central "infra" namespace and coordinates:
-  // 1. Creation of a Temporal namespace for the shard (temporal.v1.CreateNamespace)
-  // 2. Creation of a Kubernetes namespace for the shard (cluster.v1.CreateNamespace)
-  // 3. Creation of a service account for the fabric worker (cluster.v1.CreateServiceAccount)
-  // 4. Creation of Vault access policies for the shard (vault.v1.CreateAccess)
-  // 5. Deployment of the fabric worker pod (cluster.v1.CreateDeployment)
-  // 6. Registration of the Nexus endpoint for fabric.v1.BootstrapShard service
-  // 7. Cross-namespace Nexus call to BootstrapShard workflow in fabric namespace
-  //
   // This workflow is the "hub" that orchestrates the multi-phase bootstrap process.
   // Phase 1 (central): Sets up infrastructure prerequisites
   // Phase 2 (fabric worker): Initiated via Nexus, deploys Fabric components (CAs, peers, orderers)
@@ -64,15 +68,39 @@ message BootstrapInfraOutput {
   // Empty for now - output structure to be defined as implementation progresses
 }
 
+// ==================== InitFabric Workflow Messages ====================
+
+// InitFabricInput specifies the parameters for initializing operator-level Fabric infrastructure
+message InitFabricInput {
+  // certificate_authorities specifies the TLS CA chain to deploy (root + v1)
+  // This is operator-level shared infrastructure
+  repeated fabric.v1.CertificateAuthoritySpec certificate_authorities = 1 [
+    json_name = "CertificateAuthorities",
+    (go.field).tags = 'json:"CertificateAuthorities" validate:"required,dive"'
+  ];
+}
+
+// InitFabricOutput indicates the result of operator-level Fabric initialization
+message InitFabricOutput {
+  // Empty for now - output structure to be defined as implementation progresses
+}
+
 // ==================== InitFabricShard Workflow Messages ====================
 
 // InitFabricShardInput specifies the parameters for initializing a Fabric shard
 message InitFabricShardInput {
   // org is the organization identifier (e.g., "org1", "acme-corp")
-  // Used to derive namespace names: Temporal namespace "fabric-{org}", K8s namespace "fabric-{org}"
+  // Used to derive namespace names: Temporal namespace "fabric-shard-{org}", K8s namespace "fabric-shard-{org}"
   string org = 1 [
     json_name = "Org",
     (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
+  // deployment is the Fabric deployment configuration (required)
+  // Specifies all CAs, peers, and orderers to deploy for this shard
+  fabric.v1.OrgFabricDeployment deployment = 2 [
+    json_name = "Deployment",
+    (go.field).tags = 'json:"Deployment" validate:"required"'
   ];
 }
 

@@ -70,6 +70,12 @@ type CertificateParams struct {
 
 // GenerateSelfSignedCertificate generates a self-signed X.509 CA certificate.
 func GenerateSelfSignedCertificate(privateKeyPEM []byte, params *CertificateParams) (*Certificate, error) {
+	// A non-positive validity would yield NotAfter <= NotBefore (an
+	// already-expired certificate). Guard here so no path can mint one.
+	if params.ValidityDuration <= 0 {
+		return nil, fmt.Errorf("validity duration must be positive, got %s", params.ValidityDuration)
+	}
+
 	block, _ := pem.Decode(privateKeyPEM)
 	if block == nil {
 		return nil, fmt.Errorf("failed to decode PEM block")
@@ -128,5 +134,9 @@ func GenerateSelfSignedCertificate(privateKeyPEM []byte, params *CertificatePara
 		Bytes: certBytes,
 	})
 
-	return &Certificate{Certificate: certPEM}, nil
+	// For self-signed certificates, chain equals the certificate itself
+	return &Certificate{
+		Certificate: certPEM,
+		Chain:       certPEM,
+	}, nil
 }

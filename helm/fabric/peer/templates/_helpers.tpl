@@ -7,7 +7,7 @@ Shared helper functions for Fabric Peer chart
 {{- end }}
 
 {{- define "peer.namespace" -}}
-fabric-{{ .Values.org }}
+{{ .Values.namespace }}
 {{- end }}
 
 {{- define "peer.serviceName" -}}

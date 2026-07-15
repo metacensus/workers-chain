@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -19,6 +18,7 @@ const (
 	vaultEngineType    = "VAULT_ENGINE_TYPE"
 
 	kubeconfigPathName = "KUBECONFIG"
+	operatorIDName     = "OPERATOR_ID"
 	orgIDName          = "ORG_ID"
 )
 
@@ -153,43 +153,17 @@ func GetKubernetes() *KubernetesConfig {
 	return kubernetesGlobal
 }
 
-// OrgConfig holds fabric organization identity and provides derived values
+// OrgConfig holds fabric organization identity and provides derived values.
+// Constructed via LoadOrgConfig (from ORG_ID at worker startup) or NewOrgConfig
+// (from a typed Owner input); there is no global singleton.
 type OrgConfig struct {
 	OrgID string
-}
-
-var (
-	orgGlobal *OrgConfig
-	orgOnce   sync.Once
-	orgMu     sync.RWMutex
-)
-
-func InitializeOrg() error {
-	var err error
-	orgOnce.Do(func() {
-		orgID := viper.GetString(orgIDName)
-		if orgID == "" {
-			err = fmt.Errorf("ORG_ID environment variable is required")
-			return
-		}
-		orgGlobal = &OrgConfig{OrgID: orgID}
-	})
-	return err
-}
-
-func GetOrg() *OrgConfig {
-	orgMu.RLock()
-	defer orgMu.RUnlock()
-	if orgGlobal == nil {
-		panic("OrgConfig not initialized - call InitializeOrg() at startup")
-	}
-	return orgGlobal
 }
 
 // ============= Kubernetes Infrastructure =============
 
 func (c OrgConfig) KubernetesNamespace() string {
-	return "fabric-" + c.OrgID
+	return "fabric-shard-" + c.OrgID
 }
 
 func (c OrgConfig) WorkerServiceAccountName() string {
@@ -203,32 +177,32 @@ func (c OrgConfig) WorkerDeploymentName() string {
 // ============= Temporal Orchestration =============
 
 func (c OrgConfig) TemporalNamespace() string {
-	return "fabric-" + c.OrgID
+	return "fabric-shard-" + c.OrgID
 }
 
 func (c OrgConfig) NexusEndpointBootstrapShard() string {
-	return "fabric-" + c.OrgID + "-BootstrapShard"
+	return "fabric-shard-" + c.OrgID + "-BootstrapShard"
 }
 
 // ============= Vault Security/RBAC =============
 
 func (c OrgConfig) VaultBasePath() string {
-	return "fabric/" + c.OrgID
+	return "fabric/shard/" + c.OrgID
 }
 
 func (c OrgConfig) WorkerVaultPolicyName() string {
-	return "fabric-" + c.OrgID + "-worker"
+	return "fabric-shard-" + c.OrgID + "-worker"
 }
 
 func (c OrgConfig) WorkerVaultAuthRole() string {
-	return "fabric-" + c.OrgID + "-worker"
+	return "fabric-shard-" + c.OrgID + "-worker"
 }
 
 // VaultSecretPath constructs a full Vault KV v2 secret path.
-// Example: VaultSecretPath("database/cert-store/credentials") → "secret/fabric/org1/database/cert-store/credentials"
+// Example: VaultSecretPath("database/cert-store/credentials") → "secret/fabric/shard/org1/database/cert-store/credentials"
 func (c OrgConfig) VaultSecretPath(subpath string) string {
 	if subpath == "" {
-		return "secret/fabric/" + c.OrgID
+		return "secret/" + c.VaultBasePath()
 	}
-	return "secret/fabric/" + c.OrgID + "/" + subpath
+	return "secret/" + c.VaultBasePath() + "/" + subpath
 }

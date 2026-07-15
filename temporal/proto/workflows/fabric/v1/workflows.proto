@@ -1,0 +1,435 @@
+syntax = "proto3";
+
+package fabric.v1;
+
+import "fabric/v1/fabric.proto";
+import "nexus/v1/options.proto";
+import "patch/go.proto";
+import "secrets/v1/secrets.proto";
+import "temporal/v1/temporal.proto";
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1";
+
+// Fabric service defines workflows for deploying Fabric infrastructure.
+//
+// These workflows act AS their worker's owner: the shared fabric worker acts
+// as the operator (in the "fabric" Temporal namespace), and each shard worker
+// acts as its org (in "fabric-shard-{org}" Temporal namespaces). The owner is
+// injected at worker startup and never carried in workflow inputs; all Vault
+// paths and Kubernetes namespaces are derived from that injected identity.
+service Fabric {
+  // Enable Nexus for cross-namespace calls from central worker
+  option (.nexus.v1.service).tags = "nexus-enabled";
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {task_queue: "infra"};
+
+  // BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
+  // This workflow runs on the fabric worker in the "fabric" Temporal namespace and
+  // deploys the certificate store and the operator-owned certificate authorities
+  // (in spec order). Called via Nexus from the central infra worker during InitFabric.
+  rpc BootstrapFabric(BootstrapFabricInput) returns (BootstrapFabricOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.BootstrapFabric"
+      id: 'fabric/bootstrap-fabric'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // BootstrapShard is the entry point for Phase 2 of shard initialization
+  // This workflow runs on the shard worker in the org's Temporal namespace
+  // (e.g., "fabric-shard-org1") and deploys all Fabric components
+  // (certificate store, CAs, peers, orderers) for the organization.
+  // Called via Nexus from the central worker after Phase 1 completes
+  rpc BootstrapShard(BootstrapShardInput) returns (BootstrapShardOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.BootstrapShard"
+      id: 'fabric/bootstrap-shard'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployCertificateStore deploys the shared certificate store (PostgreSQL)
+  // used by all certificate authorities owned by this worker's owner.
+  rpc DeployCertificateStore(DeployCertificateStoreInput) returns (DeployCertificateStoreOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployCertificateStore"
+      id: 'fabric/deploy-certificate-store'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployCertificateAuthority deploys one certificate authority described by
+  // a CertificateAuthoritySpec. The variant behavior (root vs intermediate,
+  // TLS vs org chain) is derived from the spec's structure:
+  //   - signing_issuer == nil  -> self-signed signing certificate (root CA)
+  //   - signing_issuer != nil  -> signing certificate from a local CA (always same-owner)
+  //   - tls_issuer == nil      -> self-signed TLS certificate (TLS Root CA only)
+  //   - tls_issuer owned here  -> TLS certificate via a local CreateCertificate child
+  //   - tls_issuer foreign     -> TLS certificate via Nexus to the issuer's worker
+  //
+  // Ownership enforcement (P1/P2): spec.self and spec.signing_issuer MUST be
+  // owned by the executing worker (the operator owns "tls" CAs, an org owns
+  // "org" CAs); only tls_issuer may be foreign. Specs violating this fail fast.
+  rpc DeployCertificateAuthority(DeployCertificateAuthorityInput) returns (DeployCertificateAuthorityOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployCertificateAuthority"
+      id: 'fabric/deploy-certificate-authority/${! Spec.Self.CertType }-${! Spec.Self.Id }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // CreateCertificateDatabase creates a dedicated database and user for a certificate authority
+  // in the shared certificate store (PostgreSQL). Each CA (root and intermediate) gets its own
+  // isolated database to store issued certificates and revocation information.
+  rpc CreateCertificateDatabase(CreateCertificateDatabaseInput) returns (CreateCertificateDatabaseOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.CreateCertificateDatabase"
+      id: 'fabric/create-certificate-database/${! CaRef.CertType }/${! CaRef.Id }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployCouchDb deploys a CouchDB instance for a peer
+  // CouchDB provides rich query support for Fabric state database
+  rpc DeployCouchDb(DeployCouchDbInput) returns (DeployCouchDbOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployCouchDb"
+      id: 'fabric/deploy-couchdb/${! PeerId }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployPeer deploys a Fabric peer node
+  // Peers endorse transactions and maintain ledger state
+  rpc DeployPeer(DeployPeerInput) returns (DeployPeerOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployPeer"
+      id: 'fabric/deploy-peer/${! Spec.Id }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployOrderer deploys a Fabric orderer node
+  // Orderers provide consensus and block ordering services
+  rpc DeployOrderer(DeployOrdererInput) returns (DeployOrdererOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployOrderer"
+      id: 'fabric/deploy-orderer/${! Spec.Id }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // DeployChainCode deploys a chaincode (smart contract) to the Fabric network
+  // Chaincode runs in isolated containers and processes transactions
+  rpc DeployChainCode(DeployChainCodeInput) returns (DeployChainCodeOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.DeployChainCode"
+      id: 'fabric/deploy-chaincode/${! ChainCodeId }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // CreateChannel creates a new channel and joins the initial orderers and peers
+  rpc CreateChannel(CreateChannelInput) returns (CreateChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.CreateChannel"
+      id: 'fabric/create-channel'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // AddOrdererToChannel adds a new orderer to an existing channel
+  // Fetches latest config block, joins as follower, then promotes to consenter
+  rpc AddOrdererToChannel(AddOrdererToChannelInput) returns (AddOrdererToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.AddOrdererToChannel"
+      id: 'fabric/add-orderer-to-channel'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // AddPeerToChannel adds a new peer to an existing channel
+  // Optionally adds the org to the channel first if not already a member
+  rpc AddPeerToChannel(AddPeerToChannelInput) returns (AddPeerToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.AddPeerToChannel"
+      id: 'fabric/add-peer-to-channel'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+  // Handles both genesis-based (consenter) and config-block-based (follower) joins
+  rpc JoinOrdererToChannel(JoinOrdererToChannelInput) returns (JoinOrdererToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.JoinOrdererToChannel"
+      id: 'fabric/join-orderer-to-channel'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // JoinPeerToChannel joins a peer node to a channel
+  // Fetches the oldest block from an orderer and joins the peer
+  rpc JoinPeerToChannel(JoinPeerToChannelInput) returns (JoinPeerToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.JoinPeerToChannel"
+      id: 'fabric/join-peer-to-channel'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // SetAnchorPeer configures the anchor peer for an org on a channel
+  // Uses UpdateChannelConfig to modify the channel's Application group
+  rpc SetAnchorPeer(SetAnchorPeerInput) returns (SetAnchorPeerOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.SetAnchorPeer"
+      id: 'fabric/set-anchor-peer'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // AddOrdererToConsenterSet promotes an orderer from follower to consenter
+  // via a channel config update to the ConsensusType metadata
+  rpc AddOrdererToConsenterSet(AddOrdererToConsenterSetInput) returns (AddOrdererToConsenterSetOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.AddOrdererToConsenterSet"
+      id: 'fabric/add-orderer-to-consenter-set'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // AddOrgToChannel adds a new organization to an existing channel
+  // Requires signatures from a majority of existing channel admins
+  rpc AddOrgToChannel(AddOrgToChannelInput) returns (AddOrgToChannelOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.AddOrgToChannel"
+      id: 'fabric/add-org-to-channel'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+
+  // UpdateChannelConfig is the common pattern for all channel configuration changes
+  // Fetches current config, computes delta, collects signatures, and submits update
+  rpc UpdateChannelConfig(UpdateChannelConfigInput) returns (UpdateChannelConfigOutput) {
+    option (temporal.v1.workflow) = {
+      name: "fabric.v1.UpdateChannelConfig"
+      id: 'fabric/update-channel-config'
+      workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+    };
+  }
+}
+// ==================== BootstrapFabric Workflow Messages ====================
+
+// BootstrapFabricInput specifies parameters for bootstrapping shared Fabric infrastructure
+message BootstrapFabricInput {
+  // certificate_authorities specifies the operator-owned CAs to deploy, in order
+  // (e.g., TLS Root before TLS Intermediate). Every spec's self and signing_issuer
+  // must be operator-owned ("tls" chain).
+  repeated CertificateAuthoritySpec certificate_authorities = 1 [
+    json_name = "CertificateAuthorities",
+    (go.field).tags = 'json:"CertificateAuthorities" validate:"required,min=1"'
+  ];
+}
+
+// BootstrapFabricOutput indicates the result of shared Fabric infrastructure bootstrapping
+message BootstrapFabricOutput {
+  // Empty for now
+}
+
+// ==================== BootstrapShard Workflow Messages ====================
+
+// BootstrapShardInput specifies the parameters for bootstrapping a Fabric shard
+message BootstrapShardInput {
+  // deployment is the complete fabric deployment configuration (required)
+  // Caller must specify all CAs, peers, and orderers - no defaults.
+  // All resources are created in the executing worker's (org's) namespace
+  // and vault paths.
+  OrgFabricDeployment deployment = 1 [
+    json_name = "Deployment",
+    (go.field).tags = 'json:"Deployment" validate:"required"'
+  ];
+}
+
+// BootstrapShardOutput indicates the result of shard bootstrapping
+message BootstrapShardOutput {
+  // Empty for now
+}
+
+// ==================== DeployCertificateStore Workflow Messages ====================
+
+// DeployCertificateStoreInput specifies the parameters for deploying the certificate store.
+// The store is created in the executing worker's (owner's) namespace.
+message DeployCertificateStoreInput {
+  // Empty - the certificate store is fully derived from the worker's owner
+}
+
+// DeployCertificateStoreOutput indicates the result of certificate store deployment
+message DeployCertificateStoreOutput {
+  // Empty for now
+}
+
+// ==================== DeployCertificateAuthority Workflow Messages ====================
+
+// DeployCertificateAuthorityInput specifies the CA to deploy
+message DeployCertificateAuthorityInput {
+  // spec describes the CA: its identity, who issues its signing certificate
+  // (nil = self-signed), who issues its TLS certificate (nil = self-signed),
+  // and how long its certificates are valid.
+  CertificateAuthoritySpec spec = 1 [
+    json_name = "Spec",
+    (go.field).tags = 'json:"Spec" validate:"required"'
+  ];
+}
+
+// DeployCertificateAuthorityOutput indicates the result of CA deployment
+message DeployCertificateAuthorityOutput {
+  // Empty for now
+}
+
+// ==================== CreateCertificateDatabase Workflow Messages ====================
+
+// CreateCertificateDatabaseInput specifies the parameters for creating a certificate database
+message CreateCertificateDatabaseInput {
+  // ca_ref identifies which CA this database is for.
+  // The CA must be owned by the executing worker's owner.
+  CertificateAuthorityRef ca_ref = 1 [
+    json_name = "CaRef",
+    (go.field).tags = 'json:"CaRef" validate:"required"'
+  ];
+}
+
+// CreateCertificateDatabaseOutput indicates the result of certificate database creation
+message CreateCertificateDatabaseOutput {
+  // credentials_ref is the Vault reference to retrieve the username and password
+  secrets.v1.SecretRef credentials_ref = 1 [
+    json_name = "CredentialsRef",
+    (go.field).tags = 'json:"CredentialsRef" validate:"required"'
+  ];
+}
+
+// ==================== DeployCouchDb Workflow Messages ====================
+
+// DeployCouchDbInput specifies the parameters for deploying a CouchDB instance
+message DeployCouchDbInput {
+  // peer_id identifies which peer this CouchDB is for (e.g., "peer0", "peer1")
+  string peer_id = 1 [
+    json_name = "PeerId",
+    (go.field).tags = 'json:"PeerId" validate:"required"'
+  ];
+}
+
+// DeployCouchDbOutput indicates the result of CouchDB deployment
+message DeployCouchDbOutput {
+  // Empty for now
+}
+
+// ==================== DeployPeer Workflow Messages ====================
+
+// DeployPeerInput specifies the parameters for deploying a Fabric peer
+message DeployPeerInput {
+  // spec defines the peer to deploy (required)
+  PeerSpec spec = 1 [
+    json_name = "Spec",
+    (go.field).tags = 'json:"Spec" validate:"required"'
+  ];
+}
+
+// DeployPeerOutput indicates the result of peer deployment
+message DeployPeerOutput {
+  // Empty for now
+}
+
+// ==================== DeployOrderer Workflow Messages ====================
+
+// DeployOrdererInput specifies the parameters for deploying a Fabric orderer
+message DeployOrdererInput {
+  // spec defines the orderer to deploy (required)
+  OrdererSpec spec = 1 [
+    json_name = "Spec",
+    (go.field).tags = 'json:"Spec" validate:"required"'
+  ];
+}
+
+// DeployOrdererOutput indicates the result of orderer deployment
+message DeployOrdererOutput {
+  // Empty for now
+}
+
+// ==================== DeployChainCode Workflow Messages ====================
+
+// DeployChainCodeInput specifies the parameters for deploying a chaincode
+message DeployChainCodeInput {
+  // chain_code_id identifies this chaincode (e.g., "asset-transfer", "fabcar")
+  string chain_code_id = 1 [
+    json_name = "ChainCodeId",
+    (go.field).tags = 'json:"ChainCodeId" validate:"required"'
+  ];
+}
+
+// DeployChainCodeOutput indicates the result of chaincode deployment
+message DeployChainCodeOutput {
+  // Empty for now
+}
+
+// ==================== CreateChannel Workflow Messages ====================
+
+message CreateChannelInput {}
+
+message CreateChannelOutput {}
+
+// ==================== AddOrdererToChannel Workflow Messages ====================
+
+message AddOrdererToChannelInput {}
+
+message AddOrdererToChannelOutput {}
+
+// ==================== AddPeerToChannel Workflow Messages ====================
+
+message AddPeerToChannelInput {}
+
+message AddPeerToChannelOutput {}
+
+// ==================== JoinOrdererToChannel Workflow Messages ====================
+
+message JoinOrdererToChannelInput {}
+
+message JoinOrdererToChannelOutput {}
+
+// ==================== JoinPeerToChannel Workflow Messages ====================
+
+message JoinPeerToChannelInput {}
+
+message JoinPeerToChannelOutput {}
+
+// ==================== SetAnchorPeer Workflow Messages ====================
+
+message SetAnchorPeerInput {}
+
+message SetAnchorPeerOutput {}
+
+// ==================== AddOrdererToConsenterSet Workflow Messages ====================
+
+message AddOrdererToConsenterSetInput {}
+
+message AddOrdererToConsenterSetOutput {}
+
+// ==================== AddOrgToChannel Workflow Messages ====================
+
+message AddOrgToChannelInput {}
+
+message AddOrgToChannelOutput {}
+
+// ==================== UpdateChannelConfig Workflow Messages ====================
+
+message UpdateChannelConfigInput {}
+
+message UpdateChannelConfigOutput {}

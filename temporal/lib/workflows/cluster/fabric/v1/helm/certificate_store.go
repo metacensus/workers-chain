@@ -7,6 +7,7 @@ import (
 // CertificateStoreValues represents the Helm values for a certificate store (PostgreSQL) deployment
 type CertificateStoreValues struct {
 	Org            string
+	Namespace      string
 	Image          ImageConfig
 	Replicas       int
 	Database       DatabaseConfig
@@ -50,7 +51,8 @@ type DBProbeConfig struct {
 // This ensures consistency between Helm values and workflow/activity configuration
 func NewCertificateStoreValues(certStoreConfig fabricconfig.CertificateStoreConfig) *CertificateStoreValues {
 	return &CertificateStoreValues{
-		Org: certStoreConfig.OrgID,
+		Org:       certStoreConfig.OwnerID(),
+		Namespace: certStoreConfig.KubernetesNamespace(),
 		Image: ImageConfig{
 			Repository: "postgres",
 			Tag:        "16-alpine",

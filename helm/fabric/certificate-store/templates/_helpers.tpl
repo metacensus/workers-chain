@@ -7,7 +7,7 @@ certificate-store
 {{- end }}
 
 {{- define "certificate-store.namespace" -}}
-fabric-{{ .Values.org }}
+{{ .Values.namespace }}
 {{- end }}
 
 {{- define "certificate-store.serviceName" -}}

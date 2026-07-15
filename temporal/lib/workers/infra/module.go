@@ -13,14 +13,22 @@ import (
 	"go.uber.org/fx"
 )
 
-// Module provides all dependencies for the infra worker
+// Module provides all dependencies for the infra worker.
+// The infra worker runs in the "infra" Temporal namespace and orchestrates
+// platform bootstrap (cell workflows), Temporal admin, secrets access, and
+// cluster provisioning. Fabric-specific work (TLS CAs, certificate issuance,
+// shard components) is delegated via Nexus to the fabric and shard workers.
 var Module = fx.Module("infra",
-	// Load environment config
+	// Load environment config.
+	// The infra worker acts ON BEHALF OF explicit owners; the operator config
+	// provides platform-level context (operator identity for InitFabric and
+	// TLS root trust for cluster deployments).
 	fx.Provide(
 		config.GetTemporal,
 		config.GetVault,
 		config.GetWorker,
 		config.GetKubernetes,
+		config.LoadOperatorConfig,
 	),
 
 	// Provide temporal worker

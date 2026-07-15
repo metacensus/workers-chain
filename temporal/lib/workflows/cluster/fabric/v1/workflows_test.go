@@ -7,19 +7,64 @@ import (
 	"testing"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/cluster/fabric/v1"
+	fabricv1 "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	helmpb "github.com/metacensus/infra/temporal/gen/workflows/helm/v1"
 	kubepb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
+	workerconfig "github.com/metacensus/infra/temporal/lib/workers/config"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
 
+const testOperatorID = "testoperator"
+const testOrg = "testorg"
+
+// Cluster workflows act ON BEHALF OF the explicit typed Owner carried in each
+// input. The injected operator config is platform-level context (TLS root
+// trust anchors, worker environment).
+var testOperatorConfig = workerconfig.NewOperatorConfig(testOperatorID)
+
+// newTestWorkflows builds the Workflows under test with the platform operator injected
+func newTestWorkflows() *Workflows {
+	return NewWorkflows(&testOperatorConfig)
+}
+
+func orgOwner(org string) *fabricv1.Owner {
+	return &fabricv1.Owner{Id: &fabricv1.Owner_OrgId{OrgId: org}}
+}
+
+func operatorOwner(operatorID string) *fabricv1.Owner {
+	return &fabricv1.Owner{Id: &fabricv1.Owner_OperatorId{OperatorId: operatorID}}
+}
+
 // =============================================================================
 // Constructor / Validation Tests
 // =============================================================================
 // These tests verify input validation without needing a workflow environment.
 // They're fast and focused on the validation logic.
+
+func assertConstructorResult(t *testing.T, wfIsNil bool, err error, wantErr bool, errSubstr string) {
+	t.Helper()
+	if wantErr {
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if errSubstr != "" && !strings.Contains(err.Error(), errSubstr) {
+			t.Errorf("expected error containing %q, got: %v", errSubstr, err)
+		}
+		if !wfIsNil {
+			t.Error("expected nil workflow on error")
+		}
+	} else {
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if wfIsNil {
+			t.Fatal("expected non-nil workflow")
+		}
+	}
+}
 
 func TestNewCreateNamespaceWorkflow(t *testing.T) {
 	tests := []struct {
@@ -29,40 +74,39 @@ func TestNewCreateNamespaceWorkflow(t *testing.T) {
 		errSubstr string
 	}{
 		{
-			name:    "success - valid input",
-			input:   &pb.CreateNamespaceInput{Org: "org1"},
+			name:    "success - org owner",
+			input:   &pb.CreateNamespaceInput{Owner: orgOwner(testOrg)},
 			wantErr: false,
 		},
 		{
-			name:      "error - empty org",
-			input:     &pb.CreateNamespaceInput{Org: ""},
+			name:    "success - operator owner",
+			input:   &pb.CreateNamespaceInput{Owner: operatorOwner(testOperatorID)},
+			wantErr: false,
+		},
+		{
+			name:      "error - missing owner",
+			input:     &pb.CreateNamespaceInput{},
 			wantErr:   true,
-			errSubstr: "org is required",
+			errSubstr: "owner must specify operator_id or org_id",
+		},
+		{
+			name:      "error - empty org_id",
+			input:     &pb.CreateNamespaceInput{Owner: orgOwner("")},
+			wantErr:   true,
+			errSubstr: "owner.org_id must not be empty",
+		},
+		{
+			name:      "error - empty operator_id",
+			input:     &pb.CreateNamespaceInput{Owner: operatorOwner("")},
+			wantErr:   true,
+			errSubstr: "owner.operator_id must not be empty",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			wf, err := newCreateNamespaceWorkflow(tt.input)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
-					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
-				}
-				if wf != nil {
-					t.Error("expected nil workflow on error")
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if wf == nil {
-					t.Fatal("expected non-nil workflow")
-				}
-			}
+			assertConstructorResult(t, wf == nil, err, tt.wantErr, tt.errSubstr)
 		})
 	}
 }
@@ -75,40 +119,27 @@ func TestNewCreateServiceAccountWorkflow(t *testing.T) {
 		errSubstr string
 	}{
 		{
-			name:    "success - valid input",
-			input:   &pb.CreateServiceAccountInput{Org: "org1"},
+			name:    "success - org owner",
+			input:   &pb.CreateServiceAccountInput{Owner: orgOwner(testOrg)},
 			wantErr: false,
 		},
 		{
-			name:      "error - empty org",
-			input:     &pb.CreateServiceAccountInput{Org: ""},
+			name:    "success - operator owner",
+			input:   &pb.CreateServiceAccountInput{Owner: operatorOwner(testOperatorID)},
+			wantErr: false,
+		},
+		{
+			name:      "error - missing owner",
+			input:     &pb.CreateServiceAccountInput{},
 			wantErr:   true,
-			errSubstr: "org is required",
+			errSubstr: "owner must specify operator_id or org_id",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			wf, err := newCreateServiceAccountWorkflow(tt.input)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
-					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
-				}
-				if wf != nil {
-					t.Error("expected nil workflow on error")
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if wf == nil {
-					t.Fatal("expected non-nil workflow")
-				}
-			}
+			assertConstructorResult(t, wf == nil, err, tt.wantErr, tt.errSubstr)
 		})
 	}
 }
@@ -122,76 +153,58 @@ func TestNewCreateDeploymentWorkflow(t *testing.T) {
 	}{
 		{
 			name:    "success - valid worker",
-			input:   &pb.CreateDeploymentInput{Org: "org1", Component: "worker"},
+			input:   &pb.CreateDeploymentInput{Owner: orgOwner(testOrg), Component: "worker"},
 			wantErr: false,
 		},
 		{
 			name:    "success - valid certificate-store",
-			input:   &pb.CreateDeploymentInput{Org: "org1", Component: "certificate-store"},
+			input:   &pb.CreateDeploymentInput{Owner: orgOwner(testOrg), Component: "certificate-store"},
 			wantErr: false,
 		},
 		{
 			name:    "success - valid certificate-authority",
-			input:   &pb.CreateDeploymentInput{Org: "org1", Component: "certificate-authority-tls-root"},
+			input:   &pb.CreateDeploymentInput{Owner: operatorOwner(testOperatorID), Component: "certificate-authority-tls-root"},
 			wantErr: false,
 		},
 		{
 			name:    "success - valid couchdb",
-			input:   &pb.CreateDeploymentInput{Org: "org1", Component: "couchdb-peer0"},
+			input:   &pb.CreateDeploymentInput{Owner: orgOwner(testOrg), Component: "couchdb-peer0"},
 			wantErr: false,
 		},
 		{
 			name:    "success - valid peer",
-			input:   &pb.CreateDeploymentInput{Org: "org1", Component: "peer0"},
+			input:   &pb.CreateDeploymentInput{Owner: orgOwner(testOrg), Component: "peer0"},
 			wantErr: false,
 		},
 		{
 			name:    "success - valid orderer",
-			input:   &pb.CreateDeploymentInput{Org: "org1", Component: "orderer0"},
+			input:   &pb.CreateDeploymentInput{Owner: orgOwner(testOrg), Component: "orderer0"},
 			wantErr: false,
 		},
 		{
-			name:      "error - empty org",
-			input:     &pb.CreateDeploymentInput{Org: "", Component: "worker"},
+			name:      "error - missing owner",
+			input:     &pb.CreateDeploymentInput{Component: "worker"},
 			wantErr:   true,
-			errSubstr: "org is required",
+			errSubstr: "owner must specify operator_id or org_id",
 		},
 		{
 			name:      "error - empty component",
-			input:     &pb.CreateDeploymentInput{Org: "org1", Component: ""},
+			input:     &pb.CreateDeploymentInput{Owner: orgOwner(testOrg), Component: ""},
 			wantErr:   true,
 			errSubstr: "component is required",
 		},
 		{
 			name:      "error - both empty",
-			input:     &pb.CreateDeploymentInput{Org: "", Component: ""},
+			input:     &pb.CreateDeploymentInput{},
 			wantErr:   true,
-			errSubstr: "org is required", // Org checked first
+			errSubstr: "owner must specify operator_id or org_id", // Owner checked first
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wf, err := newCreateDeploymentWorkflow(tt.input)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
-					t.Errorf("expected error containing %q, got: %v", tt.errSubstr, err)
-				}
-				if wf != nil {
-					t.Error("expected nil workflow on error")
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if wf == nil {
-					t.Fatal("expected non-nil workflow")
-				}
-			}
+			wf, err := newCreateDeploymentWorkflow(tt.input, &testOperatorConfig)
+			assertConstructorResult(t, wf == nil, err, tt.wantErr, tt.errSubstr)
 		})
 	}
 }
@@ -218,24 +231,10 @@ func registerActivityStubs(env *testsuite.TestWorkflowEnvironment) {
 	)
 }
 
-// mockSuccessfulActivities sets up mocks for successful activity execution
-func mockSuccessfulActivities(env *testsuite.TestWorkflowEnvironment) {
-	env.OnActivity(helmpb.RenderChartWithTemplateActivityName, mock.Anything, mock.Anything).
-		Return(&helmpb.RenderChartOutput{
-			Resources: map[string]*helmpb.Resource{
-				"test": {ManifestYaml: []byte("apiVersion: v1\nkind: ConfigMap")},
-			},
-		}, nil)
-	env.OnActivity(kubepb.ApplyActivityName, mock.Anything, mock.Anything).
-		Return(&kubepb.ApplyOutput{
-			Summary: &kubepb.ApplySummary{Applied: 1, Failed: 0},
-		}, nil)
-}
-
 func TestCreateNamespaceWorkflow_Execute(t *testing.T) {
 	tests := []struct {
 		name           string
-		org            string
+		owner          *fabricv1.Owner
 		renderErr      error
 		renderFailures map[string]string
 		applyErr       error
@@ -245,35 +244,41 @@ func TestCreateNamespaceWorkflow_Execute(t *testing.T) {
 		wantNamespace  string
 	}{
 		{
-			name:          "success - namespace created",
-			org:           "testorg",
+			name:          "success - org namespace created",
+			owner:         orgOwner(testOrg),
 			wantErr:       false,
-			wantNamespace: "fabric-testorg",
+			wantNamespace: "fabric-shard-testorg",
+		},
+		{
+			name:          "success - operator namespace created",
+			owner:         operatorOwner(testOperatorID),
+			wantErr:       false,
+			wantNamespace: "fabric",
 		},
 		{
 			name:      "error - render chart fails",
-			org:       "testorg",
+			owner:     orgOwner(testOrg),
 			renderErr: errors.New("helm rendering failed"),
 			wantErr:   true,
 			errSubstr: "render chart",
 		},
 		{
 			name:           "error - render chart has failures",
-			org:            "testorg",
+			owner:          orgOwner(testOrg),
 			renderFailures: map[string]string{"template": "invalid syntax"},
 			wantErr:        true,
 			errSubstr:      "chart rendering failed",
 		},
 		{
 			name:      "error - apply fails",
-			org:       "testorg",
+			owner:     orgOwner(testOrg),
 			applyErr:  errors.New("kubectl error"),
 			wantErr:   true,
 			errSubstr: "apply resources",
 		},
 		{
 			name:        "error - apply has failed resources",
-			org:         "testorg",
+			owner:       orgOwner(testOrg),
 			applyFailed: 2,
 			wantErr:     true,
 			errSubstr:   "failed to apply 2 resources",
@@ -286,7 +291,7 @@ func TestCreateNamespaceWorkflow_Execute(t *testing.T) {
 			env := testSuite.NewTestWorkflowEnvironment()
 
 			// Register workflows
-			workflows := NewWorkflows()
+			workflows := newTestWorkflows()
 			pb.RegisterClusterWorkflows(env, workflows)
 
 			// Register activity stubs
@@ -325,7 +330,7 @@ func TestCreateNamespaceWorkflow_Execute(t *testing.T) {
 					return nil, err
 				}
 				return wf.Execute(ctx)
-			}, &pb.CreateNamespaceInput{Org: tt.org})
+			}, &pb.CreateNamespaceInput{Owner: tt.owner})
 
 			// Check results
 			err := env.GetWorkflowError()
@@ -355,7 +360,7 @@ func TestCreateNamespaceWorkflow_Execute(t *testing.T) {
 func TestCreateServiceAccountWorkflow_Execute(t *testing.T) {
 	tests := []struct {
 		name           string
-		org            string
+		owner          *fabricv1.Owner
 		renderErr      error
 		renderFailures map[string]string
 		applyErr       error
@@ -364,34 +369,39 @@ func TestCreateServiceAccountWorkflow_Execute(t *testing.T) {
 		errSubstr      string
 	}{
 		{
-			name:    "success - service account created",
-			org:     "testorg",
+			name:    "success - org service account created",
+			owner:   orgOwner(testOrg),
+			wantErr: false,
+		},
+		{
+			name:    "success - operator service account created",
+			owner:   operatorOwner(testOperatorID),
 			wantErr: false,
 		},
 		{
 			name:      "error - render chart fails",
-			org:       "testorg",
+			owner:     orgOwner(testOrg),
 			renderErr: errors.New("helm rendering failed"),
 			wantErr:   true,
 			errSubstr: "render chart",
 		},
 		{
 			name:           "error - render chart has failures",
-			org:            "testorg",
+			owner:          orgOwner(testOrg),
 			renderFailures: map[string]string{"template": "invalid syntax"},
 			wantErr:        true,
 			errSubstr:      "chart rendering failed",
 		},
 		{
 			name:      "error - apply fails",
-			org:       "testorg",
+			owner:     orgOwner(testOrg),
 			applyErr:  errors.New("kubectl error"),
 			wantErr:   true,
 			errSubstr: "apply resources",
 		},
 		{
 			name:        "error - apply has failed resources",
-			org:         "testorg",
+			owner:       orgOwner(testOrg),
 			applyFailed: 1,
 			wantErr:     true,
 			errSubstr:   "failed to apply 1 resources",
@@ -404,7 +414,7 @@ func TestCreateServiceAccountWorkflow_Execute(t *testing.T) {
 			env := testSuite.NewTestWorkflowEnvironment()
 
 			// Register workflows
-			workflows := NewWorkflows()
+			workflows := newTestWorkflows()
 			pb.RegisterClusterWorkflows(env, workflows)
 
 			// Register activity stubs
@@ -443,7 +453,7 @@ func TestCreateServiceAccountWorkflow_Execute(t *testing.T) {
 					return nil, err
 				}
 				return wf.Execute(ctx)
-			}, &pb.CreateServiceAccountInput{Org: tt.org})
+			}, &pb.CreateServiceAccountInput{Owner: tt.owner})
 
 			// Check results
 			err := env.GetWorkflowError()
@@ -466,7 +476,7 @@ func TestCreateServiceAccountWorkflow_Execute(t *testing.T) {
 func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 	tests := []struct {
 		name               string
-		org                string
+		owner              *fabricv1.Owner
 		component          string
 		renderErr          error
 		renderFailures     map[string]string
@@ -477,92 +487,106 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 		wantDeploymentName string
 	}{
 		{
-			name:               "success - worker deployed",
-			org:                "testorg",
+			name:               "success - shard worker deployed",
+			owner:              orgOwner(testOrg),
 			component:          "worker",
 			wantErr:            false,
 			wantDeploymentName: "fabric-worker-testorg",
 		},
 		{
-			name:               "success - certificate-store deployed",
-			org:                "testorg",
+			name:               "success - shared fabric worker deployed",
+			owner:              operatorOwner(testOperatorID),
+			component:          "worker",
+			wantErr:            false,
+			wantDeploymentName: "fabric-worker-" + testOperatorID,
+		},
+		{
+			name:               "success - org certificate-store deployed",
+			owner:              orgOwner(testOrg),
 			component:          "certificate-store",
 			wantErr:            false,
 			wantDeploymentName: "certificate-store",
 		},
 		{
-			name:               "success - certificate-authority-tls-root deployed",
-			org:                "testorg",
+			name:               "success - operator certificate-store deployed",
+			owner:              operatorOwner(testOperatorID),
+			component:          "certificate-store",
+			wantErr:            false,
+			wantDeploymentName: "certificate-store",
+		},
+		{
+			name:               "success - certificate-authority-tls-root deployed (operator-owned)",
+			owner:              operatorOwner(testOperatorID),
 			component:          "certificate-authority-tls-root",
 			wantErr:            false,
 			wantDeploymentName: "certificate-authority-tls-root",
 		},
 		{
-			name:               "success - certificate-authority-org-v1 deployed",
-			org:                "testorg",
-			component:          "certificate-authority-org-v1",
+			name:               "success - certificate-authority-org-int deployed (org-owned)",
+			owner:              orgOwner(testOrg),
+			component:          "certificate-authority-org-int",
 			wantErr:            false,
-			wantDeploymentName: "certificate-authority-org-v1",
+			wantDeploymentName: "certificate-authority-org-int",
 		},
 		{
 			name:               "success - couchdb-peer0 deployed",
-			org:                "testorg",
+			owner:              orgOwner(testOrg),
 			component:          "couchdb-peer0",
 			wantErr:            false,
 			wantDeploymentName: "couchdb-peer0",
 		},
 		{
 			name:               "success - peer0 deployed",
-			org:                "testorg",
+			owner:              orgOwner(testOrg),
 			component:          "peer0",
 			wantErr:            false,
 			wantDeploymentName: "peer0",
 		},
 		{
 			name:               "success - orderer0 deployed",
-			org:                "testorg",
+			owner:              orgOwner(testOrg),
 			component:          "orderer0",
 			wantErr:            false,
 			wantDeploymentName: "orderer0",
 		},
 		{
 			name:      "error - unsupported component",
-			org:       "testorg",
+			owner:     orgOwner(testOrg),
 			component: "unknown",
 			wantErr:   true,
 			errSubstr: "unsupported component type",
 		},
 		{
 			name:      "error - invalid certificate-authority format (too few parts)",
-			org:       "testorg",
+			owner:     orgOwner(testOrg),
 			component: "certificate-authority-tls",
 			wantErr:   true,
 			errSubstr: "invalid certificate authority component format",
 		},
 		{
 			name:      "error - invalid certificate-authority format (too many parts)",
-			org:       "testorg",
+			owner:     orgOwner(testOrg),
 			component: "certificate-authority-tls-root-extra",
 			wantErr:   true,
 			errSubstr: "invalid certificate authority component format",
 		},
 		{
 			name:      "error - invalid cert type",
-			org:       "testorg",
+			owner:     orgOwner(testOrg),
 			component: "certificate-authority-invalid-root",
 			wantErr:   true,
 			errSubstr: "invalid cert type",
 		},
 		{
 			name:      "error - invalid couchdb format",
-			org:       "testorg",
+			owner:     orgOwner(testOrg),
 			component: "couchdb-peer0-extra",
 			wantErr:   true,
 			errSubstr: "invalid couchdb component format",
 		},
 		{
 			name:      "error - render chart fails",
-			org:       "testorg",
+			owner:     orgOwner(testOrg),
 			component: "worker",
 			renderErr: errors.New("helm rendering failed"),
 			wantErr:   true,
@@ -570,7 +594,7 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 		},
 		{
 			name:           "error - render chart has failures",
-			org:            "testorg",
+			owner:          orgOwner(testOrg),
 			component:      "worker",
 			renderFailures: map[string]string{"template": "invalid syntax"},
 			wantErr:        true,
@@ -578,7 +602,7 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 		},
 		{
 			name:      "error - apply fails",
-			org:       "testorg",
+			owner:     orgOwner(testOrg),
 			component: "worker",
 			applyErr:  errors.New("kubectl error"),
 			wantErr:   true,
@@ -586,7 +610,7 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 		},
 		{
 			name:        "error - apply has failed resources",
-			org:         "testorg",
+			owner:       orgOwner(testOrg),
 			component:   "worker",
 			applyFailed: 3,
 			wantErr:     true,
@@ -600,7 +624,7 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 			env := testSuite.NewTestWorkflowEnvironment()
 
 			// Register workflows
-			workflows := NewWorkflows()
+			workflows := newTestWorkflows()
 			pb.RegisterClusterWorkflows(env, workflows)
 
 			// Register activity stubs
@@ -639,7 +663,7 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 					return nil, err
 				}
 				return wf.Execute(ctx)
-			}, &pb.CreateDeploymentInput{Org: tt.org, Component: tt.component})
+			}, &pb.CreateDeploymentInput{Owner: tt.owner, Component: tt.component})
 
 			// Check results
 			err := env.GetWorkflowError()
