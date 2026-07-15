@@ -781,6 +781,654 @@ func (*DeployChainCodeOutput) Descriptor() ([]byte, []int) {
 	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{17}
 }
 
+type CreateChannelInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateChannelInput) Reset() {
+	*x = CreateChannelInput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateChannelInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateChannelInput) ProtoMessage() {}
+
+func (x *CreateChannelInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateChannelInput.ProtoReflect.Descriptor instead.
+func (*CreateChannelInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{18}
+}
+
+type CreateChannelOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateChannelOutput) Reset() {
+	*x = CreateChannelOutput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateChannelOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateChannelOutput) ProtoMessage() {}
+
+func (x *CreateChannelOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateChannelOutput.ProtoReflect.Descriptor instead.
+func (*CreateChannelOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{19}
+}
+
+type AddOrdererToChannelInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddOrdererToChannelInput) Reset() {
+	*x = AddOrdererToChannelInput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddOrdererToChannelInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddOrdererToChannelInput) ProtoMessage() {}
+
+func (x *AddOrdererToChannelInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddOrdererToChannelInput.ProtoReflect.Descriptor instead.
+func (*AddOrdererToChannelInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{20}
+}
+
+type AddOrdererToChannelOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddOrdererToChannelOutput) Reset() {
+	*x = AddOrdererToChannelOutput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddOrdererToChannelOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddOrdererToChannelOutput) ProtoMessage() {}
+
+func (x *AddOrdererToChannelOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddOrdererToChannelOutput.ProtoReflect.Descriptor instead.
+func (*AddOrdererToChannelOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{21}
+}
+
+type AddPeerToChannelInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddPeerToChannelInput) Reset() {
+	*x = AddPeerToChannelInput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddPeerToChannelInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddPeerToChannelInput) ProtoMessage() {}
+
+func (x *AddPeerToChannelInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddPeerToChannelInput.ProtoReflect.Descriptor instead.
+func (*AddPeerToChannelInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{22}
+}
+
+type AddPeerToChannelOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddPeerToChannelOutput) Reset() {
+	*x = AddPeerToChannelOutput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddPeerToChannelOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddPeerToChannelOutput) ProtoMessage() {}
+
+func (x *AddPeerToChannelOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddPeerToChannelOutput.ProtoReflect.Descriptor instead.
+func (*AddPeerToChannelOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{23}
+}
+
+type JoinOrdererToChannelInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinOrdererToChannelInput) Reset() {
+	*x = JoinOrdererToChannelInput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinOrdererToChannelInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinOrdererToChannelInput) ProtoMessage() {}
+
+func (x *JoinOrdererToChannelInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinOrdererToChannelInput.ProtoReflect.Descriptor instead.
+func (*JoinOrdererToChannelInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{24}
+}
+
+type JoinOrdererToChannelOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinOrdererToChannelOutput) Reset() {
+	*x = JoinOrdererToChannelOutput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinOrdererToChannelOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinOrdererToChannelOutput) ProtoMessage() {}
+
+func (x *JoinOrdererToChannelOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinOrdererToChannelOutput.ProtoReflect.Descriptor instead.
+func (*JoinOrdererToChannelOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{25}
+}
+
+type JoinPeerToChannelInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinPeerToChannelInput) Reset() {
+	*x = JoinPeerToChannelInput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinPeerToChannelInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinPeerToChannelInput) ProtoMessage() {}
+
+func (x *JoinPeerToChannelInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinPeerToChannelInput.ProtoReflect.Descriptor instead.
+func (*JoinPeerToChannelInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{26}
+}
+
+type JoinPeerToChannelOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinPeerToChannelOutput) Reset() {
+	*x = JoinPeerToChannelOutput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinPeerToChannelOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinPeerToChannelOutput) ProtoMessage() {}
+
+func (x *JoinPeerToChannelOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinPeerToChannelOutput.ProtoReflect.Descriptor instead.
+func (*JoinPeerToChannelOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{27}
+}
+
+type SetAnchorPeerInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetAnchorPeerInput) Reset() {
+	*x = SetAnchorPeerInput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetAnchorPeerInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetAnchorPeerInput) ProtoMessage() {}
+
+func (x *SetAnchorPeerInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetAnchorPeerInput.ProtoReflect.Descriptor instead.
+func (*SetAnchorPeerInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{28}
+}
+
+type SetAnchorPeerOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetAnchorPeerOutput) Reset() {
+	*x = SetAnchorPeerOutput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetAnchorPeerOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetAnchorPeerOutput) ProtoMessage() {}
+
+func (x *SetAnchorPeerOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetAnchorPeerOutput.ProtoReflect.Descriptor instead.
+func (*SetAnchorPeerOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{29}
+}
+
+type AddOrdererToConsenterSetInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddOrdererToConsenterSetInput) Reset() {
+	*x = AddOrdererToConsenterSetInput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddOrdererToConsenterSetInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddOrdererToConsenterSetInput) ProtoMessage() {}
+
+func (x *AddOrdererToConsenterSetInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddOrdererToConsenterSetInput.ProtoReflect.Descriptor instead.
+func (*AddOrdererToConsenterSetInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{30}
+}
+
+type AddOrdererToConsenterSetOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddOrdererToConsenterSetOutput) Reset() {
+	*x = AddOrdererToConsenterSetOutput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddOrdererToConsenterSetOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddOrdererToConsenterSetOutput) ProtoMessage() {}
+
+func (x *AddOrdererToConsenterSetOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddOrdererToConsenterSetOutput.ProtoReflect.Descriptor instead.
+func (*AddOrdererToConsenterSetOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{31}
+}
+
+type AddOrgToChannelInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddOrgToChannelInput) Reset() {
+	*x = AddOrgToChannelInput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddOrgToChannelInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddOrgToChannelInput) ProtoMessage() {}
+
+func (x *AddOrgToChannelInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddOrgToChannelInput.ProtoReflect.Descriptor instead.
+func (*AddOrgToChannelInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{32}
+}
+
+type AddOrgToChannelOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddOrgToChannelOutput) Reset() {
+	*x = AddOrgToChannelOutput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddOrgToChannelOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddOrgToChannelOutput) ProtoMessage() {}
+
+func (x *AddOrgToChannelOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddOrgToChannelOutput.ProtoReflect.Descriptor instead.
+func (*AddOrgToChannelOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{33}
+}
+
+type UpdateChannelConfigInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateChannelConfigInput) Reset() {
+	*x = UpdateChannelConfigInput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateChannelConfigInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateChannelConfigInput) ProtoMessage() {}
+
+func (x *UpdateChannelConfigInput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateChannelConfigInput.ProtoReflect.Descriptor instead.
+func (*UpdateChannelConfigInput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{34}
+}
+
+type UpdateChannelConfigOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateChannelConfigOutput) Reset() {
+	*x = UpdateChannelConfigOutput{}
+	mi := &file_fabric_v1_workflows_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateChannelConfigOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateChannelConfigOutput) ProtoMessage() {}
+
+func (x *UpdateChannelConfigOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_fabric_v1_workflows_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateChannelConfigOutput.ProtoReflect.Descriptor instead.
+func (*UpdateChannelConfigOutput) Descriptor() ([]byte, []int) {
+	return file_fabric_v1_workflows_proto_rawDescGZIP(), []int{35}
+}
+
 var File_fabric_v1_workflows_proto protoreflect.FileDescriptor
 
 const file_fabric_v1_workflows_proto_rawDesc = "" +
@@ -814,7 +1462,25 @@ const file_fabric_v1_workflows_proto_rawDesc = "" +
 	"\x13DeployOrdererOutput\"i\n" +
 	"\x14DeployChainCodeInput\x12Q\n" +
 	"\rchain_code_id\x18\x01 \x01(\tB-ʵ\x03)\xa2\x01&json:\"ChainCodeId\" validate:\"required\"R\vChainCodeId\"\x17\n" +
-	"\x15DeployChainCodeOutput2\xbb\f\n" +
+	"\x15DeployChainCodeOutput\"\x14\n" +
+	"\x12CreateChannelInput\"\x15\n" +
+	"\x13CreateChannelOutput\"\x1a\n" +
+	"\x18AddOrdererToChannelInput\"\x1b\n" +
+	"\x19AddOrdererToChannelOutput\"\x17\n" +
+	"\x15AddPeerToChannelInput\"\x18\n" +
+	"\x16AddPeerToChannelOutput\"\x1b\n" +
+	"\x19JoinOrdererToChannelInput\"\x1c\n" +
+	"\x1aJoinOrdererToChannelOutput\"\x18\n" +
+	"\x16JoinPeerToChannelInput\"\x19\n" +
+	"\x17JoinPeerToChannelOutput\"\x14\n" +
+	"\x12SetAnchorPeerInput\"\x15\n" +
+	"\x13SetAnchorPeerOutput\"\x1f\n" +
+	"\x1dAddOrdererToConsenterSetInput\" \n" +
+	"\x1eAddOrdererToConsenterSetOutput\"\x16\n" +
+	"\x14AddOrgToChannelInput\"\x17\n" +
+	"\x15AddOrgToChannelOutput\"\x1a\n" +
+	"\x18UpdateChannelConfigInput\"\x1b\n" +
+	"\x19UpdateChannelConfigOutput2\xf9\x17\n" +
 	"\x06Fabric\x12\x90\x01\n" +
 	"\x0fBootstrapFabric\x12\x1f.fabric.v1.BootstrapFabricInput\x1a .fabric.v1.BootstrapFabricOutput\":\x8a\xc4\x036*\x17fabric/bootstrap-fabric0\x01r\x19fabric.v1.BootstrapFabric\x12\x8b\x01\n" +
 	"\x0eBootstrapShard\x12\x1e.fabric.v1.BootstrapShardInput\x1a\x1f.fabric.v1.BootstrapShardOutput\"8\x8a\xc4\x034*\x16fabric/bootstrap-shard0\x01r\x18fabric.v1.BootstrapShard\x12\xb4\x01\n" +
@@ -825,7 +1491,16 @@ const file_fabric_v1_workflows_proto_rawDesc = "" +
 	"\n" +
 	"DeployPeer\x12\x1a.fabric.v1.DeployPeerInput\x1a\x1b.fabric.v1.DeployPeerOutput\">\x8a\xc4\x03:* fabric/deploy-peer/${! Spec.Id }0\x01r\x14fabric.v1.DeployPeer\x12\x94\x01\n" +
 	"\rDeployOrderer\x12\x1d.fabric.v1.DeployOrdererInput\x1a\x1e.fabric.v1.DeployOrdererOutput\"D\x8a\xc4\x03@*#fabric/deploy-orderer/${! Spec.Id }0\x01r\x17fabric.v1.DeployOrderer\x12\xa2\x01\n" +
-	"\x0fDeployChainCode\x12\x1f.fabric.v1.DeployChainCodeInput\x1a .fabric.v1.DeployChainCodeOutput\"L\x8a\xc4\x03H*)fabric/deploy-chaincode/${! ChainCodeId }0\x01r\x19fabric.v1.DeployChainCode\x1a\x1e\x8a\xc4\x03\a\n" +
+	"\x0fDeployChainCode\x12\x1f.fabric.v1.DeployChainCodeInput\x1a .fabric.v1.DeployChainCodeOutput\"L\x8a\xc4\x03H*)fabric/deploy-chaincode/${! ChainCodeId }0\x01r\x19fabric.v1.DeployChainCode\x12\x89\x01\n" +
+	"\rCreateChannel\x12\x1d.fabric.v1.CreateChannelInput\x1a\x1e.fabric.v1.CreateChannelOutput\"9\x8a\xc4\x035*\x15fabric/create-channel0\x02r\x17fabric.v1.CreateChannel\xa0\x01\x02\x12\xa9\x01\n" +
+	"\x13AddOrdererToChannel\x12#.fabric.v1.AddOrdererToChannelInput\x1a$.fabric.v1.AddOrdererToChannelOutput\"G\x8a\xc4\x03C*\x1dfabric/add-orderer-to-channel0\x02r\x1dfabric.v1.AddOrdererToChannel\xa0\x01\x02\x12\x9a\x01\n" +
+	"\x10AddPeerToChannel\x12 .fabric.v1.AddPeerToChannelInput\x1a!.fabric.v1.AddPeerToChannelOutput\"A\x8a\xc4\x03=*\x1afabric/add-peer-to-channel0\x02r\x1afabric.v1.AddPeerToChannel\xa0\x01\x02\x12\xae\x01\n" +
+	"\x14JoinOrdererToChannel\x12$.fabric.v1.JoinOrdererToChannelInput\x1a%.fabric.v1.JoinOrdererToChannelOutput\"I\x8a\xc4\x03E*\x1efabric/join-orderer-to-channel0\x02r\x1efabric.v1.JoinOrdererToChannel\xa0\x01\x02\x12\x9f\x01\n" +
+	"\x11JoinPeerToChannel\x12!.fabric.v1.JoinPeerToChannelInput\x1a\".fabric.v1.JoinPeerToChannelOutput\"C\x8a\xc4\x03?*\x1bfabric/join-peer-to-channel0\x02r\x1bfabric.v1.JoinPeerToChannel\xa0\x01\x02\x12\x8a\x01\n" +
+	"\rSetAnchorPeer\x12\x1d.fabric.v1.SetAnchorPeerInput\x1a\x1e.fabric.v1.SetAnchorPeerOutput\":\x8a\xc4\x036*\x16fabric/set-anchor-peer0\x02r\x17fabric.v1.SetAnchorPeer\xa0\x01\x02\x12\xc3\x01\n" +
+	"\x18AddOrdererToConsenterSet\x12(.fabric.v1.AddOrdererToConsenterSetInput\x1a).fabric.v1.AddOrdererToConsenterSetOutput\"R\x8a\xc4\x03N*#fabric/add-orderer-to-consenter-set0\x02r\"fabric.v1.AddOrdererToConsenterSet\xa0\x01\x02\x12\x95\x01\n" +
+	"\x0fAddOrgToChannel\x12\x1f.fabric.v1.AddOrgToChannelInput\x1a .fabric.v1.AddOrgToChannelOutput\"?\x8a\xc4\x03;*\x19fabric/add-org-to-channel0\x02r\x19fabric.v1.AddOrgToChannel\xa0\x01\x02\x12\xa8\x01\n" +
+	"\x13UpdateChannelConfig\x12#.fabric.v1.UpdateChannelConfigInput\x1a$.fabric.v1.UpdateChannelConfigOutput\"F\x8a\xc4\x03B*\x1cfabric/update-channel-config0\x02r\x1dfabric.v1.UpdateChannelConfig\xa0\x01\x02\x1a\x1e\x8a\xc4\x03\a\n" +
 	"\x05infraʂ\x04\x0f\x12\rnexus-enabledB\xab\x01\n" +
 	"\rcom.fabric.v1B\x0eWorkflowsProtoP\x01ZEgithub.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1\xa2\x02\x03FXX\xaa\x02\tFabric.V1\xca\x02\tFabric\\V1\xe2\x02\x15Fabric\\V1\\GPBMetadata\xea\x02\n" +
 	"Fabric::V1b\x06proto3"
@@ -842,7 +1517,7 @@ func file_fabric_v1_workflows_proto_rawDescGZIP() []byte {
 	return file_fabric_v1_workflows_proto_rawDescData
 }
 
-var file_fabric_v1_workflows_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_fabric_v1_workflows_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_fabric_v1_workflows_proto_goTypes = []any{
 	(*BootstrapFabricInput)(nil),             // 0: fabric.v1.BootstrapFabricInput
 	(*BootstrapFabricOutput)(nil),            // 1: fabric.v1.BootstrapFabricOutput
@@ -862,21 +1537,39 @@ var file_fabric_v1_workflows_proto_goTypes = []any{
 	(*DeployOrdererOutput)(nil),              // 15: fabric.v1.DeployOrdererOutput
 	(*DeployChainCodeInput)(nil),             // 16: fabric.v1.DeployChainCodeInput
 	(*DeployChainCodeOutput)(nil),            // 17: fabric.v1.DeployChainCodeOutput
-	(*CertificateAuthoritySpec)(nil),         // 18: fabric.v1.CertificateAuthoritySpec
-	(*OrgFabricDeployment)(nil),              // 19: fabric.v1.OrgFabricDeployment
-	(*CertificateAuthorityRef)(nil),          // 20: fabric.v1.CertificateAuthorityRef
-	(*v1.SecretRef)(nil),                     // 21: secrets.v1.SecretRef
-	(*PeerSpec)(nil),                         // 22: fabric.v1.PeerSpec
-	(*OrdererSpec)(nil),                      // 23: fabric.v1.OrdererSpec
+	(*CreateChannelInput)(nil),               // 18: fabric.v1.CreateChannelInput
+	(*CreateChannelOutput)(nil),              // 19: fabric.v1.CreateChannelOutput
+	(*AddOrdererToChannelInput)(nil),         // 20: fabric.v1.AddOrdererToChannelInput
+	(*AddOrdererToChannelOutput)(nil),        // 21: fabric.v1.AddOrdererToChannelOutput
+	(*AddPeerToChannelInput)(nil),            // 22: fabric.v1.AddPeerToChannelInput
+	(*AddPeerToChannelOutput)(nil),           // 23: fabric.v1.AddPeerToChannelOutput
+	(*JoinOrdererToChannelInput)(nil),        // 24: fabric.v1.JoinOrdererToChannelInput
+	(*JoinOrdererToChannelOutput)(nil),       // 25: fabric.v1.JoinOrdererToChannelOutput
+	(*JoinPeerToChannelInput)(nil),           // 26: fabric.v1.JoinPeerToChannelInput
+	(*JoinPeerToChannelOutput)(nil),          // 27: fabric.v1.JoinPeerToChannelOutput
+	(*SetAnchorPeerInput)(nil),               // 28: fabric.v1.SetAnchorPeerInput
+	(*SetAnchorPeerOutput)(nil),              // 29: fabric.v1.SetAnchorPeerOutput
+	(*AddOrdererToConsenterSetInput)(nil),    // 30: fabric.v1.AddOrdererToConsenterSetInput
+	(*AddOrdererToConsenterSetOutput)(nil),   // 31: fabric.v1.AddOrdererToConsenterSetOutput
+	(*AddOrgToChannelInput)(nil),             // 32: fabric.v1.AddOrgToChannelInput
+	(*AddOrgToChannelOutput)(nil),            // 33: fabric.v1.AddOrgToChannelOutput
+	(*UpdateChannelConfigInput)(nil),         // 34: fabric.v1.UpdateChannelConfigInput
+	(*UpdateChannelConfigOutput)(nil),        // 35: fabric.v1.UpdateChannelConfigOutput
+	(*CertificateAuthoritySpec)(nil),         // 36: fabric.v1.CertificateAuthoritySpec
+	(*OrgFabricDeployment)(nil),              // 37: fabric.v1.OrgFabricDeployment
+	(*CertificateAuthorityRef)(nil),          // 38: fabric.v1.CertificateAuthorityRef
+	(*v1.SecretRef)(nil),                     // 39: secrets.v1.SecretRef
+	(*PeerSpec)(nil),                         // 40: fabric.v1.PeerSpec
+	(*OrdererSpec)(nil),                      // 41: fabric.v1.OrdererSpec
 }
 var file_fabric_v1_workflows_proto_depIdxs = []int32{
-	18, // 0: fabric.v1.BootstrapFabricInput.certificate_authorities:type_name -> fabric.v1.CertificateAuthoritySpec
-	19, // 1: fabric.v1.BootstrapShardInput.deployment:type_name -> fabric.v1.OrgFabricDeployment
-	18, // 2: fabric.v1.DeployCertificateAuthorityInput.spec:type_name -> fabric.v1.CertificateAuthoritySpec
-	20, // 3: fabric.v1.CreateCertificateDatabaseInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
-	21, // 4: fabric.v1.CreateCertificateDatabaseOutput.credentials_ref:type_name -> secrets.v1.SecretRef
-	22, // 5: fabric.v1.DeployPeerInput.spec:type_name -> fabric.v1.PeerSpec
-	23, // 6: fabric.v1.DeployOrdererInput.spec:type_name -> fabric.v1.OrdererSpec
+	36, // 0: fabric.v1.BootstrapFabricInput.certificate_authorities:type_name -> fabric.v1.CertificateAuthoritySpec
+	37, // 1: fabric.v1.BootstrapShardInput.deployment:type_name -> fabric.v1.OrgFabricDeployment
+	36, // 2: fabric.v1.DeployCertificateAuthorityInput.spec:type_name -> fabric.v1.CertificateAuthoritySpec
+	38, // 3: fabric.v1.CreateCertificateDatabaseInput.ca_ref:type_name -> fabric.v1.CertificateAuthorityRef
+	39, // 4: fabric.v1.CreateCertificateDatabaseOutput.credentials_ref:type_name -> secrets.v1.SecretRef
+	40, // 5: fabric.v1.DeployPeerInput.spec:type_name -> fabric.v1.PeerSpec
+	41, // 6: fabric.v1.DeployOrdererInput.spec:type_name -> fabric.v1.OrdererSpec
 	0,  // 7: fabric.v1.Fabric.BootstrapFabric:input_type -> fabric.v1.BootstrapFabricInput
 	2,  // 8: fabric.v1.Fabric.BootstrapShard:input_type -> fabric.v1.BootstrapShardInput
 	4,  // 9: fabric.v1.Fabric.DeployCertificateStore:input_type -> fabric.v1.DeployCertificateStoreInput
@@ -886,17 +1579,35 @@ var file_fabric_v1_workflows_proto_depIdxs = []int32{
 	12, // 13: fabric.v1.Fabric.DeployPeer:input_type -> fabric.v1.DeployPeerInput
 	14, // 14: fabric.v1.Fabric.DeployOrderer:input_type -> fabric.v1.DeployOrdererInput
 	16, // 15: fabric.v1.Fabric.DeployChainCode:input_type -> fabric.v1.DeployChainCodeInput
-	1,  // 16: fabric.v1.Fabric.BootstrapFabric:output_type -> fabric.v1.BootstrapFabricOutput
-	3,  // 17: fabric.v1.Fabric.BootstrapShard:output_type -> fabric.v1.BootstrapShardOutput
-	5,  // 18: fabric.v1.Fabric.DeployCertificateStore:output_type -> fabric.v1.DeployCertificateStoreOutput
-	7,  // 19: fabric.v1.Fabric.DeployCertificateAuthority:output_type -> fabric.v1.DeployCertificateAuthorityOutput
-	9,  // 20: fabric.v1.Fabric.CreateCertificateDatabase:output_type -> fabric.v1.CreateCertificateDatabaseOutput
-	11, // 21: fabric.v1.Fabric.DeployCouchDb:output_type -> fabric.v1.DeployCouchDbOutput
-	13, // 22: fabric.v1.Fabric.DeployPeer:output_type -> fabric.v1.DeployPeerOutput
-	15, // 23: fabric.v1.Fabric.DeployOrderer:output_type -> fabric.v1.DeployOrdererOutput
-	17, // 24: fabric.v1.Fabric.DeployChainCode:output_type -> fabric.v1.DeployChainCodeOutput
-	16, // [16:25] is the sub-list for method output_type
-	7,  // [7:16] is the sub-list for method input_type
+	18, // 16: fabric.v1.Fabric.CreateChannel:input_type -> fabric.v1.CreateChannelInput
+	20, // 17: fabric.v1.Fabric.AddOrdererToChannel:input_type -> fabric.v1.AddOrdererToChannelInput
+	22, // 18: fabric.v1.Fabric.AddPeerToChannel:input_type -> fabric.v1.AddPeerToChannelInput
+	24, // 19: fabric.v1.Fabric.JoinOrdererToChannel:input_type -> fabric.v1.JoinOrdererToChannelInput
+	26, // 20: fabric.v1.Fabric.JoinPeerToChannel:input_type -> fabric.v1.JoinPeerToChannelInput
+	28, // 21: fabric.v1.Fabric.SetAnchorPeer:input_type -> fabric.v1.SetAnchorPeerInput
+	30, // 22: fabric.v1.Fabric.AddOrdererToConsenterSet:input_type -> fabric.v1.AddOrdererToConsenterSetInput
+	32, // 23: fabric.v1.Fabric.AddOrgToChannel:input_type -> fabric.v1.AddOrgToChannelInput
+	34, // 24: fabric.v1.Fabric.UpdateChannelConfig:input_type -> fabric.v1.UpdateChannelConfigInput
+	1,  // 25: fabric.v1.Fabric.BootstrapFabric:output_type -> fabric.v1.BootstrapFabricOutput
+	3,  // 26: fabric.v1.Fabric.BootstrapShard:output_type -> fabric.v1.BootstrapShardOutput
+	5,  // 27: fabric.v1.Fabric.DeployCertificateStore:output_type -> fabric.v1.DeployCertificateStoreOutput
+	7,  // 28: fabric.v1.Fabric.DeployCertificateAuthority:output_type -> fabric.v1.DeployCertificateAuthorityOutput
+	9,  // 29: fabric.v1.Fabric.CreateCertificateDatabase:output_type -> fabric.v1.CreateCertificateDatabaseOutput
+	11, // 30: fabric.v1.Fabric.DeployCouchDb:output_type -> fabric.v1.DeployCouchDbOutput
+	13, // 31: fabric.v1.Fabric.DeployPeer:output_type -> fabric.v1.DeployPeerOutput
+	15, // 32: fabric.v1.Fabric.DeployOrderer:output_type -> fabric.v1.DeployOrdererOutput
+	17, // 33: fabric.v1.Fabric.DeployChainCode:output_type -> fabric.v1.DeployChainCodeOutput
+	19, // 34: fabric.v1.Fabric.CreateChannel:output_type -> fabric.v1.CreateChannelOutput
+	21, // 35: fabric.v1.Fabric.AddOrdererToChannel:output_type -> fabric.v1.AddOrdererToChannelOutput
+	23, // 36: fabric.v1.Fabric.AddPeerToChannel:output_type -> fabric.v1.AddPeerToChannelOutput
+	25, // 37: fabric.v1.Fabric.JoinOrdererToChannel:output_type -> fabric.v1.JoinOrdererToChannelOutput
+	27, // 38: fabric.v1.Fabric.JoinPeerToChannel:output_type -> fabric.v1.JoinPeerToChannelOutput
+	29, // 39: fabric.v1.Fabric.SetAnchorPeer:output_type -> fabric.v1.SetAnchorPeerOutput
+	31, // 40: fabric.v1.Fabric.AddOrdererToConsenterSet:output_type -> fabric.v1.AddOrdererToConsenterSetOutput
+	33, // 41: fabric.v1.Fabric.AddOrgToChannel:output_type -> fabric.v1.AddOrgToChannelOutput
+	35, // 42: fabric.v1.Fabric.UpdateChannelConfig:output_type -> fabric.v1.UpdateChannelConfigOutput
+	25, // [25:43] is the sub-list for method output_type
+	7,  // [7:25] is the sub-list for method input_type
 	7,  // [7:7] is the sub-list for extension type_name
 	7,  // [7:7] is the sub-list for extension extendee
 	0,  // [0:7] is the sub-list for field type_name
@@ -914,7 +1625,7 @@ func file_fabric_v1_workflows_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_fabric_v1_workflows_proto_rawDesc), len(file_fabric_v1_workflows_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -19,6 +19,66 @@ import (
 // Nexus handler for fabric.v1.Fabric
 type FabricNexusHandler struct{}
 
+// AddOrdererToChannel adds a new orderer to an existing channel
+// Fetches latest config block, joins as follower, then promotes to consenter
+func (h *FabricNexusHandler) AddOrdererToChannel(name string) nexus.Operation[*v1.AddOrdererToChannelInput, *v1.AddOrdererToChannelOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.AddOrdererToChannelInput, *v1.AddOrdererToChannelOutput]{
+		Handler: func(ctx context.Context, input *v1.AddOrdererToChannelInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.AddOrdererToChannelOutput], error) {
+			o, err := v1.NewAddOrdererToChannelOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.AddOrdererToChannelOutput](ctx, opts, o, v1.AddOrdererToChannelWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// AddOrdererToConsenterSet promotes an orderer from follower to consenter
+// via a channel config update to the ConsensusType metadata
+func (h *FabricNexusHandler) AddOrdererToConsenterSet(name string) nexus.Operation[*v1.AddOrdererToConsenterSetInput, *v1.AddOrdererToConsenterSetOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.AddOrdererToConsenterSetInput, *v1.AddOrdererToConsenterSetOutput]{
+		Handler: func(ctx context.Context, input *v1.AddOrdererToConsenterSetInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.AddOrdererToConsenterSetOutput], error) {
+			o, err := v1.NewAddOrdererToConsenterSetOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.AddOrdererToConsenterSetOutput](ctx, opts, o, v1.AddOrdererToConsenterSetWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// AddOrgToChannel adds a new organization to an existing channel
+// Requires signatures from a majority of existing channel admins
+func (h *FabricNexusHandler) AddOrgToChannel(name string) nexus.Operation[*v1.AddOrgToChannelInput, *v1.AddOrgToChannelOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.AddOrgToChannelInput, *v1.AddOrgToChannelOutput]{
+		Handler: func(ctx context.Context, input *v1.AddOrgToChannelInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.AddOrgToChannelOutput], error) {
+			o, err := v1.NewAddOrgToChannelOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.AddOrgToChannelOutput](ctx, opts, o, v1.AddOrgToChannelWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// AddPeerToChannel adds a new peer to an existing channel
+// Optionally adds the org to the channel first if not already a member
+func (h *FabricNexusHandler) AddPeerToChannel(name string) nexus.Operation[*v1.AddPeerToChannelInput, *v1.AddPeerToChannelOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.AddPeerToChannelInput, *v1.AddPeerToChannelOutput]{
+		Handler: func(ctx context.Context, input *v1.AddPeerToChannelInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.AddPeerToChannelOutput], error) {
+			o, err := v1.NewAddPeerToChannelOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.AddPeerToChannelOutput](ctx, opts, o, v1.AddPeerToChannelWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
 // BootstrapFabric is the entry point for initializing shared Fabric infrastructure.
 // This workflow runs on the fabric worker in the "fabric" Temporal namespace and
 // deploys the certificate store and the operator-owned certificate authorities
@@ -65,6 +125,20 @@ func (h *FabricNexusHandler) CreateCertificateDatabase(name string) nexus.Operat
 				return nil, err
 			}
 			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateCertificateDatabaseOutput](ctx, opts, o, v1.CreateCertificateDatabaseWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// CreateChannel creates a new channel and joins the initial orderers and peers
+func (h *FabricNexusHandler) CreateChannel(name string) nexus.Operation[*v1.CreateChannelInput, *v1.CreateChannelOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.CreateChannelInput, *v1.CreateChannelOutput]{
+		Handler: func(ctx context.Context, input *v1.CreateChannelInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.CreateChannelOutput], error) {
+			o, err := v1.NewCreateChannelOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.CreateChannelOutput](ctx, opts, o, v1.CreateChannelWorkflowName, input)
 		},
 		Name: name,
 	})
@@ -165,6 +239,66 @@ func (h *FabricNexusHandler) DeployPeer(name string) nexus.Operation[*v1.DeployP
 				return nil, err
 			}
 			return temporalnexus.ExecuteUntypedWorkflow[*v1.DeployPeerOutput](ctx, opts, o, v1.DeployPeerWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// JoinOrdererToChannel joins an orderer node to a channel via osnadmin
+// Handles both genesis-based (consenter) and config-block-based (follower) joins
+func (h *FabricNexusHandler) JoinOrdererToChannel(name string) nexus.Operation[*v1.JoinOrdererToChannelInput, *v1.JoinOrdererToChannelOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.JoinOrdererToChannelInput, *v1.JoinOrdererToChannelOutput]{
+		Handler: func(ctx context.Context, input *v1.JoinOrdererToChannelInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.JoinOrdererToChannelOutput], error) {
+			o, err := v1.NewJoinOrdererToChannelOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.JoinOrdererToChannelOutput](ctx, opts, o, v1.JoinOrdererToChannelWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// JoinPeerToChannel joins a peer node to a channel
+// Fetches the oldest block from an orderer and joins the peer
+func (h *FabricNexusHandler) JoinPeerToChannel(name string) nexus.Operation[*v1.JoinPeerToChannelInput, *v1.JoinPeerToChannelOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.JoinPeerToChannelInput, *v1.JoinPeerToChannelOutput]{
+		Handler: func(ctx context.Context, input *v1.JoinPeerToChannelInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.JoinPeerToChannelOutput], error) {
+			o, err := v1.NewJoinPeerToChannelOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.JoinPeerToChannelOutput](ctx, opts, o, v1.JoinPeerToChannelWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// SetAnchorPeer configures the anchor peer for an org on a channel
+// Uses UpdateChannelConfig to modify the channel's Application group
+func (h *FabricNexusHandler) SetAnchorPeer(name string) nexus.Operation[*v1.SetAnchorPeerInput, *v1.SetAnchorPeerOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.SetAnchorPeerInput, *v1.SetAnchorPeerOutput]{
+		Handler: func(ctx context.Context, input *v1.SetAnchorPeerInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.SetAnchorPeerOutput], error) {
+			o, err := v1.NewSetAnchorPeerOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.SetAnchorPeerOutput](ctx, opts, o, v1.SetAnchorPeerWorkflowName, input)
+		},
+		Name: name,
+	})
+}
+
+// UpdateChannelConfig is the common pattern for all channel configuration changes
+// Fetches current config, computes delta, collects signatures, and submits update
+func (h *FabricNexusHandler) UpdateChannelConfig(name string) nexus.Operation[*v1.UpdateChannelConfigInput, *v1.UpdateChannelConfigOutput] {
+	return temporalnexus.MustNewWorkflowRunOperationWithOptions(temporalnexus.WorkflowRunOperationOptions[*v1.UpdateChannelConfigInput, *v1.UpdateChannelConfigOutput]{
+		Handler: func(ctx context.Context, input *v1.UpdateChannelConfigInput, opts nexus.StartOperationOptions) (temporalnexus.WorkflowHandle[*v1.UpdateChannelConfigOutput], error) {
+			o, err := v1.NewUpdateChannelConfigOptions().Build(input.ProtoReflect())
+			if err != nil {
+				return nil, err
+			}
+			return temporalnexus.ExecuteUntypedWorkflow[*v1.UpdateChannelConfigOutput](ctx, opts, o, v1.UpdateChannelConfigWorkflowName, input)
 		},
 		Name: name,
 	})

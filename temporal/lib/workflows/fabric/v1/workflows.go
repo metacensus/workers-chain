@@ -33,6 +33,17 @@ var (
 	ErrCreateIdentity             = errors.New("create identity")
 	ErrCreateAccess               = errors.New("create access")
 	ErrInvalidCertType            = errors.New("invalid cert type")
+
+	// Channel management (merged from main)
+	ErrCreateChannel            = errors.New("create channel")
+	ErrAddOrdererToChannel      = errors.New("add orderer to channel")
+	ErrAddPeerToChannel         = errors.New("add peer to channel")
+	ErrJoinOrdererToChannel     = errors.New("join orderer to channel")
+	ErrJoinPeerToChannel        = errors.New("join peer to channel")
+	ErrSetAnchorPeer            = errors.New("set anchor peer")
+	ErrAddOrdererToConsenterSet = errors.New("add orderer to consenter set")
+	ErrAddOrgToChannel          = errors.New("add org to channel")
+	ErrUpdateChannelConfig      = errors.New("update channel config")
 )
 
 // Workflows implements the FabricWorkflows interface.
@@ -470,4 +481,194 @@ func (w *deployChainCodeWorkflow) Execute(ctx workflow.Context) (*pb.DeployChain
 	// 3. Workflow: cluster.fabric.v1.CreateDeployment
 	// NOTE: IdentityType should be "client" for chaincode identities
 	return &pb.DeployChainCodeOutput{}, nil
+}
+
+// =============================================================================
+// CreateChannel - Orchestrates creation of a new Fabric channel
+// =============================================================================
+
+func (w *Workflows) CreateChannel(ctx workflow.Context, input *pb.CreateChannelWorkflowInput) (pb.CreateChannelWorkflow, error) {
+	return &createChannelWorkflow{input: input}, nil
+}
+
+type createChannelWorkflow struct {
+	input *pb.CreateChannelWorkflowInput
+}
+
+func (w *createChannelWorkflow) Execute(ctx workflow.Context) (*pb.CreateChannelOutput, error) {
+	// Join orderers sequentially
+	if _, err := pb.JoinOrdererToChannelChild(ctx, &pb.JoinOrdererToChannelInput{}); err != nil {
+		return nil, fmt.Errorf("%w: join orderer: %w", ErrCreateChannel, err)
+	}
+
+	// Join peers (parallel after orderers ready)
+	if _, err := pb.JoinPeerToChannelChild(ctx, &pb.JoinPeerToChannelInput{}); err != nil {
+		return nil, fmt.Errorf("%w: join peer: %w", ErrCreateChannel, err)
+	}
+
+	// Set anchor peers per org
+	if _, err := pb.SetAnchorPeerChild(ctx, &pb.SetAnchorPeerInput{}); err != nil {
+		return nil, fmt.Errorf("%w: set anchor peer: %w", ErrCreateChannel, err)
+	}
+
+	return &pb.CreateChannelOutput{}, nil
+}
+
+// =============================================================================
+// AddOrdererToChannel - Adds a new orderer to an existing channel
+// =============================================================================
+
+func (w *Workflows) AddOrdererToChannel(ctx workflow.Context, input *pb.AddOrdererToChannelWorkflowInput) (pb.AddOrdererToChannelWorkflow, error) {
+	return &addOrdererToChannelWorkflow{input: input}, nil
+}
+
+type addOrdererToChannelWorkflow struct {
+	input *pb.AddOrdererToChannelWorkflowInput
+}
+
+func (w *addOrdererToChannelWorkflow) Execute(ctx workflow.Context) (*pb.AddOrdererToChannelOutput, error) {
+	// Join as follower; polls until synced
+	if _, err := pb.JoinOrdererToChannelChild(ctx, &pb.JoinOrdererToChannelInput{}); err != nil {
+		return nil, fmt.Errorf("%w: join orderer: %w", ErrAddOrdererToChannel, err)
+	}
+
+	// Promote follower to consenter via config update
+	if _, err := pb.AddOrdererToConsenterSetChild(ctx, &pb.AddOrdererToConsenterSetInput{}); err != nil {
+		return nil, fmt.Errorf("%w: add to consenter set: %w", ErrAddOrdererToChannel, err)
+	}
+
+	return &pb.AddOrdererToChannelOutput{}, nil
+}
+
+// =============================================================================
+// AddPeerToChannel - Adds a new peer to an existing channel
+// =============================================================================
+
+func (w *Workflows) AddPeerToChannel(ctx workflow.Context, input *pb.AddPeerToChannelWorkflowInput) (pb.AddPeerToChannelWorkflow, error) {
+	return &addPeerToChannelWorkflow{input: input}, nil
+}
+
+type addPeerToChannelWorkflow struct {
+	input *pb.AddPeerToChannelWorkflowInput
+}
+
+func (w *addPeerToChannelWorkflow) Execute(ctx workflow.Context) (*pb.AddPeerToChannelOutput, error) {
+	// TODO: conditionally add org to channel if not already a member
+	if _, err := pb.AddOrgToChannelChild(ctx, &pb.AddOrgToChannelInput{}); err != nil {
+		return nil, fmt.Errorf("%w: add org: %w", ErrAddPeerToChannel, err)
+	}
+
+	if _, err := pb.JoinPeerToChannelChild(ctx, &pb.JoinPeerToChannelInput{}); err != nil {
+		return nil, fmt.Errorf("%w: join peer: %w", ErrAddPeerToChannel, err)
+	}
+
+	return &pb.AddPeerToChannelOutput{}, nil
+}
+
+// =============================================================================
+// JoinOrdererToChannel - Joins an orderer node to a channel via osnadmin
+// =============================================================================
+
+func (w *Workflows) JoinOrdererToChannel(ctx workflow.Context, input *pb.JoinOrdererToChannelWorkflowInput) (pb.JoinOrdererToChannelWorkflow, error) {
+	return &joinOrdererToChannelWorkflow{input: input}, nil
+}
+
+type joinOrdererToChannelWorkflow struct {
+	input *pb.JoinOrdererToChannelWorkflowInput
+}
+
+func (w *joinOrdererToChannelWorkflow) Execute(ctx workflow.Context) (*pb.JoinOrdererToChannelOutput, error) {
+	return &pb.JoinOrdererToChannelOutput{}, nil
+}
+
+// =============================================================================
+// JoinPeerToChannel - Joins a peer node to a channel
+// =============================================================================
+
+func (w *Workflows) JoinPeerToChannel(ctx workflow.Context, input *pb.JoinPeerToChannelWorkflowInput) (pb.JoinPeerToChannelWorkflow, error) {
+	return &joinPeerToChannelWorkflow{input: input}, nil
+}
+
+type joinPeerToChannelWorkflow struct {
+	input *pb.JoinPeerToChannelWorkflowInput
+}
+
+func (w *joinPeerToChannelWorkflow) Execute(ctx workflow.Context) (*pb.JoinPeerToChannelOutput, error) {
+	return &pb.JoinPeerToChannelOutput{}, nil
+}
+
+// =============================================================================
+// SetAnchorPeer - Configures the anchor peer for an org on a channel
+// =============================================================================
+
+func (w *Workflows) SetAnchorPeer(ctx workflow.Context, input *pb.SetAnchorPeerWorkflowInput) (pb.SetAnchorPeerWorkflow, error) {
+	return &setAnchorPeerWorkflow{input: input}, nil
+}
+
+type setAnchorPeerWorkflow struct {
+	input *pb.SetAnchorPeerWorkflowInput
+}
+
+func (w *setAnchorPeerWorkflow) Execute(ctx workflow.Context) (*pb.SetAnchorPeerOutput, error) {
+	if _, err := pb.UpdateChannelConfigChild(ctx, &pb.UpdateChannelConfigInput{}); err != nil {
+		return nil, fmt.Errorf("%w: update config: %w", ErrSetAnchorPeer, err)
+	}
+
+	return &pb.SetAnchorPeerOutput{}, nil
+}
+
+// =============================================================================
+// AddOrdererToConsenterSet - Promotes an orderer from follower to consenter
+// =============================================================================
+
+func (w *Workflows) AddOrdererToConsenterSet(ctx workflow.Context, input *pb.AddOrdererToConsenterSetWorkflowInput) (pb.AddOrdererToConsenterSetWorkflow, error) {
+	return &addOrdererToConsenterSetWorkflow{input: input}, nil
+}
+
+type addOrdererToConsenterSetWorkflow struct {
+	input *pb.AddOrdererToConsenterSetWorkflowInput
+}
+
+func (w *addOrdererToConsenterSetWorkflow) Execute(ctx workflow.Context) (*pb.AddOrdererToConsenterSetOutput, error) {
+	if _, err := pb.UpdateChannelConfigChild(ctx, &pb.UpdateChannelConfigInput{}); err != nil {
+		return nil, fmt.Errorf("%w: update config: %w", ErrAddOrdererToConsenterSet, err)
+	}
+
+	return &pb.AddOrdererToConsenterSetOutput{}, nil
+}
+
+// =============================================================================
+// AddOrgToChannel - Adds a new organization to an existing channel
+// =============================================================================
+
+func (w *Workflows) AddOrgToChannel(ctx workflow.Context, input *pb.AddOrgToChannelWorkflowInput) (pb.AddOrgToChannelWorkflow, error) {
+	return &addOrgToChannelWorkflow{input: input}, nil
+}
+
+type addOrgToChannelWorkflow struct {
+	input *pb.AddOrgToChannelWorkflowInput
+}
+
+func (w *addOrgToChannelWorkflow) Execute(ctx workflow.Context) (*pb.AddOrgToChannelOutput, error) {
+	if _, err := pb.UpdateChannelConfigChild(ctx, &pb.UpdateChannelConfigInput{}); err != nil {
+		return nil, fmt.Errorf("%w: update config: %w", ErrAddOrgToChannel, err)
+	}
+
+	return &pb.AddOrgToChannelOutput{}, nil
+}
+
+// =============================================================================
+// UpdateChannelConfig - Common pattern for all channel configuration changes
+// =============================================================================
+
+func (w *Workflows) UpdateChannelConfig(ctx workflow.Context, input *pb.UpdateChannelConfigWorkflowInput) (pb.UpdateChannelConfigWorkflow, error) {
+	return &updateChannelConfigWorkflow{input: input}, nil
+}
+
+type updateChannelConfigWorkflow struct {
+	input *pb.UpdateChannelConfigWorkflowInput
+}
+
+func (w *updateChannelConfigWorkflow) Execute(ctx workflow.Context) (*pb.UpdateChannelConfigOutput, error) {
+	return &pb.UpdateChannelConfigOutput{}, nil
 }
