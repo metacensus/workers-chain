@@ -53,4 +53,3 @@ func TestWorkerVaultPolicy_NoCrossOwnerWildcard(t *testing.T) {
 		}
 	}
 }
-

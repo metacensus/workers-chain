@@ -629,7 +629,7 @@ var File_fabric_certauth_v1_workflows_proto protoreflect.FileDescriptor
 
 const file_fabric_certauth_v1_workflows_proto_rawDesc = "" +
 	"\n" +
-	"\"fabric/certauth/v1/workflows.proto\x12\x12fabric.certauth.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\x1a\x16fabric/v1/fabric.proto\"\xe2\x04\n" +
+	"\"fabric/certauth/v1/workflows.proto\x12\x12fabric.certauth.v1\x1a\x16fabric/v1/fabric.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x1atemporal/v1/temporal.proto\"\xe2\x04\n" +
 	"\x14SignCertificateInput\x12n\n" +
 	"\n" +
 	"issuer_ref\x18\x01 \x01(\v2\".fabric.v1.CertificateAuthorityRefB+ʵ\x03'\xa2\x01$json:\"IssuerRef\" validate:\"required\"R\tIssuerRef\x12/\n" +

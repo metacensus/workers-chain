@@ -1433,7 +1433,7 @@ var File_fabric_v1_workflows_proto protoreflect.FileDescriptor
 
 const file_fabric_v1_workflows_proto_rawDesc = "" +
 	"\n" +
-	"\x19fabric/v1/workflows.proto\x12\tfabric.v1\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x18secrets/v1/secrets.proto\x1a\x1atemporal/v1/temporal.proto\x1a\x16fabric/v1/fabric.proto\"\xb5\x01\n" +
+	"\x19fabric/v1/workflows.proto\x12\tfabric.v1\x1a\x16fabric/v1/fabric.proto\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x18secrets/v1/secrets.proto\x1a\x1atemporal/v1/temporal.proto\"\xb5\x01\n" +
 	"\x14BootstrapFabricInput\x12\x9c\x01\n" +
 	"\x17certificate_authorities\x18\x01 \x03(\v2#.fabric.v1.CertificateAuthoritySpecB>ʵ\x03:\xa2\x017json:\"CertificateAuthorities\" validate:\"required,min=1\"R\x16CertificateAuthorities\"\x17\n" +
 	"\x15BootstrapFabricOutput\"\x83\x01\n" +

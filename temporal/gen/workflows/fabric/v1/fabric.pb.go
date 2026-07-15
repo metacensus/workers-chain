@@ -8,8 +8,6 @@ package fabricv1
 
 import (
 	_ "github.com/alta/protopatch/patch/gopb"
-	_ "github.com/bergundy/nexus-proto-annotations/go/nexus/v1"
-	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	v1 "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -507,7 +505,7 @@ var File_fabric_v1_fabric_proto protoreflect.FileDescriptor
 
 const file_fabric_v1_fabric_proto_rawDesc = "" +
 	"\n" +
-	"\x16fabric/v1/fabric.proto\x12\tfabric.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x18secrets/v1/secrets.proto\x1a\x1atemporal/v1/temporal.proto\"I\n" +
+	"\x16fabric/v1/fabric.proto\x12\tfabric.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x0epatch/go.proto\x1a\x18secrets/v1/secrets.proto\"I\n" +
 	"\x05Owner\x12!\n" +
 	"\voperator_id\x18\x01 \x01(\tH\x00R\n" +
 	"OperatorId\x12\x17\n" +

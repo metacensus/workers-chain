@@ -8,13 +8,11 @@ package certauthv1
 
 import (
 	_ "github.com/alta/protopatch/patch/gopb"
-	_ "github.com/bergundy/nexus-proto-annotations/go/nexus/v1"
 	_ "github.com/cludden/protoc-gen-go-temporal/gen/temporal/v1"
 	v1 "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	v11 "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	_ "google.golang.org/protobuf/types/known/durationpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -614,7 +612,7 @@ var File_fabric_certauth_v1_activities_proto protoreflect.FileDescriptor
 
 const file_fabric_certauth_v1_activities_proto_rawDesc = "" +
 	"\n" +
-	"#fabric/certauth/v1/activities.proto\x12\x12fabric.certauth.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x16nexus/v1/options.proto\x1a\x0epatch/go.proto\x1a\x18secrets/v1/secrets.proto\x1a\x1atemporal/v1/temporal.proto\x1a\x16fabric/v1/fabric.proto\"\xd6\x02\n" +
+	"#fabric/certauth/v1/activities.proto\x12\x12fabric.certauth.v1\x1a\x16fabric/v1/fabric.proto\x1a\x0epatch/go.proto\x1a\x18secrets/v1/secrets.proto\x1a\x1atemporal/v1/temporal.proto\"\xd6\x02\n" +
 	"\x13RevokeIdentityInput\x12b\n" +
 	"\x06ca_ref\x18\x01 \x01(\v2\".fabric.v1.CertificateAuthorityRefB'ʵ\x03#\xa2\x01 json:\"CaRef\" validate:\"required\"R\x05CaRef\x12S\n" +
 	"\ridentity_name\x18\x02 \x01(\tB.ʵ\x03*\xa2\x01'json:\"IdentityName\" validate:\"required\"R\fIdentityName\x12\x16\n" +

@@ -3,10 +3,8 @@ syntax = "proto3";
 package fabric.v1;
 
 import "google/protobuf/duration.proto";
-import "nexus/v1/options.proto";
 import "patch/go.proto";
 import "secrets/v1/secrets.proto";
-import "temporal/v1/temporal.proto";
 
 option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1;fabricv1";
 
@@ -50,35 +48,36 @@ message OrgFabricDeployment {
     (go.field).tags = 'json:"Orderers" validate:"required,min=1"'
   ];
 }
+
 // CertificateAuthoritySpec defines a certificate authority to deploy
 message CertificateAuthoritySpec {
-    // self identifies this CA
-    CertificateAuthorityRef self = 1 [
-      json_name = "Self",
-      (go.field).tags = 'json:"Self" validate:"required"'
-    ];
-  
-    // signing_issuer identifies who issues this CA's signing certificate
-    // If nil/empty, the signing cert is self-signed (root CAs)
-    CertificateAuthorityRef signing_issuer = 2 [
-      json_name = "SigningIssuer",
-      (go.field).tags = 'json:"SigningIssuer,omitempty"'
-    ];
-  
-    // tls_issuer identifies who issues this CA's TLS certificate
-    // If nil/empty, the TLS cert is self-signed (TLS Root CA only)
-    CertificateAuthorityRef tls_issuer = 3 [
-      json_name = "TlsIssuer",
-      (go.field).tags = 'json:"TlsIssuer,omitempty"'
-    ];
-  
-    // validity_duration specifies how long the CA certificates are valid
-    google.protobuf.Duration validity_duration = 4 [
-      json_name = "ValidityDuration",
-      (go.field).tags = 'json:"ValidityDuration,omitempty"'
-    ];
-  }
-  
+  // self identifies this CA
+  CertificateAuthorityRef self = 1 [
+    json_name = "Self",
+    (go.field).tags = 'json:"Self" validate:"required"'
+  ];
+
+  // signing_issuer identifies who issues this CA's signing certificate
+  // If nil/empty, the signing cert is self-signed (root CAs)
+  CertificateAuthorityRef signing_issuer = 2 [
+    json_name = "SigningIssuer",
+    (go.field).tags = 'json:"SigningIssuer,omitempty"'
+  ];
+
+  // tls_issuer identifies who issues this CA's TLS certificate
+  // If nil/empty, the TLS cert is self-signed (TLS Root CA only)
+  CertificateAuthorityRef tls_issuer = 3 [
+    json_name = "TlsIssuer",
+    (go.field).tags = 'json:"TlsIssuer,omitempty"'
+  ];
+
+  // validity_duration specifies how long the CA certificates are valid
+  google.protobuf.Duration validity_duration = 4 [
+    json_name = "ValidityDuration",
+    (go.field).tags = 'json:"ValidityDuration,omitempty"'
+  ];
+}
+
 // PeerSpec defines a peer to deploy
 message PeerSpec {
   // id identifies this peer (e.g., "peer0", "peer1")
@@ -155,4 +154,3 @@ message IdentityRef {
     (go.field).tags = 'json:"CertRef" validate:"required"'
   ];
 }
-
