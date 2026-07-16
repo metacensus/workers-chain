@@ -1,12 +1,25 @@
 # Fabric Worker Configuration Example
 # This chart deploys a Temporal worker for managing Hyperledger Fabric resources
 
-# Organization identifier (e.g., "org1", "acme-corp")
+# Operator identifier (e.g., "metacensus")
+# The operator owns shared infrastructure like TLS certificate authorities
+operator: "metacensus"
+
+# Owner identifier used for resource naming (org ID for shard workers,
+# operator ID for the shared fabric worker)
 org: "org1"
+
+# Organization identifier passed as ORG_ID to the worker container.
+# Empty for the shared fabric worker, which owns no organization.
+orgId: "org1"
+
+# Kubernetes namespace the worker is deployed into
+# ("fabric" for the shared fabric worker, "fabric-shard-{org}" for shard workers)
+namespace: "fabric-shard-org1"
 
 # Container image configuration
 image:
-  repository: metacensus/fabric-worker
+  repository: metacensus/shard-worker
   tag: "latest"
   pullPolicy: IfNotPresent
 
@@ -16,13 +29,13 @@ replicas: 1
 # Temporal configuration
 temporal:
   address: "temporal-frontend.temporal.svc.cluster.local:7233"
-  namespace: "fabric-org1"
+  namespace: "fabric-shard-org1"
   taskQueue: "infra"
 
 # Vault configuration
 vault:
   address: "http://vault.secrets.svc.cluster.local:8200"
-  role: "fabric-org1-worker"
+  role: "fabric-shard-org1-worker"
 
 # Logging configuration
 logLevel: "info"

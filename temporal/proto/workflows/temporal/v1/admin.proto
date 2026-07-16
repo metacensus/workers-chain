@@ -92,7 +92,7 @@ enum NamespaceState {
 
 // CreateNamespaceInput specifies parameters for creating a Temporal namespace
 message CreateNamespaceInput {
-  // name is the name of the namespace to create (e.g., "fabric-org1", "tenant-acme")
+  // name is the name of the namespace to create (e.g., "fabric-shard-org1", "tenant-acme")
   // This will be used as the workflow ID to ensure idempotency
   string name = 1 [
     json_name = "Name",

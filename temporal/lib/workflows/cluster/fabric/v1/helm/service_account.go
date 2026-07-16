@@ -9,11 +9,11 @@ type ServiceAccountValues struct {
 	CommonLabels       CommonLabels
 }
 
-func NewServiceAccountValues(orgCfg config.OrgConfig) *ServiceAccountValues {
+func NewServiceAccountValues(owner config.WorkerOwnerConfig) *ServiceAccountValues {
 	return &ServiceAccountValues{
-		Namespace:          orgCfg.KubernetesNamespace(),
-		ServiceAccountName: orgCfg.WorkerServiceAccountName(),
-		RoleName:           orgCfg.WorkerServiceAccountName(),
+		Namespace:          owner.KubernetesNamespace(),
+		ServiceAccountName: owner.WorkerServiceAccountName(),
+		RoleName:           owner.WorkerServiceAccountName(),
 		CommonLabels:       DefaultCommonLabels(),
 	}
 }

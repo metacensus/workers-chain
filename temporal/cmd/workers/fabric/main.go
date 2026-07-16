@@ -11,14 +11,13 @@ import (
 )
 
 func main() {
-	// Initialize configuration from environment
+	// Initialize configuration from environment.
+	// The shared fabric worker is operator-owned: OPERATOR_ID is required
+	// (loaded via fx in the fabric module), no ORG_ID.
 	config.InitializeTemporal()
 	config.InitializeVault()
 	config.InitializeKubernetes()
 	config.InitializeWorker()
-	if err := config.InitializeOrg(); err != nil {
-		log.Fatalf("Failed to initialize Org config: %v", err)
-	}
 
 	cfg := config.GetTemporal()
 	log.Println("Connecting to Temporal at", cfg.Address)

@@ -7,7 +7,7 @@ fabric-worker-{{ .Values.org }}
 {{- end }}
 
 {{- define "fabric-worker.namespace" -}}
-fabric-{{ .Values.org }}
+{{ .Values.namespace }}
 {{- end }}
 
 {{- define "fabric-worker.serviceAccountName" -}}

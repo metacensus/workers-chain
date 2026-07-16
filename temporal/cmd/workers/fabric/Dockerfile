@@ -27,4 +27,3 @@ COPY --from=buildstage /bin/fabric-worker /bin/fabric-worker
 COPY helm /helm
 
 ENTRYPOINT ["/bin/fabric-worker"]
-

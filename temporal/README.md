@@ -18,7 +18,7 @@ temporal/
 ├── proto/<service>/<version>/           # Interface definitions (.proto)
 ├── gen/workflows/<service>/<version>/   # Generated messages + Temporal stubs
 ├── lib/workflows/<service>/<version>/   # workflows.go, activities.go, client.go, fx.go
-├── lib/workers/                         # infra-worker and fabric-worker DI modules
+├── lib/workers/                         # infra / fabric / shard worker DI modules
 ├── cmd/workers/                         # Worker entrypoints
 └── mocks/                               # Generated test mocks
 ```
@@ -50,8 +50,9 @@ skill.
 
 | Package | Responsibility |
 |---------|----------------|
-| `lib/workflows/cell/v1/` | Platform bootstrap (`BootstrapInfra`, `InitFabricShard`) |
-| `lib/workflows/fabric/v1/` | Per-org Fabric shard operations (CAs, peers, channels) |
+| `lib/workflows/cell/v1/` | Platform bootstrap (`BootstrapInfra`, `InitFabric`, `InitFabricShard`) |
+| `lib/workflows/fabric/v1/` | Shared fabric + per-org shard orchestration (CAs, peers, orderers) |
+| `lib/workflows/fabric/certauth/v1/` | Certificate authority identity and CSR signing |
 | `lib/workflows/cluster/fabric/v1/` | K8s namespace/deployment for Fabric components |
 | `lib/workflows/kube/v1/` | Generic Kubernetes create/update |
 | `lib/workflows/vault/v1/` | Vault secret and policy operations |
@@ -59,6 +60,13 @@ skill.
 | `lib/workflows/secrets/v1/` | Secret generation and storage |
 | `lib/workflows/helm/v1/` | Helm chart rendering |
 | `lib/workflows/temporal/v1/` | Temporal namespace and Nexus management |
+
+## Pattern: Ownership Model
+
+Workflows execute in exactly one security context — their worker's owner. Owner configs, typed
+`Owner` inputs, Nexus boundaries, and Vault policy generation are governed by
+[docs/strategy/OWNERSHIP.md](../docs/strategy/OWNERSHIP.md). Read it before adding workflows that
+touch Vault paths or Kubernetes namespaces.
 
 **Fabric deploy flow:** [docs/fabric/bootstrap-workflows.md](../docs/fabric/bootstrap-workflows.md)
 
@@ -69,6 +77,7 @@ skill.
 ## Related docs
 
 - [docs/strategy/PFI_PATTERN.md](../docs/strategy/PFI_PATTERN.md)
+- [docs/strategy/OWNERSHIP.md](../docs/strategy/OWNERSHIP.md)
 - [docs/fabric/bootstrap-workflows.md](../docs/fabric/bootstrap-workflows.md)
 - [terraform/README.md](../terraform/README.md) — what Terraform provisions vs what workflows orchestrate
 - [AGENTS.md](../AGENTS.md) — decision framework

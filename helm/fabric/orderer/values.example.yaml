@@ -4,6 +4,8 @@
 # Organization identifier (e.g., "org1", "acme-corp")
 org: "org1"
 
+namespace: "fabric-shard-org1"
+
 # Orderer identifier (e.g., "orderer0", "orderer1")
 ordererId: "orderer0"
 
@@ -21,14 +23,16 @@ msp:
   id: "org1MSP"
 
 # Vault configuration for CSI driver
+# Org CA paths live in the org's shard tree; the TLS root CA cert lives in the
+# operator's shared tree (here operator "metacensus").
 vault:
-  roleName: "fabric-org1-orderer0"
-  mspSigningPath: "secret/data/fabric/org1/orderer/orderer0/signing"
-  mspRootCaCertPath: "secret/data/fabric/org1/ca/org/root/signing"
-  mspIntCaCertPath: "secret/data/fabric/org1/ca/org/v1/signing"
-  tlsPath: "secret/data/fabric/org1/orderer/orderer0/tls"
-  tlsRootCaCertPath: "secret/data/fabric/org1/ca/tls/root/signing"
-  tlsIntCaCertPath: "secret/data/fabric/org1/ca/tls/v1/signing"
+  roleName: "fabric-shard-org1-orderer0"
+  mspSigningKeyPath: "secret/data/fabric/shard/org1/keys/orderer/orderer0/signing"
+  mspSigningCertPath: "secret/data/fabric/shard/org1/certs/orderer/orderer0/signing"
+  mspRootCaCertPath: "secret/data/fabric/shard/org1/certs/ca/org/root/signing"
+  tlsKeyPath: "secret/data/fabric/shard/org1/keys/orderer/orderer0/tls"
+  tlsCertPath: "secret/data/fabric/shard/org1/certs/orderer/orderer0/tls"
+  tlsRootCaCertPath: "secret/data/fabric/metacensus/certs/ca/tls/root/signing"
 
 # Service configuration
 service:

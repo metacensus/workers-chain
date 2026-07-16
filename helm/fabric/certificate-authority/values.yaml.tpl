@@ -4,6 +4,10 @@
 # Organization identifier (e.g., "org1", "acme-corp")
 org: "{{.Org}}"
 
+# Kubernetes namespace for this component
+# ("fabric" for operator-owned components, "fabric-shard-{org}" for org-owned)
+namespace: "{{.Namespace}}"
+
 # Certificate type and CA ID for naming
 certType: "{{.CertType}}"
 caId: "{{.CaId}}"
@@ -26,16 +30,12 @@ database:
 # Vault configuration for CSI driver
 vault:
   roleName: "{{.Vault.RoleName}}"
-  # Paths for different secret types
-  # Signing path: CA's signing keypair + certificate (for issuing certs)
-  signingPath: "{{.Vault.SigningPath}}"
-  # Signing chain path: Parent CA chain (for intermediate CAs only)
-  # This enables intermediate CAs to verify client certificate chains
-  {{- if .Vault.SigningChainPath }}
-  signingChainPath: "{{.Vault.SigningChainPath}}"
-  {{- end }}
-  # TLS path: CA's TLS keypair + certificate (for HTTPS endpoint)
-  tlsPath: "{{.Vault.TlsPath}}"
+  # Keys (private) - separate paths for private keys
+  signingKeyPath: "{{.Vault.SigningKeyPath}}"
+  tlsKeyPath: "{{.Vault.TlsKeyPath}}"
+  # Certs (public) - separate paths for certificates + chains
+  signingCertPath: "{{.Vault.SigningCertPath}}"
+  tlsCertPath: "{{.Vault.TlsCertPath}}"
   # Bootstrap admin credentials (username/password)
   adminCredentialsPath: "{{.Vault.AdminCredentialsPath}}"
   # Database credentials (username/password)

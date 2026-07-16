@@ -7,6 +7,7 @@ import (
 // PeerValues represents the Helm values for a Fabric peer deployment
 type PeerValues struct {
 	Org            string
+	Namespace      string
 	PeerId         string
 	Image          ImageConfig
 	Replicas       int
@@ -29,16 +30,20 @@ type PeerMspConfig struct {
 	Id string
 }
 
-// PeerVaultConfig represents Vault paths for peer certificates
+// PeerVaultConfig represents Vault paths for peer certificates and keys.
+// Keys (private) and certs (public) are stored at separate paths.
 type PeerVaultConfig struct {
-	RoleName          string
-	MspSigningPath    string
-	MspRootCaCertPath string // Org Root CA cert for cacerts/
-	MspIntCaCertPath  string // Org Int CA cert for intermediatecerts/
-	TlsPath           string
-	TlsRootCaCertPath string // TLS Root CA cert
-	TlsIntCaCertPath  string // TLS Int CA cert
-	CouchdbPath       string
+	RoleName string
+	// Keys (private) - separate paths for private keys
+	MspSigningKeyPath string // Peer signing private key
+	TlsKeyPath        string // Peer TLS private key
+	CouchdbPath       string // CouchDB credentials (under keys/)
+	// Certs (public) - separate paths for certificates + chains
+	MspSigningCertPath string // Peer signing cert + chain
+	TlsCertPath        string // Peer TLS cert + chain
+	// CA root certs for trust stores (public, root only)
+	MspRootCaCertPath string // Org Root CA cert for MSP cacerts/
+	TlsRootCaCertPath string // TLS Root CA cert for TLS trust store
 }
 
 // PeerServiceConfig represents service port configuration for a peer
@@ -73,36 +78,38 @@ type PeerProbeConfig struct {
 	FailureThreshold    int
 }
 
-// NewPeerValues creates PeerValues from PeerConfig
-// This ensures consistency between Helm values and workflow/activity configuration
-func NewPeerValues(peerConfig fabricconfig.PeerConfig) *PeerValues {
-	fabricCfg := fabricconfig.NewFabricConfig(peerConfig.OrgConfig)
-	couchDbConfig := fabricCfg.CouchDb(peerConfig.PeerID())
-
-	// Get the CA configs for cert paths
-	// MSP needs: Root CA in cacerts/, Intermediate CA in intermediatecerts/
-	orgRootCA := fabricCfg.CertificateAuthority("org", "root")
-	orgIntCA := fabricCfg.CertificateAuthority("org", "v1")
-	tlsRootCA := fabricCfg.CertificateAuthority("tls", "root")
-	tlsIntCA := fabricCfg.CertificateAuthority("tls", "v1")
+// NewPeerValues creates PeerValues from PeerConfig and CA configurations.
+// CA configs are passed explicitly to allow TLS CAs to be owned by a different owner (operator)
+// than the org CAs (which are owned by the org).
+// This ensures consistency between Helm values and workflow/activity configuration.
+func NewPeerValues(
+	peerConfig fabricconfig.PeerConfig,
+	orgRootCA fabricconfig.CertificateAuthorityConfig,
+	tlsRootCA fabricconfig.CertificateAuthorityConfig,
+) *PeerValues {
+	couchDbConfig := fabricconfig.NewCouchDbConfig(peerConfig.OwnerConfig, peerConfig.PeerID())
 
 	return &PeerValues{
-		Org:      peerConfig.OrgID,
-		PeerId:   peerConfig.PeerID(),
-		Image:    DefaultImageConfig("peer", ""),
-		Replicas: 1, // Single instance per peer StatefulSet
+		Org:       peerConfig.OwnerID(),
+		Namespace: peerConfig.KubernetesNamespace(),
+		PeerId:    peerConfig.PeerID(),
+		Image:     DefaultImageConfig("peer", ""),
+		Replicas:  1, // Single instance per peer StatefulSet
 		Msp: PeerMspConfig{
 			Id: peerConfig.MSPID(),
 		},
 		Vault: PeerVaultConfig{
-			RoleName:          peerConfig.AuthRoleName(),
-			MspSigningPath:    "secret/data/" + peerConfig.VaultSigningRef().GetRef().Fields["path"].GetStringValue(),
-			MspRootCaCertPath: "secret/data/" + orgRootCA.VaultSigningRef().GetRef().Fields["path"].GetStringValue(),
-			MspIntCaCertPath:  "secret/data/" + orgIntCA.VaultSigningRef().GetRef().Fields["path"].GetStringValue(),
-			TlsPath:           "secret/data/" + peerConfig.VaultTLSRef().GetRef().Fields["path"].GetStringValue(),
-			TlsRootCaCertPath: "secret/data/" + tlsRootCA.VaultSigningRef().GetRef().Fields["path"].GetStringValue(),
-			TlsIntCaCertPath:  "secret/data/" + tlsIntCA.VaultSigningRef().GetRef().Fields["path"].GetStringValue(),
+			RoleName: peerConfig.AuthRoleName(),
+			// Keys (private)
+			MspSigningKeyPath: "secret/data/" + peerConfig.VaultSigningKeyRef().GetRef().Fields["path"].GetStringValue(),
+			TlsKeyPath:        "secret/data/" + peerConfig.VaultTLSKeyRef().GetRef().Fields["path"].GetStringValue(),
 			CouchdbPath:       "secret/data/" + couchDbConfig.VaultAdminRef().GetRef().Fields["path"].GetStringValue(),
+			// Certs (public) - contain {certificate, chain}
+			MspSigningCertPath: "secret/data/" + peerConfig.VaultSigningCertRef().GetRef().Fields["path"].GetStringValue(),
+			TlsCertPath:        "secret/data/" + peerConfig.VaultTLSCertRef().GetRef().Fields["path"].GetStringValue(),
+			// CA root certs for trust stores (root CA only)
+			MspRootCaCertPath: "secret/data/" + orgRootCA.VaultSigningCertRef().GetRef().Fields["path"].GetStringValue(),
+			TlsRootCaCertPath: "secret/data/" + tlsRootCA.VaultSigningCertRef().GetRef().Fields["path"].GetStringValue(),
 		},
 		Service: PeerServiceConfig{
 			Type:           "ClusterIP",

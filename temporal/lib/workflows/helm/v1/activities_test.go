@@ -509,7 +509,7 @@ resources:
 				ChartName: "fabric/namespace",
 				Component: "namespace",
 				Values: structpbMapToStruct(map[string]interface{}{
-					"Name": "fabric-org1",
+					"Name": "fabric-shard-org1",
 					"CommonLabels": map[string]interface{}{
 						"ManagedBy": "temporal",
 						"PartOf":    "fabric",
@@ -530,7 +530,7 @@ resources:
 				Values: structpbMapToStruct(map[string]interface{}{
 					"ImageRepository": "hyperledger/fabric-peer",
 					"ImageTag":        "2.5.0",
-					"Organization":    "fabric-org1",
+					"Organization":    "fabric-shard-org1",
 					"Resources": map[string]interface{}{
 						"Requests": map[string]interface{}{
 							"CPU":    "250m",

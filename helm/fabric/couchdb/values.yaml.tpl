@@ -4,6 +4,10 @@
 # Organization identifier (e.g., "org1", "acme-corp")
 org: "{{.Org}}"
 
+# Kubernetes namespace for this component
+# ("fabric" for operator-owned components, "fabric-shard-{org}" for org-owned)
+namespace: "{{.Namespace}}"
+
 # Peer identifier (e.g., "peer0", "peer1")
 peerId: "{{.PeerId}}"
 

@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package fabric.orderer.v1;
+
+import "temporal/v1/temporal.proto";
+
+option go_package = "github.com/metacensus/infra/temporal/gen/workflows/fabric/orderer/v1;ordererv1";
+
+// Orderer service defines activities that act on an orderer node's
+// participation in a channel (channel participation API via osnadmin).
+// Activities are NOT exposed via Nexus (only workflows can be called cross-namespace).
+service Orderer {
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {task_queue: "infra"};
+
+  // ChannelJoin joins an orderer node to a channel via the channel participation API.
+  // Uses a genesis block to join as CONSENTER; uses a config block to join as FOLLOWER.
+  // Runs: osnadmin channel join --config-block <block>
+  rpc ChannelJoin(ChannelJoinInput) returns (ChannelJoinOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.orderer.v1.ChannelJoin"
+      schedule_to_close_timeout: {seconds: 300}
+    };
+  }
+
+  // WaitForActive polls osnadmin channel list until the orderer reaches the desired status.
+  // For consenters: waits for consensusRelation = "consenter" and status = "active".
+  // For followers: waits for block height to match the cluster before promotion.
+  //
+  // NOTE: this can routinely run long. When implemented it should use a heartbeat
+  // timeout with a short start_to_close + retries rather than one long attempt.
+  rpc WaitForActive(WaitForActiveInput) returns (WaitForActiveOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.orderer.v1.WaitForActive"
+      schedule_to_close_timeout: {seconds: 600}
+    };
+  }
+}
+
+// ==================== ChannelJoin Activity Messages ====================
+
+message ChannelJoinInput {}
+
+message ChannelJoinOutput {}
+
+// ==================== WaitForActive Activity Messages ====================
+
+message WaitForActiveInput {}
+
+message WaitForActiveOutput {}

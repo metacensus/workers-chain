@@ -2,9 +2,19 @@ package helm
 
 import "github.com/metacensus/infra/temporal/lib/workers/config"
 
-// WorkerValues represents the Helm values for a fabric worker deployment
+// WorkerValues represents the Helm values for a fabric worker deployment.
+// The same chart deploys both the shared fabric worker (operator-owned, no org)
+// and per-org shard workers.
 type WorkerValues struct {
-	Org            string
+	Operator string
+	// Org is the owner identifier used for resource naming
+	// (org ID for shard workers, operator ID for the shared fabric worker)
+	Org string
+	// OrgId is the ORG_ID env value; empty for the shared fabric worker,
+	// which owns no organization
+	OrgId string
+	// Namespace is the Kubernetes namespace the worker is deployed into
+	Namespace      string
 	Image          ImageConfig
 	Replicas       int
 	Temporal       TemporalConfig
@@ -42,24 +52,53 @@ type ProbeConfig struct {
 	PeriodSeconds       int
 }
 
-// NewWorkerValues creates WorkerValues with sensible defaults for a fabric worker
-func NewWorkerValues(orgCfg config.OrgConfig) *WorkerValues {
+// NewWorkerValues creates WorkerValues for a per-org shard worker
+func NewWorkerValues(operatorCfg config.OperatorConfig, orgCfg config.OrgConfig) *WorkerValues {
+	return newWorkerValues(
+		operatorCfg.OwnerID(),
+		orgCfg.OrgID,
+		orgCfg.OrgID,
+		orgCfg.KubernetesNamespace(),
+		orgCfg.TemporalNamespace(),
+		orgCfg.WorkerVaultAuthRole(),
+		"metacensus/shard-worker",
+	)
+}
+
+// NewOperatorWorkerValues creates WorkerValues for the shared fabric worker
+// (operator-owned, deployed once into the "fabric" namespace)
+func NewOperatorWorkerValues(operatorCfg config.OperatorConfig) *WorkerValues {
+	return newWorkerValues(
+		operatorCfg.OwnerID(),
+		operatorCfg.OwnerID(),
+		"", // no ORG_ID: the fabric worker owns shared infrastructure, not an org
+		operatorCfg.KubernetesNamespace(),
+		operatorCfg.TemporalNamespace(),
+		operatorCfg.WorkerVaultAuthRole(),
+		"metacensus/fabric-worker",
+	)
+}
+
+func newWorkerValues(operator, org, orgID, kubeNamespace, temporalNamespace, vaultRole, imageRepository string) *WorkerValues {
 	return &WorkerValues{
-		Org: orgCfg.OrgID,
+		Operator:  operator,
+		Org:       org,
+		OrgId:     orgID,
+		Namespace: kubeNamespace,
 		Image: ImageConfig{
-			Repository: "metacensus/fabric-worker",
+			Repository: imageRepository,
 			Tag:        "latest",
 			PullPolicy: "IfNotPresent",
 		},
 		Replicas: 1,
 		Temporal: TemporalConfig{
 			Address:   "temporal-frontend.temporal.svc.cluster.local:7233",
-			Namespace: orgCfg.TemporalNamespace(),
+			Namespace: temporalNamespace,
 			TaskQueue: "infra",
 		},
 		Vault: VaultConfig{
 			Address: "http://vault.secrets.svc.cluster.local:8200",
-			Role:    orgCfg.WorkerVaultAuthRole(),
+			Role:    vaultRole,
 		},
 		LogLevel: "info",
 		HealthCheck: HealthCheckConfig{

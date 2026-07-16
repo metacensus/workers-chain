@@ -145,7 +145,7 @@ func (vc *vaultClient) Delete(ctx context.Context, path string) error {
 }
 
 // FetchSecret fetches a secret from KV v2 secrets engine and unwraps the response
-// path should be the logical path without the mount prefix (e.g., "fabric/org1/credentials")
+// path should be the logical path without the mount prefix (e.g., "fabric/shard/org1/credentials")
 // Returns the unwrapped secret data as map[string]interface{}
 func (vc *vaultClient) FetchSecret(ctx context.Context, path string) (map[string]interface{}, error) {
 	// Vault KV v2 path structure: <mount>/data/<path>
