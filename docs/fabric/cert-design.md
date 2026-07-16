@@ -20,7 +20,7 @@ TLS Root CA (self-signed)              Org Root CA (self-signed)
     └── TLS Int CA                         └── Org Int CA
             │                                      │
             ├── CA Server TLS certs                ├── Peer identities
-            ├── Admin client TLS certs             ├── Orderer identities  
+            ├── Admin client TLS certs             ├── Orderer identities
             ├── Peer/Orderer TLS certs             ├── Admin identities
             └── Chaincode TLS certs                └── Client identities
 ```
@@ -315,11 +315,11 @@ vault:
   # Keys (private, restricted access)
   signingKeyPath: "secret/data/fabric/{org}/keys/ca/{chain}/{id}/signing"
   tlsKeyPath: "secret/data/fabric/{org}/keys/ca/{chain}/{id}/tls"
-  
+
   # Certificates (public) - each path contains {certificate, chain} keys
   signingCertPath: "secret/data/fabric/{org}/certs/ca/{chain}/{id}/signing"
   tlsCertPath: "secret/data/fabric/{org}/certs/ca/{chain}/{id}/tls"
-  
+
   # Credentials (private)
   bootstrapAdminCredentialsPath: "secret/data/fabric/{org}/keys/ca/{chain}/{id}/bootstrap-admin/credentials"
   certstorePath: "secret/data/fabric/{org}/keys/ca/{chain}/{id}/certstore"
@@ -333,11 +333,11 @@ vault:
   signingKeyPath: "secret/data/fabric/{org}/keys/peer/{id}/signing"
   tlsKeyPath: "secret/data/fabric/{org}/keys/peer/{id}/tls"
   couchdbPath: "secret/data/fabric/{org}/keys/peer/{id}/couchdb"
-  
+
   # Own certificates (public) - each contains {certificate, chain} keys
   signingCertPath: "secret/data/fabric/{org}/certs/peer/{id}/signing"
   tlsCertPath: "secret/data/fabric/{org}/certs/peer/{id}/tls"
-  
+
   # CA root certs for trust stores (public)
   mspRootCaCertPath: "secret/data/fabric/{org}/certs/ca/org/{root-id}/signing"
   tlsRootCaCertPath: "secret/data/fabric/{org}/certs/ca/tls/{root-id}/signing"
@@ -438,9 +438,11 @@ This allows rotating Org CA signing capabilities without affecting mTLS infrastr
 
 ## Related Documentation
 
-- [cert-design-issues.md](cert-design-issues.md) - Known implementation issues
-- [Fabric Certs.csv](Fabric%20Certs.csv) - Complete certificate matrix
-- [temporal/README.md](../../temporal/README.md) - Workflow patterns
+- [Implementation notes](#implementation-notes) — Known constraints and bootstrap behavior
+- [Certificate matrix](#certificate-matrix) — Complete certificate matrix (formerly `certs.csv`)
+- [bootstrap-workflows.md](./bootstrap-workflows.md) — Fabric shard bootstrap workflow design
+- [create-channel-workflows.md](./create-channel-workflows.md) — Channel creation after bootstrap
+- [temporal/README.md](../../temporal/README.md) — Workflow patterns
 
 ---
 

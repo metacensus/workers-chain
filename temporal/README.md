@@ -1,122 +1,83 @@
 # Temporal Workflows
 
+**Canonical home** for Temporal package layout, workflow modules, and registration rules.
+
+**Temporal code placement:** this README. **Core Go placement** (API, chaincode, fabric client):
+[core/README.md](../core/README.md#architecture--layer-placement)
+
 ## Pattern: Proto-Framework-Implementation (PFI)
 
-Protobuf definitions generate framework, implementation provides logic.
+Protobuf definitions generate framework code; `lib/workflows/` provides implementations.
 
-**Note:** This pattern has a name so you can reference it in conversation with AI assistants: "Follow the PFI pattern" or "Use the Test Pyramid approach."
+**PFI guide (canonical):** [docs/strategy/PFI_PATTERN.md](../docs/strategy/PFI_PATTERN.md)
 
-### Package Structure
+### Package structure
 
-```
+```text
 temporal/
-├── proto/<service>/<version>/
-│   └── <service>.proto          # Interface definition
-│
-├── gen/workflows/<service>/<version>/
-│   ├── *.pb.go                  # Generated messages
-│   └── *_temporal.pb.go         # Generated framework
-│
-└── lib/workflows/<service>/<version>/
-    ├── workflows.go             # Workflow implementations
-    ├── activities.go            # Activity implementations  
-    ├── client.go                # External system client (may be different or unnecessary)
-    ├── fx.go                    # Dependency injection
-    ├── workflows_test.go        # Unit (mock activities)
-    ├── activities_test.go       # Unit (mock client)
-    └── client_test.go           # Integration (real system, build tag)
+├── proto/<service>/<version>/           # Interface definitions (.proto)
+├── gen/workflows/<service>/<version>/   # Generated messages + Temporal stubs
+├── lib/workflows/<service>/<version>/   # workflows.go, activities.go, client.go, fx.go
+├── lib/workers/                         # infra / fabric / shard worker DI modules
+├── cmd/workers/                         # Worker entrypoints
+└── mocks/                               # Generated test mocks
 ```
 
-**Reference:** `lib/workflows/vault/v1/` package implements this pattern.
+**Reference implementation:** `lib/workflows/vault/v1/`
 
-## Testing Commands
+`proto/README.md` is **auto-generated** by `make proto` (buf `docs-out`) — edit `.proto` files,
+not that README.
+
+### Registration
+
+Each service module must export `RegisterActivities()` and `RegisterWorkflows()` and be
+wired through `fx.Module`. Missing registration causes runtime "activity not found" errors.
+
+## Testing
+
+Run from `temporal/`:
 
 ```bash
-# Fast unit tests (default - no Docker needed)
-go test ./workflows/...
-
-# With integration tests (requires Docker)
-go test -tags=integration ./workflows/...
+go test ./lib/...
+go test -tags=integration ./lib/...
 ```
 
-## Pattern: Test Pyramid
+**Testing strategy (canonical):** [UNIT_TESTING.md](../.agents/skills/temporal-testing/references/UNIT_TESTING.md)
+and linked workflow/activity/client guides. Explicit test planning: `temporal-testing`
+skill.
 
-| Layer | File | Mocks | Build Tag |
-|-------|------|-------|-----------|
-| Workflows | `workflows_test.go` | Activities | - |
-| Activities | `activities_test.go` | Client | - |
-| Client | `client_test.go` | Real system | `integration` |
+## Key workflow packages
+
+| Package | Responsibility |
+|---------|----------------|
+| `lib/workflows/cell/v1/` | Platform bootstrap (`BootstrapInfra`, `InitFabric`, `InitFabricShard`) |
+| `lib/workflows/fabric/v1/` | Shared fabric + per-org shard orchestration (CAs, peers, orderers) |
+| `lib/workflows/fabric/certauth/v1/` | Certificate authority identity and CSR signing |
+| `lib/workflows/cluster/fabric/v1/` | K8s namespace/deployment for Fabric components |
+| `lib/workflows/kube/v1/` | Generic Kubernetes create/update |
+| `lib/workflows/vault/v1/` | Vault secret and policy operations |
+| `lib/workflows/postgres/v1/` | Postgres schema and queries |
+| `lib/workflows/secrets/v1/` | Secret generation and storage |
+| `lib/workflows/helm/v1/` | Helm chart rendering |
+| `lib/workflows/temporal/v1/` | Temporal namespace and Nexus management |
 
 ## Pattern: Ownership Model
 
-Workflows execute in exactly one security context — their worker's owner. Owner configs, typed `Owner` inputs, Nexus boundaries, and Vault policy generation are governed by [docs/strategy/OWNERSHIP.md](../docs/strategy/OWNERSHIP.md). Read it before adding workflows that touch Vault paths or Kubernetes namespaces.
+Workflows execute in exactly one security context — their worker's owner. Owner configs, typed
+`Owner` inputs, Nexus boundaries, and Vault policy generation are governed by
+[docs/strategy/OWNERSHIP.md](../docs/strategy/OWNERSHIP.md). Read it before adding workflows that
+touch Vault paths or Kubernetes namespaces.
 
-## Terraform Workflows Architecture
+**Fabric deploy flow:** [docs/fabric/bootstrap-workflows.md](../docs/fabric/bootstrap-workflows.md)
 
-The `workflows/terraform/v1/` package provides **generic, composable workflows** for declarative infrastructure deployment via Terraform.
+## Code generation
 
-### Concept
+`make gen`, `make proto`, `make mocks` — see [README.md — Development](../README.md#development).
 
-Rather than running Terraform ad-hoc, all infrastructure changes flow through Temporal workflows. This provides:
-- **Repeatability**: Identical deployments across environments
-- **Observability**: Full audit trail in Temporal UI
-- **Composability**: Entity-specific workflows orchestrate generic Terraform workflows with locking
+## Related docs
 
-### Workflow Types
-
-**Generic Terraform Workflows** (reusable, stateless):
-- `CreateTerraform` - Initialize and apply fresh Terraform state
-- `UpdateTerraform` - Update existing Terraform state
-- `PlanTerraform` - Generate Terraform plan (dry-run)
-- `ApplyTerraform` - Apply existing Terraform plan
-- `DestroyTerraform` - Destroy infrastructure managed by Terraform
-
-**Entity Workflows** (specific components, hold locks):
-- Entity-specific workflows (e.g., `DeployVault`, `DeployFabric`) call generic workflows
-- Entity workflows manage **Temporal-level locking** to prevent concurrent operations
-- Callers invoke entity workflows, not generic workflows directly
-
-### State Management
-
-Terraform state is stored in S3 with full audit trail:
-```
-s3://bucket/
-├── {module}/
-│   ├── {org}/                    # org is optional (many modules have no org)
-│   │   ├── 2025-10-19T14:30:22Z.tfplan      # Plan output
-│   │   ├── 2025-10-19T14:30:22Z.tfstate     # Terraform state
-│   │   └── 2025-10-19T14:31:00Z.destroyed   # Tombstone marker
-```
-
-**Design Pattern:**
-- Single timestamp groups related artifacts (plan + state from same action)
-- ISO 8601 format: `YYYY-MM-DDTHH:MM:SSZ` (lexicographically sortable)
-- Tombstone file `{timestamp}.destroyed` marks successful destruction
-- Full history visible when browsing S3 bucket
-
-### Locking Strategy
-
-**Locking happens at the workflow level** (not activities):
-1. Entity workflow acquires Temporal lock (via semaphore or dedicated activity)
-2. Entity workflow invokes generic Terraform workflow
-3. Entity workflow releases lock on completion
-
-This design:
-- Keeps generic workflows simple and stateless
-- Prevents concurrent Terraform applies on same resources
-- Leverages Temporal's workflow determinism for lock safety
-
-### Error Handling
-
-**Current State (v1):**
-- If `ApplyTerraform` fails, cluster may be left in partial state
-- Operator must investigate logs and manually recover
-- Plan and state files in S3 aid debugging
-
-**Future Work:**
-- State version restoration (manual rollback)
-- Automatic rollback to last known-good state
-- Destroy + redeploy for immutable workloads
-
-See reference implementation: `workflows/terraform/v1/`
-
+- [docs/strategy/PFI_PATTERN.md](../docs/strategy/PFI_PATTERN.md)
+- [docs/strategy/OWNERSHIP.md](../docs/strategy/OWNERSHIP.md)
+- [docs/fabric/bootstrap-workflows.md](../docs/fabric/bootstrap-workflows.md)
+- [terraform/README.md](../terraform/README.md) — what Terraform provisions vs what workflows orchestrate
+- [AGENTS.md](../AGENTS.md) — decision framework
