@@ -42,8 +42,8 @@ go test ./lib/...
 go test -tags=integration ./lib/...
 ```
 
-**Testing strategy (canonical):** [UNIT_TESTING.md](../.agents/skills/temporal-workflow-tests/references/UNIT_TESTING.md)
-and linked workflow/activity/client guides. Explicit test planning: `temporal-workflow-tests`
+**Testing strategy (canonical):** [UNIT_TESTING.md](../.agents/skills/temporal-testing/references/UNIT_TESTING.md)
+and linked workflow/activity/client guides. Explicit test planning: `temporal-testing`
 skill.
 
 ## Key workflow packages
