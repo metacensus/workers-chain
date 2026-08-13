@@ -46,6 +46,14 @@ spec:
           value: {{ .Values.temporal.namespace | quote }}
         - name: TEMPORAL_TASK_QUEUE
           value: {{ .Values.temporal.taskQueue | quote }}
+        - name: TEMPORAL_TLS_CA_PATH
+          value: {{ .Values.temporal.tls.caPath | quote }}
+        - name: TEMPORAL_TLS_CERT_PATH
+          value: {{ .Values.temporal.tls.certPath | quote }}
+        - name: TEMPORAL_TLS_KEY_PATH
+          value: {{ .Values.temporal.tls.keyPath | quote }}
+        - name: TEMPORAL_TLS_SERVER_NAME
+          value: {{ .Values.temporal.tls.serverName | quote }}
         # Vault configuration
         - name: VAULT_ADDR
           value: {{ .Values.vault.address | quote }}
@@ -71,6 +79,11 @@ spec:
             port: {{ .Values.healthCheck.port }}
           initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
-
-
-
+        volumeMounts:
+        - name: temporal-mtls
+          mountPath: /etc/temporal/certs
+          readOnly: true
+      volumes:
+      - name: temporal-mtls
+        secret:
+          secretName: {{ .Values.temporal.tls.secretName }}

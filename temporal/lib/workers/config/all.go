@@ -7,10 +7,14 @@ import (
 )
 
 const (
-	temporalAddressName    = "TEMPORAL_ADDRESS"
-	temporalNamespaceName  = "TEMPORAL_NAMESPACE"
-	temporalTaskQueueName  = "TEMPORAL_TASK_QUEUE"
-	healthCheckAddressName = "HEALTH_CHECK_ADDRESS"
+	temporalAddressName      = "TEMPORAL_ADDRESS"
+	temporalNamespaceName    = "TEMPORAL_NAMESPACE"
+	temporalTaskQueueName    = "TEMPORAL_TASK_QUEUE"
+	temporalTLSCAPathName    = "TEMPORAL_TLS_CA_PATH"
+	temporalTLSCertPathName  = "TEMPORAL_TLS_CERT_PATH"
+	temporalTLSKeyPathName   = "TEMPORAL_TLS_KEY_PATH"
+	temporalTLSServerNameKey = "TEMPORAL_TLS_SERVER_NAME"
+	healthCheckAddressName   = "HEALTH_CHECK_ADDRESS"
 
 	vaultAddressName   = "VAULT_ADDR"
 	vaultRoleName      = "VAULT_ROLE"
@@ -36,6 +40,12 @@ type TemporalConfig struct {
 	Address   string
 	Namespace string
 	TaskQueue string
+	// TLS client identity (required when frontend requireClientAuth is enabled).
+	// Empty paths keep plaintext dial for local unit tests.
+	TLSCAPath     string
+	TLSCertPath   string
+	TLSKeyPath    string
+	TLSServerName string
 }
 
 var (
@@ -47,9 +57,13 @@ var (
 func InitializeTemporal() {
 	temporalOnce.Do(func() {
 		temporalGlobal = &TemporalConfig{
-			Address:   viper.GetString(temporalAddressName),
-			Namespace: viper.GetString(temporalNamespaceName),
-			TaskQueue: viper.GetString(temporalTaskQueueName),
+			Address:       viper.GetString(temporalAddressName),
+			Namespace:     viper.GetString(temporalNamespaceName),
+			TaskQueue:     viper.GetString(temporalTaskQueueName),
+			TLSCAPath:     viper.GetString(temporalTLSCAPathName),
+			TLSCertPath:   viper.GetString(temporalTLSCertPathName),
+			TLSKeyPath:    viper.GetString(temporalTLSKeyPathName),
+			TLSServerName: viper.GetString(temporalTLSServerNameKey),
 		}
 	})
 }

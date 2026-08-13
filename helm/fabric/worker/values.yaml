@@ -1,0 +1,77 @@
+# Fabric Worker Configuration Example
+# This chart deploys a Temporal worker for managing Hyperledger Fabric resources
+
+# Operator identifier (e.g., "metacensus")
+# The operator owns shared infrastructure like TLS certificate authorities
+operator: "metacensus"
+
+# Owner identifier used for resource naming (org ID for shard workers,
+# operator ID for the shared fabric worker)
+org: "org1"
+
+# Organization identifier passed as ORG_ID to the worker container.
+# Empty for the shared fabric worker, which owns no organization.
+orgId: "org1"
+
+# Kubernetes namespace the worker is deployed into
+# ("fabric" for the shared fabric worker, "fabric-shard-{org}" for shard workers)
+namespace: "fabric-shard-org1"
+
+# Container image configuration
+image:
+  repository: metacensus/shard-worker
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# Number of replicas
+replicas: 1
+
+# Temporal configuration
+temporal:
+  address: "temporal-frontend.temporal.svc.cluster.local:7233"
+  namespace: "fabric-shard-org1"
+  taskQueue: "infra"
+  tls:
+    secretName: temporal-mtls-client  # pragma: allowlist secret
+    caPath: /etc/temporal/certs/ca.crt
+    certPath: /etc/temporal/certs/tls.crt
+    keyPath: /etc/temporal/certs/tls.key
+    serverName: temporal-frontend.temporal.svc.cluster.local
+
+# Vault configuration
+vault:
+  address: "http://vault.secrets.svc.cluster.local:8200"
+  role: "fabric-shard-org1-worker"
+
+# Logging configuration
+logLevel: "info"
+
+# Health check configuration
+healthCheck:
+  port: 8080
+
+# Resource requests and limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Liveness probe configuration
+livenessProbe:
+  path: /health
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+# Readiness probe configuration
+readinessProbe:
+  path: /ready
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+# Common labels
+commonLabels:
+  managedBy: temporal
+  partOf: fabric

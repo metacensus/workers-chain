@@ -367,3 +367,33 @@ func NewMockKubeClient(t interface {
 
 	return mock
 }
+
+// GetSecretData provides a mock function with given fields: ctx, namespace, name
+func (_m *MockKubeClient) GetSecretData(ctx context.Context, namespace string, name string) (map[string][]byte, error) {
+	ret := _m.Called(ctx, namespace, name)
+	var r0 map[string][]byte
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) map[string][]byte); ok {
+		r0 = rf(ctx, namespace, name)
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(map[string][]byte)
+	}
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, namespace, name)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// UpsertOpaqueSecret provides a mock function with given fields: ctx, namespace, name, data
+func (_m *MockKubeClient) UpsertOpaqueSecret(ctx context.Context, namespace string, name string, data map[string][]byte) error {
+	ret := _m.Called(ctx, namespace, name, data)
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, map[string][]byte) error); ok {
+		r0 = rf(ctx, namespace, name, data)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}

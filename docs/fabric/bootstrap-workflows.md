@@ -121,7 +121,7 @@ Nexus operation is `SignCertificate`, and it carries a **public CSR only**.
 
 ## Nexus Authorization
 
-**Status: 🟡 In progress** (issue [#43](https://github.com/metacensus/infra/issues/43)). Cross-namespace Nexus calls currently have **no** caller allowlist and **no** handler payload checks. NetworkPolicy only limits who can reach the Temporal frontend.
+**Status: 🟡 In progress** (issue [#43](https://github.com/metacensus/infra/issues/43)). Design + mTLS + Authorizer scaffold landed; custom server image not yet swapped into Terraform; handler payload policy still open. NetworkPolicy alone is not the gate.
 
 Temporal Cloud has per-endpoint caller-namespace allowlists. Self-hosted does not — the supported path is a compile-time [Authorizer](https://docs.temporal.io/self-hosted-guide/security#authorizer-plugin) injected into a custom Temporal server binary ([docs](https://docs.temporal.io/nexus/security)). Runtime-loadable auth plugins are not supported.
 
@@ -172,11 +172,11 @@ All other caller × endpoint × operation pairs are denied. Endpoint name `fabri
 
 ### Implementation checklist
 
-1. **Design lock** — this section (done when merged).
-2. **Worker↔Temporal mTLS** — frontend require-client-auth; per-namespace client certs; workers dial with TLS; ClaimMapper.
-3. **Custom server image** — Authorizer enforces the allowlist; Terraform `server_image` points at our image (pinned to Temporal 1.30.x).
-4. **Handler policy** — `CreateAccess` + `SignCertificate` checks above; narrow Nexus-registered ops.
-5. **Verify** — happy-path bootstrap + negative tests (shard A cannot touch org B / BootstrapFabric / foreign CN).
+1. **Design lock** — this section ✅
+2. **Worker↔Temporal mTLS** — frontend `requireClientAuth`; TF-issued CA + leafs; workers dial with TLS; runtime leaf issuance for shards via `EnsureTemporalMTLSClientCert` ✅ (Authorizer still needs custom server image)
+3. **Custom server image** — Authorizer enforces the allowlist; Terraform `server_image` points at `temporal-server/` image (pinned to Temporal 1.30.x) 🟡 scaffolded, not yet deployed
+4. **Handler policy** — `CreateAccess` + `SignCertificate` checks above; narrow Nexus-registered ops ❌
+5. **Verify** — happy-path bootstrap + negative tests (shard A cannot touch org B / BootstrapFabric / foreign CN) ❌
 
 Code lives in `temporal-server/` (gate) and `temporal/lib/workflows/` (handler policy). Ownership boundary: [OWNERSHIP.md P2](../strategy/OWNERSHIP.md#p2--local-call--my-resources-nexus--someone-elses).
 

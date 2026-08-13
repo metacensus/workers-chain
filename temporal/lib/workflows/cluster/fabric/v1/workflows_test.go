@@ -11,6 +11,7 @@ import (
 	helmpb "github.com/metacensus/infra/temporal/gen/workflows/helm/v1"
 	kubepb "github.com/metacensus/infra/temporal/gen/workflows/kube/v1"
 	workerconfig "github.com/metacensus/infra/temporal/lib/workers/config"
+	kube "github.com/metacensus/infra/temporal/lib/workflows/kube/v1"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
@@ -228,6 +229,12 @@ func registerActivityStubs(env *testsuite.TestWorkflowEnvironment) {
 			return nil, nil
 		},
 		activity.RegisterOptions{Name: kubepb.ApplyActivityName},
+	)
+	env.RegisterActivityWithOptions(
+		func(ctx context.Context, input *kube.EnsureTemporalMTLSInput) (*kube.EnsureTemporalMTLSOutput, error) {
+			return &kube.EnsureTemporalMTLSOutput{}, nil
+		},
+		activity.RegisterOptions{Name: "EnsureTemporalMTLSClientCert"},
 	)
 }
 
@@ -629,6 +636,8 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 
 			// Register activity stubs
 			registerActivityStubs(env)
+			env.OnActivity("EnsureTemporalMTLSClientCert", mock.Anything, mock.Anything).
+				Return(&kube.EnsureTemporalMTLSOutput{}, nil)
 
 			// Setup activity mocks based on test case
 			if tt.renderErr != nil {
