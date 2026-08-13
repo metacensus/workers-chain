@@ -119,23 +119,66 @@ Nexus operation is `SignCertificate`, and it carries a **public CSR only**.
 
 ---
 
-## Nexus Authorization (Future Work)
+## Nexus Authorization
 
-**Status: ❌ Not implemented.** Cross-namespace calls currently have no application-layer authorization; the design below is planned but deferred.
+**Status: 🟡 In progress** (issue [#43](https://github.com/metacensus/infra/issues/43)). Cross-namespace Nexus calls currently have **no** caller allowlist and **no** handler payload checks. NetworkPolicy only limits who can reach the Temporal frontend.
 
-Cross-namespace calls require authorization. Since Temporal Nexus ACL management requires server plugins (not available in standard SDK), authorization will be handled at the application layer.
+Temporal Cloud has per-endpoint caller-namespace allowlists. Self-hosted does not — the supported path is a compile-time [Authorizer](https://docs.temporal.io/self-hosted-guide/security#authorizer-plugin) injected into a custom Temporal server binary ([docs](https://docs.temporal.io/nexus/security)). Runtime-loadable auth plugins are not supported.
 
-### `secrets.v1.CreateAccess` (Infra Worker)
+### Architecture (locked)
 
-Validates caller namespace maps to requested Vault path:
-- `fabric` → operator subtree only
-- `fabric-shard-{org}` → `secret/fabric/shard/{org}/*` only
+```text
+Caller worker (mTLS identity = Temporal NS)
+        │
+        ▼
+┌───────────────────────────────────────────────────────────┐
+│  Temporal server Authorizer (THE GATE)                    │
+│  default-deny: caller NS → Nexus endpoint                 │
+│  binary: temporal-server/ (WithAuthorizer/WithClaimMapper)│
+└───────────────────────────────────────────────────────────┘
+        │ allowed
+        ▼
+┌───────────────────────────────────────────────────────────┐
+│  Handler payload policy (defense in depth)                │
+│  CreateAccess: Vault path + SA ⊆ caller owner             │
+│  SignCertificate: CN/SAN ∈ caller trust domain;           │
+│    reject privileged ca / hf.IntermediateCA /             │
+│    hf.Registrar.* on cross-owner path;                    │
+│    no duplicate-identity takeover                         │
+└───────────────────────────────────────────────────────────┘
+```
 
-### `fabric.certauth.v1.SignCertificate` (Fabric Worker)
+**Locked decisions**
 
-Validates:
-- Caller namespace matches `fabric-shard-*` pattern
-- Certificate CN/SANs match caller's org
+| Decision | Choice |
+|----------|--------|
+| Gate | Custom Temporal server Authorizer (not app-only, not Cloud ACLs) |
+| Worker identity | mTLS client certs; ClaimMapper maps cert CN → Temporal namespace |
+| Allowlist source | Go code in `temporal-server/` (versioned with the image) |
+| Nexus surface | Authorizer endpoint allowlist **and** narrow worker Nexus registration to intended ops |
+| Cheap SignCertificate harden as standalone PR | **No** — lands with handler policy |
+
+### Endpoint allowlist (default deny)
+
+| Caller Temporal NS | Endpoint | Allowed operation(s) |
+|--------------------|----------|----------------------|
+| `infra` | `fabric-BootstrapFabric` | `BootstrapFabric` only |
+| `infra` | `fabric-shard-{org}-BootstrapShard` | `BootstrapShard` only (matching `{org}`) |
+| `fabric` | `secrets-CreateAccess` | `CreateAccess` iff policy ⊆ operator Vault subtree |
+| `fabric-shard-{org}` | `secrets-CreateAccess` | `CreateAccess` iff policy ⊆ that org's Vault subtree |
+| `fabric-shard-{org}` | `fabric-CreateCertificate` | `SignCertificate` iff CN/SAN ∈ `{org}` trust domain |
+
+All other caller × endpoint × operation pairs are denied. Endpoint name `fabric-CreateCertificate` is the legacy wire name for `SignCertificate` (rename deferred).
+
+### Implementation checklist
+
+1. **Design lock** — this section (done when merged).
+2. **Worker↔Temporal mTLS** — frontend require-client-auth; per-namespace client certs; workers dial with TLS; ClaimMapper.
+3. **Custom server image** — Authorizer enforces the allowlist; Terraform `server_image` points at our image (pinned to Temporal 1.30.x).
+4. **Handler policy** — `CreateAccess` + `SignCertificate` checks above; narrow Nexus-registered ops.
+5. **Verify** — happy-path bootstrap + negative tests (shard A cannot touch org B / BootstrapFabric / foreign CN).
+
+Code lives in `temporal-server/` (gate) and `temporal/lib/workflows/` (handler policy). Ownership boundary: [OWNERSHIP.md P2](../strategy/OWNERSHIP.md#p2--local-call--my-resources-nexus--someone-elses).
 
 ---
 
@@ -224,7 +267,7 @@ intentionally deferred (see below).
 | shard-org1 worker | org2 K8s resources | K8s RBAC namespace binding |
 | shard-org1 worker | org2 Vault secrets | Vault token scoped to org1 subtree |
 | shard-org1 worker | org2 workflow history | Temporal namespace isolation |
-| any shard worker | arbitrary Vault policies | Nexus validation at Infra worker |
+| any shard worker | arbitrary Vault policies | Nexus Authorizer + CreateAccess handler checks (see [Nexus Authorization](#nexus-authorization)) |
 | any shard worker | another org's private keys | keys never cross Nexus — only public CSRs do |
 
 ---
