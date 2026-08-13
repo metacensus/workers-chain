@@ -172,12 +172,27 @@ All other caller × endpoint × operation pairs are denied. Endpoint name `fabri
 
 Two certificate CNs are not worker identities and carry a cluster system role instead: `temporal-system-admin` (admintools Jobs, Web UI, local `temporal` CLI via `make temporal-certs`) and `temporal-internode` (Temporal's own services calling their frontend). Both are Terraform-issued and never handed to workers.
 
+### Handlers cannot identify their caller
+
+A Nexus handler receives no trustworthy caller identity. The header it sees comes from `NexusOperationScheduledEventAttributes.GetNexusHeader()` — set by the caller — and the only server-supplied header is an encrypted callback token the handler cannot read. Caller identity therefore exists in exactly two places: the server Authorizer (which sees the caller namespace and, via `CallTarget.Request`, the payload) and endpoint→task-queue routing.
+
+Handler policy is written accordingly: it binds authority to something the handler *can* verify.
+
+| Handler | Binds authority to | Effect |
+|---------|--------------------|--------|
+| `CreateAccess` | the Kubernetes namespace the policy is attached to | a policy mounted in `fabric-shard-{org}` can only reach `fabric/shard/{org}`; `fabric` gets the non-shard remainder; any other namespace is denied |
+| `SignCertificate` | the request shape | `ca` profile and `hf.IntermediateCA` / `hf.Registrar.*` / `hf.Revoker` / `hf.GenCRL` / `hf.AffiliationMgr` attributes are refused, because privileged issuance only ever happens against a locally-owned issuer |
+
+Canonical rule: `workerconfig.VaultPathAllowedForKubernetesNamespace`, cross-checked against the real bootstrap policies in `workers/fabric/config/policy_test.go`.
+
+**Still open:** cross-owner CN/SAN namespacing (shard A requesting a certificate whose CN belongs to org B). `fabric-CreateCertificate` is one endpoint shared by all shards, so the handler cannot tell them apart. Closing it needs per-org endpoints routed to per-org task queues, or moving that check into the Authorizer where caller and payload meet.
+
 ### Implementation checklist
 
 1. **Design lock** — this section ✅
 2. **Worker↔Temporal mTLS** — frontend `requireClientAuth`; TF-issued CA + leafs; workers dial with TLS; runtime leaf issuance for shards via `EnsureTemporalMTLSClientCert` ✅
 3. **Custom server image** — Authorizer enforces the allowlist; Terraform `server_image` defaults to `metacensus/temporal-server`, built locally by `make tf-apply` and published by the release workflow ✅
-4. **Handler policy** — `CreateAccess` + `SignCertificate` checks above; narrow Nexus-registered ops ❌
+4. **Handler policy** — 🟡 `CreateAccess` Vault-subtree scoping and `SignCertificate` privileged-request refusal done; cross-owner CN/SAN namespacing and narrowing the Nexus-registered surface (workers register whole proto services, endpoints target one op) still open
 5. **Verify** — happy-path bootstrap + negative tests (shard A cannot touch org B / BootstrapFabric / foreign CN) ❌ (not yet run against a live cluster)
 
 Code lives in `temporal-server/` (gate) and `temporal/lib/workflows/` (handler policy). Ownership boundary: [OWNERSHIP.md P2](../strategy/OWNERSHIP.md#p2--local-call--my-resources-nexus--someone-elses).

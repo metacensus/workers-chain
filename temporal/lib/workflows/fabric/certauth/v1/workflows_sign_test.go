@@ -72,6 +72,48 @@ func TestNewSignCertificateWorkflow(t *testing.T) {
 			wantErr:   true,
 			errSubstr: "does not own",
 		},
+		// Cross-owner issuance is for leaf certificates only. Intermediate CAs and
+		// registrars are always minted against a locally-owned issuer, so these
+		// requests can never be legitimate here.
+		{
+			name:      "privileged - ca profile",
+			owner:     operatorOwner,
+			mutate:    func(r *pb.SignCertificateInput) { r.Profile = "ca" },
+			wantErr:   true,
+			errSubstr: ErrPrivilegedRequest.Error(),
+		},
+		{
+			name:  "privileged - intermediate CA attribute",
+			owner: operatorOwner,
+			mutate: func(r *pb.SignCertificateInput) {
+				r.Attributes = map[string]string{"hf.IntermediateCA": "true"}
+			},
+			wantErr:   true,
+			errSubstr: ErrPrivilegedRequest.Error(),
+		},
+		{
+			name:  "privileged - registrar attribute",
+			owner: operatorOwner,
+			mutate: func(r *pb.SignCertificateInput) {
+				r.Attributes = map[string]string{"hf.Registrar.Roles": "*"}
+			},
+			wantErr:   true,
+			errSubstr: ErrPrivilegedRequest.Error(),
+		},
+		{
+			name:  "privileged - revoker attribute",
+			owner: operatorOwner,
+			mutate: func(r *pb.SignCertificateInput) {
+				r.Attributes = map[string]string{"hf.Revoker": "true"}
+			},
+			wantErr:   true,
+			errSubstr: ErrPrivilegedRequest.Error(),
+		},
+		{
+			name:   "valid - tls profile with ordinary attributes",
+			owner:  operatorOwner,
+			mutate: func(r *pb.SignCertificateInput) { r.Profile = "tls"; r.Attributes = map[string]string{"role": "peer"} },
+		},
 	}
 
 	for _, tt := range tests {

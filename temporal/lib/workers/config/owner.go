@@ -103,12 +103,12 @@ func (c OperatorConfig) OwnerProto() *fabricv1.Owner {
 
 // KubernetesNamespace returns the shared "fabric" namespace where operator-owned
 // infrastructure (fabric worker, TLS CAs, certificate store) is deployed.
-func (c OperatorConfig) KubernetesNamespace() string { return "fabric" }
+func (c OperatorConfig) KubernetesNamespace() string { return OperatorKubernetesNamespace }
 
 // TemporalNamespace returns the shared "fabric" Temporal namespace the fabric worker polls.
-func (c OperatorConfig) TemporalNamespace() string { return "fabric" }
+func (c OperatorConfig) TemporalNamespace() string { return OperatorKubernetesNamespace }
 
-func (c OperatorConfig) VaultBasePath() string { return "fabric/" + c.operatorID }
+func (c OperatorConfig) VaultBasePath() string { return operatorVaultPrefix + c.operatorID }
 
 // WorkerServiceAccountName returns the service account name for operator's fabric worker
 func (c OperatorConfig) WorkerServiceAccountName() string {

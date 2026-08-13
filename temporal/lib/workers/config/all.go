@@ -177,7 +177,7 @@ type OrgConfig struct {
 // ============= Kubernetes Infrastructure =============
 
 func (c OrgConfig) KubernetesNamespace() string {
-	return "fabric-shard-" + c.OrgID
+	return ShardKubernetesNamespacePrefix + c.OrgID
 }
 
 func (c OrgConfig) WorkerServiceAccountName() string {
@@ -191,7 +191,7 @@ func (c OrgConfig) WorkerDeploymentName() string {
 // ============= Temporal Orchestration =============
 
 func (c OrgConfig) TemporalNamespace() string {
-	return "fabric-shard-" + c.OrgID
+	return ShardKubernetesNamespacePrefix + c.OrgID
 }
 
 func (c OrgConfig) NexusEndpointBootstrapShard() string {
@@ -201,7 +201,7 @@ func (c OrgConfig) NexusEndpointBootstrapShard() string {
 // ============= Vault Security/RBAC =============
 
 func (c OrgConfig) VaultBasePath() string {
-	return "fabric/shard/" + c.OrgID
+	return shardVaultPrefix + c.OrgID
 }
 
 func (c OrgConfig) WorkerVaultPolicyName() string {

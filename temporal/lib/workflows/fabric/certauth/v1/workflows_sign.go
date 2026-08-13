@@ -2,6 +2,7 @@ package certauth
 
 import (
 	"fmt"
+	"strings"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
@@ -57,7 +58,35 @@ func (w *signCertificateWorkflow) validate() error {
 		return fmt.Errorf("%w: %q does not own CA %s-%s (issuer_ref)",
 			ErrNotOwned, w.owner.OwnerID(), req.GetIssuerRef().GetCertType(), req.GetIssuerRef().GetId())
 	}
+	// This entrypoint only ever issues leaf certificates: intermediate CAs and
+	// registrars are minted against a locally-owned issuer, never through Nexus
+	// (see fabric/v1 ensureSigningIdentity and certauth workflows_admin). So a
+	// request for CA or registrar authority here is either a mistake or an
+	// attempt to have another owner's CA subordinate itself.
+	if profile := req.GetProfile(); profile == profileCA {
+		return fmt.Errorf("%w: profile %q", ErrPrivilegedRequest, profile)
+	}
+	for attribute := range req.GetAttributes() {
+		if isPrivilegedFabricCAAttribute(attribute) {
+			return fmt.Errorf("%w: attribute %q", ErrPrivilegedRequest, attribute)
+		}
+	}
 	return nil
+}
+
+// profileCA is the Fabric CA signing profile that produces a CA certificate
+// (basicConstraints CA:TRUE) rather than a leaf.
+const profileCA = "ca"
+
+// isPrivilegedFabricCAAttribute reports whether a Fabric CA attribute would grant
+// the resulting identity authority over the CA itself: signing subordinate CAs,
+// registering or revoking other identities, managing affiliations, or issuing CRLs.
+func isPrivilegedFabricCAAttribute(attribute string) bool {
+	switch attribute {
+	case "hf.IntermediateCA", "hf.Revoker", "hf.GenCRL", "hf.AffiliationMgr":
+		return true
+	}
+	return strings.HasPrefix(attribute, "hf.Registrar.")
 }
 
 func (w *signCertificateWorkflow) Execute(ctx workflow.Context) (*pb.SignCertificateOutput, error) {
