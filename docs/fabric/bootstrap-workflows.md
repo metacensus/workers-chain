@@ -170,13 +170,15 @@ Caller worker (mTLS identity = Temporal NS)
 
 All other caller × endpoint × operation pairs are denied. Endpoint name `fabric-CreateCertificate` is the legacy wire name for `SignCertificate` (rename deferred).
 
+Two certificate CNs are not worker identities and carry a cluster system role instead: `temporal-system-admin` (admintools Jobs, Web UI, local `temporal` CLI via `make temporal-certs`) and `temporal-internode` (Temporal's own services calling their frontend). Both are Terraform-issued and never handed to workers.
+
 ### Implementation checklist
 
 1. **Design lock** — this section ✅
-2. **Worker↔Temporal mTLS** — frontend `requireClientAuth`; TF-issued CA + leafs; workers dial with TLS; runtime leaf issuance for shards via `EnsureTemporalMTLSClientCert` ✅ (Authorizer still needs custom server image)
-3. **Custom server image** — Authorizer enforces the allowlist; Terraform `server_image` points at `temporal-server/` image (pinned to Temporal 1.30.x) 🟡 scaffolded, not yet deployed
+2. **Worker↔Temporal mTLS** — frontend `requireClientAuth`; TF-issued CA + leafs; workers dial with TLS; runtime leaf issuance for shards via `EnsureTemporalMTLSClientCert` ✅
+3. **Custom server image** — Authorizer enforces the allowlist; Terraform `server_image` defaults to `metacensus/temporal-server`, built locally by `make tf-apply` and published by the release workflow ✅
 4. **Handler policy** — `CreateAccess` + `SignCertificate` checks above; narrow Nexus-registered ops ❌
-5. **Verify** — happy-path bootstrap + negative tests (shard A cannot touch org B / BootstrapFabric / foreign CN) ❌
+5. **Verify** — happy-path bootstrap + negative tests (shard A cannot touch org B / BootstrapFabric / foreign CN) ❌ (not yet run against a live cluster)
 
 Code lives in `temporal-server/` (gate) and `temporal/lib/workflows/` (handler policy). Ownership boundary: [OWNERSHIP.md P2](../strategy/OWNERSHIP.md#p2--local-call--my-resources-nexus--someone-elses).
 
