@@ -121,7 +121,7 @@ Nexus operation is `SignCertificate`, and it carries a **public CSR only**.
 
 ## Nexus Authorization
 
-**Status: 🟡 In progress** (issue [#43](https://github.com/metacensus/infra/issues/43)). Server gate, mTLS, and handler payload checks are in code; not yet applied. Cross-owner CN/SAN namespacing is still open.
+**Status: 🟡 In progress** (issue [#43](https://github.com/metacensus/infra/issues/43)). Server gate, mTLS, and handler payload checks are applied. Cross-owner CN/SAN namespacing is still open.
 
 Temporal Cloud has per-endpoint caller-namespace allowlists. Self-hosted does not — the supported path is a compile-time [Authorizer](https://docs.temporal.io/self-hosted-guide/security#authorizer-plugin) injected into a custom Temporal server binary ([docs](https://docs.temporal.io/nexus/security)). Runtime-loadable auth plugins are not supported.
 
@@ -170,6 +170,8 @@ All other caller × endpoint × operation pairs are denied. Endpoint name `fabri
 
 `temporal-system-admin` and `temporal-internode` are Terraform-issued CNs with a cluster system role (admintools/UI/CLI, and Temporal's own frontend calls). They are never given to workers.
 
+The infra worker is not a system admin. It may `RegisterNamespace` / `DescribeNamespace` for Temporal namespaces `fabric` and `fabric-shard-*`, and `CreateNexusEndpoint` (that RPC has no `GetNamespace()`). Shard and fabric workers cannot.
+
 Nexus handlers do not receive a trustworthy caller identity. Handler policy therefore binds to what the handler can verify: CreateAccess to the Kubernetes namespace the policy is attached to; SignCertificate to request shape (no CA/registrar attributes). Cross-owner CN/SAN namespacing is still open — `fabric-CreateCertificate` is one shared endpoint.
 
 ### Implementation checklist
@@ -178,7 +180,7 @@ Nexus handlers do not receive a trustworthy caller identity. Handler policy ther
 2. **Worker↔Temporal mTLS** — frontend `requireClientAuth`; TF-issued CA + leafs; workers dial with TLS; runtime leaf issuance for shards via `EnsureTemporalMTLSClientCert` ✅
 3. **Custom server image** — Authorizer enforces the allowlist; Terraform `server_image` defaults to `metacensus/temporal-server`, built locally by `make tf-apply` and published by the release workflow ✅
 4. **Handler policy** — 🟡 `CreateAccess` Vault-subtree scoping and `SignCertificate` privileged-request refusal done; cross-owner CN/SAN namespacing and narrowing the Nexus-registered surface (workers register whole proto services, endpoints target one op) still open
-5. **Verify** — happy-path bootstrap + negative tests (shard A cannot touch org B / BootstrapFabric / foreign CN) ❌ (not yet run against a live cluster)
+5. **Verify** — 🟡 live `BootstrapInfra` + `InitFabricShard` succeeded. Live negatives (shard A cannot touch org B / BootstrapFabric / foreign CN) still open
 
 Code lives in `temporal-server/` (gate) and `temporal/lib/workflows/` (handler policy). Ownership boundary: [OWNERSHIP.md P2](../strategy/OWNERSHIP.md#p2--local-call--my-resources-nexus--someone-elses).
 
