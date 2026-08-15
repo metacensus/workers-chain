@@ -121,7 +121,7 @@ Nexus operation is `SignCertificate`, and it carries a **public CSR only**.
 
 ## Nexus Authorization
 
-**Status: 🟡 In progress** (issue [#43](https://github.com/metacensus/infra/issues/43)). Design + mTLS + Authorizer scaffold landed; custom server image not yet swapped into Terraform; handler payload policy still open. NetworkPolicy alone is not the gate.
+**Status: 🟡 In progress** (issue [#43](https://github.com/metacensus/infra/issues/43)). Server gate, mTLS, and handler payload checks are in code; not yet applied. Cross-owner CN/SAN namespacing is still open.
 
 Temporal Cloud has per-endpoint caller-namespace allowlists. Self-hosted does not — the supported path is a compile-time [Authorizer](https://docs.temporal.io/self-hosted-guide/security#authorizer-plugin) injected into a custom Temporal server binary ([docs](https://docs.temporal.io/nexus/security)). Runtime-loadable auth plugins are not supported.
 
@@ -140,11 +140,9 @@ Caller worker (mTLS identity = Temporal NS)
         ▼
 ┌───────────────────────────────────────────────────────────┐
 │  Handler payload policy (defense in depth)                │
-│  CreateAccess: Vault path + SA ⊆ caller owner             │
-│  SignCertificate: CN/SAN ∈ caller trust domain;           │
-│    reject privileged ca / hf.IntermediateCA /             │
-│    hf.Registrar.* on cross-owner path;                    │
-│    no duplicate-identity takeover                         │
+│  CreateAccess: Vault path ⊆ bound k8s namespace subtree   │
+│  SignCertificate: reject ca / hf.IntermediateCA /         │
+│    hf.Registrar.* (leaf issuance only on this path)       │
 └───────────────────────────────────────────────────────────┘
 ```
 
@@ -166,26 +164,13 @@ Caller worker (mTLS identity = Temporal NS)
 | `infra` | `fabric-shard-{org}-BootstrapShard` | `BootstrapShard` only (matching `{org}`) |
 | `fabric` | `secrets-CreateAccess` | `CreateAccess` iff policy ⊆ operator Vault subtree |
 | `fabric-shard-{org}` | `secrets-CreateAccess` | `CreateAccess` iff policy ⊆ that org's Vault subtree |
-| `fabric-shard-{org}` | `fabric-CreateCertificate` | `SignCertificate` iff CN/SAN ∈ `{org}` trust domain |
+| `fabric-shard-{org}` | `fabric-CreateCertificate` | `SignCertificate` (privileged profiles/attrs rejected; CN/SAN namespacing open) |
 
 All other caller × endpoint × operation pairs are denied. Endpoint name `fabric-CreateCertificate` is the legacy wire name for `SignCertificate` (rename deferred).
 
-Two certificate CNs are not worker identities and carry a cluster system role instead: `temporal-system-admin` (admintools Jobs, Web UI, local `temporal` CLI via `make temporal-certs`) and `temporal-internode` (Temporal's own services calling their frontend). Both are Terraform-issued and never handed to workers.
+`temporal-system-admin` and `temporal-internode` are Terraform-issued CNs with a cluster system role (admintools/UI/CLI, and Temporal's own frontend calls). They are never given to workers.
 
-### Handlers cannot identify their caller
-
-A Nexus handler receives no trustworthy caller identity. The header it sees comes from `NexusOperationScheduledEventAttributes.GetNexusHeader()` — set by the caller — and the only server-supplied header is an encrypted callback token the handler cannot read. Caller identity therefore exists in exactly two places: the server Authorizer (which sees the caller namespace and, via `CallTarget.Request`, the payload) and endpoint→task-queue routing.
-
-Handler policy is written accordingly: it binds authority to something the handler *can* verify.
-
-| Handler | Binds authority to | Effect |
-|---------|--------------------|--------|
-| `CreateAccess` | the Kubernetes namespace the policy is attached to | a policy mounted in `fabric-shard-{org}` can only reach `fabric/shard/{org}`; `fabric` gets the non-shard remainder; any other namespace is denied |
-| `SignCertificate` | the request shape | `ca` profile and `hf.IntermediateCA` / `hf.Registrar.*` / `hf.Revoker` / `hf.GenCRL` / `hf.AffiliationMgr` attributes are refused, because privileged issuance only ever happens against a locally-owned issuer |
-
-Canonical rule: `workerconfig.VaultPathAllowedForKubernetesNamespace`, cross-checked against the real bootstrap policies in `workers/fabric/config/policy_test.go`.
-
-**Still open:** cross-owner CN/SAN namespacing (shard A requesting a certificate whose CN belongs to org B). `fabric-CreateCertificate` is one endpoint shared by all shards, so the handler cannot tell them apart. Closing it needs per-org endpoints routed to per-org task queues, or moving that check into the Authorizer where caller and payload meet.
+Nexus handlers do not receive a trustworthy caller identity. Handler policy therefore binds to what the handler can verify: CreateAccess to the Kubernetes namespace the policy is attached to; SignCertificate to request shape (no CA/registrar attributes). Cross-owner CN/SAN namespacing is still open — `fabric-CreateCertificate` is one shared endpoint.
 
 ### Implementation checklist
 

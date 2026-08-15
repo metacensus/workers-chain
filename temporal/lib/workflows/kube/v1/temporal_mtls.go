@@ -17,7 +17,6 @@ import (
 )
 
 const (
-	// WorkerTemporalMTLSSecretName is mounted by fabric/shard worker charts.
 	WorkerTemporalMTLSSecretName = "temporal-mtls-client" // pragma: allowlist secret
 
 	temporalSystemNamespace  = "temporal"
@@ -25,19 +24,15 @@ const (
 	sourceClientCASecret     = "temporal-mtls-client-ca"     // pragma: allowlist secret
 )
 
-// EnsureTemporalMTLSInput provisions the worker Temporal client TLS secret.
-// Cert material never returns to the workflow (stays in the activity).
 type EnsureTemporalMTLSInput struct {
 	TargetNamespace   string
 	TemporalNamespace string
 }
 
-// EnsureTemporalMTLSOutput is empty on success.
 type EnsureTemporalMTLSOutput struct{}
 
-// EnsureTemporalMTLSClientCert copies or issues a Temporal client cert into
-// TargetNamespace/temporal-mtls-client. Fabric (CN=fabric) copies the TF-issued
-// secret; shard namespaces get a leaf signed by the Temporal CA.
+// EnsureTemporalMTLSClientCert writes TargetNamespace/temporal-mtls-client.
+// fabric copies the TF-issued secret; shards get a CA-signed leaf. Material stays in the activity.
 func (a *Activities) EnsureTemporalMTLSClientCert(ctx context.Context, in *EnsureTemporalMTLSInput) (*EnsureTemporalMTLSOutput, error) {
 	if in == nil || in.TargetNamespace == "" || in.TemporalNamespace == "" {
 		return nil, fmt.Errorf("target namespace and temporal namespace are required")

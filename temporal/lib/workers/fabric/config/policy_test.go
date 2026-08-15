@@ -41,11 +41,8 @@ func TestWorkerVaultPolicy_OnlyOwnSubtree(t *testing.T) {
 	}
 }
 
-// TestVaultPolicies_AcceptedByCreateAccess is the other half of the CreateAccess
-// scope check (workerconfig.VaultPathAllowedForKubernetesNamespace): every policy
-// bootstrap actually asks for must be accepted for the owner's namespace. If this
-// fails, either a policy reaches outside its owner's subtree or the scope check is
-// too strict and would break a deploy.
+// Fail if a real bootstrap policy would be rejected by CreateAccess, or if a
+// policy has no rules (the check would prove nothing).
 func TestVaultPolicies_AcceptedByCreateAccess(t *testing.T) {
 	for _, owner := range []OwnerConfig{NewOperatorConfig("metacensus"), NewOrgConfig("org1")} {
 		caRef := &fabricv1.CertificateAuthorityRef{CertType: "org", Id: "int"}

@@ -46,12 +46,8 @@ func newCreateAccessWorkflow(input *pb.CreateAccessWorkflowInput) (*createAccess
 	return w, nil
 }
 
-// validate checks required fields and, more importantly, that every requested
-// policy path lies inside the Vault subtree owned by the Kubernetes namespace the
-// policy is being bound to. CreateAccess is reachable over Nexus from any
-// allowlisted caller namespace, and a Nexus handler cannot identify its caller,
-// so the namespace being granted access is what scopes the grant: a shard can
-// only ever hand its own workloads its own subtree.
+// validate scopes policy paths to the k8s namespace being bound (Nexus
+// handlers cannot identify the caller).
 func (w *createAccessWorkflow) validate() error {
 	req := w.input.Req
 	if req.GetPolicyName() == "" {

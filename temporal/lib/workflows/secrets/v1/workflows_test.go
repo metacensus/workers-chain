@@ -175,9 +175,6 @@ func TestCreateAccessWorkflow(t *testing.T) {
 	}
 }
 
-// CreateAccess is reachable over Nexus and cannot identify its caller, so the
-// Kubernetes namespace being granted access is what bounds the Vault paths it may
-// be handed. Every rejection here must happen before any Vault activity runs.
 func TestCreateAccessWorkflow_PolicyScope(t *testing.T) {
 	rules := func(paths ...string) *vaultpb.PolicyDocument {
 		doc := &vaultpb.PolicyDocument{}

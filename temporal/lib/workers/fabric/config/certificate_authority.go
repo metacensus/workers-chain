@@ -20,9 +20,6 @@ type OrgConfig = workerconfig.OrgConfig
 var NewOperatorConfig = workerconfig.NewOperatorConfig
 var NewOrgConfig = workerconfig.NewOrgConfig
 
-// Vault KV v2 path prefixes for policy construction. Sourced from workerconfig
-// so that the paths policies grant and the paths CreateAccess accepts (see
-// workerconfig.VaultPathAllowedForKubernetesNamespace) cannot drift apart.
 const (
 	vaultSecretPrefix         = "secret"                           // pragma: allowlist secret
 	vaultSecretDataPrefix     = workerconfig.VaultKVDataPrefix     // pragma: allowlist secret
