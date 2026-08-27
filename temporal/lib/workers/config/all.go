@@ -198,6 +198,14 @@ func (c OrgConfig) NexusEndpointBootstrapShard() string {
 	return "fabric-shard-" + c.OrgID + "-BootstrapShard"
 }
 
+// NexusEndpointCreateCertificate names the endpoint this org uses to reach the
+// operator's certificate authority. It is per-org so the endpoint itself
+// identifies the requester: the Temporal server admits only this org's
+// namespace to it, and refuses requests that declare a different requester.
+func (c OrgConfig) NexusEndpointCreateCertificate() string {
+	return "fabric-shard-" + c.OrgID + "-CreateCertificate"
+}
+
 // ============= Vault Security/RBAC =============
 
 func (c OrgConfig) VaultBasePath() string {

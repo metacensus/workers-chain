@@ -1,6 +1,7 @@
 package cell
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -119,7 +120,7 @@ func TestNewInitFabricShardWorkflow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wf, err := newInitFabricShardWorkflow(tt.input)
+			wf, err := newInitFabricShardWorkflow(tt.input, &testOperatorConfig)
 
 			if tt.wantErr {
 				if err == nil {
@@ -287,6 +288,66 @@ func TestInitFabricShardWorkflow(t *testing.T) {
 	}
 }
 
+// InitFabricShard registers one certificate-issuance endpoint per org, into the
+// operator's namespace. That per-org endpoint is what the Temporal server keys
+// authorization on: only this org's namespace may use it, so a shard cannot
+// request another org's identity.
+func TestInitFabricShardRegistersPerOrgCertificateEndpoint(t *testing.T) {
+	testSuite := &testsuite.WorkflowTestSuite{}
+	env := testSuite.NewTestWorkflowEnvironment()
+
+	registerChildWorkflowStubs(env)
+	mockChildWorkflow[temporalpb.CreateNamespaceOutput](env, temporalpb.CreateNamespaceWorkflowName, nil)
+	mockChildWorkflow[clusterpb.CreateNamespaceOutput](env, clusterpb.CreateNamespaceWorkflowName, nil)
+	mockChildWorkflow[clusterpb.CreateServiceAccountOutput](env, clusterpb.CreateServiceAccountWorkflowName, nil)
+	mockChildWorkflow[secretspb.CreateAccessOutput](env, secretspb.CreateAccessWorkflowName, nil)
+	mockChildWorkflow[clusterpb.CreateDeploymentOutput](env, clusterpb.CreateDeploymentWorkflowName, nil)
+
+	endpoints := map[string]string{} // endpoint name -> target Temporal namespace
+	mockActivities := temporalmocks.NewMockAdminActivities(t)
+	mockActivities.EXPECT().CreateNexusEndpoint(mock.Anything, mock.Anything).
+		RunAndReturn(func(_ context.Context, input *temporalpb.CreateNexusEndpointInput) (*temporalpb.CreateNexusEndpointOutput, error) {
+			endpoints[input.GetName()] = input.GetNamespace()
+			return &temporalpb.CreateNexusEndpointOutput{}, nil
+		}).Maybe()
+	temporalpb.RegisterAdminActivities(env, mockActivities)
+
+	nexusSvc, err := fabricv1nexus.NewFabricNexusService(&fabricv1nexus.UnimplementedFabricNexusHandler{})
+	if err != nil {
+		t.Fatalf("failed to create nexus service: %v", err)
+	}
+	env.RegisterNexusService(nexusSvc)
+	env.OnNexusOperation(nexusSvc, fabricv1nexus.FabricBootstrapShardOperationName, mock.Anything, mock.Anything).
+		Return(&nexus.HandlerStartOperationResultSync[*fabricpb.BootstrapShardOutput]{Value: &fabricpb.BootstrapShardOutput{}}, nil)
+
+	env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.InitFabricShardInput) (*pb.InitFabricShardOutput, error) {
+		workflows := newTestWorkflows()
+		wf, err := workflows.InitFabricShard(ctx, &pb.InitFabricShardWorkflowInput{Req: input})
+		if err != nil {
+			return nil, err
+		}
+		return wf.Execute(ctx)
+	}, &pb.InitFabricShardInput{Org: testOrg})
+
+	var result *pb.InitFabricShardOutput
+	if err := env.GetWorkflowResult(&result); err != nil {
+		t.Fatalf("unexpected workflow error: %v", err)
+	}
+
+	orgCfg := workerconfig.NewOrgConfig(testOrg)
+	certEndpoint := orgCfg.NexusEndpointCreateCertificate()
+	gotNamespace, ok := endpoints[certEndpoint]
+	if !ok {
+		t.Fatalf("endpoint %q was not registered; registered: %v", certEndpoint, endpoints)
+	}
+	if want := testOperatorConfig.TemporalNamespace(); gotNamespace != want {
+		t.Errorf("endpoint %q targets namespace %q, want the operator's %q", certEndpoint, gotNamespace, want)
+	}
+	if _, ok := endpoints[orgCfg.NexusEndpointBootstrapShard()]; !ok {
+		t.Errorf("endpoint %q was not registered; registered: %v", orgCfg.NexusEndpointBootstrapShard(), endpoints)
+	}
+}
+
 func TestInitFabricWorkflow(t *testing.T) {
 	tests := []struct {
 		name                         string
@@ -311,7 +372,7 @@ func TestInitFabricWorkflow(t *testing.T) {
 		{name: "failure - deploy shared fabric worker fails",
 			createDeploymentErr: errors.New("deploy error"), expectedErr: ErrDeployFabricSharedWorker},
 		{name: "failure - create nexus endpoint fails",
-			createNexusEndpointErr: errors.New("nexus error"), expectedErr: ErrCreateTLSCANexusEndpoint},
+			createNexusEndpointErr: errors.New("nexus error"), expectedErr: ErrCreateBootstrapFabricEndpoint},
 		{name: "failure - bootstrap fabric via nexus fails",
 			bootstrapFabricErr: errors.New("bootstrap error"), expectedErr: ErrBootstrapFabric},
 		{name: "success - all steps complete", expectedErr: nil},

@@ -18,10 +18,10 @@ import (
 )
 
 const (
-	// Nexus endpoint names
-	SecretsCreateAccessNexusEndpoint     = "secrets-CreateAccess"
-	FabricCreateCertificateNexusEndpoint = "fabric-CreateCertificate"
-	FabricBootstrapFabricNexusEndpoint   = "fabric-BootstrapFabric"
+	// Nexus endpoint names. Per-org endpoints are named by OrgConfig; see
+	// config.OrgConfig's NexusEndpoint* methods.
+	SecretsCreateAccessNexusEndpoint   = "secrets-CreateAccess" // pragma: allowlist secret
+	FabricBootstrapFabricNexusEndpoint = "fabric-BootstrapFabric"
 )
 
 // Sentinel errors for workflows
@@ -36,7 +36,6 @@ var (
 	ErrCreateOperatorServiceAccount      = errors.New("create operator service account")
 	ErrCreateOperatorVaultAccess         = errors.New("create operator vault access")
 	ErrDeployFabricSharedWorker          = errors.New("deploy shared fabric worker")
-	ErrCreateTLSCANexusEndpoint          = errors.New("create TLS CA nexus endpoint")
 	ErrCreateBootstrapFabricEndpoint     = errors.New("create BootstrapFabric nexus endpoint")
 	ErrBootstrapFabric                   = errors.New("bootstrap fabric via nexus")
 
@@ -48,6 +47,7 @@ var (
 	ErrCreateVaultAccess         = errors.New("create vault access")
 	ErrDeployFabricWorker        = errors.New("deploy fabric worker")
 	ErrCreateNexusEndpoint       = errors.New("create nexus endpoint")
+	ErrCreateCertificateEndpoint = errors.New("create CreateCertificate nexus endpoint")
 	ErrBootstrapShard            = errors.New("bootstrap shard via nexus")
 )
 
@@ -216,16 +216,6 @@ func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput
 		return nil, fmt.Errorf("%w: %w", ErrDeployFabricSharedWorker, err)
 	}
 
-	// Register Nexus endpoint for operator TLS CA certificate issuance,
-	// served by the fabric worker in the "fabric" Temporal namespace
-	if _, err := temporalpb.CreateNexusEndpoint(ctx, &temporalpb.CreateNexusEndpointInput{
-		Name:      FabricCreateCertificateNexusEndpoint,
-		Namespace: operatorCfg.TemporalNamespace(),
-		TaskQueue: "infra",
-	}); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCreateTLSCANexusEndpoint, err)
-	}
-
 	// Register Nexus endpoint for BootstrapFabric, served by the fabric worker
 	if _, err := temporalpb.CreateNexusEndpoint(ctx, &temporalpb.CreateNexusEndpointInput{
 		Name:      FabricBootstrapFabricNexusEndpoint,
@@ -253,16 +243,17 @@ func (w *initFabricWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricOutput
 
 // InitFabricShard implements the InitFabricShard workflow
 func (w *Workflows) InitFabricShard(ctx workflow.Context, input *pb.InitFabricShardWorkflowInput) (pb.InitFabricShardWorkflow, error) {
-	return newInitFabricShardWorkflow(input)
+	return newInitFabricShardWorkflow(input, w.operator)
 }
 
 type initFabricShardWorkflow struct {
-	input *pb.InitFabricShardWorkflowInput
+	input    *pb.InitFabricShardWorkflowInput
+	operator *config.OperatorConfig
 }
 
 // newInitFabricShardWorkflow creates and validates a new initFabricShardWorkflow
-func newInitFabricShardWorkflow(input *pb.InitFabricShardWorkflowInput) (*initFabricShardWorkflow, error) {
-	w := &initFabricShardWorkflow{input: input}
+func newInitFabricShardWorkflow(input *pb.InitFabricShardWorkflowInput, operator *config.OperatorConfig) (*initFabricShardWorkflow, error) {
+	w := &initFabricShardWorkflow{input: input, operator: operator}
 	if err := w.validate(); err != nil {
 		return nil, err
 	}
@@ -330,6 +321,19 @@ func (w *initFabricShardWorkflow) Execute(ctx workflow.Context) (*pb.InitFabricS
 		TaskQueue: "infra",
 	}); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateNexusEndpoint, err)
+	}
+
+	// Register this org's endpoint into the operator's certificate authority,
+	// served by the shared fabric worker. One endpoint per org is what makes
+	// issuance authorizable: the server admits only this org's namespace here,
+	// and refuses requests declaring another org as requester. Registered
+	// before BootstrapShard, which issues the shard's TLS certificates.
+	if _, err := temporalpb.CreateNexusEndpoint(ctx, &temporalpb.CreateNexusEndpointInput{
+		Name:      orgCfg.NexusEndpointCreateCertificate(),
+		Namespace: w.operator.TemporalNamespace(),
+		TaskQueue: "infra",
+	}); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrCreateCertificateEndpoint, err)
 	}
 
 	// Call BootstrapShard workflow via Nexus - the shard worker deploys the

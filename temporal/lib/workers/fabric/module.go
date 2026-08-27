@@ -79,12 +79,11 @@ var Module = fx.Module("fabric",
 		channel.RegisterActivities,
 		orderer.RegisterActivities,
 		peer.RegisterActivities,
-		// Handles CreateCertificate (and other CertificateAuthority) Nexus calls
-		// from shard workers
-		certauth.RegisterNexusService,
+		// Handles SignCertificate Nexus calls from shard workers
+		certauth.RegisterSignCertificateNexusService,
 		fabric.RegisterWorkflows,
 		// Handles BootstrapFabric Nexus calls from the central infra worker
-		fabric.RegisterNexusService,
+		fabric.RegisterBootstrapFabricNexusService,
 		postgres.RegisterActivities,
 	),
 )

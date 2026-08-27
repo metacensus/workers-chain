@@ -392,14 +392,14 @@ func (r *fakeNexusRegistry) RegisterNexusService(svc *nexus.Service) {
 	r.services = append(r.services, svc)
 }
 
-// TestRegisterNexusService is a regression test for the fx.go miswiring where the
-// Fabric Nexus service was registered instead of the CertificateAuthority service.
-// It asserts the registered service is fabric.certauth.v1.CertificateAuthority and
-// that it handles the SignCertificate operation (the cross-owner CSR entrypoint).
-func TestRegisterNexusService(t *testing.T) {
+// TestRegisterSignCertificateNexusService is a regression test for the fx.go
+// miswiring where the Fabric Nexus service was registered instead of the
+// CertificateAuthority service. It asserts the registered service is
+// fabric.certauth.v1.CertificateAuthority and that it handles only SignCertificate.
+func TestRegisterSignCertificateNexusService(t *testing.T) {
 	registry := &fakeNexusRegistry{}
-	if err := RegisterNexusService(registry); err != nil {
-		t.Fatalf("RegisterNexusService failed: %v", err)
+	if err := registerSignCertificateNexusService(registry); err != nil {
+		t.Fatalf("registerSignCertificateNexusService failed: %v", err)
 	}
 	if len(registry.services) != 1 {
 		t.Fatalf("expected 1 registered service, got %d", len(registry.services))
@@ -410,6 +410,9 @@ func TestRegisterNexusService(t *testing.T) {
 	}
 	if op := svc.Operation(certauthv1nexus.CertificateAuthoritySignCertificateOperationName); op == nil {
 		t.Errorf("service does not handle operation %q", certauthv1nexus.CertificateAuthoritySignCertificateOperationName)
+	}
+	if op := svc.Operation(certauthv1nexus.CertificateAuthorityCreateIdentityOperationName); op != nil {
+		t.Errorf("service unexpectedly handles local-only operation CreateIdentity")
 	}
 }
 
@@ -450,7 +453,7 @@ func registerCertAuthNexusMock(t *testing.T, env *testsuite.TestWorkflowEnvironm
 // with too few input arguments" panics.
 
 func stubEnsureKeyPairActivity(_ context.Context, in *secretspb.EnsureKeyPairInput) (*secretspb.EnsureKeyPairOutput, error) {
-	return &secretspb.EnsureKeyPairOutput{SecretRef: in.SecretRef}, nil
+	return &secretspb.EnsureKeyPairOutput{SecretRef: in.SecretRef}, nil // pragma: allowlist secret
 }
 
 func stubGenerateCsrActivity(_ context.Context, _ *pb.GenerateCsrInput) (*pb.GenerateCsrOutput, error) {

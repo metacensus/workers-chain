@@ -17,6 +17,7 @@ var (
 	ErrSignCertificate   = errors.New("sign certificate")
 	ErrInvalidCertType   = errors.New("invalid cert type")
 	ErrPrivilegedRequest = errors.New("privileged issuance is not available across the ownership boundary")
+	ErrSubjectOutOfScope = errors.New("requested subject is outside the requester's trust domain")
 )
 
 // Workflows implements the CertificateAuthorityWorkflows interface.

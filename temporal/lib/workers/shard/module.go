@@ -83,7 +83,7 @@ var Module = fx.Module("shard",
 		peer.RegisterActivities,
 		fabric.RegisterWorkflows,
 		// Handles BootstrapShard Nexus calls from the central infra worker
-		fabric.RegisterNexusService,
+		fabric.RegisterBootstrapShardNexusService,
 		postgres.RegisterActivities,
 	),
 )

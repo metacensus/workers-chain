@@ -164,23 +164,47 @@ Caller worker (mTLS identity = Temporal NS)
 | `infra` | `fabric-shard-{org}-BootstrapShard` | `BootstrapShard` only (matching `{org}`) |
 | `fabric` | `secrets-CreateAccess` | `CreateAccess` iff policy ⊆ operator Vault subtree |
 | `fabric-shard-{org}` | `secrets-CreateAccess` | `CreateAccess` iff policy ⊆ that org's Vault subtree |
-| `fabric-shard-{org}` | `fabric-CreateCertificate` | `SignCertificate` (privileged profiles/attrs rejected; CN/SAN namespacing open) |
+| `fabric-shard-{org}` | `fabric-shard-{org}-CreateCertificate` | `SignCertificate` only; requester must match `{org}`; privileged profiles/attrs rejected |
 
-All other caller × endpoint × operation pairs are denied. Endpoint name `fabric-CreateCertificate` is the legacy wire name for `SignCertificate` (rename deferred).
+All other caller × endpoint × operation pairs are denied. In-workflow calls are gated by the history-service endpoint registry; HTTP Nexus dispatch is gated by the frontend Authorizer (caller when present, plus endpoint→payload binding for certificate endpoints).
 
 `temporal-system-admin` and `temporal-internode` are Terraform-issued CNs with a cluster system role (admintools/UI/CLI, and Temporal's own frontend calls). They are never given to workers.
 
 The infra worker is not a system admin. It may `RegisterNamespace` / `DescribeNamespace` for Temporal namespaces `fabric` and `fabric-shard-*`, and `CreateNexusEndpoint` (that RPC has no `GetNamespace()`). Shard and fabric workers cannot.
 
-Nexus handlers do not receive a trustworthy caller identity. Handler policy therefore binds to what the handler can verify: CreateAccess to the Kubernetes namespace the policy is attached to; SignCertificate to request shape (no CA/registrar attributes). Cross-owner CN/SAN namespacing is still open — `fabric-CreateCertificate` is one shared endpoint.
+Nexus handlers do not receive a trustworthy caller identity. Handler policy therefore binds to what the handler can verify: CreateAccess to the Kubernetes namespace the policy is attached to; SignCertificate to request shape (no CA/registrar attributes) plus CN/SAN scoped to the declared requester. Certificate issuance uses per-org endpoints (`fabric-shard-{org}-CreateCertificate`), not a shared `fabric-CreateCertificate`.
 
 ### Implementation checklist
 
+Done:
+
 1. **Design lock** — this section ✅
 2. **Worker↔Temporal mTLS** — frontend `requireClientAuth`; TF-issued CA + leafs; workers dial with TLS; runtime leaf issuance for shards via `EnsureTemporalMTLSClientCert` ✅
-3. **Custom server image** — Authorizer enforces the allowlist; Terraform `server_image` defaults to `metacensus/temporal-server`, built locally by `make tf-apply` and published by the release workflow ✅
-4. **Handler policy** — 🟡 `CreateAccess` Vault-subtree scoping and `SignCertificate` privileged-request refusal done; cross-owner CN/SAN namespacing and narrowing the Nexus-registered surface (workers register whole proto services, endpoints target one op) still open
-5. **Verify** — 🟡 live `BootstrapInfra` + `InitFabricShard` succeeded. Live negatives (shard A cannot touch org B / BootstrapFabric / foreign CN) still open
+3. **Custom server image** — Authorizer + ClaimMapper in `metacensus/temporal-server`; Terraform `server_image` defaults there; built locally by `make tf-apply` and published by the release workflow ✅
+4. **Handler policy (partial)** — `CreateAccess` Vault-subtree scoping and `SignCertificate` privileged-request refusal ✅
+5. **Happy-path verify** — live `BootstrapInfra` + `InitFabricShard` ✅
+6. **In-workflow Nexus allowlist** — history-service `EndpointRegistry` decorator (`temporal-server/authz/nexus_registry.go` via `serverfx`) returns `PermissionDenied` for disallowed caller→endpoint pairs; Temporal turns that into `caller namespace %q unauthorized for %q` ✅
+7. **Per-org CreateCertificate endpoints** — `fabric-shard-{org}-CreateCertificate`; frontend Authorizer binds endpoint→payload requester; shared `fabric-CreateCertificate` retired ✅
+8. **Structured deny logs** — history registry logs `nexus endpoint denied for caller namespace` (caller + endpoint); frontend Authorizer logs `authorization denied` with a full reason (not `"..."`) ✅
+
+Live negatives (re-run 2026-08-26 after deploying the registry gate):
+
+| Probe | Result |
+|-------|--------|
+| Shard `acme` StartWorkflow on `infra` / `fabric` | Denied (`Request unauthorized`) ✅ |
+| Shard `acme` `RegisterNamespace` | Denied ✅ |
+| Fabric StartWorkflow on `infra` | Denied ✅ |
+| `CreateAccess` for `fabric-shard-acme` with org-B / operator Vault paths | Denied by handler (`policy path outside … Vault subtree`) ✅ |
+| `SignCertificate` with `Profile: "ca"` | Denied by handler (`privileged issuance…`) ✅ |
+| Shard → Nexus `fabric-BootstrapFabric` (in-workflow) | Denied at schedule (`caller namespace "fabric-shard-acme" unauthorized for "fabric-BootstrapFabric"`) ✅ |
+| Infra → Nexus `secrets-CreateAccess` (in-workflow) | Denied at schedule (`caller namespace "infra" unauthorized for "secrets-CreateAccess"`) ✅ |
+
+The two seams: history binds **caller→endpoint** (and logs `nexus endpoint denied for caller namespace` with caller + endpoint tags); frontend Authorizer binds **endpoint→payload** and logs `authorization denied` with a full reason string. Handler policy remains defense in depth.
+
+Remaining (issue [#43](https://github.com/metacensus/infra/issues/43)):
+
+- [x] **Narrow Nexus registration** — fabric worker: `BootstrapFabric` + `SignCertificate` only; shard worker: `BootstrapShard` only; infra already `CreateAccess` only ✅
+- [ ] **Open / land PR** — `erikforsman/nexus-authorization` → `main` (fill `.github/pull_request_template.md` via `pr-description` skill)
 
 Code lives in `temporal-server/` (gate) and `temporal/lib/workflows/` (handler policy). Ownership boundary: [OWNERSHIP.md P2](../strategy/OWNERSHIP.md#p2--local-call--my-resources-nexus--someone-elses).
 
