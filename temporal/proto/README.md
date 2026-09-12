@@ -353,7 +353,7 @@
 
 <pre>
 S3Provider service defines activities for interacting with AWS S3
-</pre>
+</pre>   
 
 <a name="aws-s3-v1-s3provider-activities"></a>
 ### Activities
@@ -458,7 +458,7 @@ json_name: VersionId
 go_name: VersionId
 go_tags: json:"VersionId,omitempty" validate:"omitempty"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="aws-s3-v1-putobject-activity"></a>
@@ -596,7 +596,7 @@ json_name: VersionId
 go_name: VersionId
 go_tags: json:"VersionId,omitempty" validate:"omitempty"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="aws-s3-v1-deleteobject-activity"></a>
@@ -662,7 +662,7 @@ json_name: VersionId
 go_name: VersionId
 go_tags: json:"VersionId,omitempty" validate:"omitempty"</pre></td>
 </tr>
-</table>
+</table>   
 
 <a name="aws-s3-v1-messages"></a>
 ## Messages
@@ -954,7 +954,7 @@ go_tags: json:"Org" validate:"required"</pre></td>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>cell/init-fabric-shard/${! Org }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-</table>
+</table>     
 
 <a name="cell-v1-messages"></a>
 ## Messages
@@ -1260,7 +1260,7 @@ go_tags: json:"DeploymentName" validate:"required"</pre></td>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>cluster/fabric/create-deployment/${! Owner.OperatorId.or(Owner.OrgId) }/${! Component }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-</table>
+</table>     
 
 <a name="cluster-fabric-v1-messages"></a>
 ## Messages
@@ -1421,7 +1421,7 @@ go_tags: json:"Owner" validate:"required"</pre></td>
 Identity service defines activities for Fabric CA operations
 These activities interact with Fabric CA for identity management
 Activities are NOT exposed via Nexus (only workflows can be called cross-namespace)
-</pre>
+</pre>   
 
 <a name="fabric-certauth-v1-identity-activities"></a>
 ### Activities
@@ -1499,7 +1499,7 @@ revoked indicates if the identity was successfully revoked<br>
 json_name: Revoked
 go_name: Revoked</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="fabric-certauth-v1-generatecsr-activity"></a>
@@ -1574,7 +1574,7 @@ json_name: CsrPem
 go_name: CsrPem
 go_tags: json:"CsrPem" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="fabric-certauth-v1-bootstrapenrollcsr-activity"></a>
@@ -1694,7 +1694,7 @@ json_name: ChainPem
 go_name: ChainPem
 go_tags: json:"ChainPem" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="fabric-certauth-v1-signcsr-activity"></a>
@@ -1841,7 +1841,7 @@ json_name: ChainPem
 go_name: ChainPem
 go_tags: json:"ChainPem" validate:"required"</pre></td>
 </tr>
-</table>
+</table>   
 
 <a name="fabric-certauth-v1-certificateauthority"></a>
 ## fabric.certauth.v1.CertificateAuthority
@@ -2330,7 +2330,7 @@ go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/create-identity/${! CommonName }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
-</table>
+</table>     
 
 <a name="fabric-certauth-v1-messages"></a>
 ## Messages
@@ -3316,7 +3316,7 @@ and governance: genesis/configtx generation, the config-update lifecycle
 These shell out to configtxgen/configtxlator and (as a client) the peer CLI,
 but they act on the channel config, not on any single node.
 Activities are NOT exposed via Nexus (only workflows can be called cross-namespace).
-</pre>
+</pre>   
 
 <a name="fabric-channel-v1-channel-activities"></a>
 ### Activities
@@ -3336,7 +3336,7 @@ Used as input to configtxgen for genesis block creation.
 
 **Output:** [fabric.channel.v1.GenerateConfigTxOutput](#fabric-channel-v1-generateconfigtxoutput)
 
-
+ 
 
 ---
 <a name="fabric-channel-v1-generategenesisblock-activity"></a>
@@ -3353,7 +3353,7 @@ Runs: configtxgen -profile <Profile> -outputBlock genesis.block -channelID <chan
 
 **Output:** [fabric.channel.v1.GenerateGenesisBlockOutput](#fabric-channel-v1-generategenesisblockoutput)
 
-
+ 
 
 ---
 <a name="fabric-channel-v1-fetchconfig-activity"></a>
@@ -3371,7 +3371,7 @@ Extracts: .data.data[0].payload.data.config
 
 **Output:** [fabric.channel.v1.FetchConfigOutput](#fabric-channel-v1-fetchconfigoutput)
 
-
+ 
 
 ---
 <a name="fabric-channel-v1-computeconfigupdate-activity"></a>
@@ -3388,7 +3388,7 @@ Encodes both configs with configtxlator proto_encode, then runs configtxlator co
 
 **Output:** [fabric.channel.v1.ComputeConfigUpdateOutput](#fabric-channel-v1-computeconfigupdateoutput)
 
-
+ 
 
 ---
 <a name="fabric-channel-v1-signconfigupdate-activity"></a>
@@ -3406,7 +3406,7 @@ Called by each org that needs to sign for multi-org config updates.
 
 **Output:** [fabric.channel.v1.SignConfigUpdateOutput](#fabric-channel-v1-signconfigupdateoutput)
 
-
+ 
 
 ---
 <a name="fabric-channel-v1-submitconfigupdate-activity"></a>
@@ -3423,7 +3423,7 @@ Runs: peer channel update -f <envelope.pb>
 
 **Output:** [fabric.channel.v1.SubmitConfigUpdateOutput](#fabric-channel-v1-submitconfigupdateoutput)
 
-
+ 
 
 ---
 <a name="fabric-channel-v1-generateorgdefinition-activity"></a>
@@ -3440,7 +3440,7 @@ Produces the org definition JSON to be added to the channel's Application.groups
 
 **Output:** [fabric.channel.v1.GenerateOrgDefinitionOutput](#fabric-channel-v1-generateorgdefinitionoutput)
 
-
+ 
 
 ---
 <a name="fabric-channel-v1-collectsignatures-activity"></a>
@@ -3461,7 +3461,7 @@ signals / a child workflow than one long-running activity.
 
 **Output:** [fabric.channel.v1.CollectSignaturesOutput](#fabric-channel-v1-collectsignaturesoutput)
 
-
+   
 
 <a name="fabric-channel-v1-messages"></a>
 ## Messages
@@ -3559,7 +3559,7 @@ signals / a child workflow than one long-running activity.
 Orderer service defines activities that act on an orderer node's
 participation in a channel (channel participation API via osnadmin).
 Activities are NOT exposed via Nexus (only workflows can be called cross-namespace).
-</pre>
+</pre>   
 
 <a name="fabric-orderer-v1-orderer-activities"></a>
 ### Activities
@@ -3580,7 +3580,7 @@ Runs: osnadmin channel join --config-block <block>
 
 **Output:** [fabric.orderer.v1.ChannelJoinOutput](#fabric-orderer-v1-channeljoinoutput)
 
-
+ 
 
 ---
 <a name="fabric-orderer-v1-waitforactive-activity"></a>
@@ -3601,7 +3601,7 @@ timeout with a short start_to_close + retries rather than one long attempt.
 
 **Output:** [fabric.orderer.v1.WaitForActiveOutput](#fabric-orderer-v1-waitforactiveoutput)
 
-
+   
 
 <a name="fabric-orderer-v1-messages"></a>
 ## Messages
@@ -3639,7 +3639,7 @@ timeout with a short start_to_close + retries rather than one long attempt.
 Peer service defines activities that act on a peer node's membership in a
 channel (peer channel CLI).
 Activities are NOT exposed via Nexus (only workflows can be called cross-namespace).
-</pre>
+</pre>   
 
 <a name="fabric-peer-v1-peer-activities"></a>
 ### Activities
@@ -3660,7 +3660,7 @@ Also used to fetch the latest config block for follower joins.
 
 **Output:** [fabric.peer.v1.ChannelFetchOutput](#fabric-peer-v1-channelfetchoutput)
 
-
+ 
 
 ---
 <a name="fabric-peer-v1-channeljoin-activity"></a>
@@ -3677,7 +3677,7 @@ Runs: peer channel join -b <channel>.block
 
 **Output:** [fabric.peer.v1.ChannelJoinOutput](#fabric-peer-v1-channeljoinoutput)
 
-
+   
 
 <a name="fabric-peer-v1-messages"></a>
 ## Messages
@@ -4339,7 +4339,7 @@ Fetches current config, computes delta, collects signatures, and submits update
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/update-channel-config</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
-</table>
+</table>     
 
 <a name="fabric-v1-messages"></a>
 ## Messages
@@ -5090,7 +5090,7 @@ go_tags: json:"TlsIssuer" validate:"required"</pre></td>
 <pre>
 Helm service defines activities for rendering Helm charts into Kubernetes manifests
 Activities parse the rendered YAML and return individual resources
-</pre>
+</pre>   
 
 <a name="helm-v1-helm-activities"></a>
 ### Activities
@@ -5169,7 +5169,7 @@ json_name: Resources
 go_name: Resources
 go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="helm-v1-renderchartwithtemplate-activity"></a>
@@ -5254,7 +5254,7 @@ json_name: Resources
 go_name: Resources
 go_tags: json:"Resources" validate:"required"</pre></td>
 </tr>
-</table>
+</table>   
 
 <a name="helm-v1-messages"></a>
 ## Messages
@@ -5487,7 +5487,7 @@ go_tags: json:"ManifestYaml" validate:"required"</pre></td>
 Kubernetes defines activities for deploying resources to Kubernetes
 Activities work with pre-rendered YAML manifests (from Helm, Kustomize, or plain YAML)
 Caller is responsible for templating/rendering before calling these activities
-</pre>
+</pre>   
 
 <a name="kube-v1-kubernetes-activities"></a>
 ### Activities
@@ -5550,7 +5550,7 @@ json_name: Summary
 go_name: Summary
 go_tags: json:"Summary" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="kube-v1-update-activity"></a>
@@ -5610,7 +5610,7 @@ json_name: Summary
 go_name: Summary
 go_tags: json:"Summary" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="kube-v1-apply-activity"></a>
@@ -5670,7 +5670,7 @@ json_name: Summary
 go_name: Summary
 go_tags: json:"Summary" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="kube-v1-delete-activity"></a>
@@ -5729,7 +5729,7 @@ json_name: Summary
 go_name: Summary
 go_tags: json:"Summary" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="kube-v1-getstatus-activity"></a>
@@ -5777,7 +5777,7 @@ json_name: ResourcesReady
 go_name: ResourcesReady
 go_tags: json:"ResourcesReady" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="kube-v1-execpod-activity"></a>
@@ -5882,7 +5882,7 @@ json_name: Stdout
 go_name: Stdout
 go_tags: json:"Stdout,omitempty" validate:"omitempty"</pre></td>
 </tr>
-</table>
+</table>   
 
 <a name="kube-v1-messages"></a>
 ## Messages
@@ -7092,7 +7092,7 @@ go_tags: json:"Updated" validate:"required"</pre></td>
 
 <pre>
 Postgres service defines activities for PostgreSQL database management.
-</pre>
+</pre>   
 
 <a name="postgres-v1-postgres-activities"></a>
 ### Activities
@@ -7126,7 +7126,7 @@ go_tags: json:"DatabaseName" validate:"required"</pre></td>
 
 **Output:** [postgres.v1.CreateDatabaseOutput](#postgres-v1-createdatabaseoutput)
 
-
+ 
 
 ---
 <a name="postgres-v1-createuser-activity"></a>
@@ -7159,7 +7159,7 @@ go_tags: json:"CredentialsRef" validate:"required"</pre></td>
 
 **Output:** [postgres.v1.CreateUserOutput](#postgres-v1-createuseroutput)
 
-
+ 
 
 ---
 <a name="postgres-v1-grantprivileges-activity"></a>
@@ -7204,7 +7204,7 @@ go_tags: json:"Username" validate:"required"</pre></td>
 
 **Output:** [postgres.v1.GrantPrivilegesOutput](#postgres-v1-grantprivilegesoutput)
 
-
+   
 
 <a name="postgres-v1-messages"></a>
 ## Messages
@@ -7467,7 +7467,7 @@ go_tags: json:"PolicyName" validate:"required"</pre></td>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>secrets/create-access/${! PolicyName.or("default") }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-</table>
+</table>    
 
 <a name="secrets-v1-secrets-activities"></a>
 ### Activities
@@ -7529,7 +7529,7 @@ json_name: SecretRef
 go_name: SecretRef
 go_tags: json:"SecretRef" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="secrets-v1-ensurekeypair-activity"></a>
@@ -7581,7 +7581,7 @@ json_name: SecretRef
 go_name: SecretRef
 go_tags: json:"SecretRef" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="secrets-v1-createselfsignedcertificate-activity"></a>
@@ -7692,7 +7692,7 @@ json_name: CertRef
 go_name: CertRef
 go_tags: json:"CertRef" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="secrets-v1-storecertificate-activity"></a>
@@ -7757,7 +7757,7 @@ json_name: CertRef
 go_name: CertRef
 go_tags: json:"CertRef" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="secrets-v1-storegenesisblock-activity"></a>
@@ -7774,7 +7774,7 @@ Enables cross-org access to the genesis block during channel join operations.
 
 **Output:** [secrets.v1.StoreGenesisBlockOutput](#secrets-v1-storegenesisblockoutput)
 
-
+   
 
 <a name="secrets-v1-messages"></a>
 ## Messages
@@ -8307,7 +8307,7 @@ go_tags: json:"Name" validate:"required"</pre></td>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>temporal/create-namespace/${! Name }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
-</table>
+</table>    
 
 <a name="temporal-v1-admin-activities"></a>
 ### Activities
@@ -8353,7 +8353,7 @@ go_tags: json:"Retention,omitempty" validate:"omitempty"</pre></td>
 
 **Output:** [temporal.v1.RegisterNamespaceOutput](#temporal-v1-registernamespaceoutput)
 
-
+ 
 
 ---
 <a name="temporal-v1-describenamespace-activity"></a>
@@ -8411,7 +8411,7 @@ json_name: State
 go_name: State
 go_tags: json:"State" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="temporal-v1-createnexusendpoint-activity"></a>
@@ -8480,7 +8480,7 @@ json_name: Id
 go_name: Id
 go_tags: json:"Id" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="temporal-v1-describenexusendpoint-activity"></a>
@@ -8527,7 +8527,7 @@ json_name: Endpoint
 go_name: Endpoint
 go_tags: json:"Endpoint" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="temporal-v1-updatenexusendpoint-activity"></a>
@@ -8562,7 +8562,7 @@ go_tags: json:"Endpoint" validate:"required"</pre></td>
 
 **Output:** [temporal.v1.UpdateNexusEndpointOutput](#temporal-v1-updatenexusendpointoutput)
 
-
+   
 
 <a name="temporal-v1-messages"></a>
 ## Messages
@@ -8969,7 +8969,7 @@ go_tags: json:"Endpoint" validate:"required"</pre></td>
 <pre>
 Vault service defines low-level Vault operations for auth and policy management.
 These activities are used internally by the secrets service.
-</pre>
+</pre>   
 
 <a name="vault-v1-vault-activities"></a>
 ### Activities
@@ -9037,7 +9037,7 @@ json_name: Name
 go_name: Name
 go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="vault-v1-deleteauthrole-activity"></a>
@@ -9067,7 +9067,7 @@ go_tags: json:"Name" validate:"required"</pre></td>
 
 **Output:** [vault.v1.DeleteAuthRoleOutput](#vault-v1-deleteauthroleoutput)
 
-
+ 
 
 ---
 <a name="vault-v1-createpolicy-activity"></a>
@@ -9118,7 +9118,7 @@ json_name: Name
 go_name: Name
 go_tags: json:"Name" validate:"required"</pre></td>
 </tr>
-</table>
+</table> 
 
 ---
 <a name="vault-v1-deletepolicy-activity"></a>
@@ -9148,7 +9148,7 @@ go_tags: json:"Name" validate:"required"</pre></td>
 
 **Output:** [vault.v1.DeletePolicyOutput](#vault-v1-deletepolicyoutput)
 
-
+   
 
 <a name="vault-v1-messages"></a>
 ## Messages
@@ -9687,3 +9687,4 @@ json_name: structValue
 go_name: StructValue</pre></td>
 </tr>
 </table>
+

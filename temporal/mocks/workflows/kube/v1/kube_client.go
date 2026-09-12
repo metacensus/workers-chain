@@ -306,6 +306,66 @@ func (_c *MockKubeClient_GetResourceStatus_Call) RunAndReturn(run func(context.C
 	return _c
 }
 
+// GetSecretData provides a mock function with given fields: ctx, namespace, name
+func (_m *MockKubeClient) GetSecretData(ctx context.Context, namespace string, name string) (map[string][]byte, error) {
+	ret := _m.Called(ctx, namespace, name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetSecretData")
+	}
+
+	var r0 map[string][]byte
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (map[string][]byte, error)); ok {
+		return rf(ctx, namespace, name)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) map[string][]byte); ok {
+		r0 = rf(ctx, namespace, name)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string][]byte)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, namespace, name)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockKubeClient_GetSecretData_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSecretData'
+type MockKubeClient_GetSecretData_Call struct {
+	*mock.Call
+}
+
+// GetSecretData is a helper method to define mock.On call
+//   - ctx context.Context
+//   - namespace string
+//   - name string
+func (_e *MockKubeClient_Expecter) GetSecretData(ctx interface{}, namespace interface{}, name interface{}) *MockKubeClient_GetSecretData_Call {
+	return &MockKubeClient_GetSecretData_Call{Call: _e.mock.On("GetSecretData", ctx, namespace, name)}
+}
+
+func (_c *MockKubeClient_GetSecretData_Call) Run(run func(ctx context.Context, namespace string, name string)) *MockKubeClient_GetSecretData_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockKubeClient_GetSecretData_Call) Return(_a0 map[string][]byte, _a1 error) *MockKubeClient_GetSecretData_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockKubeClient_GetSecretData_Call) RunAndReturn(run func(context.Context, string, string) (map[string][]byte, error)) *MockKubeClient_GetSecretData_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateResource provides a mock function with given fields: ctx, id, obj
 func (_m *MockKubeClient) UpdateResource(ctx context.Context, id *kubev1.ResourceIdentifier, obj *unstructured.Unstructured) error {
 	ret := _m.Called(ctx, id, obj)
@@ -354,6 +414,55 @@ func (_c *MockKubeClient_UpdateResource_Call) RunAndReturn(run func(context.Cont
 	return _c
 }
 
+// UpsertOpaqueSecret provides a mock function with given fields: ctx, namespace, name, data
+func (_m *MockKubeClient) UpsertOpaqueSecret(ctx context.Context, namespace string, name string, data map[string][]byte) error {
+	ret := _m.Called(ctx, namespace, name, data)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpsertOpaqueSecret")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, map[string][]byte) error); ok {
+		r0 = rf(ctx, namespace, name, data)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockKubeClient_UpsertOpaqueSecret_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpsertOpaqueSecret'
+type MockKubeClient_UpsertOpaqueSecret_Call struct {
+	*mock.Call
+}
+
+// UpsertOpaqueSecret is a helper method to define mock.On call
+//   - ctx context.Context
+//   - namespace string
+//   - name string
+//   - data map[string][]byte
+func (_e *MockKubeClient_Expecter) UpsertOpaqueSecret(ctx interface{}, namespace interface{}, name interface{}, data interface{}) *MockKubeClient_UpsertOpaqueSecret_Call {
+	return &MockKubeClient_UpsertOpaqueSecret_Call{Call: _e.mock.On("UpsertOpaqueSecret", ctx, namespace, name, data)}
+}
+
+func (_c *MockKubeClient_UpsertOpaqueSecret_Call) Run(run func(ctx context.Context, namespace string, name string, data map[string][]byte)) *MockKubeClient_UpsertOpaqueSecret_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(map[string][]byte))
+	})
+	return _c
+}
+
+func (_c *MockKubeClient_UpsertOpaqueSecret_Call) Return(_a0 error) *MockKubeClient_UpsertOpaqueSecret_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockKubeClient_UpsertOpaqueSecret_Call) RunAndReturn(run func(context.Context, string, string, map[string][]byte) error) *MockKubeClient_UpsertOpaqueSecret_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockKubeClient creates a new instance of MockKubeClient. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockKubeClient(t interface {
@@ -366,34 +475,4 @@ func NewMockKubeClient(t interface {
 	t.Cleanup(func() { mock.AssertExpectations(t) })
 
 	return mock
-}
-
-// GetSecretData provides a mock function with given fields: ctx, namespace, name
-func (_m *MockKubeClient) GetSecretData(ctx context.Context, namespace string, name string) (map[string][]byte, error) {
-	ret := _m.Called(ctx, namespace, name)
-	var r0 map[string][]byte
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) map[string][]byte); ok {
-		r0 = rf(ctx, namespace, name)
-	} else if ret.Get(0) != nil {
-		r0 = ret.Get(0).(map[string][]byte)
-	}
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, namespace, name)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// UpsertOpaqueSecret provides a mock function with given fields: ctx, namespace, name, data
-func (_m *MockKubeClient) UpsertOpaqueSecret(ctx context.Context, namespace string, name string, data map[string][]byte) error {
-	ret := _m.Called(ctx, namespace, name, data)
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, map[string][]byte) error); ok {
-		r0 = rf(ctx, namespace, name, data)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
 }

@@ -296,7 +296,18 @@ func TestInitFabricShardRegistersPerOrgCertificateEndpoint(t *testing.T) {
 	testSuite := &testsuite.WorkflowTestSuite{}
 	env := testSuite.NewTestWorkflowEnvironment()
 
+	const parentName = "test.InitFabricShardRegistersPerOrgCertificateEndpoint"
+	parent := func(ctx workflow.Context, input *pb.InitFabricShardInput) (*pb.InitFabricShardOutput, error) {
+		workflows := newTestWorkflows()
+		wf, err := workflows.InitFabricShard(ctx, &pb.InitFabricShardWorkflowInput{Req: input})
+		if err != nil {
+			return nil, err
+		}
+		return wf.Execute(ctx)
+	}
 	registerChildWorkflowStubs(env)
+	env.RegisterWorkflowWithOptions(parent, workflow.RegisterOptions{Name: parentName})
+
 	mockChildWorkflow[temporalpb.CreateNamespaceOutput](env, temporalpb.CreateNamespaceWorkflowName, nil)
 	mockChildWorkflow[clusterpb.CreateNamespaceOutput](env, clusterpb.CreateNamespaceWorkflowName, nil)
 	mockChildWorkflow[clusterpb.CreateServiceAccountOutput](env, clusterpb.CreateServiceAccountWorkflowName, nil)
@@ -309,7 +320,7 @@ func TestInitFabricShardRegistersPerOrgCertificateEndpoint(t *testing.T) {
 		RunAndReturn(func(_ context.Context, input *temporalpb.CreateNexusEndpointInput) (*temporalpb.CreateNexusEndpointOutput, error) {
 			endpoints[input.GetName()] = input.GetNamespace()
 			return &temporalpb.CreateNexusEndpointOutput{}, nil
-		}).Maybe()
+		})
 	temporalpb.RegisterAdminActivities(env, mockActivities)
 
 	nexusSvc, err := fabricv1nexus.NewFabricNexusService(&fabricv1nexus.UnimplementedFabricNexusHandler{})
@@ -320,14 +331,7 @@ func TestInitFabricShardRegistersPerOrgCertificateEndpoint(t *testing.T) {
 	env.OnNexusOperation(nexusSvc, fabricv1nexus.FabricBootstrapShardOperationName, mock.Anything, mock.Anything).
 		Return(&nexus.HandlerStartOperationResultSync[*fabricpb.BootstrapShardOutput]{Value: &fabricpb.BootstrapShardOutput{}}, nil)
 
-	env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.InitFabricShardInput) (*pb.InitFabricShardOutput, error) {
-		workflows := newTestWorkflows()
-		wf, err := workflows.InitFabricShard(ctx, &pb.InitFabricShardWorkflowInput{Req: input})
-		if err != nil {
-			return nil, err
-		}
-		return wf.Execute(ctx)
-	}, &pb.InitFabricShardInput{Org: testOrg})
+	env.ExecuteWorkflow(parentName, &pb.InitFabricShardInput{Org: testOrg})
 
 	var result *pb.InitFabricShardOutput
 	if err := env.GetWorkflowResult(&result); err != nil {
