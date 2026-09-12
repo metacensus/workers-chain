@@ -121,7 +121,7 @@ Nexus operation is `SignCertificate`, and it carries a **public CSR only**.
 
 ## Nexus Authorization
 
-**Status: 🟡 In progress** (issue [#43](https://github.com/metacensus/infra/issues/43)). Server gate, mTLS, and handler payload checks are applied. Cross-owner CN/SAN namespacing is still open.
+**Status: 🟢 Happy path ready** ([PR #51](https://github.com/metacensus/infra/pull/51), issue [#43](https://github.com/metacensus/infra/issues/43)). Server gate, mTLS, handler payload checks, and live happy-path/negative probes are in. Cross-owner CN/SAN namespacing remains deferred.
 
 Temporal Cloud has per-endpoint caller-namespace allowlists. Self-hosted does not — the supported path is a compile-time [Authorizer](https://docs.temporal.io/self-hosted-guide/security#authorizer-plugin) injected into a custom Temporal server binary ([docs](https://docs.temporal.io/nexus/security)). Runtime-loadable auth plugins are not supported.
 
@@ -204,7 +204,9 @@ The two seams: history binds **caller→endpoint** (and logs `nexus endpoint den
 Remaining (issue [#43](https://github.com/metacensus/infra/issues/43)):
 
 - [x] **Narrow Nexus registration** — fabric worker: `BootstrapFabric` + `SignCertificate` only; shard worker: `BootstrapShard` only; infra already `CreateAccess` only ✅
-- [ ] **Open / land PR** — `erikforsman/nexus-authorization` → `main` (fill `.github/pull_request_template.md` via `pr-description` skill)
+- [x] **Open PR** — [#51](https://github.com/metacensus/infra/pull/51) (`erikforsman/nexus-authorization`)
+- [ ] **Land PR** — merge #51 to `main`
+- [ ] **CN/SAN namespacing** — scope leaf subject (CN/SAN) to the declared requester on the CreateCertificate path
 
 Code lives in `temporal-server/` (gate) and `temporal/lib/workflows/` (handler policy). Ownership boundary: [OWNERSHIP.md P2](../strategy/OWNERSHIP.md#p2--local-call--my-resources-nexus--someone-elses).
 
