@@ -2,8 +2,10 @@ package certauth
 
 import (
 	"fmt"
+	"strings"
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1"
+	fabricpb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	"go.temporal.io/sdk/workflow"
@@ -57,7 +59,78 @@ func (w *signCertificateWorkflow) validate() error {
 		return fmt.Errorf("%w: %q does not own CA %s-%s (issuer_ref)",
 			ErrNotOwned, w.owner.OwnerID(), req.GetIssuerRef().GetCertType(), req.GetIssuerRef().GetId())
 	}
+	// Intermediate CAs and registrars are minted against a locally-owned issuer, never via Nexus.
+	if profile := req.GetProfile(); profile == profileCA {
+		return fmt.Errorf("%w: profile %q", ErrPrivilegedRequest, profile)
+	}
+	for attribute := range req.GetAttributes() {
+		if isPrivilegedFabricCAAttribute(attribute) {
+			return fmt.Errorf("%w: attribute %q", ErrPrivilegedRequest, attribute)
+		}
+	}
+	return validateSubjectScope(req.GetRequester(), req.GetCommonName(), req.GetHosts())
+}
+
+// validateSubjectScope keeps a caller's request inside its own trust domain: it
+// may only ask for a subject that names itself.
+//
+// The requester is trustworthy because it is bound twice before we see it: the
+// Temporal Authorizer refuses a request whose requester is not the org owning
+// the per-org Nexus endpoint, and the endpoint allowlist admits only that org's
+// namespace to that endpoint.
+func validateSubjectScope(requester *fabricpb.Owner, commonName string, hosts []string) error {
+	org := requester.GetOrgId()
+	if org == "" {
+		// Cross-owner issuance exists for orgs obtaining certificates from the
+		// operator's shared chain; nothing else has a reason to arrive here.
+		return fmt.Errorf("%w: requester.org_id is required", ErrInvalidInput)
+	}
+	orgCfg := config.NewOrgConfig(org)
+
+	if subjectOrg(commonName) != org {
+		return fmt.Errorf("%w: common_name %q is not qualified with requester org %q",
+			ErrSubjectOutOfScope, commonName, org)
+	}
+	for _, host := range hosts {
+		if !hostInNamespace(host, orgCfg.KubernetesNamespace()) {
+			return fmt.Errorf("%w: host %q is outside namespace %q",
+				ErrSubjectOutOfScope, host, orgCfg.KubernetesNamespace())
+		}
+	}
 	return nil
+}
+
+// subjectOrg returns the owner a CN is qualified with: the final "@"-segment,
+// as built by TLSEnrollmentCommonName and the component CommonName helpers
+// ("peer0@org1", "certificate-authority-org-int@org1").
+func subjectOrg(commonName string) string {
+	idx := strings.LastIndex(commonName, "@")
+	if idx < 0 {
+		return ""
+	}
+	return commonName[idx+1:]
+}
+
+// hostInNamespace reports whether a requested SAN belongs to the given
+// Kubernetes namespace. Service DNS names carry the namespace as their second
+// label ("peer0.fabric-shard-org1[.svc[.cluster.local]]"); a single-label name
+// resolves only inside the requester's own namespace, so it names nothing else.
+func hostInNamespace(host, namespace string) bool {
+	labels := strings.Split(host, ".")
+	if len(labels) == 1 {
+		return true
+	}
+	return labels[1] == namespace
+}
+
+const profileCA = "ca"
+
+func isPrivilegedFabricCAAttribute(attribute string) bool {
+	switch attribute {
+	case "hf.IntermediateCA", "hf.Revoker", "hf.GenCRL", "hf.AffiliationMgr":
+		return true
+	}
+	return strings.HasPrefix(attribute, "hf.Registrar.")
 }
 
 func (w *signCertificateWorkflow) Execute(ctx workflow.Context) (*pb.SignCertificateOutput, error) {

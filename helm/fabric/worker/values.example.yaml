@@ -31,6 +31,12 @@ temporal:
   address: "temporal-frontend.temporal.svc.cluster.local:7233"
   namespace: "fabric-shard-org1"
   taskQueue: "infra"
+  tls:
+    secretName: temporal-mtls-client  # pragma: allowlist secret
+    caPath: /etc/temporal/certs/ca.crt
+    certPath: /etc/temporal/certs/tls.crt
+    keyPath: /etc/temporal/certs/tls.key
+    serverName: temporal-frontend.temporal.svc.cluster.local
 
 # Vault configuration
 vault:
@@ -69,6 +75,3 @@ readinessProbe:
 commonLabels:
   managedBy: temporal
   partOf: fabric
-
-
-

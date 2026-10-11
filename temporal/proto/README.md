@@ -1949,6 +1949,20 @@ profile determines key usages ("ca", "tls", or "" for default identity)<br>
 json_name: Profile
 go_name: Profile
 go_tags: json:"Profile"</pre></td>
+</tr><tr>
+<td>requester</td>
+<td><a href="#fabric-v1-owner">fabric.v1.Owner</a></td>
+<td><pre>
+requester identifies the owner asking for this certificate. It is the only
+ownership claim that crosses the boundary, and it is not taken on trust:
+the Temporal Authorizer refuses the request unless it matches the org that
+owns the per-org Nexus endpoint it arrived on, and only that org's
+namespace may reach that endpoint. The issuer scopes the subject
+(CN / SANs) to this owner.<br>
+
+json_name: Requester
+go_name: Requester
+go_tags: json:"Requester" validate:"required"</pre></td>
 </tr>
 </table>
 
@@ -3029,6 +3043,20 @@ profile determines key usages ("ca", "tls", or "" for default identity)<br>
 json_name: Profile
 go_name: Profile
 go_tags: json:"Profile"</pre></td>
+</tr><tr>
+<td>requester</td>
+<td><a href="#fabric-v1-owner">fabric.v1.Owner</a></td>
+<td><pre>
+requester identifies the owner asking for this certificate. It is the only
+ownership claim that crosses the boundary, and it is not taken on trust:
+the Temporal Authorizer refuses the request unless it matches the org that
+owns the per-org Nexus endpoint it arrived on, and only that org's
+namespace may reach that endpoint. The issuer scopes the subject
+(CN / SANs) to this owner.<br>
+
+json_name: Requester
+go_name: Requester
+go_tags: json:"Requester" validate:"required"</pre></td>
 </tr>
 </table>
 

@@ -65,6 +65,8 @@ Concretely, in CA deployment: a signing parent is always same-owner, so signing 
 
 Corollary for reviewers: if a change makes a local child workflow need another owner's paths, the fix is a Nexus operation (or questioning the design), never a policy widening.
 
+Nexus routing is not the authorization gate. Caller allowlist and handler checks: [bootstrap-workflows — Nexus Authorization](../fabric/bootstrap-workflows.md#nexus-authorization).
+
 ## P3 — Reuse via Data and Plain Functions, Never Shared Workflow Types
 
 **Variant behavior branches on structure, not labels. Workflows are never shared across security contexts to save code.**

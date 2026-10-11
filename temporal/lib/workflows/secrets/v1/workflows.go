@@ -7,6 +7,7 @@ import (
 
 	pb "github.com/metacensus/infra/temporal/gen/workflows/secrets/v1"
 	vaultpb "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
+	"github.com/metacensus/infra/temporal/lib/workers/config"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
@@ -15,6 +16,8 @@ import (
 var (
 	ErrCreateAccessPolicy   = errors.New("create access policy")
 	ErrCreateAccessAuthRole = errors.New("create access auth role")
+	ErrInvalidInput         = errors.New("invalid input")
+	ErrPolicyOutOfScope     = errors.New("policy path outside the target namespace's Vault subtree")
 )
 
 // Workflows implements the SecretsWorkflows interface
@@ -43,9 +46,32 @@ func newCreateAccessWorkflow(input *pb.CreateAccessWorkflowInput) (*createAccess
 	return w, nil
 }
 
-// validate checks that the workflow input is valid
+// validate scopes policy paths to the k8s namespace being bound (Nexus
+// handlers cannot identify the caller).
 func (w *createAccessWorkflow) validate() error {
-	// No required field validation - all fields have reasonable defaults or are optional
+	req := w.input.Req
+	if req.GetPolicyName() == "" {
+		return fmt.Errorf("%w: policy_name is required", ErrInvalidInput)
+	}
+	if req.GetAuthRoleName() == "" {
+		return fmt.Errorf("%w: auth_role_name is required", ErrInvalidInput)
+	}
+	if req.GetServiceAccountName() == "" {
+		return fmt.Errorf("%w: service_account_name is required", ErrInvalidInput)
+	}
+	namespace := req.GetKubernetesNamespace()
+	if namespace == "" {
+		return fmt.Errorf("%w: kubernetes_namespace is required", ErrInvalidInput)
+	}
+	if !config.IsOwnerKubernetesNamespace(namespace) {
+		return fmt.Errorf("%w: %q owns no Vault subtree", ErrPolicyOutOfScope, namespace)
+	}
+
+	for _, rule := range req.GetPolicyDocument().GetRules() {
+		if !config.VaultPathAllowedForKubernetesNamespace(namespace, rule.GetPath()) {
+			return fmt.Errorf("%w: %q cannot be granted to %q", ErrPolicyOutOfScope, rule.GetPath(), namespace)
+		}
+	}
 	return nil
 }
 

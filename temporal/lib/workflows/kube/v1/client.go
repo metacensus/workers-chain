@@ -57,6 +57,12 @@ type KubeClient interface {
 
 	// ExecPod executes a command in a pod container
 	ExecPod(ctx context.Context, id *pb.ContainerIdentifier, container string, command []string, stdin []byte) (stdout, stderr []byte, exitCode int32, err error)
+
+	// GetSecretData returns a copy of secret.Data for namespace/name.
+	GetSecretData(ctx context.Context, namespace, name string) (map[string][]byte, error)
+
+	// UpsertOpaqueSecret creates or updates an Opaque secret.
+	UpsertOpaqueSecret(ctx context.Context, namespace, name string, data map[string][]byte) error
 }
 
 // kubeClient implements KubeClient using client-go
@@ -352,7 +358,7 @@ func kindToResource(kind string) string {
 		"Job":                   "jobs",
 		"CronJob":               "cronjobs",
 		"ConfigMap":             "configmaps",
-		"Secret":                "secrets",
+		"Secret":                "secrets", // pragma: allowlist secret
 		"PersistentVolume":      "persistentvolumes",
 		"PersistentVolumeClaim": "persistentvolumeclaims",
 		"ServiceAccount":        "serviceaccounts",
@@ -363,7 +369,7 @@ func kindToResource(kind string) string {
 		"Ingress":               "ingresses",
 		"NetworkPolicy":         "networkpolicies",
 		"Endpoints":             "endpoints",
-		"SecretProviderClass":   "secretproviderclasses", // Vault CSI driver
+		"SecretProviderClass":   "secretproviderclasses", // Vault CSI driver // pragma: allowlist secret
 	}
 
 	if resource, ok := commonResources[kind]; ok {

@@ -32,6 +32,12 @@ temporal:
   address: "{{.Temporal.Address}}"
   namespace: "{{.Temporal.Namespace}}"
   taskQueue: "{{.Temporal.TaskQueue}}"
+  tls:
+    secretName: "{{.Temporal.TLS.SecretName}}"
+    caPath: "{{.Temporal.TLS.CAPath}}"
+    certPath: "{{.Temporal.TLS.CertPath}}"
+    keyPath: "{{.Temporal.TLS.KeyPath}}"
+    serverName: "{{.Temporal.TLS.ServerName}}"
 
 # Vault configuration for secret management
 vault:
@@ -70,6 +76,3 @@ readinessProbe:
 commonLabels:
   managedBy: {{.CommonLabels.ManagedBy}}
   partOf: {{.CommonLabels.PartOf}}
-
-
-

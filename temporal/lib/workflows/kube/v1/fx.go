@@ -18,4 +18,5 @@ var Module = fx.Module("kube",
 // RegisterActivities registers kubernetes activities with the worker
 func RegisterActivities(w worker.Worker, activities *Activities) {
 	pb.RegisterKubernetesActivities(w, activities)
+	w.RegisterActivity(activities.EnsureTemporalMTLSClientCert)
 }

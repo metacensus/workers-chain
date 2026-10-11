@@ -21,8 +21,9 @@ func TestNewSignCertificateWorkflow(t *testing.T) {
 	validReq := func() *pb.SignCertificateInput {
 		return &pb.SignCertificateInput{
 			IssuerRef:  tlsIntRef,
-			CommonName: "peer0@testorg",
+			CommonName: "peer0@" + testOrg,
 			CsrPem:     []byte("-----BEGIN CERTIFICATE REQUEST-----\nx\n-----END CERTIFICATE REQUEST-----"),
+			Requester:  orgOwner.OwnerProto(),
 		}
 	}
 
@@ -71,6 +72,102 @@ func TestNewSignCertificateWorkflow(t *testing.T) {
 			mutate:    func(r *pb.SignCertificateInput) { r.IssuerRef = tlsIntRef },
 			wantErr:   true,
 			errSubstr: "does not own",
+		},
+		// Cross-owner issuance is for leaf certificates only. Intermediate CAs and
+		// registrars are always minted against a locally-owned issuer, so these
+		// requests can never be legitimate here.
+		{
+			name:      "privileged - ca profile",
+			owner:     operatorOwner,
+			mutate:    func(r *pb.SignCertificateInput) { r.Profile = "ca" },
+			wantErr:   true,
+			errSubstr: ErrPrivilegedRequest.Error(),
+		},
+		{
+			name:  "privileged - intermediate CA attribute",
+			owner: operatorOwner,
+			mutate: func(r *pb.SignCertificateInput) {
+				r.Attributes = map[string]string{"hf.IntermediateCA": "true"}
+			},
+			wantErr:   true,
+			errSubstr: ErrPrivilegedRequest.Error(),
+		},
+		{
+			name:  "privileged - registrar attribute",
+			owner: operatorOwner,
+			mutate: func(r *pb.SignCertificateInput) {
+				r.Attributes = map[string]string{"hf.Registrar.Roles": "*"}
+			},
+			wantErr:   true,
+			errSubstr: ErrPrivilegedRequest.Error(),
+		},
+		{
+			name:  "privileged - revoker attribute",
+			owner: operatorOwner,
+			mutate: func(r *pb.SignCertificateInput) {
+				r.Attributes = map[string]string{"hf.Revoker": "true"}
+			},
+			wantErr:   true,
+			errSubstr: ErrPrivilegedRequest.Error(),
+		},
+		{
+			name:   "valid - tls profile with ordinary attributes",
+			owner:  operatorOwner,
+			mutate: func(r *pb.SignCertificateInput) { r.Profile = "tls"; r.Attributes = map[string]string{"role": "peer"} },
+		},
+		// The requester is bound to the per-org Nexus endpoint by the Temporal
+		// server, so the issuer can scope the subject to it: a shard cannot
+		// request an identity or a service name belonging to another org.
+		{
+			name:      "invalid - missing requester",
+			owner:     operatorOwner,
+			mutate:    func(r *pb.SignCertificateInput) { r.Requester = nil },
+			wantErr:   true,
+			errSubstr: "requester.org_id is required",
+		},
+		{
+			name:      "out of scope - common name qualified with another org",
+			owner:     operatorOwner,
+			mutate:    func(r *pb.SignCertificateInput) { r.CommonName = "peer0@otherorg" },
+			wantErr:   true,
+			errSubstr: ErrSubjectOutOfScope.Error(),
+		},
+		{
+			name:      "out of scope - common name not org-qualified",
+			owner:     operatorOwner,
+			mutate:    func(r *pb.SignCertificateInput) { r.CommonName = "peer0" },
+			wantErr:   true,
+			errSubstr: ErrSubjectOutOfScope.Error(),
+		},
+		{
+			name:  "out of scope - host in another org's namespace",
+			owner: operatorOwner,
+			mutate: func(r *pb.SignCertificateInput) {
+				r.Hosts = []string{"peer0.fabric-shard-otherorg.svc.cluster.local"}
+			},
+			wantErr:   true,
+			errSubstr: ErrSubjectOutOfScope.Error(),
+		},
+		{
+			name:  "out of scope - host in the operator namespace",
+			owner: operatorOwner,
+			mutate: func(r *pb.SignCertificateInput) {
+				r.Hosts = []string{"certificate-authority-tls-int.fabric.svc.cluster.local"}
+			},
+			wantErr:   true,
+			errSubstr: ErrSubjectOutOfScope.Error(),
+		},
+		{
+			name:  "valid - hosts within the requester's namespace",
+			owner: operatorOwner,
+			mutate: func(r *pb.SignCertificateInput) {
+				r.Hosts = []string{
+					"peer0",
+					"peer0.fabric-shard-" + testOrg,
+					"peer0.fabric-shard-" + testOrg + ".svc",
+					"peer0.fabric-shard-" + testOrg + ".svc.cluster.local",
+				}
+			},
 		},
 	}
 
@@ -130,9 +227,10 @@ func TestSignCertificateWorkflow(t *testing.T) {
 				return wf.Execute(ctx)
 			}, &pb.SignCertificateInput{
 				IssuerRef:    tlsIntRef,
-				CommonName:   "peer0@testorg",
+				CommonName:   "peer0@" + testOrg,
 				IdentityType: "peer",
 				CsrPem:       []byte("-----BEGIN CERTIFICATE REQUEST-----\nx\n-----END CERTIFICATE REQUEST-----"),
+				Requester:    orgOwner.OwnerProto(),
 			})
 
 			var result *pb.SignCertificateOutput

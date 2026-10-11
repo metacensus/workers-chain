@@ -1,11 +1,15 @@
 package certauth
 
 import (
+	"fmt"
+
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1"
+	"github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1/certauthv1nexus"
 	"github.com/metacensus/infra/temporal/gen/workflows/fabric/certauth/v1/certauthv1temporal"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 	"github.com/metacensus/infra/temporal/lib/workflows/common"
 	secrets "github.com/metacensus/infra/temporal/lib/workflows/secrets/v1"
+	"github.com/nexus-rpc/sdk-go/nexus"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/fx"
 )
@@ -31,7 +35,7 @@ var Module = fx.Options(
 
 	// Provide Activities with CA client providers
 	// Activities get:
-	// - secretProvider: for fetching/storing secrets with type safety
+	// - secretProvider: for fetching/storing secrets with type safety // pragma: allowlist secret
 	// - clientProvider: for cached Client access (Register/Revoke operations)
 	// - owner: the worker's injected owner; every CA referenced in an
 	//   activity input belongs to this owner
@@ -54,13 +58,22 @@ func RegisterActivities(w worker.Worker, activities *Activities) {
 	pb.RegisterIdentityActivities(w, activities)
 }
 
-// RegisterNexusService registers the CertificateAuthority Nexus service handler with the worker.
-// This allows the worker owning the shared TLS CAs to receive cross-namespace
-// certificate issuance calls (e.g. CreateCertificate) from org workers.
+// RegisterSignCertificateNexusService registers only SignCertificate on the
+// CertificateAuthority Nexus service. Bootstrap/admin/identity workflows stay
+// local to the owner that runs them.
 //
-// The parameter is worker.Worker (not worker.NexusServiceRegistry) so fx can
-// inject the worker.Worker from the container; worker.Worker embeds
-// worker.NexusServiceRegistry, which is all the generated registration needs.
-func RegisterNexusService(w worker.Worker) error {
-	return certauthv1temporal.RegisterCertificateAuthorityNexusService(w)
+// Takes worker.Worker (not NexusServiceRegistry) so uber/fx can inject the
+// provided Worker; the registry interface alone is not in the DI graph.
+func RegisterSignCertificateNexusService(w worker.Worker) error {
+	return registerSignCertificateNexusService(w)
+}
+
+func registerSignCertificateNexusService(r worker.NexusServiceRegistry) error {
+	h := &certauthv1temporal.CertificateAuthorityNexusHandler{}
+	svc := nexus.NewService(certauthv1nexus.CertificateAuthorityServiceName)
+	if err := svc.Register(h.SignCertificate(certauthv1nexus.CertificateAuthoritySignCertificateOperationName)); err != nil {
+		return fmt.Errorf("register SignCertificate nexus op: %w", err)
+	}
+	r.RegisterNexusService(svc)
+	return nil
 }

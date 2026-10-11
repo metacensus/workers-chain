@@ -1,9 +1,13 @@
 package fabric
 
 import (
+	"fmt"
+
 	pb "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
+	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1nexus"
 	"github.com/metacensus/infra/temporal/gen/workflows/fabric/v1/fabricv1temporal"
 	"github.com/metacensus/infra/temporal/lib/workers/config"
+	"github.com/nexus-rpc/sdk-go/nexus"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/fx"
 )
@@ -27,9 +31,34 @@ func RegisterWorkflows(w worker.Worker, workflows pb.FabricWorkflows) {
 	pb.RegisterFabricWorkflows(w, workflows)
 }
 
-// RegisterNexusService registers the Fabric Nexus service handler with the worker.
-// This allows the worker to receive Nexus calls (e.g. BootstrapShard) from the
-// central infra worker.
-func RegisterNexusService(w worker.Worker) error {
-	return fabricv1temporal.RegisterFabricNexusService(w)
+// RegisterBootstrapFabricNexusService registers only BootstrapFabric. Used by
+// the shared fabric worker; other fabric.v1 ops stay local (child/activity).
+//
+// Takes worker.Worker so uber/fx can inject the provided Worker.
+func RegisterBootstrapFabricNexusService(w worker.Worker) error {
+	return registerFabricNexusOps(w, func(h *fabricv1temporal.FabricNexusHandler) nexus.RegisterableOperation {
+		return h.BootstrapFabric(fabricv1nexus.FabricBootstrapFabricOperationName)
+	})
+}
+
+// RegisterBootstrapShardNexusService registers only BootstrapShard. Used by
+// per-org shard workers.
+func RegisterBootstrapShardNexusService(w worker.Worker) error {
+	return registerFabricNexusOps(w, func(h *fabricv1temporal.FabricNexusHandler) nexus.RegisterableOperation {
+		return h.BootstrapShard(fabricv1nexus.FabricBootstrapShardOperationName)
+	})
+}
+
+func registerFabricNexusOps(r worker.NexusServiceRegistry, ops ...func(*fabricv1temporal.FabricNexusHandler) nexus.RegisterableOperation) error {
+	h := &fabricv1temporal.FabricNexusHandler{}
+	svc := nexus.NewService(fabricv1nexus.FabricServiceName)
+	registered := make([]nexus.RegisterableOperation, 0, len(ops))
+	for _, op := range ops {
+		registered = append(registered, op(h))
+	}
+	if err := svc.Register(registered...); err != nil {
+		return fmt.Errorf("register fabric nexus ops: %w", err)
+	}
+	r.RegisterNexusService(svc)
+	return nil
 }

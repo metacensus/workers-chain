@@ -7,10 +7,14 @@ import (
 )
 
 const (
-	temporalAddressName    = "TEMPORAL_ADDRESS"
-	temporalNamespaceName  = "TEMPORAL_NAMESPACE"
-	temporalTaskQueueName  = "TEMPORAL_TASK_QUEUE"
-	healthCheckAddressName = "HEALTH_CHECK_ADDRESS"
+	temporalAddressName      = "TEMPORAL_ADDRESS"
+	temporalNamespaceName    = "TEMPORAL_NAMESPACE"
+	temporalTaskQueueName    = "TEMPORAL_TASK_QUEUE"
+	temporalTLSCAPathName    = "TEMPORAL_TLS_CA_PATH"
+	temporalTLSCertPathName  = "TEMPORAL_TLS_CERT_PATH"
+	temporalTLSKeyPathName   = "TEMPORAL_TLS_KEY_PATH"
+	temporalTLSServerNameKey = "TEMPORAL_TLS_SERVER_NAME"
+	healthCheckAddressName   = "HEALTH_CHECK_ADDRESS"
 
 	vaultAddressName   = "VAULT_ADDR"
 	vaultRoleName      = "VAULT_ROLE"
@@ -36,6 +40,12 @@ type TemporalConfig struct {
 	Address   string
 	Namespace string
 	TaskQueue string
+	// TLS client identity (required when frontend requireClientAuth is enabled).
+	// Empty paths keep plaintext dial for local unit tests.
+	TLSCAPath     string
+	TLSCertPath   string
+	TLSKeyPath    string
+	TLSServerName string
 }
 
 var (
@@ -47,9 +57,13 @@ var (
 func InitializeTemporal() {
 	temporalOnce.Do(func() {
 		temporalGlobal = &TemporalConfig{
-			Address:   viper.GetString(temporalAddressName),
-			Namespace: viper.GetString(temporalNamespaceName),
-			TaskQueue: viper.GetString(temporalTaskQueueName),
+			Address:       viper.GetString(temporalAddressName),
+			Namespace:     viper.GetString(temporalNamespaceName),
+			TaskQueue:     viper.GetString(temporalTaskQueueName),
+			TLSCAPath:     viper.GetString(temporalTLSCAPathName),
+			TLSCertPath:   viper.GetString(temporalTLSCertPathName),
+			TLSKeyPath:    viper.GetString(temporalTLSKeyPathName),
+			TLSServerName: viper.GetString(temporalTLSServerNameKey),
 		}
 	})
 }
@@ -163,7 +177,7 @@ type OrgConfig struct {
 // ============= Kubernetes Infrastructure =============
 
 func (c OrgConfig) KubernetesNamespace() string {
-	return "fabric-shard-" + c.OrgID
+	return ShardKubernetesNamespacePrefix + c.OrgID
 }
 
 func (c OrgConfig) WorkerServiceAccountName() string {
@@ -177,17 +191,25 @@ func (c OrgConfig) WorkerDeploymentName() string {
 // ============= Temporal Orchestration =============
 
 func (c OrgConfig) TemporalNamespace() string {
-	return "fabric-shard-" + c.OrgID
+	return ShardKubernetesNamespacePrefix + c.OrgID
 }
 
 func (c OrgConfig) NexusEndpointBootstrapShard() string {
 	return "fabric-shard-" + c.OrgID + "-BootstrapShard"
 }
 
+// NexusEndpointCreateCertificate names the endpoint this org uses to reach the
+// operator's certificate authority. It is per-org so the endpoint itself
+// identifies the requester: the Temporal server admits only this org's
+// namespace to it, and refuses requests that declare a different requester.
+func (c OrgConfig) NexusEndpointCreateCertificate() string {
+	return "fabric-shard-" + c.OrgID + "-CreateCertificate"
+}
+
 // ============= Vault Security/RBAC =============
 
 func (c OrgConfig) VaultBasePath() string {
-	return "fabric/shard/" + c.OrgID
+	return shardVaultPrefix + c.OrgID
 }
 
 func (c OrgConfig) WorkerVaultPolicyName() string {

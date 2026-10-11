@@ -32,6 +32,16 @@ type TemporalConfig struct {
 	Address   string
 	Namespace string
 	TaskQueue string
+	TLS       TemporalTLSConfig
+}
+
+// TemporalTLSConfig is the worker mTLS client identity mount.
+type TemporalTLSConfig struct {
+	SecretName string
+	CAPath     string
+	CertPath   string
+	KeyPath    string
+	ServerName string
 }
 
 // VaultConfig represents Vault connection configuration
@@ -95,6 +105,13 @@ func newWorkerValues(operator, org, orgID, kubeNamespace, temporalNamespace, vau
 			Address:   "temporal-frontend.temporal.svc.cluster.local:7233",
 			Namespace: temporalNamespace,
 			TaskQueue: "infra",
+			TLS: TemporalTLSConfig{
+				SecretName: "temporal-mtls-client", // pragma: allowlist secret
+				CAPath:     "/etc/temporal/certs/ca.crt",
+				CertPath:   "/etc/temporal/certs/tls.crt",
+				KeyPath:    "/etc/temporal/certs/tls.key",
+				ServerName: "temporal-frontend.temporal.svc.cluster.local",
+			},
 		},
 		Vault: VaultConfig{
 			Address: "http://vault.secrets.svc.cluster.local:8200",

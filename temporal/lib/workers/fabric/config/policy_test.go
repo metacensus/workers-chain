@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	fabricv1 "github.com/metacensus/infra/temporal/gen/workflows/fabric/v1"
+	vaultv1 "github.com/metacensus/infra/temporal/gen/workflows/vault/v1"
+	workerconfig "github.com/metacensus/infra/temporal/lib/workers/config"
 )
 
 // TestWorkerVaultPolicy_OnlyOwnSubtree asserts that every worker - operator or
@@ -34,6 +38,34 @@ func TestWorkerVaultPolicy_OnlyOwnSubtree(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// Fail if a real bootstrap policy would be rejected by CreateAccess, or if a
+// policy has no rules (the check would prove nothing).
+func TestVaultPolicies_AcceptedByCreateAccess(t *testing.T) {
+	for _, owner := range []OwnerConfig{NewOperatorConfig("metacensus"), NewOrgConfig("org1")} {
+		caRef := &fabricv1.CertificateAuthorityRef{CertType: "org", Id: "int"}
+		policies := map[string]*vaultv1.PolicyDocument{
+			"worker":                WorkerVaultPolicy(owner),
+			"certificate-store":     NewCertificateStoreConfig(owner).VaultPolicy(),
+			"certificate-authority": NewCertificateAuthorityConfig(owner, caRef).VaultPolicy(),
+			"couchdb":               NewCouchDbConfig(owner, "peer0").VaultPolicy(),
+			"peer":                  NewPeerConfig(owner, "peer0").VaultPolicy(),
+			"orderer":               NewOrdererConfig(owner, "orderer0").VaultPolicy(),
+		}
+
+		namespace := owner.KubernetesNamespace()
+		for component, policy := range policies {
+			if len(policy.GetRules()) == 0 {
+				t.Errorf("%s/%s: policy has no rules, so the scope check proves nothing", namespace, component)
+			}
+			for _, rule := range policy.GetRules() {
+				if !workerconfig.VaultPathAllowedForKubernetesNamespace(namespace, rule.GetPath()) {
+					t.Errorf("%s/%s: CreateAccess would reject %q", namespace, component, rule.GetPath())
+				}
+			}
+		}
 	}
 }
 

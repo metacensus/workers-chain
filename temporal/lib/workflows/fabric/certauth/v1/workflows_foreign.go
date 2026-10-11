@@ -101,7 +101,7 @@ func IssueCertificate(
 	} else {
 		// Foreign issuer: cross the ownership boundary via Nexus. Only the
 		// public CSR goes out; adminIdentity is deliberately not forwarded.
-		signOutput, err := NexusSignCertificate(ctx, &pb.SignCertificateInput{
+		signOutput, err := NexusSignCertificate(ctx, owner, &pb.SignCertificateInput{
 			IssuerRef:    issuerRef,
 			Profile:      profile,
 			CommonName:   commonName,
@@ -225,7 +225,7 @@ func ensureKeyAndCsr(
 	hosts []string,
 ) ([]byte, error) {
 	if err := workflow.ExecuteActivity(activityCtx, secretspb.EnsureKeyPairActivityName, &secretspb.EnsureKeyPairInput{
-		SecretRef: keyRef,
+		SecretRef: keyRef, // pragma: allowlist secret
 	}).Get(ctx, nil); err != nil {
 		return nil, fmt.Errorf("failed to ensure key pair: %w", err)
 	}

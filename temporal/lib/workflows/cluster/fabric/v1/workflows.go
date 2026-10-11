@@ -12,6 +12,7 @@ import (
 	"github.com/metacensus/infra/temporal/lib/workers/config"
 	fabricconfig "github.com/metacensus/infra/temporal/lib/workers/fabric/config"
 	"github.com/metacensus/infra/temporal/lib/workflows/cluster/fabric/v1/helm"
+	kube "github.com/metacensus/infra/temporal/lib/workflows/kube/v1"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
@@ -387,6 +388,18 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		},
 	}
 	activityCtx := workflow.WithActivityOptions(ctx, ao)
+
+	// Worker charts mount temporal-mtls-client; provision before apply.
+	if w.input.Component == componentWorker {
+		var mtlsOut *kube.EnsureTemporalMTLSOutput
+		err := workflow.ExecuteActivity(activityCtx, "EnsureTemporalMTLSClientCert", &kube.EnsureTemporalMTLSInput{
+			TargetNamespace:   namespaceName,
+			TemporalNamespace: owner.TemporalNamespace(),
+		}).Get(ctx, &mtlsOut)
+		if err != nil {
+			return nil, fmt.Errorf("ensure temporal mTLS client cert: %w", err)
+		}
+	}
 
 	// Step 1: Render Helm chart
 	var renderOutput *helmpb.RenderChartOutput
