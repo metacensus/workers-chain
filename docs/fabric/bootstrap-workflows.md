@@ -125,6 +125,27 @@ Nexus operation is `SignCertificate`, and it carries a **public CSR only**.
 
 Temporal Cloud has per-endpoint caller-namespace allowlists. Self-hosted does not — the supported path is a compile-time [Authorizer](https://docs.temporal.io/self-hosted-guide/security#authorizer-plugin) injected into a custom Temporal server binary ([docs](https://docs.temporal.io/nexus/security)). Runtime-loadable auth plugins are not supported.
 
+### Plain-language overview
+
+**Identity = mTLS cert CN = Temporal namespace.** That identity hits a **server-side default-deny allowlist** before any Nexus call runs; handlers still re-check the payload. A compromised shard cannot call another org’s bootstrap, certificate, or Vault endpoints.
+
+Three layers:
+
+```text
+Worker (cert CN = infra | fabric | fabric-shard-{org})
+        │
+        ▼
+1) Who are you?     ClaimMapper: CN → claims (workers = that NS only; never system admin)
+2) May you call it? Allowlist: caller NS → endpoint (default deny; table below)
+3) Is the request OK? Handler policy: Vault subtree / no privileged certs
+```
+
+Why two server seams: in-workflow Nexus is scheduled by history, which then calls the frontend as **internode**, so the frontend Authorizer does not see the real caller. **History** (`nexus_registry.go`) binds **caller → endpoint**; the **frontend Authorizer** binds **endpoint → payload** for certificate issuance (endpoint org must match the requester in the request). Handlers are defense in depth.
+
+How we know it holds: allowlist and identity are compiled into `metacensus/temporal-server` (not a mutable config knob); unit tests cover ClaimMapper, allowlist, Authorizer, payload binding, and handler refusals; live negative probes (table below) deny cross-namespace StartWorkflow, wrong Nexus endpoints, cross-org Vault paths, and privileged cert profiles; happy path (`BootstrapInfra` + `InitFabricShard`) still succeeds.
+
+One-liner: we ship our own Temporal server with mTLS identity + a default-deny Nexus allowlist, plus handler checks — so cross-owner Nexus is refused at the gate, and that is verified with unit tests and live deny probes.
+
 ### Architecture (locked)
 
 ```text
