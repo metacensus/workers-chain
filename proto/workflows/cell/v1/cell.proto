@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package cell.v1;
+
+import "fabric/v1/fabric.proto";
+import "patch/go.proto";
+import "temporal/v1/temporal.proto";
+
+option go_package = "github.com/metacensus/workers-chain/gen/workflows/cell/v1;cellv1";
+
+// Cell service defines the root workflow for initializing a Fabric shard (cluster/cell)
+// This is the entry point for multi-tenant infrastructure provisioning
+service Cell {
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {task_queue: "infra"};
+
+  // BootstrapInfra orchestrates the initialization of the infrastructure platform
+  // This root workflow executes in the central "infra" namespace and coordinates:
+  // 1. Registration of Nexus endpoints for cross-namespace service calls
+  // 2. Establishment of core platform services that enable other workflows
+  //
+  // This workflow runs once at platform bootstrap time and sets up the Nexus
+  // communication layer needed for workflows in different namespaces to call services.
+  rpc BootstrapInfra(BootstrapInfraInput) returns (BootstrapInfraOutput) {
+    // Workflow execution metadata
+    option (temporal.v1.workflow) = {
+      name: "cell.v1.BootstrapInfra"
+      id: 'cell/bootstrap-infra'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // InitFabric orchestrates the initialization of operator-level Fabric infrastructure
+  // This workflow deploys shared infrastructure (TLS CAs, cert store) in the operator namespace
+  // and runs once at platform bootstrap time.
+  rpc InitFabric(InitFabricInput) returns (InitFabricOutput) {
+    // Workflow execution metadata
+    option (temporal.v1.workflow) = {
+      name: "cell.v1.InitFabric"
+      id: 'cell/init-fabric'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // InitFabricShard orchestrates the complete initialization of a Fabric shard
+  // This workflow is the "hub" that orchestrates the multi-phase bootstrap process.
+  // Phase 1 (central): Sets up infrastructure prerequisites
+  // Phase 2 (fabric worker): Initiated via Nexus, deploys Fabric components (CAs, peers, orderers)
+  rpc InitFabricShard(InitFabricShardInput) returns (InitFabricShardOutput) {
+    // Workflow execution metadata
+    option (temporal.v1.workflow) = {
+      name: "cell.v1.InitFabricShard"
+      id: 'cell/init-fabric-shard/${! Org }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+}
+
+// ==================== BootstrapInfra Workflow Messages ====================
+
+// BootstrapInfraInput specifies the parameters for bootstrapping infrastructure
+message BootstrapInfraInput {
+  // Empty - no parameters needed for platform bootstrap
+}
+
+// BootstrapInfraOutput indicates the result of infrastructure bootstrap
+message BootstrapInfraOutput {
+  // Empty for now - output structure to be defined as implementation progresses
+}
+
+// ==================== InitFabric Workflow Messages ====================
+
+// InitFabricInput specifies the parameters for initializing operator-level Fabric infrastructure
+message InitFabricInput {
+  // certificate_authorities specifies the TLS CA chain to deploy (root + v1)
+  // This is operator-level shared infrastructure
+  repeated fabric.v1.CertificateAuthoritySpec certificate_authorities = 1 [
+    json_name = "CertificateAuthorities",
+    (go.field).tags = 'json:"CertificateAuthorities" validate:"required,dive"'
+  ];
+}
+
+// InitFabricOutput indicates the result of operator-level Fabric initialization
+message InitFabricOutput {
+  // Empty for now - output structure to be defined as implementation progresses
+}
+
+// ==================== InitFabricShard Workflow Messages ====================
+
+// InitFabricShardInput specifies the parameters for initializing a Fabric shard
+message InitFabricShardInput {
+  // org is the organization identifier (e.g., "org1", "acme-corp")
+  // Used to derive namespace names: Temporal namespace "fabric-shard-{org}", K8s namespace "fabric-shard-{org}"
+  string org = 1 [
+    json_name = "Org",
+    (go.field).tags = 'json:"Org" validate:"required"'
+  ];
+
+  // deployment is the Fabric deployment configuration (required)
+  // Specifies all CAs, peers, and orderers to deploy for this shard
+  fabric.v1.OrgFabricDeployment deployment = 2 [
+    json_name = "Deployment",
+    (go.field).tags = 'json:"Deployment" validate:"required"'
+  ];
+}
+
+// InitFabricShardOutput indicates the result of shard initialization
+message InitFabricShardOutput {
+  // Empty for now - output structure to be defined as implementation progresses
+}

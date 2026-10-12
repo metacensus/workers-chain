@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+package aws.s3.v1;
+
+import "patch/go.proto";
+import "temporal/v1/temporal.proto";
+
+option go_package = "github.com/metacensus/workers-chain/gen/workflows/provider/aws/s3;s3v1";
+
+// S3Provider service defines activities for interacting with AWS S3
+service S3Provider {
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {task_queue: "s3"};
+
+  // GetObject retrieves an object from S3
+  rpc GetObject(S3ObjectRef) returns (S3Object) {
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "aws.s3.v1.GetObject"
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
+    };
+  }
+
+  // PutObject writes an object to S3
+  rpc PutObject(S3Object) returns (S3Object) {
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "aws.s3.v1.PutObject"
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
+    };
+  }
+
+  // DeleteObject deletes an object from S3
+  rpc DeleteObject(S3ObjectRef) returns (S3DeleteOutput) {
+    // Activity execution metadata
+    option (temporal.v1.activity) = {
+      name: "aws.s3.v1.DeleteObject"
+      schedule_to_close_timeout: {seconds: 300} /* 5 minutes */
+    };
+  }
+}
+
+// S3Object represents a complete S3 object with metadata
+message S3Object {
+  // bucket is the S3 bucket name
+  string bucket = 1 [
+    json_name = "Bucket",
+    (go.field).tags = 'json:"Bucket" validate:"required"'
+  ];
+
+  // key is the S3 object key (path)
+  string key = 2 [
+    json_name = "Key",
+    (go.field).tags = 'json:"Key" validate:"required"'
+  ];
+
+  // data is the object contents (for reads, populated from S3; for writes, content to upload)
+  bytes data = 3 [
+    json_name = "Data",
+    (go.field).tags = 'json:"Data,omitempty" validate:"omitempty"'
+  ];
+
+  // content_type is the MIME type of the object (optional for reads, used for writes)
+  string content_type = 4 [
+    json_name = "ContentType",
+    (go.field).tags = 'json:"ContentType,omitempty" validate:"omitempty"'
+  ];
+
+  // etag is the entity tag (version identifier) of the object (populated by S3 on read/write)
+  string etag = 5 [
+    json_name = "Etag",
+    (go.field).tags = 'json:"Etag,omitempty" validate:"omitempty"'
+  ];
+
+  // version_id is the version ID of the object (if versioning is enabled, populated by S3)
+  string version_id = 6 [
+    json_name = "VersionId",
+    (go.field).tags = 'json:"VersionId,omitempty" validate:"omitempty"'
+  ];
+}
+
+// S3ObjectRef references an S3 object without its data
+// Used for operations that only need bucket and key (read, delete)
+message S3ObjectRef {
+  // bucket is the S3 bucket name
+  string bucket = 1 [
+    json_name = "Bucket",
+    (go.field).tags = 'json:"Bucket" validate:"required"'
+  ];
+
+  // key is the S3 object key (path)
+  string key = 2 [
+    json_name = "Key",
+    (go.field).tags = 'json:"Key" validate:"required"'
+  ];
+}
+
+// S3DeleteOutput represents the result of a delete operation
+message S3DeleteOutput {
+  // delete_marker indicates if a delete marker was created (for versioned buckets)
+  bool delete_marker = 1 [
+    json_name = "DeleteMarker",
+    (go.field).tags = 'json:"DeleteMarker" validate:"required"'
+  ];
+
+  // version_id is the version ID involved in the deletion
+  string version_id = 2 [
+    json_name = "VersionId",
+    (go.field).tags = 'json:"VersionId,omitempty" validate:"omitempty"'
+  ];
+}

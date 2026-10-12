@@ -121,7 +121,7 @@ Nexus operation is `SignCertificate`, and it carries a **public CSR only**.
 
 ## Nexus Authorization
 
-**Status: 🟢 Happy path ready** ([PR #51](https://github.com/metacensus/infra/pull/51), issue [#43](https://github.com/metacensus/infra/issues/43)). Server gate, mTLS, handler payload checks, and live happy-path/negative probes are in. Cross-owner CN/SAN namespacing remains deferred.
+**Status: 🟢 Happy path ready** ([PR #51](infra PR 51), issue [#43](infra issue 43)). Server gate, mTLS, handler payload checks, and live happy-path/negative probes are in. Cross-owner CN/SAN namespacing remains deferred.
 
 Temporal Cloud has per-endpoint caller-namespace allowlists. Self-hosted does not — the supported path is a compile-time [Authorizer](https://docs.temporal.io/self-hosted-guide/security#authorizer-plugin) injected into a custom Temporal server binary ([docs](https://docs.temporal.io/nexus/security)). Runtime-loadable auth plugins are not supported.
 
@@ -222,10 +222,10 @@ Live negatives (re-run 2026-08-26 after deploying the registry gate):
 
 The two seams: history binds **caller→endpoint** (and logs `nexus endpoint denied for caller namespace` with caller + endpoint tags); frontend Authorizer binds **endpoint→payload** and logs `authorization denied` with a full reason string. Handler policy remains defense in depth.
 
-Remaining (issue [#43](https://github.com/metacensus/infra/issues/43)):
+Remaining (issue [#43](infra issue 43)):
 
 - [x] **Narrow Nexus registration** — fabric worker: `BootstrapFabric` + `SignCertificate` only; shard worker: `BootstrapShard` only; infra already `CreateAccess` only ✅
-- [x] **Open PR** — [#51](https://github.com/metacensus/infra/pull/51) (`erikforsman/nexus-authorization`)
+- [x] **Open PR** — [#51](infra PR 51) (`erikforsman/nexus-authorization`)
 - [ ] **Land PR** — merge #51 to `main`
 - [ ] **CN/SAN namespacing** — scope leaf subject (CN/SAN) to the declared requester on the CreateCertificate path
 

@@ -3,3 +3,4 @@
 
 # Per-developer Claude Code settings.
 .claude/settings.local.json
+.bin/

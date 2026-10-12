@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package fabric.channel.v1;
+
+import "temporal/v1/temporal.proto";
+
+option go_package = "github.com/metacensus/workers-chain/gen/workflows/fabric/channel/v1;channelv1";
+
+// Channel service defines activities whose subject is a channel's configuration
+// and governance: genesis/configtx generation, the config-update lifecycle
+// (fetch -> compute -> sign -> submit), and org-addition governance.
+// These shell out to configtxgen/configtxlator and (as a client) the peer CLI,
+// but they act on the channel config, not on any single node.
+// Activities are NOT exposed via Nexus (only workflows can be called cross-namespace).
+service Channel {
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {task_queue: "infra"};
+
+  // GenerateConfigTx generates a configtx.yaml from org MSP definitions.
+  // Used as input to configtxgen for genesis block creation.
+  rpc GenerateConfigTx(GenerateConfigTxInput) returns (GenerateConfigTxOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.channel.v1.GenerateConfigTx"
+      schedule_to_close_timeout: {seconds: 300}
+    };
+  }
+
+  // GenerateGenesisBlock creates the channel genesis block using configtxgen.
+  // Runs: configtxgen -profile <Profile> -outputBlock genesis.block -channelID <channel>
+  rpc GenerateGenesisBlock(GenerateGenesisBlockInput) returns (GenerateGenesisBlockOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.channel.v1.GenerateGenesisBlock"
+      schedule_to_close_timeout: {seconds: 300}
+    };
+  }
+
+  // FetchConfig fetches and decodes the current channel configuration block.
+  // Runs: peer channel fetch config then configtxlator proto_decode --type common.Block
+  // Extracts: .data.data[0].payload.data.config
+  rpc FetchConfig(FetchConfigInput) returns (FetchConfigOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.channel.v1.FetchConfig"
+      schedule_to_close_timeout: {seconds: 300}
+    };
+  }
+
+  // ComputeConfigUpdate computes the config update delta between original and modified configs.
+  // Encodes both configs with configtxlator proto_encode, then runs configtxlator compute_update.
+  rpc ComputeConfigUpdate(ComputeConfigUpdateInput) returns (ComputeConfigUpdateOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.channel.v1.ComputeConfigUpdate"
+      schedule_to_close_timeout: {seconds: 300}
+    };
+  }
+
+  // SignConfigUpdate signs a channel config update with the org admin identity.
+  // Runs: peer channel signconfigtx -f <update.pb>
+  // Called by each org that needs to sign for multi-org config updates.
+  rpc SignConfigUpdate(SignConfigUpdateInput) returns (SignConfigUpdateOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.channel.v1.SignConfigUpdate"
+      schedule_to_close_timeout: {seconds: 300}
+    };
+  }
+
+  // SubmitConfigUpdate wraps a config update in an envelope and submits it to the orderer.
+  // Runs: peer channel update -f <envelope.pb>
+  rpc SubmitConfigUpdate(SubmitConfigUpdateInput) returns (SubmitConfigUpdateOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.channel.v1.SubmitConfigUpdate"
+      schedule_to_close_timeout: {seconds: 300}
+    };
+  }
+
+  // GenerateOrgDefinition creates an org MSP definition for use in AddOrgToChannel.
+  // Produces the org definition JSON to be added to the channel's Application.groups.
+  rpc GenerateOrgDefinition(GenerateOrgDefinitionInput) returns (GenerateOrgDefinitionOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.channel.v1.GenerateOrgDefinition"
+      schedule_to_close_timeout: {seconds: 300}
+    };
+  }
+
+  // CollectSignatures gathers required config update signatures from existing channel admins.
+  // Requires signatures from a MAJORITY of existing channel admins for org additions.
+  //
+  // NOTE: this waits on other orgs (cross-org, possibly human-gated) and can routinely
+  // exceed a single activity timeout. When implemented it is better modeled as workflow
+  // signals / a child workflow than one long-running activity.
+  rpc CollectSignatures(CollectSignaturesInput) returns (CollectSignaturesOutput) {
+    option (temporal.v1.activity) = {
+      name: "fabric.channel.v1.CollectSignatures"
+      schedule_to_close_timeout: {seconds: 600}
+    };
+  }
+}
+
+// ==================== GenerateConfigTx Activity Messages ====================
+
+message GenerateConfigTxInput {}
+
+message GenerateConfigTxOutput {}
+
+// ==================== GenerateGenesisBlock Activity Messages ====================
+
+message GenerateGenesisBlockInput {}
+
+message GenerateGenesisBlockOutput {}
+
+// ==================== FetchConfig Activity Messages ====================
+
+message FetchConfigInput {}
+
+message FetchConfigOutput {}
+
+// ==================== ComputeConfigUpdate Activity Messages ====================
+
+message ComputeConfigUpdateInput {}
+
+message ComputeConfigUpdateOutput {}
+
+// ==================== SignConfigUpdate Activity Messages ====================
+
+message SignConfigUpdateInput {}
+
+message SignConfigUpdateOutput {}
+
+// ==================== SubmitConfigUpdate Activity Messages ====================
+
+message SubmitConfigUpdateInput {}
+
+message SubmitConfigUpdateOutput {}
+
+// ==================== GenerateOrgDefinition Activity Messages ====================
+
+message GenerateOrgDefinitionInput {}
+
+message GenerateOrgDefinitionOutput {}
+
+// ==================== CollectSignatures Activity Messages ====================
+
+message CollectSignaturesInput {}
+
+message CollectSignaturesOutput {}

@@ -1,0 +1,123 @@
+syntax = "proto3";
+
+package cluster.fabric.v1;
+
+import "fabric/v1/fabric.proto";
+import "patch/go.proto";
+import "temporal/v1/temporal.proto";
+
+option go_package = "github.com/metacensus/workers-chain/gen/workflows/cluster/fabric/v1;clusterfabricv1";
+
+// Cluster defines workflows for infrastructure provisioning on Kubernetes
+// These workflows orchestrate the creation and management of cluster resources
+// by composing Helm (for templating) and Kubernetes (for deployment) activities
+//
+// These workflows act ON BEHALF OF an explicit, typed Owner: the caller states
+// who the resources belong to and all naming (namespaces, service accounts,
+// vault paths) is derived from that owner exactly once.
+service Cluster {
+  // Service-wide Temporal settings
+  option (temporal.v1.service) = {task_queue: "infra"};
+
+  // CreateNamespace orchestrates the creation of a Kubernetes namespace
+  // This workflow combines Helm chart rendering with Kubernetes resource application
+  rpc CreateNamespace(CreateNamespaceInput) returns (CreateNamespaceOutput) {
+    // Workflow execution metadata
+    option (temporal.v1.workflow) = {
+      name: "cluster.fabric.v1.CreateNamespace"
+      id: 'cluster/fabric/create-namespace/${! Owner.OperatorId.or(Owner.OrgId) }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // CreateServiceAccount orchestrates the creation of a Kubernetes service account
+  // This workflow renders a Helm chart template for service account configuration,
+  // then applies the resulting resources to the cluster
+  rpc CreateServiceAccount(CreateServiceAccountInput) returns (CreateServiceAccountOutput) {
+    // Workflow execution metadata
+    option (temporal.v1.workflow) = {
+      name: "cluster.fabric.v1.CreateServiceAccount"
+      id: 'cluster/fabric/create-service-account/${! Owner.OperatorId.or(Owner.OrgId) }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+
+  // CreateDeployment orchestrates the deployment of a single resource to Kubernetes
+  // This workflow renders a Helm chart with provided values and applies it to the cluster
+  rpc CreateDeployment(CreateDeploymentInput) returns (CreateDeploymentOutput) {
+    // Workflow execution metadata
+    option (temporal.v1.workflow) = {
+      name: "cluster.fabric.v1.CreateDeployment"
+      id: 'cluster/fabric/create-deployment/${! Owner.OperatorId.or(Owner.OrgId) }/${! Component }'
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+    };
+  }
+}
+
+// ==================== CreateNamespace Workflow Messages ====================
+
+message CreateNamespaceInput {
+  // owner identifies who the namespace belongs to.
+  // Org namespaces are named "fabric-shard-{org}"; the operator namespace is
+  // "fabric". Operator namespaces get network policies allowing cross-namespace
+  // access from fabric shard namespaces to TLS CA services on port 7054.
+  .fabric.v1.Owner owner = 1 [
+    json_name = "Owner",
+    (go.field).tags = 'json:"Owner" validate:"required"'
+  ];
+}
+
+message CreateNamespaceOutput {
+  // namespace_name is the created namespace (e.g., "fabric-shard-org1" or "fabric")
+  string namespace_name = 1 [
+    json_name = "NamespaceName",
+    (go.field).tags = 'json:"NamespaceName" validate:"required"'
+  ];
+}
+
+// ==================== CreateServiceAccount Workflow Messages ====================
+
+message CreateServiceAccountInput {
+  // owner identifies who the worker service account belongs to.
+  // Operator-owned naming uses namespace "fabric"; org-owned naming uses
+  // namespace "fabric-shard-{org}".
+  .fabric.v1.Owner owner = 1 [
+    json_name = "Owner",
+    (go.field).tags = 'json:"Owner" validate:"required"'
+  ];
+}
+
+message CreateServiceAccountOutput {}
+
+// ==================== CreateDeployment Workflow Messages ====================
+
+message CreateDeploymentInput {
+  // owner identifies who the deployment belongs to.
+  // Used to derive namespace names, service account names, vault paths, etc.
+  .fabric.v1.Owner owner = 1 [
+    json_name = "Owner",
+    (go.field).tags = 'json:"Owner" validate:"required"'
+  ];
+
+  // component specifies which type of deployment to create
+  // Currently supported:
+  //   - "worker": Fabric worker deployment (shared fabric worker when the
+  //       owner is the operator, otherwise a per-org shard worker)
+  //   - "certificate-store": PostgreSQL certificate store
+  //   - "certificate-authority-{certType}-{caID}": Certificate Authority
+  //       where certType is "tls" or "org", and caID is "root" or "int".
+  //       Examples: "certificate-authority-tls-root", "certificate-authority-org-int"
+  //   - "couchdb-{peerId}", "peer{id}", "orderer{id}"
+  string component = 2 [
+    json_name = "Component",
+    (go.field).tags = 'json:"Component" validate:"required"'
+  ];
+}
+
+message CreateDeploymentOutput {
+  // deployment_name is the name of the created deployment
+  string deployment_name = 1 [
+    json_name = "DeploymentName",
+    (go.field).tags = 'json:"DeploymentName" validate:"required"'
+  ];
+}
