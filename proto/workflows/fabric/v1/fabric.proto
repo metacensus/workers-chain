@@ -1,0 +1,156 @@
+syntax = "proto3";
+
+package fabric.v1;
+
+import "google/protobuf/duration.proto";
+import "patch/go.proto";
+import "secrets/v1/secrets.proto";
+
+option go_package = "github.com/metacensus/workers-chain/gen/workflows/fabric/v1;fabricv1";
+
+// Owner identifies who owns a set of resources: the operator (shared
+// infrastructure such as the TLS CA chain) or a single organization
+// (per-org shard infrastructure).
+//
+// Workflows that act ON BEHALF OF an owner (infra worker: cell, cluster)
+// take an explicit Owner. Workflows that act AS their owner (fabric/shard
+// workers) never take an Owner input - the owner is injected into the
+// worker at startup (OPERATOR_ID / ORG_ID).
+message Owner {
+  oneof id {
+    // operator_id identifies the operator (e.g., "metacensus")
+    string operator_id = 1 [json_name = "OperatorId"];
+
+    // org_id identifies an organization (e.g., "org1")
+    string org_id = 2 [json_name = "OrgId"];
+  }
+}
+
+// OrgFabricDeployment represents the complete fabric deployment configuration
+// Passed as required input to BootstrapShard - no defaults, caller must specify all components
+message OrgFabricDeployment {
+  // certificate_authorities specifies the CAs to deploy (in order)
+  // Order matters: TLS chain must be deployed before Org chain
+  repeated CertificateAuthoritySpec certificate_authorities = 1 [
+    json_name = "CertificateAuthorities",
+    (go.field).tags = 'json:"CertificateAuthorities" validate:"required,min=1"'
+  ];
+
+  // peers specifies the peers to deploy
+  repeated PeerSpec peers = 2 [
+    json_name = "Peers",
+    (go.field).tags = 'json:"Peers" validate:"required,min=1"'
+  ];
+
+  // orderers specifies the orderers to deploy
+  repeated OrdererSpec orderers = 3 [
+    json_name = "Orderers",
+    (go.field).tags = 'json:"Orderers" validate:"required,min=1"'
+  ];
+}
+
+// CertificateAuthoritySpec defines a certificate authority to deploy
+message CertificateAuthoritySpec {
+  // self identifies this CA
+  CertificateAuthorityRef self = 1 [
+    json_name = "Self",
+    (go.field).tags = 'json:"Self" validate:"required"'
+  ];
+
+  // signing_issuer identifies who issues this CA's signing certificate
+  // If nil/empty, the signing cert is self-signed (root CAs)
+  CertificateAuthorityRef signing_issuer = 2 [
+    json_name = "SigningIssuer",
+    (go.field).tags = 'json:"SigningIssuer,omitempty"'
+  ];
+
+  // tls_issuer identifies who issues this CA's TLS certificate
+  // If nil/empty, the TLS cert is self-signed (TLS Root CA only)
+  CertificateAuthorityRef tls_issuer = 3 [
+    json_name = "TlsIssuer",
+    (go.field).tags = 'json:"TlsIssuer,omitempty"'
+  ];
+
+  // validity_duration specifies how long the CA certificates are valid
+  google.protobuf.Duration validity_duration = 4 [
+    json_name = "ValidityDuration",
+    (go.field).tags = 'json:"ValidityDuration,omitempty"'
+  ];
+}
+
+// PeerSpec defines a peer to deploy
+message PeerSpec {
+  // id identifies this peer (e.g., "peer0", "peer1")
+  string id = 1 [
+    json_name = "Id",
+    (go.field).tags = 'json:"Id" validate:"required"'
+  ];
+
+  // org_issuer identifies which CA issues the peer's identity certificate
+  CertificateAuthorityRef org_issuer = 2 [
+    json_name = "OrgIssuer",
+    (go.field).tags = 'json:"OrgIssuer" validate:"required"'
+  ];
+
+  // tls_issuer identifies which CA issues the peer's TLS certificate
+  CertificateAuthorityRef tls_issuer = 3 [
+    json_name = "TlsIssuer",
+    (go.field).tags = 'json:"TlsIssuer" validate:"required"'
+  ];
+}
+
+// OrdererSpec defines an orderer to deploy
+message OrdererSpec {
+  // id identifies this orderer (e.g., "orderer0", "orderer1")
+  string id = 1 [
+    json_name = "Id",
+    (go.field).tags = 'json:"Id" validate:"required"'
+  ];
+
+  // org_issuer identifies which CA issues the orderer's identity certificate
+  CertificateAuthorityRef org_issuer = 2 [
+    json_name = "OrgIssuer",
+    (go.field).tags = 'json:"OrgIssuer" validate:"required"'
+  ];
+
+  // tls_issuer identifies which CA issues the orderer's TLS certificate
+  CertificateAuthorityRef tls_issuer = 3 [
+    json_name = "TlsIssuer",
+    (go.field).tags = 'json:"TlsIssuer" validate:"required"'
+  ];
+}
+
+// CertificateAuthorityRef identifies a specific Certificate Authority
+// Used to specify issuers and targets for certificate operations
+message CertificateAuthorityRef {
+  // cert_type specifies the CA chain ("tls" or "org")
+  string cert_type = 1 [
+    json_name = "CertType",
+    (go.field).tags = 'json:"CertType" validate:"required,oneof=tls org"'
+  ];
+
+  // id identifies the CA within its chain ("root" or "int")
+  string id = 2 [
+    json_name = "Id",
+    (go.field).tags = 'json:"Id" validate:"required"'
+  ];
+}
+
+// IdentityRef represents a complete identity (private key + certificate pair).
+// Per cert-design.md, keys and certs are stored at separate Vault paths:
+//   - keys/... contains {private_key, public_key}
+//   - certs/... contains {certificate, chain}
+// This message groups the two refs that together form a complete identity.
+message IdentityRef {
+  // key_ref points to the private key (keys/ path)
+  secrets.v1.SecretRef key_ref = 1 [
+    json_name = "KeyRef",
+    (go.field).tags = 'json:"KeyRef" validate:"required"'
+  ];
+
+  // cert_ref points to the certificate (certs/ path)
+  secrets.v1.SecretRef cert_ref = 2 [
+    json_name = "CertRef",
+    (go.field).tags = 'json:"CertRef" validate:"required"'
+  ];
+}
