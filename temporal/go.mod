@@ -1,6 +1,6 @@
 module github.com/metacensus/infra/temporal
 
-go 1.25.7
+go 1.25.8
 
 tool (
 	github.com/alta/protopatch/cmd/protoc-gen-go-patch

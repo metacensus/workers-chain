@@ -28,7 +28,7 @@ func TestPostgresClient_Operations(t *testing.T) {
 		ExposedPorts: []string{"5432/tcp"},
 		Env: map[string]string{
 			"POSTGRES_USER":     "testuser",
-			"POSTGRES_PASSWORD": "testpass",
+			"POSTGRES_PASSWORD": "testpass", // pragma: allowlist secret
 			"POSTGRES_DB":       "testdb",
 		},
 		WaitingFor: wait.ForLog("database system is ready to accept connections").
@@ -61,9 +61,9 @@ func TestPostgresClient_Operations(t *testing.T) {
 
 	config := PostgresConfig{
 		Host:     host,
-		Port:     port.Int(),
+		Port:     int(port.Num()),
 		User:     "testuser",
-		Password: "testpass",
+		Password: "testpass", // pragma: allowlist secret
 		Database: "testdb",
 	}
 
@@ -305,7 +305,7 @@ func TestPostgresClient_ConnectionError(t *testing.T) {
 			Host:     "localhost",
 			Port:     59999, // Port unlikely to have PostgreSQL
 			User:     "testuser",
-			Password: "testpass",
+			Password: "testpass", // pragma: allowlist secret
 			Database: "testdb",
 		}
 
