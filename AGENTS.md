@@ -2,7 +2,7 @@
 
 Decisions with no single declaration to sit beside. Per-declaration detail is a comment beside the code; the [README](README.md) orients an operator.
 
-Temporal workflow and activity authoring follows the Temporal skill in [`metacensus/skills`](https://github.com/metacensus/skills) (Temporal / workflow-authoring). Ownership of Vault paths, Kubernetes namespaces, and Nexus boundaries: [docs/strategy/OWNERSHIP.md](docs/strategy/OWNERSHIP.md).
+Temporal workflow and activity authoring follows the Temporal skill in [`metacensus/skills`](https://github.com/metacensus/skills) (`skills/temporal`). Ownership of Vault paths, Kubernetes namespaces, and Nexus boundaries: [docs/strategy/OWNERSHIP.md](docs/strategy/OWNERSHIP.md).
 
 ## Rules below the seam
 
