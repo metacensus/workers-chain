@@ -1,0 +1,6 @@
+workers-chain
+Copyright MetaCensus contributors
+
+This repository was carved from metacensus/infra (BSD-3-Clause). Files retained
+from that history may still carry BSD-3-Clause headers. The repository license
+for new and overall distribution is AGPL-3.0-only (see LICENSE).
