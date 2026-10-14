@@ -22,6 +22,8 @@ Design decisions are in [AGENTS.md](AGENTS.md). Ownership boundaries: [`docs/str
 
 `make help` lists targets; `make check` is the CI gate.
 
+`make hooks` opts in to git hooks that run the same checks before code leaves your machine: pre-commit checks formatting and, when a `.proto` or mocked interface is staged, proto lint and generated-code freshness; pre-push runs `make check`.
+
 ## Releasing
 
 `make release TYPE=patch|minor|major` tags the next semver, and the tag publishes the three worker images.

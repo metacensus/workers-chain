@@ -1,0 +1,10 @@
+#!/bin/sh
+# Opt in with `make hooks`; opt out with `git config --unset core.hooksPath`.
+#
+# Runs what the PR's Check job runs, so a push fails here instead of in CI.
+# `git push --no-verify` skips it. Image builds stay manual: `make docker-build`.
+
+set -e
+
+echo "pre-push: running make check"
+make check
