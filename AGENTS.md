@@ -12,6 +12,4 @@ Temporal workflow and activity authoring follows the Temporal skill in [`metacen
 
 ## Not yet
 
-- Module path rename to `github.com/metacensus/workers-chain` and root `make check` ([#2](https://github.com/metacensus/workers-chain/issues/2)).
-- CI/release for the three images ([#3](https://github.com/metacensus/workers-chain/issues/3)).
 - Infra deploy-only cleanup after publish (infra#72).
