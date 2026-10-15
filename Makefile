@@ -1,5 +1,5 @@
 .PHONY: help check proto mocks gen lint-proto-check docker-build test fmt vet \
-	install-tools-gen install-tools-lint install-helm lint vuln release latest
+	install-tools-gen install-tools-lint lint vuln release latest
 
 .DEFAULT_GOAL := help
 
@@ -12,7 +12,6 @@ TOOL_PATH := PATH="$(CURDIR)/.bin:$$PATH"
 
 GOLANGCI_LINT_VERSION := v2.5.0
 GOVULNCHECK := golang.org/x/vuln/cmd/govulncheck@v1.8.0
-HELM_VERSION := v3.16.4
 
 help:
 	@awk -F' — ' '/^## /{ sub(/^## /, ""); printf "  make %-22s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -26,14 +25,6 @@ install-tools-gen:
 install-tools-lint: install-tools-gen
 	@test -x $(CURDIR)/.bin/golangci-lint || \
 		GOTOOLCHAIN=$(GEN_TOOLCHAIN) GOBIN=$(CURDIR)/.bin go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
-
-## install-helm — install helm into .bin when missing
-install-helm:
-	@mkdir -p .bin
-	@if ! command -v helm >/dev/null 2>&1 && [ ! -x $(CURDIR)/.bin/helm ]; then \
-		curl -fsSL https://get.helm.sh/helm-$(HELM_VERSION)-linux-amd64.tar.gz | \
-			tar -xz --strip-components=1 -C .bin linux-amd64/helm; \
-	fi
 
 ## proto — regenerate protobuf code
 proto: install-tools-gen
@@ -74,12 +65,12 @@ vuln:
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go run $(GOVULNCHECK) ./...
 
 ## check — proto/mocks freshness, helm lint, lint, unit tests
-check: lint-proto-check install-tools-lint install-helm
+check: lint
 	@$(TOOL_PATH) buf generate
 	@git diff --exit-code -- gen proto || (echo 'proto gen dirty; run make proto' && exit 1)
 	@GOWORK=off GOTOOLCHAIN=$(GEN_TOOLCHAIN) go generate -run mockery
 	@git diff --exit-code -- mocks || (echo 'mocks dirty; run make mocks' && exit 1)
-	@$(TOOL_PATH) bash -c 'for chart in helm/fabric/*; do \
+	@bash -c 'for chart in helm/fabric/*; do \
 		if [ -f "$$chart/Chart.yaml" ]; then \
 			echo "  Linting $$chart..."; \
 			if [ -f "$$chart/values.example.yaml" ]; then \
@@ -89,9 +80,6 @@ check: lint-proto-check install-tools-lint install-helm
 			fi; \
 		fi; \
 	done'
-	@test -z "$$(gofmt -l $$(git ls-files '*.go' | grep -v '^gen/') | tee /dev/stderr)"
-	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go vet ./...
-	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) $(TOOL_PATH) golangci-lint run ./cmd/... ./lib/...
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go test ./...
 
 ## docker-build — build the three worker images for this machine
@@ -103,6 +91,7 @@ docker-build:
 ## release — tag and push VERSION=x.y.z or the next TYPE=major|minor|patch; prompts unless YES=1
 release:
 	@set -e; \
+	git fetch -q --tags origin main; \
 	VERSION=$$(./scripts/version.sh "$(VERSION)" "$(TYPE)"); \
 	TAG="v$$VERSION"; \
 	if git ls-remote --exit-code --tags origin "refs/tags/$$TAG" >/dev/null 2>&1; then \
@@ -113,7 +102,6 @@ release:
 		echo "Error: working tree is dirty; commit or clean it before releasing"; \
 		exit 1; \
 	fi; \
-	git fetch -q origin main; \
 	if ! git merge-base --is-ancestor HEAD origin/main; then \
 		echo "Error: HEAD is not on origin/main; refusing to tag"; \
 		exit 1; \
