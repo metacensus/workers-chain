@@ -19,15 +19,18 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
         include:
-          - image: infra-worker
+          - image: worker-infra
             dockerfile: cmd/workers/infra/Dockerfile
-          - image: fabric-worker
+          - image: worker-fabric
             dockerfile: cmd/workers/fabric/Dockerfile
-          - image: shard-worker
+          - image: worker-fabric-shard
             dockerfile: cmd/workers/shard/Dockerfile
     steps:
       - uses: actions/checkout@v4
@@ -35,11 +38,11 @@ jobs:
       - uses: docker/setup-buildx-action@v3
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
+        env:
+          DOCKERHUB_OIDC_CONNECTIONID: da304516-d93d-4ca8-b218-42bc339fb2f7
         with:
-          registry: docker.io
           username: metacensus
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract metadata for Docker
         id: meta

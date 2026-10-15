@@ -8,8 +8,8 @@ Temporal workflow and activity authoring follows the Temporal skill in [`metacen
 
 - **Cross-owner work goes through Nexus**, not a child workflow on the caller's worker ([OWNERSHIP.md P2](docs/strategy/OWNERSHIP.md)).
 - **Private keys never cross Nexus** — only public CSRs and signed cert material.
-- **This repo builds and releases workers; it does not deploy them or start workflows.** Deploy stays in the MetaCensus `infra` repository.
+- **This repo builds and releases workers; it does not deploy them or start workflows.**
 
 ## Not yet
 
-- Infra deploy-only cleanup after publish (infra#72).
+- The deploy repository becomes deploy-only after the first publish.

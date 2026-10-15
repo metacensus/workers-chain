@@ -1,6 +1,6 @@
 # workers-chain
 
-Temporal workers and Helm charts that bootstrap and operate MetaCensus Fabric infrastructure. Deploy and orchestration that *starts* these workers lives in the MetaCensus `infra` repository; this repository is where the workers build, test, and release.
+Temporal workers and Helm charts that bootstrap and operate MetaCensus Fabric infrastructure. Deploy and orchestration that *starts* these workers lives in the deploy repository; this repository is where the workers build, test, and release.
 
 Images:
 
@@ -20,11 +20,11 @@ Design decisions are in [AGENTS.md](AGENTS.md). Ownership boundaries: [`docs/str
 
 ## Tests
 
-`make help` lists targets; `make check` is the CI gate ([#2](https://github.com/metacensus/workers-chain/issues/2)).
+`make help` lists targets; `make check` is the CI gate.
 
 ## Releasing
 
-Semver tags publish the three worker images ([#3](https://github.com/metacensus/workers-chain/issues/3)).
+`make release TYPE=patch|minor|major` tags the next semver, and the tag publishes the three worker images.
 
 ## License
 
