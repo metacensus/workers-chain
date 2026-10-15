@@ -2,7 +2,7 @@
 
 # Build natively and cross-compile: no QEMU per target architecture.
 # CGO_ENABLED=0 is what golang:alpine already did (it ships no C compiler).
-FROM --platform=$BUILDPLATFORM golang:1.25.8-alpine AS buildstage
+FROM --platform=$BUILDPLATFORM golang:1.27.2-alpine AS buildstage
 WORKDIR /src
 ARG TARGETOS TARGETARCH
 COPY go.mod go.sum ./
