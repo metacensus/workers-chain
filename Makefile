@@ -65,6 +65,6 @@ check: lint-proto-check install-tools-lint
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go test ./...
 
 docker-build:
-	docker build -f cmd/workers/infra/Dockerfile -t metacensus/infra-worker:local .
-	docker build -f cmd/workers/fabric/Dockerfile -t metacensus/fabric-worker:local .
-	docker build -f cmd/workers/shard/Dockerfile -t metacensus/shard-worker:local .
+	docker build -f cmd/workers/infra/Dockerfile -t metacensus/worker-infra:local .
+	docker build -f cmd/workers/fabric/Dockerfile -t metacensus/worker-fabric:local .
+	docker build -f cmd/workers/shard/Dockerfile -t metacensus/worker-fabric-shard:local .

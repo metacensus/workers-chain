@@ -71,7 +71,7 @@ func NewWorkerValues(operatorCfg config.OperatorConfig, orgCfg config.OrgConfig)
 		orgCfg.KubernetesNamespace(),
 		orgCfg.TemporalNamespace(),
 		orgCfg.WorkerVaultAuthRole(),
-		"metacensus/shard-worker",
+		"metacensus/worker-fabric-shard",
 	)
 }
 
@@ -85,7 +85,7 @@ func NewOperatorWorkerValues(operatorCfg config.OperatorConfig) *WorkerValues {
 		operatorCfg.KubernetesNamespace(),
 		operatorCfg.TemporalNamespace(),
 		operatorCfg.WorkerVaultAuthRole(),
-		"metacensus/fabric-worker",
+		"metacensus/worker-fabric",
 	)
 }
 
