@@ -2,11 +2,11 @@
 
 Temporal workers and Helm charts that bootstrap and operate MetaCensus Fabric infrastructure. Deploy and orchestration that *starts* these workers lives in the MetaCensus `infra` repository; this repository is where the workers build, test, and release.
 
-Three images (names unchanged for deploy compatibility):
+Images:
 
-- `metacensus/infra-worker`
-- `metacensus/fabric-worker`
-- `metacensus/shard-worker`
+- `metacensus/worker-infra`
+- `metacensus/worker-fabric`
+- `metacensus/worker-fabric-shard`
 
 Design decisions are in [AGENTS.md](AGENTS.md). Ownership boundaries: [`docs/strategy/OWNERSHIP.md`](docs/strategy/OWNERSHIP.md). Fabric bootstrap flows: [`docs/fabric/bootstrap-workflows.md`](docs/fabric/bootstrap-workflows.md).
 

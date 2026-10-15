@@ -19,7 +19,7 @@ namespace: "fabric-shard-org1"
 
 # Container image configuration
 image:
-  repository: metacensus/shard-worker
+  repository: metacensus/worker-fabric-shard
   tag: "latest"
   pullPolicy: IfNotPresent
 
