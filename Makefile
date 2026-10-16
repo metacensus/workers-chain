@@ -1,5 +1,6 @@
 .PHONY: help check proto mocks gen lint-proto-check docker-build test fmt vet \
-	install-tools-gen install-tools-lint lint vuln release latest
+	install-tools-gen install-tools-lint lint vuln release latest \
+	fmt-check hooks generated-paths
 
 .DEFAULT_GOAL := help
 
@@ -45,6 +46,10 @@ lint-proto-check: install-tools-gen
 ## fmt — rewrite with gofmt (skip gen/)
 fmt:
 	@gofmt -w $$(git ls-files '*.go' | grep -v '^gen/')
+
+## fmt-check — fail if gofmt would change anything (skip gen/)
+fmt-check:
+	@test -z "$$(gofmt -l $$(git ls-files '*.go' | grep -v '^gen/') | tee /dev/stderr)" || (echo 'gofmt dirty; run make fmt' && exit 1)
 
 ## vet — go vet
 vet:
@@ -123,3 +128,12 @@ release:
 ## latest — print the most recent version tag
 latest:
 	@bash -c '. scripts/version.sh && v=$$(get_latest_version) && [ -n "$$v" ] && echo v$$v || true'
+
+## hooks — opt in to the pre-commit and pre-push hooks (opt out: git config --unset core.hooksPath)
+hooks:
+	git config core.hooksPath .githooks
+	@echo "core.hooksPath set to .githooks"
+
+# What `gen` writes, named once so `check` and the pre-commit hook agree.
+generated-paths:
+	@echo gen proto/README.md mocks

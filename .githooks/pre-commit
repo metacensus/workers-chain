@@ -1,0 +1,48 @@
+#!/bin/sh
+# Opt in with `make hooks`; opt out with `git config --unset core.hooksPath`.
+#
+# Checks the working tree, not the index, so a partial `git add -p` can pass a
+# check its staged content would fail. CI is the enforcement boundary.
+
+set -e
+
+staged() { git diff --cached --name-only --diff-filter=ACMR -- "$@"; }
+
+# format-check, never `fmt`: rewriting mid-commit would commit something other
+# than what was staged.
+if [ -n "$(staged '*.go' ':!gen/')" ]; then
+	make -s fmt-check
+fi
+
+# Generator inputs: protos and buf config feed gen/ and proto/README.md; .mockery.yaml and the
+# interfaces it names under gen/ and lib/workflows/ feed mocks/.
+inputs=$(staged 'proto/*' 'buf.yaml' 'buf.gen.yaml' 'buf.lock' '.mockery.yaml' 'go.mod' 'lib/workflows/*.go')
+[ -n "$inputs" ] || exit 0
+
+echo "pre-commit: a generator input is staged — checking proto lint and freshness"
+
+if [ ! -x .bin/buf ]; then
+	echo "pre-commit: .bin/buf is missing; installing the generators first (~1 minute once)."
+fi
+
+make -s lint-proto-check
+
+# Regenerate, then ask the two questions CI asks: did a committed file change,
+# and did a new one appear that nobody has added?
+generated=$(make -s generated-paths)
+# mockery logs every interface to stderr; show it only when generation fails.
+if ! out=$(make -s gen 2>&1); then
+	echo "$out" >&2
+	exit 1
+fi
+changed=$(git diff --name-only -- $generated)
+untracked=$(git ls-files --others --exclude-standard -- $generated)
+if [ -n "$changed" ] || [ -n "$untracked" ]; then
+	echo >&2
+	echo "pre-commit: regenerating produced output that is not committed:" >&2
+	{ [ -n "$changed" ] && echo "$changed"; [ -n "$untracked" ] && echo "$untracked"; } \
+		| sed 's/^/  /' >&2
+	echo >&2
+	echo "'make gen' has already run. Stage the result and commit again." >&2
+	exit 1
+fi
