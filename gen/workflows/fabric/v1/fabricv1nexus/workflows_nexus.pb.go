@@ -2,7 +2,7 @@
 // versions:
 //
 //	protoc-gen-go-nexus dev (latest)
-//	go go1.25.8
+//	go go1.27.2
 //
 // include service tags: nexus-enabled
 // exclude operation tags: activity

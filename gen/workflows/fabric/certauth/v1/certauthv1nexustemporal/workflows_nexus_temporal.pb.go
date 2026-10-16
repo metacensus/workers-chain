@@ -2,7 +2,7 @@
 // versions:
 //
 //	protoc-gen-go-nexus-temporal dev (latest)
-//	go go1.25.8
+//	go go1.27.2
 //	protoc (unknown)
 //
 // source: fabric/certauth/v1/workflows.proto
