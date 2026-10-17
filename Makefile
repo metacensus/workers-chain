@@ -65,9 +65,18 @@ lint: lint-proto-check install-tools-lint
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go vet ./...
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) $(TOOL_PATH) golangci-lint run ./cmd/... ./lib/...
 
-## vuln — govulncheck over the module
+## vuln — govulncheck over the module; fails only on findings that have a fix
+# govulncheck exits 3 on any finding, including ones with no fixed version
+# (accepted in #8), which would keep the nightly scan red with nothing to do.
+# Installed rather than `go run`, which reports every non-zero exit as 1.
 vuln:
-	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go run $(GOVULNCHECK) ./...
+	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) GOBIN=$(CURDIR)/.bin go install $(GOVULNCHECK)
+	@out=$$(GOTOOLCHAIN=$(GEN_TOOLCHAIN) $(CURDIR)/.bin/govulncheck ./... 2>&1); status=$$?; \
+	echo "$$out"; \
+	if [ $$status -ne 0 ] && [ $$status -ne 3 ]; then exit $$status; fi; \
+	if echo "$$out" | awk '/Fixed in:/ && $$3 != "N/A"' | grep -q .; then \
+		echo 'vuln: a finding above has a fixed version; upgrade that module'; exit 1; \
+	fi
 
 ## check — proto/mocks freshness, helm lint, lint, unit tests
 check: lint
