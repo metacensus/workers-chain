@@ -1,5 +1,6 @@
 .PHONY: help check proto mocks gen lint-proto-check docker-build test fmt vet \
-	install-tools-gen install-tools-lint lint vuln release latest
+	install-tools-gen install-tools-lint lint vuln release latest \
+	fmt-check hooks generated-paths
 
 .DEFAULT_GOAL := help
 
@@ -10,7 +11,7 @@ $(error could not read the Go version from go.mod; refusing to run unpinned)
 endif
 TOOL_PATH := PATH="$(CURDIR)/.bin:$$PATH"
 
-GOLANGCI_LINT_VERSION := v2.5.0
+GOLANGCI_LINT_VERSION := v2.14.0
 GOVULNCHECK := golang.org/x/vuln/cmd/govulncheck@v1.8.0
 
 help:
@@ -46,6 +47,10 @@ lint-proto-check: install-tools-gen
 fmt:
 	@gofmt -w $$(git ls-files '*.go' | grep -v '^gen/')
 
+## fmt-check — fail if gofmt would change anything (skip gen/)
+fmt-check:
+	@test -z "$$(gofmt -l $$(git ls-files '*.go' | grep -v '^gen/') | tee /dev/stderr)" || (echo 'gofmt dirty; run make fmt' && exit 1)
+
 ## vet — go vet
 vet:
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go vet ./...
@@ -60,9 +65,18 @@ lint: lint-proto-check install-tools-lint
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go vet ./...
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) $(TOOL_PATH) golangci-lint run ./cmd/... ./lib/...
 
-## vuln — govulncheck over the module
+## vuln — govulncheck over the module; fails only on findings that have a fix
+# govulncheck exits 3 on any finding, including ones with no fixed version
+# (accepted in #8), which would keep the nightly scan red with nothing to do.
+# Installed rather than `go run`, which reports every non-zero exit as 1.
 vuln:
-	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go run $(GOVULNCHECK) ./...
+	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) GOBIN=$(CURDIR)/.bin go install $(GOVULNCHECK)
+	@out=$$(GOTOOLCHAIN=$(GEN_TOOLCHAIN) $(CURDIR)/.bin/govulncheck ./... 2>&1); status=$$?; \
+	echo "$$out"; \
+	if [ $$status -ne 0 ] && [ $$status -ne 3 ]; then exit $$status; fi; \
+	if echo "$$out" | awk '/Fixed in:/ && $$3 != "N/A"' | grep -q .; then \
+		echo 'vuln: a finding above has a fixed version; upgrade that module'; exit 1; \
+	fi
 
 ## check — proto/mocks freshness, helm lint, lint, unit tests
 check: lint
@@ -123,3 +137,12 @@ release:
 ## latest — print the most recent version tag
 latest:
 	@bash -c '. scripts/version.sh && v=$$(get_latest_version) && [ -n "$$v" ] && echo v$$v || true'
+
+## hooks — opt in to the pre-commit and pre-push hooks (opt out: git config --unset core.hooksPath)
+hooks:
+	git config core.hooksPath .githooks
+	@echo "core.hooksPath set to .githooks"
+
+# What `gen` writes, named once so `check` and the pre-commit hook agree.
+generated-paths:
+	@echo gen proto/README.md mocks

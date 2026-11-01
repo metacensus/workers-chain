@@ -208,11 +208,11 @@ type CreateDeploymentInput struct {
 	// component specifies which type of deployment to create
 	// Currently supported:
 	//   - "worker": Fabric worker deployment (shared fabric worker when the
-	//     owner is the operator, otherwise a per-org shard worker)
+	//       owner is the operator, otherwise a per-org shard worker)
 	//   - "certificate-store": PostgreSQL certificate store
 	//   - "certificate-authority-{certType}-{caID}": Certificate Authority
-	//     where certType is "tls" or "org", and caID is "root" or "int".
-	//     Examples: "certificate-authority-tls-root", "certificate-authority-org-int"
+	//       where certType is "tls" or "org", and caID is "root" or "int".
+	//       Examples: "certificate-authority-tls-root", "certificate-authority-org-int"
 	//   - "couchdb-{peerId}", "peer{id}", "orderer{id}"
 	Component     string `protobuf:"bytes,2,opt,name=component,json=Component,proto3" json:"Component" validate:"required"`
 	unknownFields protoimpl.UnknownFields
