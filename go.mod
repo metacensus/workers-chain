@@ -24,13 +24,13 @@ require (
 	github.com/hyperledger/fabric-ca v1.5.13
 	github.com/hyperledger/fabric-lib-go v1.1.2
 	github.com/jackc/pgx/v5 v5.7.1
+	github.com/metacensus/library-temporal-kube v0.0.0-20261101042649-40810f850808
 	github.com/spf13/viper v1.20.0
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.39.0
 	go.temporal.io/api v1.58.0
 	go.temporal.io/sdk v1.34.0
 	go.uber.org/fx v1.24.0
-	helm.sh/helm/v3 v3.19.1
 	k8s.io/api v0.34.0
 	k8s.io/client-go v0.34.0
 	sigs.k8s.io/yaml v1.6.0
@@ -294,6 +294,7 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ldap.v2 v2.5.1 // indirect
+	helm.sh/helm/v3 v3.19.1 // indirect
 	k8s.io/apiextensions-apiserver v0.34.0 // indirect
 	k8s.io/apiserver v0.34.0 // indirect
 	k8s.io/cli-runtime v0.34.0 // indirect
@@ -306,6 +307,7 @@ require (
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	pluginrpc.com/pluginrpc v0.5.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
+	sigs.k8s.io/cli-utils v0.37.2 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/kustomize/api v0.20.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.20.1 // indirect

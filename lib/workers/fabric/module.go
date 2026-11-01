@@ -10,8 +10,6 @@ import (
 	orderer "github.com/metacensus/workers-chain/lib/workflows/fabric/orderer/v1"
 	peer "github.com/metacensus/workers-chain/lib/workflows/fabric/peer/v1"
 	fabric "github.com/metacensus/workers-chain/lib/workflows/fabric/v1"
-	helm "github.com/metacensus/workers-chain/lib/workflows/helm/v1"
-	kube "github.com/metacensus/workers-chain/lib/workflows/kube/v1"
 	postgres "github.com/metacensus/workers-chain/lib/workflows/postgres/v1"
 	secrets "github.com/metacensus/workers-chain/lib/workflows/secrets/v1"
 	temporal "github.com/metacensus/workers-chain/lib/workflows/temporal/v1"
@@ -54,8 +52,7 @@ var Module = fx.Module("fabric",
 	temporal.ClientModule,
 
 	// Include workflow modules (provides workflows/activities)
-	helm.Module,
-	kube.Module,
+	workers.ClusterModule,
 	vault.Module,
 	secrets.Module,
 	clusterfabric.Module,
@@ -70,8 +67,7 @@ var Module = fx.Module("fabric",
 	fx.Invoke(
 		vault.RegisterActivities,
 		secrets.RegisterActivities,
-		helm.RegisterActivities,
-		kube.RegisterActivities,
+		workers.RegisterClusterActivities,
 		clusterfabric.RegisterWorkflows,
 		certauth.RegisterActivities,
 		certauth.RegisterWorkflows,

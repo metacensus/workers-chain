@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	kubev1 "github.com/metacensus/library-temporal-kube/gen/kube/v1"
 	fabricv1 "github.com/metacensus/workers-chain/gen/workflows/fabric/v1"
-	kubev1 "github.com/metacensus/workers-chain/gen/workflows/kube/v1"
 	secretsv1 "github.com/metacensus/workers-chain/gen/workflows/secrets/v1"
 	vaultv1 "github.com/metacensus/workers-chain/gen/workflows/vault/v1"
 	workerconfig "github.com/metacensus/workers-chain/lib/workers/config"
@@ -82,6 +82,7 @@ func (cs CertificateStoreConfig) AdminDatabase() string {
 // The certificate store is deployed as a StatefulSet.
 func (cs CertificateStoreConfig) ResourceIdentifier() *kubev1.ResourceIdentifier {
 	return &kubev1.ResourceIdentifier{
+		Id:         cs.ComponentName(),
 		ApiVersion: "apps/v1",
 		Kind:       "StatefulSet",
 		Name:       cs.ComponentName(),
@@ -218,6 +219,7 @@ func (ca CertificateAuthorityConfig) ServiceAccountName() string {
 // The certificate authority is deployed as a Deployment.
 func (ca CertificateAuthorityConfig) ResourceIdentifier() *kubev1.ResourceIdentifier {
 	return &kubev1.ResourceIdentifier{
+		Id:         ca.ComponentName(),
 		ApiVersion: "apps/v1",
 		Kind:       "Deployment",
 		Name:       ca.ComponentName(),

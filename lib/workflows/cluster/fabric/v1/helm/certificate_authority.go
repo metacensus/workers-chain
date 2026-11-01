@@ -6,54 +6,54 @@ import (
 
 // CertificateAuthorityValues represents the Helm values for a certificate authority deployment
 type CertificateAuthorityValues struct {
-	Org            string
-	Namespace      string
-	CertType       string
-	CaId           string
-	Image          ImageConfig
-	Replicas       int
-	Database       CADatabaseConfig
-	Vault          CAVaultConfig
-	Service        ServiceConfig
-	CA             CAConfig
-	Resources      ResourceConfig
-	LivenessProbe  CAProbeConfig
-	ReadinessProbe CAProbeConfig
-	CommonLabels   CommonLabels
+	Org            string           `json:"org"`
+	Namespace      string           `json:"namespace"`
+	CertType       string           `json:"certType"`
+	CaId           string           `json:"caId"`
+	Image          ImageConfig      `json:"image"`
+	Replicas       int              `json:"replicas"`
+	Database       CADatabaseConfig `json:"database"`
+	Vault          CAVaultConfig    `json:"vault"`
+	Service        ServiceConfig    `json:"service"`
+	CA             CAConfig         `json:"ca"`
+	Resources      ResourceConfig   `json:"resources"`
+	LivenessProbe  CAProbeConfig    `json:"livenessProbe"`
+	ReadinessProbe CAProbeConfig    `json:"readinessProbe"`
+	CommonLabels   CommonLabels     `json:"commonLabels"`
 }
 
 // CADatabaseConfig represents database connection configuration for CA
 type CADatabaseConfig struct {
-	Host string
-	Port int
-	Name string
+	Host string `json:"host"`
+	Port int    `json:"port"`
+	Name string `json:"name"`
 }
 
 // CAVaultConfig represents Vault CSI driver configuration for certificate authority.
 // Keys (private) and certs (public) are stored at separate paths.
 type CAVaultConfig struct {
-	RoleName string
+	RoleName string `json:"roleName"`
 	// Keys (private) - separate paths for private keys and credentials
-	SigningKeyPath       string // CA signing private key
-	TlsKeyPath           string // CA TLS private key
-	AdminCredentialsPath string // Bootstrap admin username/password (under keys/)
-	DbCredentialsPath    string // Database credentials (under keys/)
+	SigningKeyPath       string `json:"signingKeyPath"`       // CA signing private key
+	TlsKeyPath           string `json:"tlsKeyPath"`           // CA TLS private key
+	AdminCredentialsPath string `json:"adminCredentialsPath"` // Bootstrap admin username/password (under keys/)
+	DbCredentialsPath    string `json:"dbCredentialsPath"`    // Database credentials (under keys/)
 	// Certs (public) - separate paths for certificates + chains
-	SigningCertPath string // CA signing cert + chain
-	TlsCertPath     string // CA TLS cert + chain
+	SigningCertPath string `json:"signingCertPath"` // CA signing cert + chain
+	TlsCertPath     string `json:"tlsCertPath"`     // CA TLS cert + chain
 }
 
 // CAConfig represents CA-specific configuration
 type CAConfig struct {
-	CommonName         string
-	OrganizationalUnit string
+	CommonName         string `json:"commonName"`
+	OrganizationalUnit string `json:"organizationalUnit"`
 }
 
 // CAProbeConfig represents probe configuration for CA deployments
 type CAProbeConfig struct {
-	InitialDelaySeconds int
-	PeriodSeconds       int
-	TimeoutSeconds      int
+	InitialDelaySeconds int `json:"initialDelaySeconds"`
+	PeriodSeconds       int `json:"periodSeconds"`
+	TimeoutSeconds      int `json:"timeoutSeconds"`
 }
 
 // NewCertificateAuthorityValues creates CertificateAuthorityValues from CertificateAuthorityConfig

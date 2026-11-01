@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	kubepb "github.com/metacensus/library-temporal-kube/gen/kube/v1"
 	pb "github.com/metacensus/workers-chain/gen/workflows/fabric/v1"
-	kubepb "github.com/metacensus/workers-chain/gen/workflows/kube/v1"
 	postgrespb "github.com/metacensus/workers-chain/gen/workflows/postgres/v1"
 	secretspb "github.com/metacensus/workers-chain/gen/workflows/secrets/v1"
 	"github.com/metacensus/workers-chain/lib/workers/config"
@@ -69,10 +69,8 @@ func (w *createCertificateDatabaseWorkflow) Execute(ctx workflow.Context) (*pb.C
 	}
 	waitCtx := workflow.WithActivityOptions(ctx, waitOptions)
 
-	err := workflow.ExecuteActivity(waitCtx, kubepb.GetStatusActivityName, &kubepb.GetStatusInput{
-		Resources: map[string]*kubepb.ResourceIdentifier{
-			"certificate-store": certStore.ResourceIdentifier(),
-		},
+	err := workflow.ExecuteActivity(waitCtx, kubepb.ReadyActivityName, &kubepb.ReadyInput{
+		Resources: []*kubepb.ResourceIdentifier{certStore.ResourceIdentifier()},
 	}).Get(waitCtx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("certificate store did not become ready: %w", err)

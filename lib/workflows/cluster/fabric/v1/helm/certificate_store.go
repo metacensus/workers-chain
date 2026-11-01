@@ -6,45 +6,45 @@ import (
 
 // CertificateStoreValues represents the Helm values for a certificate store (PostgreSQL) deployment
 type CertificateStoreValues struct {
-	Org            string
-	Namespace      string
-	Image          ImageConfig
-	Replicas       int
-	Database       DatabaseConfig
-	Vault          CertStoreVaultConfig
-	Service        ServiceConfig
-	Persistence    PersistenceConfig
-	Resources      ResourceConfig
-	LivenessProbe  DBProbeConfig
-	ReadinessProbe DBProbeConfig
-	CommonLabels   CommonLabels
+	Org            string               `json:"org"`
+	Namespace      string               `json:"namespace"`
+	Image          ImageConfig          `json:"image"`
+	Replicas       int                  `json:"replicas"`
+	Database       DatabaseConfig       `json:"database"`
+	Vault          CertStoreVaultConfig `json:"vault"`
+	Service        ServiceConfig        `json:"service"`
+	Persistence    PersistenceConfig    `json:"persistence"`
+	Resources      ResourceConfig       `json:"resources"`
+	LivenessProbe  DBProbeConfig        `json:"livenessProbe"`
+	ReadinessProbe DBProbeConfig        `json:"readinessProbe"`
+	CommonLabels   CommonLabels         `json:"commonLabels"`
 }
 
 // DatabaseConfig represents PostgreSQL database configuration
 type DatabaseConfig struct {
-	Name string
+	Name string `json:"name"`
 }
 
 // CertStoreVaultConfig represents Vault CSI driver configuration for certificate store
 type CertStoreVaultConfig struct {
-	RoleName   string
-	SecretPath string
+	RoleName   string `json:"roleName"`
+	SecretPath string `json:"secretPath"`
 }
 
 // PersistenceConfig represents persistent volume configuration
 type PersistenceConfig struct {
-	Enabled      bool
-	StorageClass string
-	AccessModes  []string
-	Size         string
-	MountPath    string
+	Enabled      bool     `json:"enabled"`
+	StorageClass string   `json:"storageClass"`
+	AccessModes  []string `json:"accessModes"`
+	Size         string   `json:"size"`
+	MountPath    string   `json:"mountPath"`
 }
 
 // DBProbeConfig represents database probe configuration
 type DBProbeConfig struct {
-	InitialDelaySeconds int
-	PeriodSeconds       int
-	TimeoutSeconds      int
+	InitialDelaySeconds int `json:"initialDelaySeconds"`
+	PeriodSeconds       int `json:"periodSeconds"`
+	TimeoutSeconds      int `json:"timeoutSeconds"`
 }
 
 // NewCertificateStoreValues creates CertificateStoreValues from CertificateStoreConfig

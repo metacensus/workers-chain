@@ -6,24 +6,24 @@ import (
 
 // CouchDbValues represents the Helm values for a CouchDB deployment
 type CouchDbValues struct {
-	Org            string
-	Namespace      string
-	PeerId         string
-	Image          ImageConfig
-	Replicas       int
-	Vault          CouchDbVaultConfig
-	Service        ServiceConfig
-	Persistence    PersistenceConfig
-	Resources      ResourceConfig
-	LivenessProbe  DBProbeConfig
-	ReadinessProbe DBProbeConfig
-	CommonLabels   CommonLabels
+	Org            string             `json:"org"`
+	Namespace      string             `json:"namespace"`
+	PeerId         string             `json:"peerId"`
+	Image          ImageConfig        `json:"image"`
+	Replicas       int                `json:"replicas"`
+	Vault          CouchDbVaultConfig `json:"vault"`
+	Service        ServiceConfig      `json:"service"`
+	Persistence    PersistenceConfig  `json:"persistence"`
+	Resources      ResourceConfig     `json:"resources"`
+	LivenessProbe  DBProbeConfig      `json:"livenessProbe"`
+	ReadinessProbe DBProbeConfig      `json:"readinessProbe"`
+	CommonLabels   CommonLabels       `json:"commonLabels"`
 }
 
 // CouchDbVaultConfig represents Vault CSI driver configuration for CouchDB
 type CouchDbVaultConfig struct {
-	RoleName   string
-	SecretPath string
+	RoleName   string `json:"roleName"`
+	SecretPath string `json:"secretPath"`
 }
 
 // NewCouchDbValues creates CouchDbValues from CouchDbConfig

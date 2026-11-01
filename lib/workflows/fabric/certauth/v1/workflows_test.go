@@ -7,10 +7,10 @@ import (
 	"sync"
 	"testing"
 
+	kubepb "github.com/metacensus/library-temporal-kube/gen/kube/v1"
 	pb "github.com/metacensus/workers-chain/gen/workflows/fabric/certauth/v1"
 	"github.com/metacensus/workers-chain/gen/workflows/fabric/certauth/v1/certauthv1nexus"
 	fabricpb "github.com/metacensus/workers-chain/gen/workflows/fabric/v1"
-	kubepb "github.com/metacensus/workers-chain/gen/workflows/kube/v1"
 	secretspb "github.com/metacensus/workers-chain/gen/workflows/secrets/v1"
 	workerconfig "github.com/metacensus/workers-chain/lib/workers/config"
 	fabricconfig "github.com/metacensus/workers-chain/lib/workers/fabric/config"
@@ -505,7 +505,7 @@ func TestCreateBootstrapAdminWorkflow(t *testing.T) {
 		owner            workerconfig.OwnerConfig
 		caRef            *fabricpb.CertificateAuthorityRef
 		tlsIssuer        *fabricpb.CertificateAuthorityRef
-		getStatusErr     error
+		readyErr         error
 		enrollSigningErr error // BootstrapEnrollCsr, "" profile (signing)
 		enrollTLSErr     error // BootstrapEnrollCsr, "tls" profile (local TLS)
 		nexusTLSErr      error // Nexus SignCertificate (foreign TLS)
@@ -528,11 +528,11 @@ func TestCreateBootstrapAdminWorkflow(t *testing.T) {
 			validateOutput: true,
 		},
 		{
-			name:         "error - CA never ready",
-			owner:        operatorOwner,
-			caRef:        tlsRootRef,
-			getStatusErr: errors.New("pod not ready"),
-			expectedErr:  errors.New("CA did not become ready"),
+			name:        "error - CA never ready",
+			owner:       operatorOwner,
+			caRef:       tlsRootRef,
+			readyErr:    errors.New("pod not ready"),
+			expectedErr: errors.New("CA did not become ready"),
 		},
 		{
 			name:             "error - signing enrollment fails",
@@ -571,19 +571,19 @@ func TestCreateBootstrapAdminWorkflow(t *testing.T) {
 			registerCSRPipelineStubs(t, env)
 
 			env.RegisterActivityWithOptions(
-				func(ctx context.Context, input *kubepb.GetStatusInput) (*kubepb.GetStatusOutput, error) {
-					return &kubepb.GetStatusOutput{}, nil
+				func(ctx context.Context, input *kubepb.ReadyInput) (*kubepb.ReadyOutput, error) {
+					return &kubepb.ReadyOutput{}, nil
 				},
-				activity.RegisterOptions{Name: kubepb.GetStatusActivityName},
+				activity.RegisterOptions{Name: kubepb.ReadyActivityName},
 			)
 
-			// Mock GetStatus activity
-			if tt.getStatusErr != nil {
-				env.OnActivity(kubepb.GetStatusActivityName, mock.Anything, mock.Anything).
-					Return(nil, tt.getStatusErr)
+			// Mock Ready activity
+			if tt.readyErr != nil {
+				env.OnActivity(kubepb.ReadyActivityName, mock.Anything, mock.Anything).
+					Return(nil, tt.readyErr)
 			} else {
-				env.OnActivity(kubepb.GetStatusActivityName, mock.Anything, mock.Anything).
-					Return(&kubepb.GetStatusOutput{}, nil)
+				env.OnActivity(kubepb.ReadyActivityName, mock.Anything, mock.Anything).
+					Return(&kubepb.ReadyOutput{}, nil)
 			}
 
 			// Capture the CSR subject CN per key ref so we can assert the

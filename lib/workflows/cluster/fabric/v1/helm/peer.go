@@ -6,76 +6,76 @@ import (
 
 // PeerValues represents the Helm values for a Fabric peer deployment
 type PeerValues struct {
-	Org            string
-	Namespace      string
-	PeerId         string
-	Image          ImageConfig
-	Replicas       int
-	Msp            PeerMspConfig
-	Vault          PeerVaultConfig
-	Service        PeerServiceConfig
-	Gossip         GossipConfig
-	Couchdb        CouchdbConfig
-	Persistence    PersistenceConfig
-	Logging        LoggingConfig
-	Resources      ResourceConfig
-	StartupProbe   PeerProbeConfig
-	LivenessProbe  PeerProbeConfig
-	ReadinessProbe PeerProbeConfig
-	CommonLabels   CommonLabels
+	Org            string            `json:"org"`
+	Namespace      string            `json:"namespace"`
+	PeerId         string            `json:"peerId"`
+	Image          ImageConfig       `json:"image"`
+	Replicas       int               `json:"replicas"`
+	Msp            PeerMspConfig     `json:"msp"`
+	Vault          PeerVaultConfig   `json:"vault"`
+	Service        PeerServiceConfig `json:"service"`
+	Gossip         GossipConfig      `json:"gossip"`
+	Couchdb        CouchdbConfig     `json:"couchdb"`
+	Persistence    PersistenceConfig `json:"persistence"`
+	Logging        LoggingConfig     `json:"logging"`
+	Resources      ResourceConfig    `json:"resources"`
+	StartupProbe   PeerProbeConfig   `json:"startupProbe"`
+	LivenessProbe  PeerProbeConfig   `json:"livenessProbe"`
+	ReadinessProbe PeerProbeConfig   `json:"readinessProbe"`
+	CommonLabels   CommonLabels      `json:"commonLabels"`
 }
 
 // PeerMspConfig represents MSP configuration for a peer
 type PeerMspConfig struct {
-	Id string
+	Id string `json:"id"`
 }
 
 // PeerVaultConfig represents Vault paths for peer certificates and keys.
 // Keys (private) and certs (public) are stored at separate paths.
 type PeerVaultConfig struct {
-	RoleName string
+	RoleName string `json:"roleName"`
 	// Keys (private) - separate paths for private keys
-	MspSigningKeyPath string // Peer signing private key
-	TlsKeyPath        string // Peer TLS private key
-	CouchdbPath       string // CouchDB credentials (under keys/)
+	MspSigningKeyPath string `json:"mspSigningKeyPath"` // Peer signing private key
+	TlsKeyPath        string `json:"tlsKeyPath"`        // Peer TLS private key
+	CouchdbPath       string `json:"couchdbPath"`       // CouchDB credentials (under keys/)
 	// Certs (public) - separate paths for certificates + chains
-	MspSigningCertPath string // Peer signing cert + chain
-	TlsCertPath        string // Peer TLS cert + chain
+	MspSigningCertPath string `json:"mspSigningCertPath"` // Peer signing cert + chain
+	TlsCertPath        string `json:"tlsCertPath"`        // Peer TLS cert + chain
 	// CA root certs for trust stores (public, root only)
-	MspRootCaCertPath string // Org Root CA cert for MSP cacerts/
-	TlsRootCaCertPath string // TLS Root CA cert for TLS trust store
+	MspRootCaCertPath string `json:"mspRootCaCertPath"` // Org Root CA cert for MSP cacerts/
+	TlsRootCaCertPath string `json:"tlsRootCaCertPath"` // TLS Root CA cert for TLS trust store
 }
 
 // PeerServiceConfig represents service port configuration for a peer
 type PeerServiceConfig struct {
-	Type           string
-	Port           int
-	ChaincodePort  int
-	OperationsPort int
+	Type           string `json:"type"`
+	Port           int    `json:"port"`
+	ChaincodePort  int    `json:"chaincodePort"`
+	OperationsPort int    `json:"operationsPort"`
 }
 
 // GossipConfig represents gossip protocol configuration
 type GossipConfig struct {
-	Bootstrap        string
-	ExternalEndpoint string
+	Bootstrap        string `json:"bootstrap"`
+	ExternalEndpoint string `json:"externalEndpoint"`
 }
 
 // CouchdbConfig represents CouchDB connection configuration
 type CouchdbConfig struct {
-	Address string
+	Address string `json:"address"`
 }
 
 // LoggingConfig represents logging configuration
 type LoggingConfig struct {
-	Level string
+	Level string `json:"level"`
 }
 
 // PeerProbeConfig represents Kubernetes probe configuration for peers
 type PeerProbeConfig struct {
-	InitialDelaySeconds int
-	PeriodSeconds       int
-	TimeoutSeconds      int
-	FailureThreshold    int
+	InitialDelaySeconds int `json:"initialDelaySeconds"`
+	PeriodSeconds       int `json:"periodSeconds"`
+	TimeoutSeconds      int `json:"timeoutSeconds"`
+	FailureThreshold    int `json:"failureThreshold"`
 }
 
 // NewPeerValues creates PeerValues from PeerConfig and CA configurations.

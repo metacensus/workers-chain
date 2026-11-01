@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 
-	kubev1 "github.com/metacensus/workers-chain/gen/workflows/kube/v1"
+	kubev1 "github.com/metacensus/library-temporal-kube/gen/kube/v1"
 	pb "github.com/metacensus/workers-chain/gen/workflows/secrets/v1"
 	vaultpb "github.com/metacensus/workers-chain/gen/workflows/vault/v1"
 	secrets "github.com/metacensus/workers-chain/lib/workflows/secrets/v1"
@@ -49,6 +49,7 @@ func (c CouchDbConfig) Port() int {
 // CouchDB is deployed as a StatefulSet for persistent storage.
 func (c CouchDbConfig) ResourceIdentifier() *kubev1.ResourceIdentifier {
 	return &kubev1.ResourceIdentifier{
+		Id:         c.ComponentName(),
 		ApiVersion: "apps/v1",
 		Kind:       "StatefulSet",
 		Name:       c.ComponentName(),
@@ -174,6 +175,7 @@ func (p PeerConfig) OperationsPort() int {
 // Peers are deployed as StatefulSets for stable network identity and persistent storage.
 func (p PeerConfig) ResourceIdentifier() *kubev1.ResourceIdentifier {
 	return &kubev1.ResourceIdentifier{
+		Id:         p.ComponentName(),
 		ApiVersion: "apps/v1",
 		Kind:       "StatefulSet",
 		Name:       p.ComponentName(),
@@ -412,6 +414,7 @@ func (o OrdererConfig) OperationsPort() int {
 // Orderers are deployed as StatefulSets for stable network identity and persistent storage.
 func (o OrdererConfig) ResourceIdentifier() *kubev1.ResourceIdentifier {
 	return &kubev1.ResourceIdentifier{
+		Id:         o.ComponentName(),
 		ApiVersion: "apps/v1",
 		Kind:       "StatefulSet",
 		Name:       o.ComponentName(),

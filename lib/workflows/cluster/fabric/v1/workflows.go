@@ -5,17 +5,57 @@ import (
 	"strings"
 	"time"
 
+	helmpb "github.com/metacensus/library-temporal-kube/gen/helm/v1"
+	kubepb "github.com/metacensus/library-temporal-kube/gen/kube/v1"
 	pb "github.com/metacensus/workers-chain/gen/workflows/cluster/fabric/v1"
 	fabricv1 "github.com/metacensus/workers-chain/gen/workflows/fabric/v1"
-	helmpb "github.com/metacensus/workers-chain/gen/workflows/helm/v1"
-	kubepb "github.com/metacensus/workers-chain/gen/workflows/kube/v1"
 	"github.com/metacensus/workers-chain/lib/workers/config"
 	fabricconfig "github.com/metacensus/workers-chain/lib/workers/fabric/config"
 	"github.com/metacensus/workers-chain/lib/workflows/cluster/fabric/v1/helm"
-	kube "github.com/metacensus/workers-chain/lib/workflows/kube/v1"
+	temporalmtls "github.com/metacensus/workers-chain/lib/workflows/temporalmtls/v1"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
+	"sigs.k8s.io/yaml"
 )
+
+// deployActivityOptions bound the render and apply of one component.
+var deployActivityOptions = workflow.ActivityOptions{
+	StartToCloseTimeout: 5 * time.Minute,
+	RetryPolicy: &temporal.RetryPolicy{
+		InitialInterval:    1 * time.Second,
+		BackoffCoefficient: 2.0,
+		MaximumInterval:    30 * time.Second,
+		MaximumAttempts:    5,
+	},
+}
+
+// deploy renders a chart with a component's values and applies what it
+// rendered. The release name is the chart's path with slashes folded.
+func deploy(ctx workflow.Context, chart, namespace string, values any) error {
+	valuesYAML, err := yaml.Marshal(values)
+	if err != nil {
+		return fmt.Errorf("marshal values: %w", err)
+	}
+	activityCtx := workflow.WithActivityOptions(ctx, deployActivityOptions)
+	var rendered *helmpb.RenderChartOutput
+	err = workflow.ExecuteActivity(activityCtx, helmpb.RenderChartActivityName, &helmpb.RenderChartInput{
+		Chart:       chart,
+		ReleaseName: strings.ReplaceAll(chart, "/", "-"),
+		Namespace:   namespace,
+		ValuesYaml:  string(valuesYAML),
+	}).Get(ctx, &rendered)
+	if err != nil {
+		return fmt.Errorf("render chart: %w", err)
+	}
+	err = workflow.ExecuteActivity(activityCtx, kubepb.ApplyActivityName, &kubepb.ApplyInput{
+		Namespace: namespace,
+		Resources: rendered.GetResources(),
+	}).Get(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("apply resources: %w", err)
+	}
+	return nil
+}
 
 const (
 	chartNamespace            = "fabric/namespace"
@@ -27,8 +67,6 @@ const (
 	chartPeer                 = "fabric/peer"
 	chartOrderer              = "fabric/orderer"
 
-	componentNamespace            = "namespace"
-	componentServiceAccount       = "service-account"
 	componentWorker               = "worker"
 	componentCertificateStore     = "certificate-store"
 	componentCertificateAuthority = "certificate-authority"
@@ -88,58 +126,8 @@ func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNames
 	values := helm.NewNamespaceValues(w.owner)
 	namespaceName := values.Name
 
-	// Convert Go struct to protobuf Struct
-	valuesStruct, err := ToProtoStruct(values)
-	if err != nil {
-		return nil, fmt.Errorf("convert values: %w", err)
-	}
-
-	// Activity options
-	ao := workflow.ActivityOptions{
-		StartToCloseTimeout: 5 * time.Minute,
-		RetryPolicy: &temporal.RetryPolicy{
-			InitialInterval:    1 * time.Second,
-			BackoffCoefficient: 2.0,
-			MaximumInterval:    30 * time.Second,
-			MaximumAttempts:    5,
-		},
-	}
-	activityCtx := workflow.WithActivityOptions(ctx, ao)
-
-	// Step 1: Render Helm chart
-	var renderOutput *helmpb.RenderChartOutput
-	err = workflow.ExecuteActivity(activityCtx, helmpb.RenderChartWithTemplateActivityName, &helmpb.RenderChartWithTemplateInput{
-		ChartName: chartNamespace,
-		Component: componentNamespace,
-		Values:    valuesStruct,
-		Namespace: &namespaceName,
-	}).Get(ctx, &renderOutput)
-	if err != nil {
-		return nil, fmt.Errorf("render chart: %w", err)
-	}
-
-	if len(renderOutput.Failures) > 0 {
-		return nil, fmt.Errorf("chart rendering failed: %v", renderOutput.Failures)
-	}
-
-	// Step 2: Apply resources to Kubernetes
-	kubeResources := make(map[string]*kubepb.Resource)
-	for id, res := range renderOutput.Resources {
-		kubeResources[id] = &kubepb.Resource{
-			ManifestYaml: res.ManifestYaml,
-		}
-	}
-
-	var applyOutput *kubepb.ApplyOutput
-	err = workflow.ExecuteActivity(activityCtx, kubepb.ApplyActivityName, &kubepb.ApplyInput{
-		Resources: kubeResources,
-	}).Get(ctx, &applyOutput)
-	if err != nil {
-		return nil, fmt.Errorf("apply resources: %w", err)
-	}
-
-	if applyOutput.Summary.Failed > 0 {
-		return nil, fmt.Errorf("failed to apply %d resources", applyOutput.Summary.Failed)
+	if err := deploy(ctx, chartNamespace, namespaceName, values); err != nil {
+		return nil, err
 	}
 
 	return &pb.CreateNamespaceOutput{
@@ -174,58 +162,8 @@ func (w *createServiceAccountWorkflow) Execute(ctx workflow.Context) (*pb.Create
 	values := helm.NewServiceAccountValues(w.owner)
 	namespaceName := values.Namespace
 
-	// Convert Go struct to protobuf Struct
-	valuesStruct, err := ToProtoStruct(values)
-	if err != nil {
-		return nil, fmt.Errorf("convert values: %w", err)
-	}
-
-	// Activity options
-	ao := workflow.ActivityOptions{
-		StartToCloseTimeout: 5 * time.Minute,
-		RetryPolicy: &temporal.RetryPolicy{
-			InitialInterval:    1 * time.Second,
-			BackoffCoefficient: 2.0,
-			MaximumInterval:    30 * time.Second,
-			MaximumAttempts:    5,
-		},
-	}
-	activityCtx := workflow.WithActivityOptions(ctx, ao)
-
-	// Step 1: Render Helm chart
-	var renderOutput *helmpb.RenderChartOutput
-	err = workflow.ExecuteActivity(activityCtx, helmpb.RenderChartWithTemplateActivityName, &helmpb.RenderChartWithTemplateInput{
-		ChartName: chartServiceAccount,
-		Component: componentServiceAccount,
-		Values:    valuesStruct,
-		Namespace: &namespaceName,
-	}).Get(ctx, &renderOutput)
-	if err != nil {
-		return nil, fmt.Errorf("render chart: %w", err)
-	}
-
-	if len(renderOutput.Failures) > 0 {
-		return nil, fmt.Errorf("chart rendering failed: %v", renderOutput.Failures)
-	}
-
-	// Step 2: Apply resources to Kubernetes
-	kubeResources := make(map[string]*kubepb.Resource)
-	for id, res := range renderOutput.Resources {
-		kubeResources[id] = &kubepb.Resource{
-			ManifestYaml: res.ManifestYaml,
-		}
-	}
-
-	var applyOutput *kubepb.ApplyOutput
-	err = workflow.ExecuteActivity(activityCtx, kubepb.ApplyActivityName, &kubepb.ApplyInput{
-		Resources: kubeResources,
-	}).Get(ctx, &applyOutput)
-	if err != nil {
-		return nil, fmt.Errorf("apply resources: %w", err)
-	}
-
-	if applyOutput.Summary.Failed > 0 {
-		return nil, fmt.Errorf("failed to apply %d resources", applyOutput.Summary.Failed)
+	if err := deploy(ctx, chartServiceAccount, namespaceName, values); err != nil {
+		return nil, err
 	}
 
 	return &pb.CreateServiceAccountOutput{}, nil
@@ -258,7 +196,6 @@ func newCreateDeploymentWorkflow(input *pb.CreateDeploymentInput, operator *conf
 // Execute deploys resources to Kubernetes based on the specified component type
 func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDeploymentOutput, error) {
 	var chartName string
-	var componentName string
 	var values interface{}
 	var namespaceName string
 	var deploymentName string
@@ -268,7 +205,6 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 	switch {
 	case w.input.Component == componentWorker:
 		chartName = chartWorker
-		componentName = componentWorker
 		if owner.IsOperator() {
 			// Shared fabric worker in the operator-owned "fabric" namespace
 			values = helm.NewOperatorWorkerValues(config.NewOperatorConfig(owner.OwnerID()))
@@ -280,7 +216,6 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		deploymentName = owner.WorkerDeploymentName()
 	case w.input.Component == componentCertificateStore:
 		chartName = chartCertificateStore
-		componentName = componentCertificateStore
 		// Create config objects to get consistent configuration values
 		certStoreConfig := fabricconfig.NewCertificateStoreConfig(owner)
 		certStoreValues := helm.NewCertificateStoreValues(certStoreConfig)
@@ -305,7 +240,6 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		}
 
 		chartName = chartCertificateAuthority
-		componentName = componentCertificateAuthority
 		// The CA belongs to the input owner - no cert-type-based owner switching
 		caConfig := fabricconfig.NewCertificateAuthorityConfig(owner, caRef)
 		caValues := helm.NewCertificateAuthorityValues(caConfig)
@@ -322,7 +256,6 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		peerID := parts[1] // "peer0", "peer1", etc.
 
 		chartName = chartCouchDb
-		componentName = componentCouchDb
 		// Create config objects to get consistent configuration values
 		couchDbConfig := fabricconfig.NewCouchDbConfig(owner, peerID)
 		couchDbValues := helm.NewCouchDbValues(couchDbConfig)
@@ -335,7 +268,6 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		peerID := w.input.Component // The whole component name is the peer ID
 
 		chartName = chartPeer
-		componentName = componentPeer
 		// Create config objects to get consistent configuration values
 		peerConfig := fabricconfig.NewPeerConfig(owner, peerID)
 		// Construct CA configs for root CA certificates (trust stores)
@@ -354,7 +286,6 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		ordererID := w.input.Component // The whole component name is the orderer ID
 
 		chartName = chartOrderer
-		componentName = componentOrderer
 		// Create config objects to get consistent configuration values
 		ordererConfig := fabricconfig.NewOrdererConfig(owner, ordererID)
 		// Construct CA configs for root CA certificates (trust stores)
@@ -371,28 +302,11 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		return nil, fmt.Errorf("unsupported component type: %s", w.input.Component)
 	}
 
-	// Convert Go struct to protobuf Struct
-	valuesStruct, err := ToProtoStruct(values)
-	if err != nil {
-		return nil, fmt.Errorf("convert values: %w", err)
-	}
-
-	// Activity options
-	ao := workflow.ActivityOptions{
-		StartToCloseTimeout: 5 * time.Minute,
-		RetryPolicy: &temporal.RetryPolicy{
-			InitialInterval:    1 * time.Second,
-			BackoffCoefficient: 2.0,
-			MaximumInterval:    30 * time.Second,
-			MaximumAttempts:    5,
-		},
-	}
-	activityCtx := workflow.WithActivityOptions(ctx, ao)
-
 	// Worker charts mount temporal-mtls-client; provision before apply.
 	if w.input.Component == componentWorker {
-		var mtlsOut *kube.EnsureTemporalMTLSOutput
-		err := workflow.ExecuteActivity(activityCtx, "EnsureTemporalMTLSClientCert", &kube.EnsureTemporalMTLSInput{
+		activityCtx := workflow.WithActivityOptions(ctx, deployActivityOptions)
+		var mtlsOut *temporalmtls.EnsureTemporalMTLSOutput
+		err := workflow.ExecuteActivity(activityCtx, "EnsureTemporalMTLSClientCert", &temporalmtls.EnsureTemporalMTLSInput{
 			TargetNamespace:   namespaceName,
 			TemporalNamespace: owner.TemporalNamespace(),
 		}).Get(ctx, &mtlsOut)
@@ -401,40 +315,8 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		}
 	}
 
-	// Step 1: Render Helm chart
-	var renderOutput *helmpb.RenderChartOutput
-	err = workflow.ExecuteActivity(activityCtx, helmpb.RenderChartWithTemplateActivityName, &helmpb.RenderChartWithTemplateInput{
-		ChartName: chartName,
-		Component: componentName,
-		Values:    valuesStruct,
-		Namespace: &namespaceName,
-	}).Get(ctx, &renderOutput)
-	if err != nil {
-		return nil, fmt.Errorf("render chart: %w", err)
-	}
-
-	if len(renderOutput.Failures) > 0 {
-		return nil, fmt.Errorf("chart rendering failed: %v", renderOutput.Failures)
-	}
-
-	// Step 2: Apply resources to Kubernetes
-	kubeResources := make(map[string]*kubepb.Resource)
-	for id, res := range renderOutput.Resources {
-		kubeResources[id] = &kubepb.Resource{
-			ManifestYaml: res.ManifestYaml,
-		}
-	}
-
-	var applyOutput *kubepb.ApplyOutput
-	err = workflow.ExecuteActivity(activityCtx, kubepb.ApplyActivityName, &kubepb.ApplyInput{
-		Resources: kubeResources,
-	}).Get(ctx, &applyOutput)
-	if err != nil {
-		return nil, fmt.Errorf("apply resources: %w", err)
-	}
-
-	if applyOutput.Summary.Failed > 0 {
-		return nil, fmt.Errorf("failed to apply %d resources", applyOutput.Summary.Failed)
+	if err := deploy(ctx, chartName, namespaceName, values); err != nil {
+		return nil, err
 	}
 
 	return &pb.CreateDeploymentOutput{

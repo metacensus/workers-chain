@@ -6,63 +6,63 @@ package helm
 
 // ImageConfig represents container image configuration
 type ImageConfig struct {
-	Repository  string
-	Tag         string
-	PullPolicy  string
-	PullSecrets []interface{}
+	Repository  string        `json:"repository"`
+	Tag         string        `json:"tag"`
+	PullPolicy  string        `json:"pullPolicy"`
+	PullSecrets []interface{} `json:"pullSecrets,omitempty"`
 }
 
 // ServiceConfig represents Kubernetes service configuration
 type ServiceConfig struct {
-	Type string
-	Port int
+	Type string `json:"type"`
+	Port int    `json:"port"`
 }
 
 // ResourceRequirements represents CPU and memory requests/limits
 type ResourceRequirements struct {
-	CPU    string
-	Memory string
+	CPU    string `json:"cpu"`
+	Memory string `json:"memory"`
 }
 
 type ResourceConfig struct {
-	Requests ResourceRequirements
-	Limits   ResourceRequirements
+	Requests ResourceRequirements `json:"requests"`
+	Limits   ResourceRequirements `json:"limits"`
 }
 
 // ReadinessProbeConfig represents Kubernetes readiness probe configuration
 type ReadinessProbeConfig struct {
 	HTTPGet struct {
-		Path string
-		Port int
-	}
-	InitialDelaySeconds int
-	PeriodSeconds       int
+		Path string `json:"path"`
+		Port int    `json:"port"`
+	} `json:"httpGet"`
+	InitialDelaySeconds int `json:"initialDelaySeconds"`
+	PeriodSeconds       int `json:"periodSeconds"`
 }
 
 // MSPConfig represents MSP (Membership Service Provider) configuration
 type MSPConfig struct {
-	BasePath string
+	BasePath string `json:"basePath"`
 	Paths    struct {
-		Signcerts string
-		Keystore  string
-		Cacerts   string
-	}
+		Signcerts string `json:"signcerts"`
+		Keystore  string `json:"keystore"`
+		Cacerts   string `json:"cacerts"`
+	} `json:"paths"`
 	CSI struct {
-		Enabled                 bool
-		SecretProviderClassName string
-	}
+		Enabled                 bool   `json:"enabled"`
+		SecretProviderClassName string `json:"secretProviderClassName"`
+	} `json:"csi"`
 }
 
 // NamespaceConfig represents namespace configuration
 type NamespaceConfig struct {
-	Create bool
-	Name   string
+	Create bool   `json:"create"`
+	Name   string `json:"name"`
 }
 
 // CommonLabels represents common Kubernetes labels
 type CommonLabels struct {
-	ManagedBy string
-	PartOf    string
+	ManagedBy string `json:"managedBy"`
+	PartOf    string `json:"partOf"`
 }
 
 // ============================================================================
