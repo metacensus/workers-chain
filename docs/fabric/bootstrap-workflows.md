@@ -229,7 +229,7 @@ Remaining (issue [#43](infra issue 43)):
 - [ ] **Land PR** — merge #51 to `main`
 - [ ] **CN/SAN namespacing** — scope leaf subject (CN/SAN) to the declared requester on the CreateCertificate path
 
-Code lives in `temporal-server/` (gate) and `temporal/lib/workflows/` (handler policy). Ownership boundary: [OWNERSHIP.md P2](../strategy/OWNERSHIP.md#p2--local-call--my-resources-nexus--someone-elses).
+Code lives in `temporal-server/` (gate) and `temporal/lib/` (handler policy). Ownership boundary: [OWNERSHIP.md P2](../strategy/OWNERSHIP.md#p2--local-call--my-resources-nexus--someone-elses).
 
 ---
 

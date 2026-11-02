@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	kubev1 "github.com/metacensus/library-temporal-kube/gen/kube/v1"
-	pb "github.com/metacensus/workers-chain/gen/workflows/secrets/v1"
-	vaultpb "github.com/metacensus/workers-chain/gen/workflows/vault/v1"
-	secrets "github.com/metacensus/workers-chain/lib/workflows/secrets/v1"
+	pb "github.com/metacensus/workers-chain/gen/secrets/v1"
+	vaultpb "github.com/metacensus/workers-chain/gen/vault/v1"
+	secrets "github.com/metacensus/workers-chain/lib/secrets/v1"
 )
 
 // ============= CouchDB Configuration =============

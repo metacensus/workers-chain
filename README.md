@@ -14,7 +14,7 @@ Design decisions are in [AGENTS.md](AGENTS.md). Ownership boundaries: [`docs/str
 
 | Path | |
 |---|---|
-| `cmd/`, `lib/`, `proto/`, `gen/` | Workers, workflows, activities, protos |
+| `cmd/`, `lib/`, `proto/`, `gen/`, `mocks/` | Workers, workflows, activities, protos. `proto`, `gen`, `lib` and `mocks` each hold `<application space>/<version>`, as `fabric/certauth/v1`; `lib/workers` and `lib/healthcheck` are not spaces |
 | `helm/` | Charts the workers render/deploy; the render and apply activities come from [library-temporal-kube](https://github.com/metacensus/library-temporal-kube) |
 | `docs/fabric/` | Fabric bootstrap and certificate design |
 

@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 
-	fabricv1 "github.com/metacensus/workers-chain/gen/workflows/fabric/v1"
+	fabricv1 "github.com/metacensus/workers-chain/gen/fabric/v1"
 	"github.com/spf13/viper"
 )
 

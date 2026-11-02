@@ -15,8 +15,8 @@ if [ -n "$(staged '*.go' ':!gen/')" ]; then
 fi
 
 # Generator inputs: protos and buf config feed gen/ and proto/README.md; .mockery.yaml and the
-# interfaces it names under gen/ and lib/workflows/ feed mocks/.
-inputs=$(staged 'proto/*' 'buf.yaml' 'buf.gen.yaml' 'buf.lock' '.mockery.yaml' 'go.mod' 'lib/workflows/*.go')
+# interfaces it names under gen/ and lib/ feed mocks/.
+inputs=$(staged 'proto/*' 'buf.yaml' 'buf.gen.yaml' 'buf.lock' '.mockery.yaml' 'go.mod' 'lib/*.go')
 [ -n "$inputs" ] || exit 0
 
 echo "pre-commit: a generator input is staged — checking proto lint and freshness"
