@@ -2,7 +2,7 @@
 
 **Every workflow executes in exactly one security context: its worker's owner. Vault paths, Kubernetes namespaces, and Vault policies all derive from that single identity, so a workflow that writes a path its policy doesn't grant becomes unrepresentable — not merely unauthorized.**
 
-This document defines four principles (P1-P4) that govern how ownership flows through workflows, activities, and Vault policies. They apply to all fabric, shard, cell, cluster, and secrets workflows.
+This document defines four principles (P1-P4) that govern how ownership flows through workflows, activities, and Vault policies. They apply to all fabric, shard, cell, cluster, and secrets workflows. Each states its boundary here: what it isolates, what it permits, how it fails.
 
 ## Vocabulary
 
