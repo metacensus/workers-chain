@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/metacensus/library-temporal-kube/helm"
-	"github.com/metacensus/library-temporal-kube/kube"
+	helm "github.com/metacensus/library-temporal-kube/lib/helm/v1"
+	kube "github.com/metacensus/library-temporal-kube/lib/kube/v1"
 	"github.com/metacensus/workers-chain/lib/healthcheck"
 	"github.com/metacensus/workers-chain/lib/workers/config"
 	temporalmtls "github.com/metacensus/workers-chain/lib/workflows/temporalmtls/v1"
