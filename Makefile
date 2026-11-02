@@ -98,7 +98,7 @@ check: lint
 
 ## docker-build — build the three worker images for this machine
 docker-build:
-	docker build -f cmd/workers/infra/Dockerfile -t metacensus/worker-infra:local .
+	docker build --build-arg VERSION=local -f cmd/workers/infra/Dockerfile -t metacensus/worker-infra:local .
 	docker build -f cmd/workers/fabric/Dockerfile -t metacensus/worker-fabric:local .
 	docker build -f cmd/workers/shard/Dockerfile -t metacensus/worker-fabric-shard:local .
 

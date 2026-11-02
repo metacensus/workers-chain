@@ -97,7 +97,7 @@ func newWorkerValues(operator, org, orgID, kubeNamespace, temporalNamespace, vau
 		Namespace: kubeNamespace,
 		Image: ImageConfig{
 			Repository: imageRepository,
-			Tag:        "latest",
+			Tag:        config.Version,
 			PullPolicy: "IfNotPresent",
 		},
 		Replicas: 1,
