@@ -7,7 +7,7 @@
 
 ## Pattern: Proto-Framework-Implementation (PFI)
 
-Protobuf definitions generate framework code; `lib/workflows/` provides implementations.
+Protobuf definitions generate framework code; `lib/` provides implementations.
 
 **PFI guide (canonical):** [docs/strategy/PFI_PATTERN.md](../docs/strategy/PFI_PATTERN.md)
 
@@ -16,14 +16,14 @@ Protobuf definitions generate framework code; `lib/workflows/` provides implemen
 ```text
 temporal/
 ├── proto/<service>/<version>/           # Interface definitions (.proto)
-├── gen/workflows/<service>/<version>/   # Generated messages + Temporal stubs
-├── lib/workflows/<service>/<version>/   # workflows.go, activities.go, client.go, fx.go
+├── gen/<service>/<version>/             # Generated messages + Temporal stubs
+├── lib/<service>/<version>/             # workflows.go, activities.go, client.go, fx.go
 ├── lib/workers/                         # infra / fabric / shard worker DI modules
 ├── cmd/workers/                         # Worker entrypoints
 └── mocks/                               # Generated test mocks
 ```
 
-**Reference implementation:** `lib/workflows/vault/v1/`
+**Reference implementation:** `lib/vault/v1/`
 
 `proto/README.md` is **auto-generated** by `make proto` (buf `docs-out`) — edit `.proto` files,
 not that README.
@@ -50,16 +50,16 @@ skill.
 
 | Package | Responsibility |
 |---------|----------------|
-| `lib/workflows/cell/v1/` | Platform bootstrap (`BootstrapInfra`, `InitFabric`, `InitFabricShard`) |
-| `lib/workflows/fabric/v1/` | Shared fabric + per-org shard orchestration (CAs, peers, orderers) |
-| `lib/workflows/fabric/certauth/v1/` | Certificate authority identity and CSR signing |
-| `lib/workflows/cluster/fabric/v1/` | K8s namespace/deployment for Fabric components |
-| `lib/workflows/kube/v1/` | Generic Kubernetes create/update |
-| `lib/workflows/vault/v1/` | Vault secret and policy operations |
-| `lib/workflows/postgres/v1/` | Postgres schema and queries |
-| `lib/workflows/secrets/v1/` | Secret generation and storage |
-| `lib/workflows/helm/v1/` | Helm chart rendering |
-| `lib/workflows/temporal/v1/` | Temporal namespace and Nexus management |
+| `lib/cell/v1/` | Platform bootstrap (`BootstrapInfra`, `InitFabric`, `InitFabricShard`) |
+| `lib/fabric/v1/` | Shared fabric + per-org shard orchestration (CAs, peers, orderers) |
+| `lib/fabric/certauth/v1/` | Certificate authority identity and CSR signing |
+| `lib/cluster/fabric/v1/` | K8s namespace/deployment for Fabric components |
+| `lib/kube/v1/` | Generic Kubernetes create/update |
+| `lib/vault/v1/` | Vault secret and policy operations |
+| `lib/postgres/v1/` | Postgres schema and queries |
+| `lib/secrets/v1/` | Secret generation and storage |
+| `lib/helm/v1/` | Helm chart rendering |
+| `lib/temporal/v1/` | Temporal namespace and Nexus management |
 
 ## Pattern: Ownership Model
 

@@ -1,19 +1,19 @@
 package fabric
 
 import (
+	clusterfabric "github.com/metacensus/workers-chain/lib/cluster/fabric/v1"
+	certauth "github.com/metacensus/workers-chain/lib/fabric/certauth/v1"
+	channel "github.com/metacensus/workers-chain/lib/fabric/channel/v1"
+	orderer "github.com/metacensus/workers-chain/lib/fabric/orderer/v1"
+	peer "github.com/metacensus/workers-chain/lib/fabric/peer/v1"
+	fabric "github.com/metacensus/workers-chain/lib/fabric/v1"
+	postgres "github.com/metacensus/workers-chain/lib/postgres/v1"
+	secrets "github.com/metacensus/workers-chain/lib/secrets/v1"
+	temporal "github.com/metacensus/workers-chain/lib/temporal/v1"
+	vault "github.com/metacensus/workers-chain/lib/vault/v1"
 	"github.com/metacensus/workers-chain/lib/workers"
 	"github.com/metacensus/workers-chain/lib/workers/config"
 	fabricconfig "github.com/metacensus/workers-chain/lib/workers/fabric/config"
-	clusterfabric "github.com/metacensus/workers-chain/lib/workflows/cluster/fabric/v1"
-	certauth "github.com/metacensus/workers-chain/lib/workflows/fabric/certauth/v1"
-	channel "github.com/metacensus/workers-chain/lib/workflows/fabric/channel/v1"
-	orderer "github.com/metacensus/workers-chain/lib/workflows/fabric/orderer/v1"
-	peer "github.com/metacensus/workers-chain/lib/workflows/fabric/peer/v1"
-	fabric "github.com/metacensus/workers-chain/lib/workflows/fabric/v1"
-	postgres "github.com/metacensus/workers-chain/lib/workflows/postgres/v1"
-	secrets "github.com/metacensus/workers-chain/lib/workflows/secrets/v1"
-	temporal "github.com/metacensus/workers-chain/lib/workflows/temporal/v1"
-	vault "github.com/metacensus/workers-chain/lib/workflows/vault/v1"
 	"go.uber.org/fx"
 )
 

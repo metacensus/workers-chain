@@ -114,7 +114,7 @@ Sharing a *workflow type* across security contexts is different from sharing *fu
 
 **A worker or component policy is composed from the component configs' path methods. Policies are never hand-assembled in a distant package.**
 
-If the code that writes a secret computes its path from `CertificateStoreConfig.VaultKeysBasePath()` but the policy granting access is assembled by string concatenation in another package, the two drift independently — and drift surfaces as a runtime 403 during bootstrap, the most expensive possible place to find it. The old `buildOperatorVaultPolicy` lived in `temporal/lib/workflows/cell/v1/workflows.go` while the paths it needed to cover lived in `temporal/lib/workers/fabric/config`; that distance is exactly what let the policy and the paths disagree.
+If the code that writes a secret computes its path from `CertificateStoreConfig.VaultKeysBasePath()` but the policy granting access is assembled by string concatenation in another package, the two drift independently — and drift surfaces as a runtime 403 during bootstrap, the most expensive possible place to find it. The old `buildOperatorVaultPolicy` lived in `temporal/lib/cell/v1/workflows.go` while the paths it needed to cover lived in `temporal/lib/workers/fabric/config`; that distance is exactly what let the policy and the paths disagree.
 
 - Component configs (`temporal/lib/workers/fabric/config`) own both the path methods (`VaultKeysBasePath()`, `VaultDataPath()`, …) and the `VaultPolicy()` documents built from them.
 - Worker policies are produced by a `WorkerVaultPolicy(owner)` function in the same package, composed from those same path methods.

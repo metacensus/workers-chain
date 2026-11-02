@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	fabricv1 "github.com/metacensus/workers-chain/gen/workflows/fabric/v1"
-	vaultv1 "github.com/metacensus/workers-chain/gen/workflows/vault/v1"
+	fabricv1 "github.com/metacensus/workers-chain/gen/fabric/v1"
+	vaultv1 "github.com/metacensus/workers-chain/gen/vault/v1"
 	workerconfig "github.com/metacensus/workers-chain/lib/workers/config"
 )
 

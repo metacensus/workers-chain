@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	kubev1 "github.com/metacensus/library-temporal-kube/gen/kube/v1"
-	fabricv1 "github.com/metacensus/workers-chain/gen/workflows/fabric/v1"
-	secretsv1 "github.com/metacensus/workers-chain/gen/workflows/secrets/v1"
-	vaultv1 "github.com/metacensus/workers-chain/gen/workflows/vault/v1"
+	fabricv1 "github.com/metacensus/workers-chain/gen/fabric/v1"
+	secretsv1 "github.com/metacensus/workers-chain/gen/secrets/v1"
+	vaultv1 "github.com/metacensus/workers-chain/gen/vault/v1"
+	secrets "github.com/metacensus/workers-chain/lib/secrets/v1"
 	workerconfig "github.com/metacensus/workers-chain/lib/workers/config"
-	secrets "github.com/metacensus/workers-chain/lib/workflows/secrets/v1"
 )
 
 // Re-export OwnerConfig types for convenience

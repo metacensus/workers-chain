@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 
-	vaultv1 "github.com/metacensus/workers-chain/gen/workflows/vault/v1"
+	vaultv1 "github.com/metacensus/workers-chain/gen/vault/v1"
 )
 
 // WorkerVaultPolicy creates the Vault policy document for an owner's fabric

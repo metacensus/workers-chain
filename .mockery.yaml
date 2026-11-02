@@ -19,38 +19,38 @@ packages:
   # ============================================================================
 
   # Vault v1
-  github.com/metacensus/workers-chain/gen/workflows/vault/v1:
+  github.com/metacensus/workers-chain/gen/vault/v1:
     config:
-      dir: "mocks/workflows/vault/v1"
+      dir: "mocks/vault/v1"
     interfaces:
       VaultActivities:
 
   # S3 Provider v1
-  github.com/metacensus/workers-chain/gen/workflows/provider/aws/s3:
+  github.com/metacensus/workers-chain/gen/aws/s3/v1:
     config:
-      dir: "mocks/workflows/provider/aws/s3"
+      dir: "mocks/aws/s3/v1"
     interfaces:
       S3ProviderActivities:
 
   # Temporal Admin v1
-  github.com/metacensus/workers-chain/gen/workflows/temporal/v1:
+  github.com/metacensus/workers-chain/gen/temporal/v1:
     config:
-      dir: "mocks/workflows/temporal/v1"
+      dir: "mocks/temporal/v1"
     interfaces:
       AdminActivities:
       AdminWorkflows:
 
   # Cluster Fabric v1 (Kubernetes namespace, service account, deployment workflows)
-  github.com/metacensus/workers-chain/gen/workflows/cluster/fabric/v1:
+  github.com/metacensus/workers-chain/gen/cluster/fabric/v1:
     config:
-      dir: "mocks/workflows/cluster/fabric/v1"
+      dir: "mocks/cluster/fabric/v1"
     interfaces:
       ClusterWorkflows:
 
   # Postgres v1
-  github.com/metacensus/workers-chain/gen/workflows/postgres/v1:
+  github.com/metacensus/workers-chain/gen/postgres/v1:
     config:
-      dir: "mocks/workflows/postgres/v1"
+      dir: "mocks/postgres/v1"
     interfaces:
       PostgresActivities:
 
@@ -61,17 +61,17 @@ packages:
   # ============================================================================
 
   # Vault v1 client
-  github.com/metacensus/workers-chain/lib/workflows/vault/v1:
+  github.com/metacensus/workers-chain/lib/vault/v1:
     config:
-      dir: "mocks/workflows/vault/v1"
+      dir: "mocks/vault/v1"
       outpkg: "vaultv1"
     interfaces:
       VaultClient:
 
   # Postgres v1 client
-  github.com/metacensus/workers-chain/lib/workflows/postgres/v1:
+  github.com/metacensus/workers-chain/lib/postgres/v1:
     config:
-      dir: "mocks/workflows/postgres/v1"
+      dir: "mocks/postgres/v1"
       outpkg: "postgresv1"
     interfaces:
       PostgresClient:
@@ -80,38 +80,38 @@ packages:
   # Temporal v1 clients - namespace and operator service
   go.temporal.io/sdk/client:
     config:
-      dir: "mocks/workflows/temporal/v1"
+      dir: "mocks/temporal/v1"
       outpkg: "temporalv1"
     interfaces:
       NamespaceClient:
 
   go.temporal.io/api/operatorservice/v1:
     config:
-      dir: "mocks/workflows/temporal/v1"
+      dir: "mocks/temporal/v1"
       outpkg: "temporalv1"
     interfaces:
       OperatorServiceClient:
 
   # Fabric CA certauth v1 client (for testing certauth activities)
-  github.com/metacensus/workers-chain/lib/workflows/fabric/certauth/v1:
+  github.com/metacensus/workers-chain/lib/fabric/certauth/v1:
     config:
-      dir: "mocks/workflows/fabric/certauth/v1"
+      dir: "mocks/fabric/certauth/v1"
       outpkg: "certauthv1"
     interfaces:
       Client:
 
   # Secrets v1 provider (for testing activities that fetch/store secrets)
-  github.com/metacensus/workers-chain/lib/workflows/secrets/v1:
+  github.com/metacensus/workers-chain/lib/secrets/v1:
     config:
-      dir: "mocks/workflows/secrets/v1"
+      dir: "mocks/secrets/v1"
       outpkg: "secretsv1"
     interfaces:
       SecretProvider:
 
   # S3 client (for testing S3 activities)
-  github.com/metacensus/workers-chain/lib/workflows/provider/aws/s3:
+  github.com/metacensus/workers-chain/lib/aws/s3/v1:
     config:
-      dir: "mocks/workflows/provider/aws/s3"
+      dir: "mocks/aws/s3/v1"
       outpkg: "s3v1"
     interfaces:
       S3Client:
