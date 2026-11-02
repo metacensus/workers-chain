@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	kubepb "github.com/metacensus/library-temporal-kube/gen/kube/v1"
 	clusterpb "github.com/metacensus/workers-chain/gen/workflows/cluster/fabric/v1"
 	certauthpb "github.com/metacensus/workers-chain/gen/workflows/fabric/certauth/v1"
 	pb "github.com/metacensus/workers-chain/gen/workflows/fabric/v1"
-	kubepb "github.com/metacensus/workers-chain/gen/workflows/kube/v1"
 	secretspb "github.com/metacensus/workers-chain/gen/workflows/secrets/v1"
 	"github.com/metacensus/workers-chain/lib/workers/config"
 	fabricconfig "github.com/metacensus/workers-chain/lib/workers/fabric/config"
@@ -281,10 +281,8 @@ func (w *deployCouchDbWorkflow) Execute(ctx workflow.Context) (*pb.DeployCouchDb
 	}
 	waitCtx := workflow.WithActivityOptions(ctx, waitOptions)
 
-	err = workflow.ExecuteActivity(waitCtx, kubepb.GetStatusActivityName, &kubepb.GetStatusInput{
-		Resources: map[string]*kubepb.ResourceIdentifier{
-			couchDbConfig.ComponentName(): couchDbConfig.ResourceIdentifier(),
-		},
+	err = workflow.ExecuteActivity(waitCtx, kubepb.ReadyActivityName, &kubepb.ReadyInput{
+		Resources: []*kubepb.ResourceIdentifier{couchDbConfig.ResourceIdentifier()},
 	}).Get(waitCtx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("%w: CouchDB did not become ready: %w", ErrDeployCouchDB, err)

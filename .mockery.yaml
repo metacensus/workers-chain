@@ -47,20 +47,6 @@ packages:
     interfaces:
       ClusterWorkflows:
 
-  # Kube Provider v1
-  github.com/metacensus/workers-chain/gen/workflows/kube/v1:
-    config:
-      dir: "mocks/workflows/kube/v1"
-    interfaces:
-      KubernetesActivities:
-
-  # Helm v1
-  github.com/metacensus/workers-chain/gen/workflows/helm/v1:
-    config:
-      dir: "mocks/workflows/helm/v1"
-    interfaces:
-      HelmActivities:
-
   # Postgres v1
   github.com/metacensus/workers-chain/gen/workflows/postgres/v1:
     config:
@@ -81,22 +67,6 @@ packages:
       outpkg: "vaultv1"
     interfaces:
       VaultClient:
-
-  # Kube v1 client
-  github.com/metacensus/workers-chain/lib/workflows/kube/v1:
-    config:
-      dir: "mocks/workflows/kube/v1"
-      outpkg: "kubev1"
-    interfaces:
-      KubeClient:
-
-  # Helm v1 client (RepoClient is the repository abstraction)
-  github.com/metacensus/workers-chain/lib/workflows/helm/v1:
-    config:
-      dir: "mocks/workflows/helm/v1"
-      outpkg: "helmv1"
-    interfaces:
-      RepoClient:
 
   # Postgres v1 client
   github.com/metacensus/workers-chain/lib/workflows/postgres/v1:

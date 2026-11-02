@@ -6,55 +6,55 @@ import (
 
 // OrdererValues represents the Helm values for a Fabric orderer deployment
 type OrdererValues struct {
-	Org            string
-	Namespace      string
-	OrdererId      string
-	Image          ImageConfig
-	Replicas       int
-	Msp            OrdererMspConfig
-	Vault          OrdererVaultConfig
-	Service        OrdererServiceConfig
-	Persistence    PersistenceConfig
-	Logging        LoggingConfig
-	Resources      ResourceConfig
-	LivenessProbe  OrdererProbeConfig
-	ReadinessProbe OrdererProbeConfig
-	CommonLabels   CommonLabels
+	Org            string               `json:"org"`
+	Namespace      string               `json:"namespace"`
+	OrdererId      string               `json:"ordererId"`
+	Image          ImageConfig          `json:"image"`
+	Replicas       int                  `json:"replicas"`
+	Msp            OrdererMspConfig     `json:"msp"`
+	Vault          OrdererVaultConfig   `json:"vault"`
+	Service        OrdererServiceConfig `json:"service"`
+	Persistence    PersistenceConfig    `json:"persistence"`
+	Logging        LoggingConfig        `json:"logging"`
+	Resources      ResourceConfig       `json:"resources"`
+	LivenessProbe  OrdererProbeConfig   `json:"livenessProbe"`
+	ReadinessProbe OrdererProbeConfig   `json:"readinessProbe"`
+	CommonLabels   CommonLabels         `json:"commonLabels"`
 }
 
 // OrdererMspConfig represents MSP configuration for an orderer
 type OrdererMspConfig struct {
-	Id string
+	Id string `json:"id"`
 }
 
 // OrdererVaultConfig represents Vault paths for orderer certificates and keys.
 // Keys (private) and certs (public) are stored at separate paths.
 type OrdererVaultConfig struct {
-	RoleName string
+	RoleName string `json:"roleName"`
 	// Keys (private) - separate paths for private keys
-	MspSigningKeyPath string // Orderer signing private key
-	TlsKeyPath        string // Orderer TLS private key
+	MspSigningKeyPath string `json:"mspSigningKeyPath"` // Orderer signing private key
+	TlsKeyPath        string `json:"tlsKeyPath"`        // Orderer TLS private key
 	// Certs (public) - separate paths for certificates + chains
-	MspSigningCertPath string // Orderer signing cert + chain
-	TlsCertPath        string // Orderer TLS cert + chain
+	MspSigningCertPath string `json:"mspSigningCertPath"` // Orderer signing cert + chain
+	TlsCertPath        string `json:"tlsCertPath"`        // Orderer TLS cert + chain
 	// CA root certs for trust stores (public, root only)
-	MspRootCaCertPath string // Org Root CA cert for MSP cacerts/
-	TlsRootCaCertPath string // TLS Root CA cert for TLS trust store
+	MspRootCaCertPath string `json:"mspRootCaCertPath"` // Org Root CA cert for MSP cacerts/
+	TlsRootCaCertPath string `json:"tlsRootCaCertPath"` // TLS Root CA cert for TLS trust store
 }
 
 // OrdererServiceConfig represents service port configuration for an orderer
 type OrdererServiceConfig struct {
-	Type           string
-	Port           int
-	AdminPort      int
-	OperationsPort int
+	Type           string `json:"type"`
+	Port           int    `json:"port"`
+	AdminPort      int    `json:"adminPort"`
+	OperationsPort int    `json:"operationsPort"`
 }
 
 // OrdererProbeConfig represents Kubernetes probe configuration for orderers
 type OrdererProbeConfig struct {
-	InitialDelaySeconds int
-	PeriodSeconds       int
-	TimeoutSeconds      int
+	InitialDelaySeconds int `json:"initialDelaySeconds"`
+	PeriodSeconds       int `json:"periodSeconds"`
+	TimeoutSeconds      int `json:"timeoutSeconds"`
 }
 
 // NewOrdererValues creates OrdererValues from OrdererConfig and CA configurations.

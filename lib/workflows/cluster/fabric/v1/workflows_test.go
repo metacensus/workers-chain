@@ -6,12 +6,12 @@ import (
 	"strings"
 	"testing"
 
+	helmpb "github.com/metacensus/library-temporal-kube/gen/helm/v1"
+	kubepb "github.com/metacensus/library-temporal-kube/gen/kube/v1"
 	pb "github.com/metacensus/workers-chain/gen/workflows/cluster/fabric/v1"
 	fabricv1 "github.com/metacensus/workers-chain/gen/workflows/fabric/v1"
-	helmpb "github.com/metacensus/workers-chain/gen/workflows/helm/v1"
-	kubepb "github.com/metacensus/workers-chain/gen/workflows/kube/v1"
 	workerconfig "github.com/metacensus/workers-chain/lib/workers/config"
-	kube "github.com/metacensus/workers-chain/lib/workflows/kube/v1"
+	temporalmtls "github.com/metacensus/workers-chain/lib/workflows/temporalmtls/v1"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
@@ -219,10 +219,10 @@ func TestNewCreateDeploymentWorkflow(t *testing.T) {
 // registerActivityStubs registers activity stubs required for testing
 func registerActivityStubs(env *testsuite.TestWorkflowEnvironment) {
 	env.RegisterActivityWithOptions(
-		func(ctx context.Context, input *helmpb.RenderChartWithTemplateInput) (*helmpb.RenderChartOutput, error) {
+		func(ctx context.Context, input *helmpb.RenderChartInput) (*helmpb.RenderChartOutput, error) {
 			return nil, nil
 		},
-		activity.RegisterOptions{Name: helmpb.RenderChartWithTemplateActivityName},
+		activity.RegisterOptions{Name: helmpb.RenderChartActivityName},
 	)
 	env.RegisterActivityWithOptions(
 		func(ctx context.Context, input *kubepb.ApplyInput) (*kubepb.ApplyOutput, error) {
@@ -231,8 +231,8 @@ func registerActivityStubs(env *testsuite.TestWorkflowEnvironment) {
 		activity.RegisterOptions{Name: kubepb.ApplyActivityName},
 	)
 	env.RegisterActivityWithOptions(
-		func(ctx context.Context, input *kube.EnsureTemporalMTLSInput) (*kube.EnsureTemporalMTLSOutput, error) {
-			return &kube.EnsureTemporalMTLSOutput{}, nil
+		func(ctx context.Context, input *temporalmtls.EnsureTemporalMTLSInput) (*temporalmtls.EnsureTemporalMTLSOutput, error) {
+			return &temporalmtls.EnsureTemporalMTLSOutput{}, nil
 		},
 		activity.RegisterOptions{Name: "EnsureTemporalMTLSClientCert"},
 	)
@@ -240,15 +240,13 @@ func registerActivityStubs(env *testsuite.TestWorkflowEnvironment) {
 
 func TestCreateNamespaceWorkflow_Execute(t *testing.T) {
 	tests := []struct {
-		name           string
-		owner          *fabricv1.Owner
-		renderErr      error
-		renderFailures map[string]string
-		applyErr       error
-		applyFailed    int32
-		wantErr        bool
-		errSubstr      string
-		wantNamespace  string
+		name          string
+		owner         *fabricv1.Owner
+		renderErr     error
+		applyErr      error
+		wantErr       bool
+		errSubstr     string
+		wantNamespace string
 	}{
 		{
 			name:          "success - org namespace created",
@@ -270,25 +268,11 @@ func TestCreateNamespaceWorkflow_Execute(t *testing.T) {
 			errSubstr: "render chart",
 		},
 		{
-			name:           "error - render chart has failures",
-			owner:          orgOwner(testOrg),
-			renderFailures: map[string]string{"template": "invalid syntax"},
-			wantErr:        true,
-			errSubstr:      "chart rendering failed",
-		},
-		{
 			name:      "error - apply fails",
 			owner:     orgOwner(testOrg),
 			applyErr:  errors.New("kubectl error"),
 			wantErr:   true,
 			errSubstr: "apply resources",
-		},
-		{
-			name:        "error - apply has failed resources",
-			owner:       orgOwner(testOrg),
-			applyFailed: 2,
-			wantErr:     true,
-			errSubstr:   "failed to apply 2 resources",
 		},
 	}
 
@@ -306,17 +290,12 @@ func TestCreateNamespaceWorkflow_Execute(t *testing.T) {
 
 			// Setup activity mocks based on test case
 			if tt.renderErr != nil {
-				env.OnActivity(helmpb.RenderChartWithTemplateActivityName, mock.Anything, mock.Anything).
+				env.OnActivity(helmpb.RenderChartActivityName, mock.Anything, mock.Anything).
 					Return(nil, tt.renderErr)
-			} else if tt.renderFailures != nil {
-				env.OnActivity(helmpb.RenderChartWithTemplateActivityName, mock.Anything, mock.Anything).
-					Return(&helmpb.RenderChartOutput{Failures: tt.renderFailures}, nil)
 			} else {
-				env.OnActivity(helmpb.RenderChartWithTemplateActivityName, mock.Anything, mock.Anything).
+				env.OnActivity(helmpb.RenderChartActivityName, mock.Anything, mock.Anything).
 					Return(&helmpb.RenderChartOutput{
-						Resources: map[string]*helmpb.Resource{
-							"namespace": {ManifestYaml: []byte("apiVersion: v1\nkind: Namespace")},
-						},
+						Resources: []*kubepb.Resource{{Id: "namespace", ManifestYaml: []byte("apiVersion: v1\nkind: Namespace")}},
 					}, nil)
 
 				if tt.applyErr != nil {
@@ -324,9 +303,7 @@ func TestCreateNamespaceWorkflow_Execute(t *testing.T) {
 						Return(nil, tt.applyErr)
 				} else {
 					env.OnActivity(kubepb.ApplyActivityName, mock.Anything, mock.Anything).
-						Return(&kubepb.ApplyOutput{
-							Summary: &kubepb.ApplySummary{Applied: 1, Failed: tt.applyFailed},
-						}, nil)
+						Return(&kubepb.ApplyOutput{}, nil)
 				}
 			}
 
@@ -366,14 +343,12 @@ func TestCreateNamespaceWorkflow_Execute(t *testing.T) {
 
 func TestCreateServiceAccountWorkflow_Execute(t *testing.T) {
 	tests := []struct {
-		name           string
-		owner          *fabricv1.Owner
-		renderErr      error
-		renderFailures map[string]string
-		applyErr       error
-		applyFailed    int32
-		wantErr        bool
-		errSubstr      string
+		name      string
+		owner     *fabricv1.Owner
+		renderErr error
+		applyErr  error
+		wantErr   bool
+		errSubstr string
 	}{
 		{
 			name:    "success - org service account created",
@@ -393,25 +368,11 @@ func TestCreateServiceAccountWorkflow_Execute(t *testing.T) {
 			errSubstr: "render chart",
 		},
 		{
-			name:           "error - render chart has failures",
-			owner:          orgOwner(testOrg),
-			renderFailures: map[string]string{"template": "invalid syntax"},
-			wantErr:        true,
-			errSubstr:      "chart rendering failed",
-		},
-		{
 			name:      "error - apply fails",
 			owner:     orgOwner(testOrg),
 			applyErr:  errors.New("kubectl error"),
 			wantErr:   true,
 			errSubstr: "apply resources",
-		},
-		{
-			name:        "error - apply has failed resources",
-			owner:       orgOwner(testOrg),
-			applyFailed: 1,
-			wantErr:     true,
-			errSubstr:   "failed to apply 1 resources",
 		},
 	}
 
@@ -429,17 +390,12 @@ func TestCreateServiceAccountWorkflow_Execute(t *testing.T) {
 
 			// Setup activity mocks based on test case
 			if tt.renderErr != nil {
-				env.OnActivity(helmpb.RenderChartWithTemplateActivityName, mock.Anything, mock.Anything).
+				env.OnActivity(helmpb.RenderChartActivityName, mock.Anything, mock.Anything).
 					Return(nil, tt.renderErr)
-			} else if tt.renderFailures != nil {
-				env.OnActivity(helmpb.RenderChartWithTemplateActivityName, mock.Anything, mock.Anything).
-					Return(&helmpb.RenderChartOutput{Failures: tt.renderFailures}, nil)
 			} else {
-				env.OnActivity(helmpb.RenderChartWithTemplateActivityName, mock.Anything, mock.Anything).
+				env.OnActivity(helmpb.RenderChartActivityName, mock.Anything, mock.Anything).
 					Return(&helmpb.RenderChartOutput{
-						Resources: map[string]*helmpb.Resource{
-							"sa": {ManifestYaml: []byte("apiVersion: v1\nkind: ServiceAccount")},
-						},
+						Resources: []*kubepb.Resource{{Id: "sa", ManifestYaml: []byte("apiVersion: v1\nkind: ServiceAccount")}},
 					}, nil)
 
 				if tt.applyErr != nil {
@@ -447,9 +403,7 @@ func TestCreateServiceAccountWorkflow_Execute(t *testing.T) {
 						Return(nil, tt.applyErr)
 				} else {
 					env.OnActivity(kubepb.ApplyActivityName, mock.Anything, mock.Anything).
-						Return(&kubepb.ApplyOutput{
-							Summary: &kubepb.ApplySummary{Applied: 1, Failed: tt.applyFailed},
-						}, nil)
+						Return(&kubepb.ApplyOutput{}, nil)
 				}
 			}
 
@@ -486,9 +440,7 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 		owner              *fabricv1.Owner
 		component          string
 		renderErr          error
-		renderFailures     map[string]string
 		applyErr           error
-		applyFailed        int32
 		wantErr            bool
 		errSubstr          string
 		wantDeploymentName string
@@ -600,28 +552,12 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 			errSubstr: "render chart",
 		},
 		{
-			name:           "error - render chart has failures",
-			owner:          orgOwner(testOrg),
-			component:      "worker",
-			renderFailures: map[string]string{"template": "invalid syntax"},
-			wantErr:        true,
-			errSubstr:      "chart rendering failed",
-		},
-		{
 			name:      "error - apply fails",
 			owner:     orgOwner(testOrg),
 			component: "worker",
 			applyErr:  errors.New("kubectl error"),
 			wantErr:   true,
 			errSubstr: "apply resources",
-		},
-		{
-			name:        "error - apply has failed resources",
-			owner:       orgOwner(testOrg),
-			component:   "worker",
-			applyFailed: 3,
-			wantErr:     true,
-			errSubstr:   "failed to apply 3 resources",
 		},
 	}
 
@@ -637,21 +573,16 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 			// Register activity stubs
 			registerActivityStubs(env)
 			env.OnActivity("EnsureTemporalMTLSClientCert", mock.Anything, mock.Anything).
-				Return(&kube.EnsureTemporalMTLSOutput{}, nil)
+				Return(&temporalmtls.EnsureTemporalMTLSOutput{}, nil)
 
 			// Setup activity mocks based on test case
 			if tt.renderErr != nil {
-				env.OnActivity(helmpb.RenderChartWithTemplateActivityName, mock.Anything, mock.Anything).
+				env.OnActivity(helmpb.RenderChartActivityName, mock.Anything, mock.Anything).
 					Return(nil, tt.renderErr)
-			} else if tt.renderFailures != nil {
-				env.OnActivity(helmpb.RenderChartWithTemplateActivityName, mock.Anything, mock.Anything).
-					Return(&helmpb.RenderChartOutput{Failures: tt.renderFailures}, nil)
 			} else {
-				env.OnActivity(helmpb.RenderChartWithTemplateActivityName, mock.Anything, mock.Anything).
+				env.OnActivity(helmpb.RenderChartActivityName, mock.Anything, mock.Anything).
 					Return(&helmpb.RenderChartOutput{
-						Resources: map[string]*helmpb.Resource{
-							"deployment": {ManifestYaml: []byte("apiVersion: apps/v1\nkind: Deployment")},
-						},
+						Resources: []*kubepb.Resource{{Id: "deployment", ManifestYaml: []byte("apiVersion: apps/v1\nkind: Deployment")}},
 					}, nil)
 
 				if tt.applyErr != nil {
@@ -659,9 +590,7 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 						Return(nil, tt.applyErr)
 				} else {
 					env.OnActivity(kubepb.ApplyActivityName, mock.Anything, mock.Anything).
-						Return(&kubepb.ApplyOutput{
-							Summary: &kubepb.ApplySummary{Applied: 1, Failed: tt.applyFailed},
-						}, nil)
+						Return(&kubepb.ApplyOutput{}, nil)
 				}
 			}
 

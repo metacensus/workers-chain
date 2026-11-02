@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
+	kubepb "github.com/metacensus/library-temporal-kube/gen/kube/v1"
 	clusterpb "github.com/metacensus/workers-chain/gen/workflows/cluster/fabric/v1"
 	certauthpb "github.com/metacensus/workers-chain/gen/workflows/fabric/certauth/v1"
 	"github.com/metacensus/workers-chain/gen/workflows/fabric/certauth/v1/certauthv1nexus"
 	pb "github.com/metacensus/workers-chain/gen/workflows/fabric/v1"
-	kubepb "github.com/metacensus/workers-chain/gen/workflows/kube/v1"
 	postgrespb "github.com/metacensus/workers-chain/gen/workflows/postgres/v1"
 	secretspb "github.com/metacensus/workers-chain/gen/workflows/secrets/v1"
 	"github.com/metacensus/workers-chain/gen/workflows/secrets/v1/secretsv1nexus"
@@ -532,8 +532,8 @@ func stubEnsurePasswordActivity(ctx context.Context, input *secretspb.EnsurePass
 	return &secretspb.EnsurePasswordOutput{SecretRef: input.SecretRef}, nil
 }
 
-func stubGetStatusActivity(ctx context.Context, input *kubepb.GetStatusInput) (*kubepb.GetStatusOutput, error) {
-	return &kubepb.GetStatusOutput{}, nil
+func stubReadyActivity(ctx context.Context, input *kubepb.ReadyInput) (*kubepb.ReadyOutput, error) {
+	return &kubepb.ReadyOutput{}, nil
 }
 
 // stubGenerateCsrActivity is the key-owner side of the CSR pipeline: it stands
@@ -687,8 +687,8 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 
 			registerChildWorkflowStubs(env)
 			registerSecretsActivityStubs(env)
-			env.RegisterActivityWithOptions(stubGetStatusActivity,
-				activity.RegisterOptions{Name: kubepb.GetStatusActivityName})
+			env.RegisterActivityWithOptions(stubReadyActivity,
+				activity.RegisterOptions{Name: kubepb.ReadyActivityName})
 
 			// Mock Secrets CreateAccess Nexus operation
 			registerSecretsNexusMock(t, env, nil)
@@ -696,7 +696,7 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 			// Mock activities
 			env.OnActivity(secretspb.EnsurePasswordActivityName, mock.Anything, mock.Anything).
 				Return(&secretspb.EnsurePasswordOutput{SecretRef: secrets.NewVaultRef("test/path")}, nil)
-			env.OnActivity(kubepb.GetStatusActivityName, mock.Anything, mock.Anything).Return(&kubepb.GetStatusOutput{}, nil)
+			env.OnActivity(kubepb.ReadyActivityName, mock.Anything, mock.Anything).Return(&kubepb.ReadyOutput{}, nil)
 
 			// Mock CreateDeployment child workflow
 			if tt.validateDeploymentInput {
@@ -799,8 +799,8 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 
 			registerChildWorkflowStubs(env)
 			registerSecretsActivityStubs(env)
-			env.RegisterActivityWithOptions(stubGetStatusActivity,
-				activity.RegisterOptions{Name: kubepb.GetStatusActivityName})
+			env.RegisterActivityWithOptions(stubReadyActivity,
+				activity.RegisterOptions{Name: kubepb.ReadyActivityName})
 
 			// Mock PostgreSQL activities - must register BEFORE OnActivity calls
 			mockPostgresActivities := postgresv1mocks.NewMockPostgresActivities(t)
@@ -845,8 +845,8 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 			postgrespb.RegisterPostgresActivities(env, mockPostgresActivities)
 
 			// Mock activities using OnActivity (must come after all RegisterActivity calls)
-			env.OnActivity(kubepb.GetStatusActivityName, mock.Anything, mock.Anything).
-				Return(&kubepb.GetStatusOutput{}, nil)
+			env.OnActivity(kubepb.ReadyActivityName, mock.Anything, mock.Anything).
+				Return(&kubepb.ReadyOutput{}, nil)
 
 			if tt.generatePasswordErr != nil {
 				env.OnActivity(secretspb.EnsurePasswordActivityName, mock.Anything, mock.Anything).
@@ -897,7 +897,7 @@ func TestDeployCouchDbWorkflow(t *testing.T) {
 		createAccessErr     error
 		createPasswordErr   error
 		createDeploymentErr error
-		getStatusErr        error
+		readyErr            error
 		expectedErr         error
 	}{
 		{
@@ -924,10 +924,10 @@ func TestDeployCouchDbWorkflow(t *testing.T) {
 			expectedErr:         errors.New("failed to create couchdb deployment"),
 		},
 		{
-			name:         "error - CouchDB never ready",
-			peerID:       "peer0",
-			getStatusErr: errors.New("pod not ready"),
-			expectedErr:  errors.New("CouchDB did not become ready"),
+			name:        "error - CouchDB never ready",
+			peerID:      "peer0",
+			readyErr:    errors.New("pod not ready"),
+			expectedErr: errors.New("CouchDB did not become ready"),
 		},
 	}
 
@@ -940,8 +940,8 @@ func TestDeployCouchDbWorkflow(t *testing.T) {
 
 			registerChildWorkflowStubs(env)
 			registerSecretsActivityStubs(env)
-			env.RegisterActivityWithOptions(stubGetStatusActivity,
-				activity.RegisterOptions{Name: kubepb.GetStatusActivityName})
+			env.RegisterActivityWithOptions(stubReadyActivity,
+				activity.RegisterOptions{Name: kubepb.ReadyActivityName})
 
 			// Mock Nexus CreateAccess
 			registerSecretsNexusMock(t, env, tt.createAccessErr)
@@ -958,13 +958,13 @@ func TestDeployCouchDbWorkflow(t *testing.T) {
 			// Mock CreateDeployment child workflow
 			mockChildWorkflow[clusterpb.CreateDeploymentOutput](env, clusterpb.CreateDeploymentWorkflowName, tt.createDeploymentErr)
 
-			// Mock GetStatus activity
-			if tt.getStatusErr != nil {
-				env.OnActivity(kubepb.GetStatusActivityName, mock.Anything, mock.Anything).
-					Return(nil, tt.getStatusErr)
+			// Mock Ready activity
+			if tt.readyErr != nil {
+				env.OnActivity(kubepb.ReadyActivityName, mock.Anything, mock.Anything).
+					Return(nil, tt.readyErr)
 			} else {
-				env.OnActivity(kubepb.GetStatusActivityName, mock.Anything, mock.Anything).
-					Return(&kubepb.GetStatusOutput{}, nil)
+				env.OnActivity(kubepb.ReadyActivityName, mock.Anything, mock.Anything).
+					Return(&kubepb.ReadyOutput{}, nil)
 			}
 
 			// Execute workflow

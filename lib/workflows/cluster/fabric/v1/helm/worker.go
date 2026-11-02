@@ -6,60 +6,60 @@ import "github.com/metacensus/workers-chain/lib/workers/config"
 // The same chart deploys both the shared fabric worker (operator-owned, no org)
 // and per-org shard workers.
 type WorkerValues struct {
-	Operator string
+	Operator string `json:"operator"`
 	// Org is the owner identifier used for resource naming
 	// (org ID for shard workers, operator ID for the shared fabric worker)
-	Org string
+	Org string `json:"org"`
 	// OrgId is the ORG_ID env value; empty for the shared fabric worker,
 	// which owns no organization
-	OrgId string
+	OrgId string `json:"orgId"`
 	// Namespace is the Kubernetes namespace the worker is deployed into
-	Namespace      string
-	Image          ImageConfig
-	Replicas       int
-	Temporal       TemporalConfig
-	Vault          VaultConfig
-	LogLevel       string
-	HealthCheck    HealthCheckConfig
-	Resources      ResourceConfig
-	LivenessProbe  ProbeConfig
-	ReadinessProbe ProbeConfig
-	CommonLabels   CommonLabels
+	Namespace      string            `json:"namespace"`
+	Image          ImageConfig       `json:"image"`
+	Replicas       int               `json:"replicas"`
+	Temporal       TemporalConfig    `json:"temporal"`
+	Vault          VaultConfig       `json:"vault"`
+	LogLevel       string            `json:"logLevel"`
+	HealthCheck    HealthCheckConfig `json:"healthCheck"`
+	Resources      ResourceConfig    `json:"resources"`
+	LivenessProbe  ProbeConfig       `json:"livenessProbe"`
+	ReadinessProbe ProbeConfig       `json:"readinessProbe"`
+	CommonLabels   CommonLabels      `json:"commonLabels"`
 }
 
 // TemporalConfig represents Temporal connection configuration
 type TemporalConfig struct {
-	Address   string
-	Namespace string
-	TaskQueue string
-	TLS       TemporalTLSConfig
+	Address   string            `json:"address"`
+	Namespace string            `json:"namespace"`
+	TaskQueue string            `json:"taskQueue"`
+	TLS       TemporalTLSConfig `json:"tls"`
 }
 
 // TemporalTLSConfig is the worker mTLS client identity mount.
 type TemporalTLSConfig struct {
-	SecretName string
-	CAPath     string
-	CertPath   string
-	KeyPath    string
-	ServerName string
+	SecretName string `json:"secretName"`
+	CAPath     string `json:"caPath"`
+	CertPath   string `json:"certPath"`
+	KeyPath    string `json:"keyPath"`
+	ServerName string `json:"serverName"`
 }
 
 // VaultConfig represents Vault connection configuration
 type VaultConfig struct {
-	Address string
-	Role    string
+	Address string `json:"address"`
+	Role    string `json:"role"`
 }
 
 // HealthCheckConfig represents health check port configuration
 type HealthCheckConfig struct {
-	Port int
+	Port int `json:"port"`
 }
 
 // ProbeConfig represents Kubernetes probe configuration
 type ProbeConfig struct {
-	Path                string
-	InitialDelaySeconds int
-	PeriodSeconds       int
+	Path                string `json:"path"`
+	InitialDelaySeconds int    `json:"initialDelaySeconds"`
+	PeriodSeconds       int    `json:"periodSeconds"`
 }
 
 // NewWorkerValues creates WorkerValues for a per-org shard worker

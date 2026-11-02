@@ -507,13 +507,13 @@ Activities: `CreatePassword` ✅, `EnsureKeyPair` ✅ (get-or-create), `CreateSe
 
 ```
 cluster.fabric.v1.CreateNamespace ✅
-├─ helm.v1.RenderChartWithTemplate ✅
+├─ helm.v1.RenderChart ✅
 └─ kube.v1.Apply ✅
 ```
 
 ```
 cluster.fabric.v1.CreateDeployment ✅
-├─ helm.v1.RenderChartWithTemplate ✅
+├─ helm.v1.RenderChart ✅
 └─ kube.v1.Apply ✅
 ```
 

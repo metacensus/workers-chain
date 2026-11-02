@@ -139,6 +139,10 @@ func GetWorker() *WorkerConfig {
 	return workerGlobal
 }
 
+// FieldManager is this product's server-side apply manager; another product
+// writing the same object conflicts instead of silently overwriting.
+const FieldManager = "workers-chain"
+
 // KubernetesConfig holds Kubernetes client settings
 type KubernetesConfig struct {
 	KubeconfigPath string

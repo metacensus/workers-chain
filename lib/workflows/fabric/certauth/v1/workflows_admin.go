@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	kubepb "github.com/metacensus/library-temporal-kube/gen/kube/v1"
 	pb "github.com/metacensus/workers-chain/gen/workflows/fabric/certauth/v1"
 	fabricpb "github.com/metacensus/workers-chain/gen/workflows/fabric/v1"
-	kubepb "github.com/metacensus/workers-chain/gen/workflows/kube/v1"
 	"github.com/metacensus/workers-chain/lib/workers/config"
 	fabricconfig "github.com/metacensus/workers-chain/lib/workers/fabric/config"
 	"go.temporal.io/sdk/temporal"
@@ -96,10 +96,8 @@ func (w *createBootstrapAdminWorkflow) Execute(ctx workflow.Context) (*pb.Create
 	}
 	waitCtx := workflow.WithActivityOptions(ctx, waitOptions)
 
-	err := workflow.ExecuteActivity(waitCtx, kubepb.GetStatusActivityName, &kubepb.GetStatusInput{
-		Resources: map[string]*kubepb.ResourceIdentifier{
-			caConfig.ComponentName(): caConfig.ResourceIdentifier(),
-		},
+	err := workflow.ExecuteActivity(waitCtx, kubepb.ReadyActivityName, &kubepb.ReadyInput{
+		Resources: []*kubepb.ResourceIdentifier{caConfig.ResourceIdentifier()},
 	}).Get(waitCtx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("CA did not become ready: %w", err)

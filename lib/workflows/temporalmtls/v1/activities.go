@@ -1,4 +1,8 @@
-package kube
+// Package temporalmtls provisions the Temporal mTLS client secret that the
+// worker charts mount. Material moves between Secrets inside the cluster,
+// through kube.Client, and never enters an activity payload: that is why this
+// is a plain activity over the client and not a proto one.
+package temporalmtls
 
 import (
 	"context"
@@ -11,9 +15,11 @@ import (
 	"math/big"
 	"time"
 
+	kube "github.com/metacensus/library-temporal-kube/lib/kube/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/metacensus/workers-chain/lib/workers/config"
 )
 
 const (
@@ -31,37 +37,61 @@ type EnsureTemporalMTLSInput struct {
 
 type EnsureTemporalMTLSOutput struct{}
 
+// Activities holds the cluster client of the worker that hosts it.
+type Activities struct {
+	client kube.Client
+}
+
+func NewActivities(client kube.Client) *Activities {
+	return &Activities{client: client}
+}
+
 // EnsureTemporalMTLSClientCert writes TargetNamespace/temporal-mtls-client.
-// fabric copies the TF-issued secret; shards get a CA-signed leaf. Material stays in the activity.
+// fabric copies the TF-issued secret; shards get a CA-signed leaf.
 func (a *Activities) EnsureTemporalMTLSClientCert(ctx context.Context, in *EnsureTemporalMTLSInput) (*EnsureTemporalMTLSOutput, error) {
 	if in == nil || in.TargetNamespace == "" || in.TemporalNamespace == "" {
 		return nil, fmt.Errorf("target namespace and temporal namespace are required")
 	}
 
 	var data map[string][]byte
-	var err error
 	if in.TemporalNamespace == "fabric" {
-		data, err = a.client.GetSecretData(ctx, temporalSystemNamespace, sourceFabricClientSecret)
+		src, err := a.client.GetSecret(ctx, temporalSystemNamespace, sourceFabricClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("get secret %s/%s: %w", temporalSystemNamespace, sourceFabricClientSecret, err)
+		}
+		data = src.Data
 	} else {
-		data, err = a.issueClientCert(ctx, in.TemporalNamespace)
-	}
-	if err != nil {
-		return nil, err
+		var err error
+		if data, err = a.issueClientCert(ctx, in.TemporalNamespace); err != nil {
+			return nil, err
+		}
 	}
 
-	if err := a.client.UpsertOpaqueSecret(ctx, in.TargetNamespace, WorkerTemporalMTLSSecretName, data); err != nil {
-		return nil, err
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      WorkerTemporalMTLSSecretName,
+			Namespace: in.TargetNamespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/component":  "temporal-mtls",
+				"app.kubernetes.io/managed-by": "metacensus",
+			},
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: data,
+	}
+	if err := a.client.ApplySecret(ctx, secret, config.FieldManager); err != nil {
+		return nil, fmt.Errorf("apply secret %s/%s: %w", in.TargetNamespace, WorkerTemporalMTLSSecretName, err)
 	}
 	return &EnsureTemporalMTLSOutput{}, nil
 }
 
 func (a *Activities) issueClientCert(ctx context.Context, cn string) (map[string][]byte, error) {
-	caSecret, err := a.client.GetSecretData(ctx, temporalSystemNamespace, sourceClientCASecret)
+	caSecret, err := a.client.GetSecret(ctx, temporalSystemNamespace, sourceClientCASecret)
 	if err != nil {
 		return nil, fmt.Errorf("get client CA secret: %w", err)
 	}
-	caCertPEM := caSecret["ca.crt"]
-	caKeyPEM := caSecret["ca.key"]
+	caCertPEM := caSecret.Data["ca.crt"]
+	caKeyPEM := caSecret.Data["ca.key"]
 	if len(caCertPEM) == 0 || len(caKeyPEM) == 0 {
 		return nil, fmt.Errorf("client CA secret missing ca.crt or ca.key")
 	}
@@ -119,41 +149,4 @@ func (a *Activities) issueClientCert(ctx context.Context, cn string) (map[string
 		"tls.crt": pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}),
 		"tls.key": pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(leafKey)}),
 	}, nil
-}
-
-func (c *kubeClient) GetSecretData(ctx context.Context, namespace, name string) (map[string][]byte, error) {
-	src, err := c.typedClient.CoreV1().Secrets(namespace).Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("get secret %s/%s: %w", namespace, name, err)
-	}
-	out := make(map[string][]byte, len(src.Data))
-	for k, v := range src.Data {
-		cp := make([]byte, len(v))
-		copy(cp, v)
-		out[k] = cp
-	}
-	return out, nil
-}
-
-func (c *kubeClient) UpsertOpaqueSecret(ctx context.Context, namespace, name string, data map[string][]byte) error {
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/component":  "temporal-mtls",
-				"app.kubernetes.io/managed-by": "metacensus",
-			},
-		},
-		Type: corev1.SecretTypeOpaque,
-		Data: data,
-	}
-	_, err := c.typedClient.CoreV1().Secrets(namespace).Create(ctx, secret, metav1.CreateOptions{})
-	if apierrors.IsAlreadyExists(err) {
-		_, err = c.typedClient.CoreV1().Secrets(namespace).Update(ctx, secret, metav1.UpdateOptions{})
-	}
-	if err != nil {
-		return fmt.Errorf("upsert secret %s/%s: %w", namespace, name, err)
-	}
-	return nil
 }

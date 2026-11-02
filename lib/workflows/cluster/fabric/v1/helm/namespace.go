@@ -4,9 +4,9 @@ import "github.com/metacensus/workers-chain/lib/workers/config"
 
 // NamespaceValues represents Helm values for the fabric/namespace chart
 type NamespaceValues struct {
-	Name         string
-	IsOperator   bool
-	CommonLabels CommonLabels
+	Name         string       `json:"name"`
+	IsOperator   bool         `json:"isOperator"`
+	CommonLabels CommonLabels `json:"commonLabels"`
 }
 
 // NewNamespaceValues creates values for a fabric namespace.
