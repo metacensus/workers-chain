@@ -11,6 +11,10 @@ import (
 )
 
 func main() {
+	if config.Version == "" {
+		log.Fatal("no release version: build with -ldflags -X lib/workers/config.Version, as the Dockerfile does")
+	}
+
 	// Initialize configuration from environment.
 	// OPERATOR_ID (platform context) is loaded via fx in the infra module.
 	config.InitializeTemporal()
