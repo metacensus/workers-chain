@@ -1,0 +1,8 @@
+# An orderer's channel membership. Declared; not implemented yet.
+package orderer
+
+activity ChannelJoin():
+    fail(ErrNotImplemented)
+
+activity WaitForActive():
+    fail(ErrNotImplemented)

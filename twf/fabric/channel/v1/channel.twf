@@ -1,0 +1,26 @@
+# Channel configuration and governance. Declared; not implemented yet.
+package channel
+
+activity GenerateConfigTx():
+    fail(ErrNotImplemented)
+
+activity GenerateGenesisBlock():
+    fail(ErrNotImplemented)
+
+activity FetchConfig():
+    fail(ErrNotImplemented)
+
+activity ComputeConfigUpdate():
+    fail(ErrNotImplemented)
+
+activity SignConfigUpdate():
+    fail(ErrNotImplemented)
+
+activity SubmitConfigUpdate():
+    fail(ErrNotImplemented)
+
+activity GenerateOrgDefinition():
+    fail(ErrNotImplemented)
+
+activity CollectSignatures():
+    fail(ErrNotImplemented)

@@ -1,0 +1,8 @@
+# A peer's channel membership. Declared; not implemented yet.
+package peer
+
+activity ChannelFetch():
+    fail(ErrNotImplemented)
+
+activity ChannelJoin():
+    fail(ErrNotImplemented)

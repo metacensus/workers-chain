@@ -8,6 +8,7 @@ Temporal workflow and activity authoring follows the Temporal skill in [`metacen
 
 - **Cross-owner work goes through Nexus**, not a child workflow on the caller's worker ([OWNERSHIP.md P2](docs/strategy/OWNERSHIP.md)).
 - **Private keys never cross Nexus** — only public CSRs and signed cert material.
+- **A change to a workflow's calls, a worker's registrations or a Nexus boundary changes its `.twf` in the same PR.**
 - **This repo builds and releases workers; it does not deploy them or start workflows.**
 
 ## Not yet

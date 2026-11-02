@@ -1,0 +1,11 @@
+# The certificate store's databases, for the hosting worker's owner.
+package postgres
+
+activity CreateDatabase(name: DatabaseName):
+    sql.createDatabase(name)
+
+activity CreateUser(credentials: SecretRef):
+    sql.createUser(credentials)
+
+activity GrantPrivileges(username: Username, database: DatabaseName, privileges: Privileges):
+    sql.grant(username, database, privileges)
