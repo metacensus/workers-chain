@@ -1,10 +1,12 @@
 # The three workers, each in its own Temporal namespace. Hosting mirrors lib/workers/<worker>/module.go.
+# Worker options take no image, Kubernetes namespace, injected ID or Vault role (unknown option key),
+# so a comment above each worker states them.
 package deploy
 
 import "github.com/metacensus/library-temporal-kube/twf/helm/v1"
 import "github.com/metacensus/library-temporal-kube/twf/kube/v1"
 import "github.com/metacensus/workers-chain/twf/cell/v1"
-import "github.com/metacensus/workers-chain/twf/cluster/v1"
+import cluster "github.com/metacensus/workers-chain/twf/cluster/fabric/v1"
 import "github.com/metacensus/workers-chain/twf/fabric/certauth/v1"
 import "github.com/metacensus/workers-chain/twf/fabric/channel/v1"
 import "github.com/metacensus/workers-chain/twf/fabric/orderer/v1"
@@ -46,7 +48,7 @@ worker infra:
 	activity temporal.CreateNexusEndpoint
 	activity temporal.DescribeNexusEndpoint
 	activity temporal.UpdateNexusEndpoint
-	workflow temporal.CreateNamespace
+	workflow temporal.CreateTemporalNamespace
 	workflow cell.BootstrapInfra
 	workflow cell.InitFabric
 	workflow cell.InitFabricShard
@@ -97,7 +99,7 @@ worker fabric:
 	activity orderer.ChannelJoin
 	activity orderer.WaitForActive
 	activity peer.ChannelFetch
-	activity peer.ChannelJoin
+	activity peer.PeerChannelJoin
 	workflow fabric.BootstrapFabric
 	workflow fabric.BootstrapShard
 	workflow fabric.DeployCertificateStore
@@ -167,7 +169,7 @@ worker shard:
 	activity orderer.ChannelJoin
 	activity orderer.WaitForActive
 	activity peer.ChannelFetch
-	activity peer.ChannelJoin
+	activity peer.PeerChannelJoin
 	workflow fabric.BootstrapFabric
 	workflow fabric.BootstrapShard
 	workflow fabric.DeployCertificateStore
@@ -191,36 +193,38 @@ worker shard:
 	activity postgres.GrantPrivileges
 	nexus service fabric.ShardBootstrap
 
-# pseudo-twf(queue): every worker polls "infra" in its own namespace. twf routes by queue name
-# across namespaces, so a name unique to each namespace is what makes a child across owners an error.
+# Every worker polls "infra" in its own namespace; a task queue is scoped to its namespace.
 namespace infra:
 	worker infra
 		options:
 			task_queue: "infra"
-	# pseudo-twf(authz): callers fabric and every fabric-shard-{org}; the handler scopes the policy.
+	# The handler scopes the policy to the namespace being bound.
 	nexus endpoint secrets-CreateAccess
 		options:
 			task_queue: "infra"
+			allowed_caller_namespaces: ["fabric", "fabric-shard-{org}"]
 
 namespace fabric:
 	worker fabric
 		options:
-			task_queue: "fabric"
-	# pseudo-twf(authz): caller infra only.
+			task_queue: "infra"
 	nexus endpoint fabric-BootstrapFabric
 		options:
-			task_queue: "fabric"
-	# pseudo-twf(authz): caller fabric-shard-{org} only, and the request's requester must be {org}.
-	# It lands here but exists per org: its name is what identifies the requester.
+			task_queue: "infra"
+			allowed_caller_namespaces: ["infra"]
+	# It lands here but exists per org: its name is what identifies the requester. Only orgs call;
+	# "fabric" is listed because IssueCertificate is one function on both workers, and twf cannot
+	# see that the operator branch fails before this call.
 	nexus endpoint fabric-shard-{org}-CreateCertificate
 		options:
-			task_queue: "fabric"
+			task_queue: "infra"
+			allowed_caller_namespaces: ["fabric", "fabric-shard-{org}"]
 
 namespace fabric-shard-{org}:
 	worker shard
 		options:
-			task_queue: "fabric-shard-{org}"
-	# pseudo-twf(authz): caller infra only.
+			task_queue: "infra"
 	nexus endpoint fabric-shard-{org}-BootstrapShard
 		options:
-			task_queue: "fabric-shard-{org}"
+			task_queue: "infra"
+			allowed_caller_namespaces: ["infra"]

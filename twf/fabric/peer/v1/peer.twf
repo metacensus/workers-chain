@@ -4,5 +4,6 @@ package peer
 activity ChannelFetch():
 	fail(ErrNotImplemented)
 
-activity ChannelJoin():
+# Named apart from orderer.ChannelJoin, which the same worker hosts: twf has no wire name to tell them apart.
+activity PeerChannelJoin():
 	fail(ErrNotImplemented)

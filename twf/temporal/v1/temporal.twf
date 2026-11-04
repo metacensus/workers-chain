@@ -1,7 +1,8 @@
 # Temporal administration: namespaces and Nexus endpoints. Infra worker only.
 package temporal
 
-workflow CreateNamespace(name: TemporalNamespace, retention: Retention) -> (TemporalNamespace):
+# Named apart from cluster.CreateNamespace, which the same worker hosts: twf has no wire name to tell them apart.
+workflow CreateTemporalNamespace(name: TemporalNamespace, retention: Retention) -> (TemporalNamespace):
 	activity RegisterNamespace(name, retention)
 	# Namespace creation is asynchronous.
 	deadline = workflow.now() + 2m

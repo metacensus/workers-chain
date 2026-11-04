@@ -3,13 +3,14 @@
 package fabric
 
 import "github.com/metacensus/library-temporal-kube/twf/kube/v1"
-import "github.com/metacensus/workers-chain/twf/cluster/v1"
+import cluster "github.com/metacensus/workers-chain/twf/cluster/fabric/v1"
 import "github.com/metacensus/workers-chain/twf/fabric/certauth/v1"
 import "github.com/metacensus/workers-chain/twf/postgres/v1"
 import "github.com/metacensus/workers-chain/twf/secrets/v1"
 
-# pseudo-twf(nexus-ops): one wire service, fabric.v1.Fabric, of which each worker
-# registers one operation. twf registers whole services, so each is its own service here.
+# pseudo-twf(nexus-ops): one wire service, fabric.v1.Fabric, of which each worker registers one
+# operation. twf registers whole services (a worker entry naming an operation is
+# WORKER_REGISTERS_OPERATION), so each is its own service here.
 nexus service FabricBootstrap:
 	async BootstrapFabric workflow BootstrapFabric
 
@@ -17,12 +18,14 @@ nexus service ShardBootstrap:
 	async BootstrapShard workflow BootstrapShard
 
 workflow BootstrapFabric(certificateAuthorities: CertificateAuthoritySpecs):
+	id_scheme: "fabric/bootstrap-fabric"
 	workflow DeployCertificateStore()
 	for (spec in certificateAuthorities):
 		workflow DeployCertificateAuthority(spec)
 	close complete
 
 workflow BootstrapShard(deployment: ShardDeployment):
+	id_scheme: "fabric/bootstrap-shard"
 	workflow DeployCertificateStore()
 	for (spec in deployment.certificateAuthorities):
 		workflow DeployCertificateAuthority(spec)
@@ -130,43 +133,78 @@ workflow DeployChainCode(chainCodeId: ChainCodeId):
 	# Not implemented yet.
 	close complete
 
-# pseudo-twf(conflict-policy): a duplicate start of any workflow below joins the running one.
 workflow CreateChannel():
+	id_scheme: "fabric/create-channel"
+	default_options:
+		workflow_id_reuse_policy: ALLOW_DUPLICATE_FAILED_ONLY
+		workflow_id_conflict_policy: USE_EXISTING
 	workflow JoinOrdererToChannel()
 	workflow JoinPeerToChannel()
 	workflow SetAnchorPeer()
 	close complete
 
 workflow AddOrdererToChannel():
+	id_scheme: "fabric/add-orderer-to-channel"
+	default_options:
+		workflow_id_reuse_policy: ALLOW_DUPLICATE_FAILED_ONLY
+		workflow_id_conflict_policy: USE_EXISTING
 	workflow JoinOrdererToChannel()
 	workflow AddOrdererToConsenterSet()
 	close complete
 
 workflow AddPeerToChannel():
+	id_scheme: "fabric/add-peer-to-channel"
+	default_options:
+		workflow_id_reuse_policy: ALLOW_DUPLICATE_FAILED_ONLY
+		workflow_id_conflict_policy: USE_EXISTING
 	workflow AddOrgToChannel()
 	workflow JoinPeerToChannel()
 	close complete
 
 workflow JoinOrdererToChannel():
+	id_scheme: "fabric/join-orderer-to-channel"
+	default_options:
+		workflow_id_reuse_policy: ALLOW_DUPLICATE_FAILED_ONLY
+		workflow_id_conflict_policy: USE_EXISTING
 	# Not implemented yet.
 	close complete
 
 workflow JoinPeerToChannel():
+	id_scheme: "fabric/join-peer-to-channel"
+	default_options:
+		workflow_id_reuse_policy: ALLOW_DUPLICATE_FAILED_ONLY
+		workflow_id_conflict_policy: USE_EXISTING
 	# Not implemented yet.
 	close complete
 
 workflow SetAnchorPeer():
+	id_scheme: "fabric/set-anchor-peer"
+	default_options:
+		workflow_id_reuse_policy: ALLOW_DUPLICATE_FAILED_ONLY
+		workflow_id_conflict_policy: USE_EXISTING
 	workflow UpdateChannelConfig()
 	close complete
 
 workflow AddOrdererToConsenterSet():
+	id_scheme: "fabric/add-orderer-to-consenter-set"
+	default_options:
+		workflow_id_reuse_policy: ALLOW_DUPLICATE_FAILED_ONLY
+		workflow_id_conflict_policy: USE_EXISTING
 	workflow UpdateChannelConfig()
 	close complete
 
 workflow AddOrgToChannel():
+	id_scheme: "fabric/add-org-to-channel"
+	default_options:
+		workflow_id_reuse_policy: ALLOW_DUPLICATE_FAILED_ONLY
+		workflow_id_conflict_policy: USE_EXISTING
 	workflow UpdateChannelConfig()
 	close complete
 
 workflow UpdateChannelConfig():
+	id_scheme: "fabric/update-channel-config"
+	default_options:
+		workflow_id_reuse_policy: ALLOW_DUPLICATE_FAILED_ONLY
+		workflow_id_conflict_policy: USE_EXISTING
 	# Not implemented yet.
 	close complete

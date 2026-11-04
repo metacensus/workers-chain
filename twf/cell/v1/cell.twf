@@ -2,20 +2,21 @@
 # owner it states. Everything the owner then does as itself crosses Nexus.
 package cell
 
-import "github.com/metacensus/workers-chain/twf/cluster/v1"
+import cluster "github.com/metacensus/workers-chain/twf/cluster/fabric/v1"
 import "github.com/metacensus/workers-chain/twf/fabric/v1"
 import "github.com/metacensus/workers-chain/twf/secrets/v1"
 import "github.com/metacensus/workers-chain/twf/temporal/v1"
 
 workflow BootstrapInfra():
-	# pseudo-twf(topology): this call creates the endpoint deploy declares; twf does not link them.
+	# pseudo-twf(topology): this call creates the endpoint deploy declares; twf does not link them
+	# (an endpoint name here that deploy never declares checks clean).
 	activity temporal.CreateNexusEndpoint("secrets-CreateAccess", "infra", "infra")
 	workflow InitFabric(tlsCertificateAuthorities())
 	close complete
 
 workflow InitFabric(certificateAuthorities: CertificateAuthoritySpecs):
 	owner = operator
-	workflow temporal.CreateNamespace(owner.temporalNamespace, null)
+	workflow temporal.CreateTemporalNamespace(owner.temporalNamespace, null)
 	workflow cluster.CreateNamespace(owner)
 	workflow cluster.CreateServiceAccount(owner)
 	workflow secrets.CreateAccess(owner.workerVaultAccess)
@@ -29,7 +30,7 @@ workflow InitFabric(certificateAuthorities: CertificateAuthoritySpecs):
 
 workflow InitFabricShard(org: Org, deployment: ShardDeployment):
 	owner = orgOwner(org)
-	workflow temporal.CreateNamespace(owner.temporalNamespace, null)
+	workflow temporal.CreateTemporalNamespace(owner.temporalNamespace, null)
 	workflow cluster.CreateNamespace(owner)
 	workflow cluster.CreateServiceAccount(owner)
 	workflow secrets.CreateAccess(owner.workerVaultAccess)

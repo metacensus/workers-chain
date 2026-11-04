@@ -1,8 +1,6 @@
 # Cluster: renders and applies the Fabric charts for an owner stated in the
 # input, with the credentials of whichever worker hosts it.
-# pseudo-twf(leaf): proto and lib keep this space at cluster/fabric/v1. twf resolves an import by its
-# leaf, so that path would resolve to the fabric package; this package is cluster, at cluster/v1.
-package cluster
+package fabric
 
 import "github.com/metacensus/library-temporal-kube/twf/helm/v1"
 import "github.com/metacensus/library-temporal-kube/twf/kube/v1"

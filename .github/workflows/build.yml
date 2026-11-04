@@ -18,7 +18,7 @@ jobs:
           go-version-file: go.mod
       - name: Install twf
         env:
-          VERSION: v0.15.0
+          VERSION: v0.16.0
         run: |
           curl -sSfL https://raw.githubusercontent.com/jmbarzee/temporal-architect-dist/main/packages/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"

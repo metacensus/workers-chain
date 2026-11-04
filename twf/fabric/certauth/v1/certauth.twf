@@ -8,16 +8,17 @@ import "github.com/metacensus/workers-chain/twf/secrets/v1"
 # The one cross-owner operation. Only a public CSR crosses out and only public
 # material crosses back.
 nexus service CertificateAuthority:
-	# pseudo-twf(wire-name): fabric.certauth.v1.CertificateAuthority on the wire.
+	# pseudo-twf(wire-name): fabric.certauth.v1.CertificateAuthority on the wire;
+	# a service name is one identifier, a dotted one a syntax error.
 	async SignCertificate workflow SignCertificate
 
 workflow SignCertificate(issuer: CertificateAuthorityRef, subject: Subject, csr: CsrPem, requester: Owner) -> (SignedCertificate):
-	# pseudo-twf(conflict-policy): a duplicate start with this ID joins the running workflow.
 	id_scheme: "fabric/sign-certificate/{subject.commonName}"
 	default_options:
 		workflow_id_reuse_policy: ALLOW_DUPLICATE_FAILED_ONLY
-	# pseudo-twf(authz): the server has already bound requester to this endpoint's org.
-	# These checks are what the handler can verify itself.
+		workflow_id_conflict_policy: USE_EXISTING
+	# The server has already bound requester to this endpoint's org; these checks are what the
+	# handler can verify itself.
 	if (not owns(owner, issuer)):
 		close fail(ErrNotOwned)
 	if (subject.profile == "ca" or privilegedAttributes(subject)):
@@ -33,6 +34,7 @@ workflow SignCertificate(issuer: CertificateAuthorityRef, subject: Subject, csr:
 
 # pseudo-twf(plain-function): Go function in the caller's history and security context, never a
 # workflow type (OWNERSHIP P3). It is a workflow here so that its Nexus edge is checked once.
+# An activity cannot hold the edge: its body takes no calls.
 workflow IssueCertificate(issuer: CertificateAuthorityRef, subject: Subject, storage: IdentityRef, registrar: IdentityRef):
 	activity secrets.EnsureKeyPair(storage.keyRef)
 	activity GenerateCsr(storage.keyRef, subject) -> csr
@@ -42,7 +44,6 @@ workflow IssueCertificate(issuer: CertificateAuthorityRef, subject: Subject, sto
 		# Only orgs reach a foreign issuer: the operator owns the shared chain.
 		if (owner.isOperator):
 			close fail(ErrSignCertificate)
-		# pseudo-twf(authz): {org} is this worker's own; the server admits only its namespace here.
 		nexus fabric-shard-{org}-CreateCertificate CertificateAuthority.SignCertificate(issuer, subject, csr, owner) -> signed
 			options:
 				schedule_to_close_timeout: 5m
@@ -87,10 +88,10 @@ workflow CreateAdmin(ca: CertificateAuthorityRef, signingIssuer: CertificateAuth
 	close complete(AdminIdentity{ca.adminSigning, ca.adminTls})
 
 workflow CreateIdentity(subject: Subject, orgIssuer: CertificateAuthorityRef, tlsIssuer: CertificateAuthorityRef, signingStorage: IdentityRef, tlsStorage: IdentityRef) -> (Identity):
-	# pseudo-twf(conflict-policy): a duplicate start with this ID joins the running workflow.
 	id_scheme: "fabric/create-identity/{subject.commonName}"
 	default_options:
 		workflow_id_reuse_policy: ALLOW_DUPLICATE_FAILED_ONLY
+		workflow_id_conflict_policy: USE_EXISTING
 	if (not owns(owner, orgIssuer)):
 		close fail(ErrNotOwned)
 	workflow IssueCertificate(orgIssuer, subject, signingStorage, null)
