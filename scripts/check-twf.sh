@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# twf/ checks clean with the library's packages in the tree, and each worker in
+# twf/ checks clean with the library's module in the run, and each worker in
 # twf/deploy hosts exactly what proto and lib/workers/<worker>/module.go say it does.
+#
+# twf binds an import only to a package of a module whose directory is among the inputs, so the
+# library's module root (its twf.mod) is passed beside twf/: the module cache, at the version
+# go.mod pins.
 set -euo pipefail
 
-library=$(GOWORK=off go mod download -json github.com/metacensus/library-temporal-kube | jq -r .Dir)/twf
+library=$(GOWORK=off go mod download -json github.com/metacensus/library-temporal-kube | jq -r .Dir)
 
-# A warning is an error here: an import that names no package in the tree turns
+# A warning is an error here: an import that names no package in the run turns
 # every reference through it into an unchecked external.
 out=$(twf check twf "$library" 2>&1) || { echo "$out"; exit 1; }
 if grep -q '^warning' <<<"$out"; then echo "$out"; exit 1; fi
@@ -26,8 +30,8 @@ expected() { # worker: what module.go registers, as twf deploy entries
         rpcs activity proto/fabric/"$pkg"/v1/*.proto | sed "s/^/activity $pkg./" ;;
       fabric.RegisterWorkflows) rpcs workflow proto/fabric/v1/*.proto | sed 's/^/workflow fabric./' ;;
       workers.RegisterClusterActivities)
-        definitions activity "$library"/helm/v1/*.twf | sed 's/^/activity helm./'
-        definitions activity "$library"/kube/v1/*.twf | sed 's/^/activity kube./'
+        definitions activity "$library"/twf/helm/v1/*.twf | sed 's/^/activity helm./'
+        definitions activity "$library"/twf/kube/v1/*.twf | sed 's/^/activity kube./'
         echo activity temporalmtls.EnsureTemporalMTLSClientCert ;;
       secrets.RegisterNexusService) echo nexus service secrets.Secrets ;;
       certauth.RegisterSignCertificateNexusService) echo nexus service certauth.CertificateAuthority ;;
@@ -41,13 +45,19 @@ expected() { # worker: what module.go registers, as twf deploy entries
 }
 
 # A plain Go function is a workflow in the design only, so it has no RPC.
-plain=$(grep -h -A2 'pseudo-twf(plain-function)' twf/fabric/certauth/v1/certauth.twf \
-  | sed -n 's/^workflow \([A-Za-z]*\)(.*/workflow certauth.\1/p')
+plain=$(awk '/pseudo-twf\(plain-function\)/ { on=1 } on && /^workflow / { sub(/\(.*/, "", $2); print "workflow certauth." $2; on=0 }' twf/fabric/certauth/v1/certauth.twf)
+
+# A worker registers one type per bare name, and the design has no wire names, so these two are
+# named apart in the design from the RPC they mirror.
+renamed() {
+  sed -e 's/^workflow temporal\.CreateNamespace$/workflow temporal.CreateTemporalNamespace/' \
+    -e 's/^activity peer\.ChannelJoin$/activity peer.PeerChannelJoin/'
+}
 
 status=0
 for worker in infra fabric shard; do
-  hosted=$(awk -v w="worker $worker:" '$0 == w { on=1; next } /^[^ ]/ { on=0 } on && NF && !/^ *#/ { sub(/^ */, ""); print }' twf/deploy/v1/deploy.twf \
+  hosted=$(awk -v w="worker $worker:" '$0 == w { on=1; next } /^[^[:space:]]/ { on=0 } on && NF && !/^[ \t]*#/ { sub(/^[ \t]*/, ""); print }' twf/deploy/v1/deploy.twf \
     | grep -vxF "$plain" | sort)
-  diff -u --label "module.go ($worker)" --label "twf/deploy ($worker)" <(expected "$worker" | sort) <(echo "$hosted") || status=1
+  diff -u --label "module.go ($worker)" --label "twf/deploy ($worker)" <(expected "$worker" | renamed | sort) <(echo "$hosted") || status=1
 done
 exit $status

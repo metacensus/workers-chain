@@ -2,13 +2,13 @@
 package vault
 
 activity CreateAuthRole(name: RoleName, serviceAccount: ServiceAccountName, namespace: KubernetesNamespace, policies: PolicyNames) -> (AuthRole):
-    return vault.writeRole(name, serviceAccount, namespace, policies)
+	return vault.writeRole(name, serviceAccount, namespace, policies)
 
 activity DeleteAuthRole(name: RoleName):
-    vault.deleteRole(name)
+	vault.deleteRole(name)
 
 activity CreatePolicy(name: PolicyName, document: PolicyDocument) -> (Policy):
-    return vault.writePolicy(name, document)
+	return vault.writePolicy(name, document)
 
 activity DeletePolicy(name: PolicyName):
-    vault.deletePolicy(name)
+	vault.deletePolicy(name)

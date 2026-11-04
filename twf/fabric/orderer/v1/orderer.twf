@@ -2,7 +2,7 @@
 package orderer
 
 activity ChannelJoin():
-    fail(ErrNotImplemented)
+	fail(ErrNotImplemented)
 
 activity WaitForActive():
-    fail(ErrNotImplemented)
+	fail(ErrNotImplemented)
