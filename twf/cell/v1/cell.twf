@@ -1,0 +1,45 @@
+# Cell: platform bootstrap. Runs on the infra worker and acts on behalf of an
+# owner it states. Everything the owner then does as itself crosses Nexus.
+package cell
+
+import "github.com/metacensus/workers-chain/twf/cluster/v1"
+import "github.com/metacensus/workers-chain/twf/fabric/v1"
+import "github.com/metacensus/workers-chain/twf/secrets/v1"
+import "github.com/metacensus/workers-chain/twf/temporal/v1"
+
+workflow BootstrapInfra():
+    # pseudo-twf(topology): this call creates the endpoint deploy declares; twf does not link them.
+    activity temporal.CreateNexusEndpoint("secrets-CreateAccess", "infra", "infra")
+    workflow InitFabric(tlsCertificateAuthorities())
+    close complete
+
+workflow InitFabric(certificateAuthorities: CertificateAuthoritySpecs):
+    owner = operator
+    workflow temporal.CreateNamespace(owner.temporalNamespace, null)
+    workflow cluster.CreateNamespace(owner)
+    workflow cluster.CreateServiceAccount(owner)
+    workflow secrets.CreateAccess(owner.workerVaultAccess)
+    workflow cluster.CreateDeployment(owner, "worker")
+    # pseudo-twf(topology): this call creates the endpoint deploy declares; twf does not link them.
+    activity temporal.CreateNexusEndpoint("fabric-BootstrapFabric", owner.temporalNamespace, "infra")
+    nexus fabric-BootstrapFabric fabric.FabricBootstrap.BootstrapFabric(certificateAuthorities)
+        options:
+            schedule_to_close_timeout: 30m
+    close complete
+
+workflow InitFabricShard(org: Org, deployment: ShardDeployment):
+    owner = orgOwner(org)
+    workflow temporal.CreateNamespace(owner.temporalNamespace, null)
+    workflow cluster.CreateNamespace(owner)
+    workflow cluster.CreateServiceAccount(owner)
+    workflow secrets.CreateAccess(owner.workerVaultAccess)
+    workflow cluster.CreateDeployment(owner, "worker")
+    # pseudo-twf(topology): these calls create the endpoints deploy declares; twf does not link them.
+    activity temporal.CreateNexusEndpoint("fabric-shard-{org}-BootstrapShard", owner.temporalNamespace, "infra")
+    # One endpoint per org, into the operator's namespace, so the endpoint itself
+    # names the requester. Registered first: BootstrapShard issues TLS certificates.
+    activity temporal.CreateNexusEndpoint("fabric-shard-{org}-CreateCertificate", operator.temporalNamespace, "infra")
+    nexus fabric-shard-{org}-BootstrapShard fabric.ShardBootstrap.BootstrapShard(deployment)
+        options:
+            schedule_to_close_timeout: 30m
+    close complete

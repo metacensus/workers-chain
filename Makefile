@@ -78,12 +78,13 @@ vuln:
 		echo 'vuln: a finding above has a fixed version; upgrade that module'; exit 1; \
 	fi
 
-## check — proto/mocks freshness, helm lint, lint, unit tests
+## check — proto/mocks freshness, twf design, helm lint, lint, unit tests
 check: lint
 	@$(TOOL_PATH) buf generate
 	@git diff --exit-code -- gen proto || (echo 'proto gen dirty; run make proto' && exit 1)
 	@GOWORK=off GOTOOLCHAIN=$(GEN_TOOLCHAIN) go generate -run mockery
 	@git diff --exit-code -- mocks || (echo 'mocks dirty; run make mocks' && exit 1)
+	@scripts/check-twf.sh
 	@bash -c 'for chart in helm/fabric/*; do \
 		if [ -f "$$chart/Chart.yaml" ]; then \
 			echo "  Linting $$chart..."; \

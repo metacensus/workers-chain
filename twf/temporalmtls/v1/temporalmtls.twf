@@ -1,0 +1,9 @@
+# The Temporal mTLS client secret a worker chart mounts. Material moves between
+# Secrets inside the cluster and never enters a payload, so this has no proto.
+package temporalmtls
+
+# pseudo-twf(wire-name): registered under its bare Go name, not a proto-derived one.
+activity EnsureTemporalMTLSClientCert(targetNamespace: KubernetesNamespace, temporalNamespace: TemporalNamespace):
+    # The fabric namespace copies the cluster's client secret; any other gets a
+    # leaf signed by the cluster's client CA.
+    k8s.ensureSecret(targetNamespace, "temporal-mtls-client", temporalNamespace)
