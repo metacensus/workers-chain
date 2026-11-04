@@ -2,25 +2,25 @@
 package channel
 
 activity GenerateConfigTx():
-    fail(ErrNotImplemented)
+	fail(ErrNotImplemented)
 
 activity GenerateGenesisBlock():
-    fail(ErrNotImplemented)
+	fail(ErrNotImplemented)
 
 activity FetchConfig():
-    fail(ErrNotImplemented)
+	fail(ErrNotImplemented)
 
 activity ComputeConfigUpdate():
-    fail(ErrNotImplemented)
+	fail(ErrNotImplemented)
 
 activity SignConfigUpdate():
-    fail(ErrNotImplemented)
+	fail(ErrNotImplemented)
 
 activity SubmitConfigUpdate():
-    fail(ErrNotImplemented)
+	fail(ErrNotImplemented)
 
 activity GenerateOrgDefinition():
-    fail(ErrNotImplemented)
+	fail(ErrNotImplemented)
 
 activity CollectSignatures():
-    fail(ErrNotImplemented)
+	fail(ErrNotImplemented)

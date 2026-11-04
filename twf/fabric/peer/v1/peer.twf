@@ -2,7 +2,7 @@
 package peer
 
 activity ChannelFetch():
-    fail(ErrNotImplemented)
+	fail(ErrNotImplemented)
 
 activity ChannelJoin():
-    fail(ErrNotImplemented)
+	fail(ErrNotImplemented)

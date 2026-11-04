@@ -2,10 +2,10 @@
 package postgres
 
 activity CreateDatabase(name: DatabaseName):
-    sql.createDatabase(name)
+	sql.createDatabase(name)
 
 activity CreateUser(credentials: SecretRef):
-    sql.createUser(credentials)
+	sql.createUser(credentials)
 
 activity GrantPrivileges(username: Username, database: DatabaseName, privileges: Privileges):
-    sql.grant(username, database, privileges)
+	sql.grant(username, database, privileges)

@@ -11,162 +11,162 @@ import "github.com/metacensus/workers-chain/twf/secrets/v1"
 # pseudo-twf(nexus-ops): one wire service, fabric.v1.Fabric, of which each worker
 # registers one operation. twf registers whole services, so each is its own service here.
 nexus service FabricBootstrap:
-    async BootstrapFabric workflow BootstrapFabric
+	async BootstrapFabric workflow BootstrapFabric
 
 nexus service ShardBootstrap:
-    async BootstrapShard workflow BootstrapShard
+	async BootstrapShard workflow BootstrapShard
 
 workflow BootstrapFabric(certificateAuthorities: CertificateAuthoritySpecs):
-    workflow DeployCertificateStore()
-    for (spec in certificateAuthorities):
-        workflow DeployCertificateAuthority(spec)
-    close complete
+	workflow DeployCertificateStore()
+	for (spec in certificateAuthorities):
+		workflow DeployCertificateAuthority(spec)
+	close complete
 
 workflow BootstrapShard(deployment: ShardDeployment):
-    workflow DeployCertificateStore()
-    for (spec in deployment.certificateAuthorities):
-        workflow DeployCertificateAuthority(spec)
-    # Gated off until peer startup lands.
-    if (deployWorkloads):
-        for (peer in deployment.peers):
-            workflow DeployCouchDb(peer.id)
-            workflow DeployPeer(peer)
-        for (orderer in deployment.orderers):
-            workflow DeployOrderer(orderer)
-    close complete
+	workflow DeployCertificateStore()
+	for (spec in deployment.certificateAuthorities):
+		workflow DeployCertificateAuthority(spec)
+	# Gated off until peer startup lands.
+	if (deployWorkloads):
+		for (peer in deployment.peers):
+			workflow DeployCouchDb(peer.id)
+			workflow DeployPeer(peer)
+		for (orderer in deployment.orderers):
+			workflow DeployOrderer(orderer)
+	close complete
 
 workflow DeployCertificateStore():
-    nexus secrets-CreateAccess secrets.Secrets.CreateAccess(certificateStore.vaultAccess)
-        options:
-            schedule_to_close_timeout: 5m
-    activity secrets.EnsurePassword(certificateStore.adminRef, "admin")
-    workflow cluster.CreateDeployment(owner, "certificate-store")
-    close complete
+	nexus secrets-CreateAccess secrets.Secrets.CreateAccess(certificateStore.vaultAccess)
+		options:
+			schedule_to_close_timeout: 5m
+	activity secrets.EnsurePassword(certificateStore.adminRef, "admin")
+	workflow cluster.CreateDeployment(owner, "certificate-store")
+	close complete
 
 # One body for tls/root, tls/int, org/root and org/int: the spec's issuers decide.
 workflow DeployCertificateAuthority(spec: CertificateAuthoritySpec):
-    if (not owns(owner, spec.self) or not owns(owner, spec.signingIssuer or spec.self)):
-        close fail(ErrNotOwned)
-    ca = certificateAuthority(owner, spec.self)
-    nexus secrets-CreateAccess secrets.Secrets.CreateAccess(ca.vaultAccess)
-        options:
-            schedule_to_close_timeout: 5m
-    workflow CreateCertificateDatabase(spec.self)
-    if (spec.signingIssuer == null):
-        activity secrets.EnsureKeyPair(ca.signingKey)
-        activity secrets.CreateSelfSignedCertificate(ca.signingKey, ca.signingCert, ca.subject)
-    else:
-        workflow certauth.IssueCertificate(spec.signingIssuer, ca.intermediateSubject, ca.signing, null)
-    if (spec.tlsIssuer == null):
-        activity secrets.EnsureKeyPair(ca.tlsKey)
-        activity secrets.CreateSelfSignedCertificate(ca.tlsKey, ca.tlsCert, ca.tlsSubject)
-    else:
-        # Local signs inline; a foreign issuer is reached by Nexus.
-        workflow certauth.IssueCertificate(spec.tlsIssuer, ca.tlsSubject, ca.tls, null)
-    activity secrets.EnsurePassword(ca.bootstrapCredentials, ca.bootstrapUsername)
-    workflow cluster.CreateDeployment(owner, ca.component)
-    # An org CA's admins take TLS from the foreign issuer; otherwise from the CA itself.
-    adminTlsIssuer = spec.self
-    if (spec.tlsIssuer != null and not owns(owner, spec.tlsIssuer)):
-        adminTlsIssuer = spec.tlsIssuer
-    workflow certauth.CreateBootstrapAdmin(spec.self, adminTlsIssuer)
-    workflow certauth.CreateAdmin(spec.self, spec.self, adminTlsIssuer)
-    close complete
+	if (not owns(owner, spec.self) or not owns(owner, spec.signingIssuer or spec.self)):
+		close fail(ErrNotOwned)
+	ca = certificateAuthority(owner, spec.self)
+	nexus secrets-CreateAccess secrets.Secrets.CreateAccess(ca.vaultAccess)
+		options:
+			schedule_to_close_timeout: 5m
+	workflow CreateCertificateDatabase(spec.self)
+	if (spec.signingIssuer == null):
+		activity secrets.EnsureKeyPair(ca.signingKey)
+		activity secrets.CreateSelfSignedCertificate(ca.signingKey, ca.signingCert, ca.subject)
+	else:
+		workflow certauth.IssueCertificate(spec.signingIssuer, ca.intermediateSubject, ca.signing, null)
+	if (spec.tlsIssuer == null):
+		activity secrets.EnsureKeyPair(ca.tlsKey)
+		activity secrets.CreateSelfSignedCertificate(ca.tlsKey, ca.tlsCert, ca.tlsSubject)
+	else:
+		# Local signs inline; a foreign issuer is reached by Nexus.
+		workflow certauth.IssueCertificate(spec.tlsIssuer, ca.tlsSubject, ca.tls, null)
+	activity secrets.EnsurePassword(ca.bootstrapCredentials, ca.bootstrapUsername)
+	workflow cluster.CreateDeployment(owner, ca.component)
+	# An org CA's admins take TLS from the foreign issuer; otherwise from the CA itself.
+	adminTlsIssuer = spec.self
+	if (spec.tlsIssuer != null and not owns(owner, spec.tlsIssuer)):
+		adminTlsIssuer = spec.tlsIssuer
+	workflow certauth.CreateBootstrapAdmin(spec.self, adminTlsIssuer)
+	workflow certauth.CreateAdmin(spec.self, spec.self, adminTlsIssuer)
+	close complete
 
 workflow CreateCertificateDatabase(caRef: CertificateAuthorityRef) -> (SecretRef):
-    if (not owns(owner, caRef)):
-        close fail(ErrNotOwned)
-    ca = certificateAuthority(owner, caRef)
-    # Ready fails until the store is up; the retry policy is the wait.
-    activity kube.Ready(certificateStore.resource)
-        options:
-            start_to_close_timeout: 10m
-            retry_policy:
-                initial_interval: 5s
-                backoff_coefficient: 1.0
-                maximum_attempts: 0
-    activity postgres.CreateDatabase(ca.databaseName)
-    activity secrets.EnsurePassword(ca.databaseUserRef, ca.databaseUsername)
-    activity postgres.CreateUser(ca.databaseUserRef)
-    activity postgres.GrantPrivileges(ca.databaseUsername, ca.databaseName, ALL)
-    close complete(ca.databaseUserRef)
+	if (not owns(owner, caRef)):
+		close fail(ErrNotOwned)
+	ca = certificateAuthority(owner, caRef)
+	# Ready fails until the store is up; the retry policy is the wait.
+	activity kube.Ready(certificateStore.resource)
+		options:
+			start_to_close_timeout: 10m
+			retry_policy:
+				initial_interval: 5s
+				backoff_coefficient: 1.0
+				maximum_attempts: 0
+	activity postgres.CreateDatabase(ca.databaseName)
+	activity secrets.EnsurePassword(ca.databaseUserRef, ca.databaseUsername)
+	activity postgres.CreateUser(ca.databaseUserRef)
+	activity postgres.GrantPrivileges(ca.databaseUsername, ca.databaseName, ALL)
+	close complete(ca.databaseUserRef)
 
 workflow DeployCouchDb(peerId: PeerId):
-    couchDb = couchDbFor(owner, peerId)
-    nexus secrets-CreateAccess secrets.Secrets.CreateAccess(couchDb.vaultAccess)
-        options:
-            schedule_to_close_timeout: 5m
-    activity secrets.EnsurePassword(couchDb.adminRef, "admin")
-    workflow cluster.CreateDeployment(owner, couchDb.component)
-    # Ready fails until CouchDB is up, so the peer can connect when it starts.
-    activity kube.Ready(couchDb.resource)
-        options:
-            start_to_close_timeout: 10m
-            retry_policy:
-                initial_interval: 5s
-                backoff_coefficient: 1.0
-                maximum_attempts: 0
-    close complete
+	couchDb = couchDbFor(owner, peerId)
+	nexus secrets-CreateAccess secrets.Secrets.CreateAccess(couchDb.vaultAccess)
+		options:
+			schedule_to_close_timeout: 5m
+	activity secrets.EnsurePassword(couchDb.adminRef, "admin")
+	workflow cluster.CreateDeployment(owner, couchDb.component)
+	# Ready fails until CouchDB is up, so the peer can connect when it starts.
+	activity kube.Ready(couchDb.resource)
+		options:
+			start_to_close_timeout: 10m
+			retry_policy:
+				initial_interval: 5s
+				backoff_coefficient: 1.0
+				maximum_attempts: 0
+	close complete
 
 workflow DeployPeer(spec: PeerSpec):
-    peer = peerFor(owner, spec.id)
-    nexus secrets-CreateAccess secrets.Secrets.CreateAccess(peer.vaultAccess)
-        options:
-            schedule_to_close_timeout: 5m
-    workflow certauth.CreateIdentity(peer.subject, spec.orgIssuer, spec.tlsIssuer, peer.signing, peer.tls)
-    workflow cluster.CreateDeployment(owner, peer.component)
-    close complete
+	peer = peerFor(owner, spec.id)
+	nexus secrets-CreateAccess secrets.Secrets.CreateAccess(peer.vaultAccess)
+		options:
+			schedule_to_close_timeout: 5m
+	workflow certauth.CreateIdentity(peer.subject, spec.orgIssuer, spec.tlsIssuer, peer.signing, peer.tls)
+	workflow cluster.CreateDeployment(owner, peer.component)
+	close complete
 
 workflow DeployOrderer(spec: OrdererSpec):
-    orderer = ordererFor(owner, spec.id)
-    nexus secrets-CreateAccess secrets.Secrets.CreateAccess(orderer.vaultAccess)
-        options:
-            schedule_to_close_timeout: 5m
-    workflow certauth.CreateIdentity(orderer.subject, spec.orgIssuer, spec.tlsIssuer, orderer.signing, orderer.tls)
-    workflow cluster.CreateDeployment(owner, orderer.component)
-    close complete
+	orderer = ordererFor(owner, spec.id)
+	nexus secrets-CreateAccess secrets.Secrets.CreateAccess(orderer.vaultAccess)
+		options:
+			schedule_to_close_timeout: 5m
+	workflow certauth.CreateIdentity(orderer.subject, spec.orgIssuer, spec.tlsIssuer, orderer.signing, orderer.tls)
+	workflow cluster.CreateDeployment(owner, orderer.component)
+	close complete
 
 workflow DeployChainCode(chainCodeId: ChainCodeId):
-    # Not implemented yet.
-    close complete
+	# Not implemented yet.
+	close complete
 
 # pseudo-twf(conflict-policy): a duplicate start of any workflow below joins the running one.
 workflow CreateChannel():
-    workflow JoinOrdererToChannel()
-    workflow JoinPeerToChannel()
-    workflow SetAnchorPeer()
-    close complete
+	workflow JoinOrdererToChannel()
+	workflow JoinPeerToChannel()
+	workflow SetAnchorPeer()
+	close complete
 
 workflow AddOrdererToChannel():
-    workflow JoinOrdererToChannel()
-    workflow AddOrdererToConsenterSet()
-    close complete
+	workflow JoinOrdererToChannel()
+	workflow AddOrdererToConsenterSet()
+	close complete
 
 workflow AddPeerToChannel():
-    workflow AddOrgToChannel()
-    workflow JoinPeerToChannel()
-    close complete
+	workflow AddOrgToChannel()
+	workflow JoinPeerToChannel()
+	close complete
 
 workflow JoinOrdererToChannel():
-    # Not implemented yet.
-    close complete
+	# Not implemented yet.
+	close complete
 
 workflow JoinPeerToChannel():
-    # Not implemented yet.
-    close complete
+	# Not implemented yet.
+	close complete
 
 workflow SetAnchorPeer():
-    workflow UpdateChannelConfig()
-    close complete
+	workflow UpdateChannelConfig()
+	close complete
 
 workflow AddOrdererToConsenterSet():
-    workflow UpdateChannelConfig()
-    close complete
+	workflow UpdateChannelConfig()
+	close complete
 
 workflow AddOrgToChannel():
-    workflow UpdateChannelConfig()
-    close complete
+	workflow UpdateChannelConfig()
+	close complete
 
 workflow UpdateChannelConfig():
-    # Not implemented yet.
-    close complete
+	# Not implemented yet.
+	close complete

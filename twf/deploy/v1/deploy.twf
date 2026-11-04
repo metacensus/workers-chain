@@ -19,208 +19,208 @@ import "github.com/metacensus/workers-chain/twf/vault/v1"
 # Acts on behalf of the owner each input states.
 # pseudo-twf(owner): image metacensus/worker-infra, Kubernetes namespace workers, Vault role over every owner's policies.
 worker infra:
-    activity vault.CreateAuthRole
-    activity vault.DeleteAuthRole
-    activity vault.CreatePolicy
-    activity vault.DeletePolicy
-    activity secrets.EnsurePassword
-    activity secrets.EnsureKeyPair
-    activity secrets.CreateSelfSignedCertificate
-    activity secrets.StoreCertificate
-    activity secrets.StoreGenesisBlock
-    activity helm.RenderChart
-    activity kube.Create
-    activity kube.Apply
-    activity kube.Delete
-    activity kube.Status
-    activity kube.Ready
-    activity kube.Gone
-    activity kube.ExecPod
-    activity temporalmtls.EnsureTemporalMTLSClientCert
-    workflow cluster.CreateNamespace
-    workflow cluster.CreateServiceAccount
-    workflow cluster.CreateDeployment
-    workflow secrets.CreateAccess
-    activity temporal.RegisterNamespace
-    activity temporal.DescribeNamespace
-    activity temporal.CreateNexusEndpoint
-    activity temporal.DescribeNexusEndpoint
-    activity temporal.UpdateNexusEndpoint
-    workflow temporal.CreateNamespace
-    workflow cell.BootstrapInfra
-    workflow cell.InitFabric
-    workflow cell.InitFabricShard
-    nexus service secrets.Secrets
+	activity vault.CreateAuthRole
+	activity vault.DeleteAuthRole
+	activity vault.CreatePolicy
+	activity vault.DeletePolicy
+	activity secrets.EnsurePassword
+	activity secrets.EnsureKeyPair
+	activity secrets.CreateSelfSignedCertificate
+	activity secrets.StoreCertificate
+	activity secrets.StoreGenesisBlock
+	activity helm.RenderChart
+	activity kube.Create
+	activity kube.Apply
+	activity kube.Delete
+	activity kube.Status
+	activity kube.Ready
+	activity kube.Gone
+	activity kube.ExecPod
+	activity temporalmtls.EnsureTemporalMTLSClientCert
+	workflow cluster.CreateNamespace
+	workflow cluster.CreateServiceAccount
+	workflow cluster.CreateDeployment
+	workflow secrets.CreateAccess
+	activity temporal.RegisterNamespace
+	activity temporal.DescribeNamespace
+	activity temporal.CreateNexusEndpoint
+	activity temporal.DescribeNexusEndpoint
+	activity temporal.UpdateNexusEndpoint
+	workflow temporal.CreateNamespace
+	workflow cell.BootstrapInfra
+	workflow cell.InitFabric
+	workflow cell.InitFabricShard
+	nexus service secrets.Secrets
 
 # Acts as the operator: owns the shared TLS chain and its certificate store.
 # pseudo-twf(owner): image metacensus/worker-fabric, OPERATOR_ID injected, Kubernetes namespace fabric, Vault role over the operator's subtree.
 worker fabric:
-    activity vault.CreateAuthRole
-    activity vault.DeleteAuthRole
-    activity vault.CreatePolicy
-    activity vault.DeletePolicy
-    activity secrets.EnsurePassword
-    activity secrets.EnsureKeyPair
-    activity secrets.CreateSelfSignedCertificate
-    activity secrets.StoreCertificate
-    activity secrets.StoreGenesisBlock
-    activity helm.RenderChart
-    activity kube.Create
-    activity kube.Apply
-    activity kube.Delete
-    activity kube.Status
-    activity kube.Ready
-    activity kube.Gone
-    activity kube.ExecPod
-    activity temporalmtls.EnsureTemporalMTLSClientCert
-    workflow cluster.CreateNamespace
-    workflow cluster.CreateServiceAccount
-    workflow cluster.CreateDeployment
-    workflow certauth.SignCertificate
-    workflow certauth.IssueCertificate
-    workflow certauth.BootstrapIssueCertificate
-    workflow certauth.CreateBootstrapAdmin
-    workflow certauth.CreateAdmin
-    workflow certauth.CreateIdentity
-    activity certauth.RevokeIdentity
-    activity certauth.GenerateCsr
-    activity certauth.BootstrapEnrollCsr
-    activity certauth.SignCsr
-    activity channel.GenerateConfigTx
-    activity channel.GenerateGenesisBlock
-    activity channel.FetchConfig
-    activity channel.ComputeConfigUpdate
-    activity channel.SignConfigUpdate
-    activity channel.SubmitConfigUpdate
-    activity channel.GenerateOrgDefinition
-    activity channel.CollectSignatures
-    activity orderer.ChannelJoin
-    activity orderer.WaitForActive
-    activity peer.ChannelFetch
-    activity peer.ChannelJoin
-    workflow fabric.BootstrapFabric
-    workflow fabric.BootstrapShard
-    workflow fabric.DeployCertificateStore
-    workflow fabric.DeployCertificateAuthority
-    workflow fabric.CreateCertificateDatabase
-    workflow fabric.DeployCouchDb
-    workflow fabric.DeployPeer
-    workflow fabric.DeployOrderer
-    workflow fabric.DeployChainCode
-    workflow fabric.CreateChannel
-    workflow fabric.AddOrdererToChannel
-    workflow fabric.AddPeerToChannel
-    workflow fabric.JoinOrdererToChannel
-    workflow fabric.JoinPeerToChannel
-    workflow fabric.SetAnchorPeer
-    workflow fabric.AddOrdererToConsenterSet
-    workflow fabric.AddOrgToChannel
-    workflow fabric.UpdateChannelConfig
-    activity postgres.CreateDatabase
-    activity postgres.CreateUser
-    activity postgres.GrantPrivileges
-    nexus service certauth.CertificateAuthority
-    nexus service fabric.FabricBootstrap
+	activity vault.CreateAuthRole
+	activity vault.DeleteAuthRole
+	activity vault.CreatePolicy
+	activity vault.DeletePolicy
+	activity secrets.EnsurePassword
+	activity secrets.EnsureKeyPair
+	activity secrets.CreateSelfSignedCertificate
+	activity secrets.StoreCertificate
+	activity secrets.StoreGenesisBlock
+	activity helm.RenderChart
+	activity kube.Create
+	activity kube.Apply
+	activity kube.Delete
+	activity kube.Status
+	activity kube.Ready
+	activity kube.Gone
+	activity kube.ExecPod
+	activity temporalmtls.EnsureTemporalMTLSClientCert
+	workflow cluster.CreateNamespace
+	workflow cluster.CreateServiceAccount
+	workflow cluster.CreateDeployment
+	workflow certauth.SignCertificate
+	workflow certauth.IssueCertificate
+	workflow certauth.BootstrapIssueCertificate
+	workflow certauth.CreateBootstrapAdmin
+	workflow certauth.CreateAdmin
+	workflow certauth.CreateIdentity
+	activity certauth.RevokeIdentity
+	activity certauth.GenerateCsr
+	activity certauth.BootstrapEnrollCsr
+	activity certauth.SignCsr
+	activity channel.GenerateConfigTx
+	activity channel.GenerateGenesisBlock
+	activity channel.FetchConfig
+	activity channel.ComputeConfigUpdate
+	activity channel.SignConfigUpdate
+	activity channel.SubmitConfigUpdate
+	activity channel.GenerateOrgDefinition
+	activity channel.CollectSignatures
+	activity orderer.ChannelJoin
+	activity orderer.WaitForActive
+	activity peer.ChannelFetch
+	activity peer.ChannelJoin
+	workflow fabric.BootstrapFabric
+	workflow fabric.BootstrapShard
+	workflow fabric.DeployCertificateStore
+	workflow fabric.DeployCertificateAuthority
+	workflow fabric.CreateCertificateDatabase
+	workflow fabric.DeployCouchDb
+	workflow fabric.DeployPeer
+	workflow fabric.DeployOrderer
+	workflow fabric.DeployChainCode
+	workflow fabric.CreateChannel
+	workflow fabric.AddOrdererToChannel
+	workflow fabric.AddPeerToChannel
+	workflow fabric.JoinOrdererToChannel
+	workflow fabric.JoinPeerToChannel
+	workflow fabric.SetAnchorPeer
+	workflow fabric.AddOrdererToConsenterSet
+	workflow fabric.AddOrgToChannel
+	workflow fabric.UpdateChannelConfig
+	activity postgres.CreateDatabase
+	activity postgres.CreateUser
+	activity postgres.GrantPrivileges
+	nexus service certauth.CertificateAuthority
+	nexus service fabric.FabricBootstrap
 
 # Acts as its org: fabric's types (one body, branching on data), and its own service.
 # pseudo-twf(owner): image metacensus/worker-fabric-shard, ORG_ID injected, Kubernetes namespace fabric-shard-{org}, Vault role over the org's subtree.
 worker shard:
-    activity vault.CreateAuthRole
-    activity vault.DeleteAuthRole
-    activity vault.CreatePolicy
-    activity vault.DeletePolicy
-    activity secrets.EnsurePassword
-    activity secrets.EnsureKeyPair
-    activity secrets.CreateSelfSignedCertificate
-    activity secrets.StoreCertificate
-    activity secrets.StoreGenesisBlock
-    activity helm.RenderChart
-    activity kube.Create
-    activity kube.Apply
-    activity kube.Delete
-    activity kube.Status
-    activity kube.Ready
-    activity kube.Gone
-    activity kube.ExecPod
-    activity temporalmtls.EnsureTemporalMTLSClientCert
-    workflow cluster.CreateNamespace
-    workflow cluster.CreateServiceAccount
-    workflow cluster.CreateDeployment
-    workflow certauth.SignCertificate
-    workflow certauth.IssueCertificate
-    workflow certauth.BootstrapIssueCertificate
-    workflow certauth.CreateBootstrapAdmin
-    workflow certauth.CreateAdmin
-    workflow certauth.CreateIdentity
-    activity certauth.RevokeIdentity
-    activity certauth.GenerateCsr
-    activity certauth.BootstrapEnrollCsr
-    activity certauth.SignCsr
-    activity channel.GenerateConfigTx
-    activity channel.GenerateGenesisBlock
-    activity channel.FetchConfig
-    activity channel.ComputeConfigUpdate
-    activity channel.SignConfigUpdate
-    activity channel.SubmitConfigUpdate
-    activity channel.GenerateOrgDefinition
-    activity channel.CollectSignatures
-    activity orderer.ChannelJoin
-    activity orderer.WaitForActive
-    activity peer.ChannelFetch
-    activity peer.ChannelJoin
-    workflow fabric.BootstrapFabric
-    workflow fabric.BootstrapShard
-    workflow fabric.DeployCertificateStore
-    workflow fabric.DeployCertificateAuthority
-    workflow fabric.CreateCertificateDatabase
-    workflow fabric.DeployCouchDb
-    workflow fabric.DeployPeer
-    workflow fabric.DeployOrderer
-    workflow fabric.DeployChainCode
-    workflow fabric.CreateChannel
-    workflow fabric.AddOrdererToChannel
-    workflow fabric.AddPeerToChannel
-    workflow fabric.JoinOrdererToChannel
-    workflow fabric.JoinPeerToChannel
-    workflow fabric.SetAnchorPeer
-    workflow fabric.AddOrdererToConsenterSet
-    workflow fabric.AddOrgToChannel
-    workflow fabric.UpdateChannelConfig
-    activity postgres.CreateDatabase
-    activity postgres.CreateUser
-    activity postgres.GrantPrivileges
-    nexus service fabric.ShardBootstrap
+	activity vault.CreateAuthRole
+	activity vault.DeleteAuthRole
+	activity vault.CreatePolicy
+	activity vault.DeletePolicy
+	activity secrets.EnsurePassword
+	activity secrets.EnsureKeyPair
+	activity secrets.CreateSelfSignedCertificate
+	activity secrets.StoreCertificate
+	activity secrets.StoreGenesisBlock
+	activity helm.RenderChart
+	activity kube.Create
+	activity kube.Apply
+	activity kube.Delete
+	activity kube.Status
+	activity kube.Ready
+	activity kube.Gone
+	activity kube.ExecPod
+	activity temporalmtls.EnsureTemporalMTLSClientCert
+	workflow cluster.CreateNamespace
+	workflow cluster.CreateServiceAccount
+	workflow cluster.CreateDeployment
+	workflow certauth.SignCertificate
+	workflow certauth.IssueCertificate
+	workflow certauth.BootstrapIssueCertificate
+	workflow certauth.CreateBootstrapAdmin
+	workflow certauth.CreateAdmin
+	workflow certauth.CreateIdentity
+	activity certauth.RevokeIdentity
+	activity certauth.GenerateCsr
+	activity certauth.BootstrapEnrollCsr
+	activity certauth.SignCsr
+	activity channel.GenerateConfigTx
+	activity channel.GenerateGenesisBlock
+	activity channel.FetchConfig
+	activity channel.ComputeConfigUpdate
+	activity channel.SignConfigUpdate
+	activity channel.SubmitConfigUpdate
+	activity channel.GenerateOrgDefinition
+	activity channel.CollectSignatures
+	activity orderer.ChannelJoin
+	activity orderer.WaitForActive
+	activity peer.ChannelFetch
+	activity peer.ChannelJoin
+	workflow fabric.BootstrapFabric
+	workflow fabric.BootstrapShard
+	workflow fabric.DeployCertificateStore
+	workflow fabric.DeployCertificateAuthority
+	workflow fabric.CreateCertificateDatabase
+	workflow fabric.DeployCouchDb
+	workflow fabric.DeployPeer
+	workflow fabric.DeployOrderer
+	workflow fabric.DeployChainCode
+	workflow fabric.CreateChannel
+	workflow fabric.AddOrdererToChannel
+	workflow fabric.AddPeerToChannel
+	workflow fabric.JoinOrdererToChannel
+	workflow fabric.JoinPeerToChannel
+	workflow fabric.SetAnchorPeer
+	workflow fabric.AddOrdererToConsenterSet
+	workflow fabric.AddOrgToChannel
+	workflow fabric.UpdateChannelConfig
+	activity postgres.CreateDatabase
+	activity postgres.CreateUser
+	activity postgres.GrantPrivileges
+	nexus service fabric.ShardBootstrap
 
 # pseudo-twf(queue): every worker polls "infra" in its own namespace. twf routes by queue name
 # across namespaces, so a name unique to each namespace is what makes a child across owners an error.
 namespace infra:
-    worker infra
-        options:
-            task_queue: "infra"
-    # pseudo-twf(authz): callers fabric and every fabric-shard-{org}; the handler scopes the policy.
-    nexus endpoint secrets-CreateAccess
-        options:
-            task_queue: "infra"
+	worker infra
+		options:
+			task_queue: "infra"
+	# pseudo-twf(authz): callers fabric and every fabric-shard-{org}; the handler scopes the policy.
+	nexus endpoint secrets-CreateAccess
+		options:
+			task_queue: "infra"
 
 namespace fabric:
-    worker fabric
-        options:
-            task_queue: "fabric"
-    # pseudo-twf(authz): caller infra only.
-    nexus endpoint fabric-BootstrapFabric
-        options:
-            task_queue: "fabric"
-    # pseudo-twf(authz): caller fabric-shard-{org} only, and the request's requester must be {org}.
-    # It lands here but exists per org: its name is what identifies the requester.
-    nexus endpoint fabric-shard-{org}-CreateCertificate
-        options:
-            task_queue: "fabric"
+	worker fabric
+		options:
+			task_queue: "fabric"
+	# pseudo-twf(authz): caller infra only.
+	nexus endpoint fabric-BootstrapFabric
+		options:
+			task_queue: "fabric"
+	# pseudo-twf(authz): caller fabric-shard-{org} only, and the request's requester must be {org}.
+	# It lands here but exists per org: its name is what identifies the requester.
+	nexus endpoint fabric-shard-{org}-CreateCertificate
+		options:
+			task_queue: "fabric"
 
 namespace fabric-shard-{org}:
-    worker shard
-        options:
-            task_queue: "fabric-shard-{org}"
-    # pseudo-twf(authz): caller infra only.
-    nexus endpoint fabric-shard-{org}-BootstrapShard
-        options:
-            task_queue: "fabric-shard-{org}"
+	worker shard
+		options:
+			task_queue: "fabric-shard-{org}"
+	# pseudo-twf(authz): caller infra only.
+	nexus endpoint fabric-shard-{org}-BootstrapShard
+		options:
+			task_queue: "fabric-shard-{org}"

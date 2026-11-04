@@ -2,28 +2,28 @@
 package temporal
 
 workflow CreateNamespace(name: TemporalNamespace, retention: Retention) -> (TemporalNamespace):
-    activity RegisterNamespace(name, retention)
-    # Namespace creation is asynchronous.
-    deadline = workflow.now() + 2m
-    for (workflow.now() < deadline):
-        # A failed describe is retried by the loop, not failed.
-        activity DescribeNamespace(name) -> described
-        if (described.state == REGISTERED):
-            close complete(name)
-        await timer(1s)
-    close fail(ErrNamespaceActivationTimeout)
+	activity RegisterNamespace(name, retention)
+	# Namespace creation is asynchronous.
+	deadline = workflow.now() + 2m
+	for (workflow.now() < deadline):
+		# A failed describe is retried by the loop, not failed.
+		activity DescribeNamespace(name) -> described
+		if (described.state == REGISTERED):
+			close complete(name)
+		await timer(1s)
+	close fail(ErrNamespaceActivationTimeout)
 
 activity RegisterNamespace(name: TemporalNamespace, retention: Retention):
-    temporal.registerNamespace(name, retention)
+	temporal.registerNamespace(name, retention)
 
 activity DescribeNamespace(name: TemporalNamespace) -> (NamespaceDescription):
-    return temporal.describeNamespace(name)
+	return temporal.describeNamespace(name)
 
 activity CreateNexusEndpoint(name: EndpointName, namespace: TemporalNamespace, taskQueue: TaskQueue) -> (EndpointId):
-    return temporal.createNexusEndpoint(name, namespace, taskQueue)
+	return temporal.createNexusEndpoint(name, namespace, taskQueue)
 
 activity DescribeNexusEndpoint(id: EndpointId) -> (Endpoint):
-    return temporal.describeNexusEndpoint(id)
+	return temporal.describeNexusEndpoint(id)
 
 activity UpdateNexusEndpoint(endpoint: Endpoint):
-    temporal.updateNexusEndpoint(endpoint)
+	temporal.updateNexusEndpoint(endpoint)

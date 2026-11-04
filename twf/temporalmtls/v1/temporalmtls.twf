@@ -4,6 +4,6 @@ package temporalmtls
 
 # pseudo-twf(wire-name): registered under its bare Go name, not a proto-derived one.
 activity EnsureTemporalMTLSClientCert(targetNamespace: KubernetesNamespace, temporalNamespace: TemporalNamespace):
-    # The fabric namespace copies the cluster's client secret; any other gets a
-    # leaf signed by the cluster's client CA.
-    k8s.ensureSecret(targetNamespace, "temporal-mtls-client", temporalNamespace)
+	# The fabric namespace copies the cluster's client secret; any other gets a
+	# leaf signed by the cluster's client CA.
+	k8s.ensureSecret(targetNamespace, "temporal-mtls-client", temporalNamespace)
