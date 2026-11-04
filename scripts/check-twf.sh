@@ -4,11 +4,10 @@
 #
 # twf binds an import only to a package of a module whose directory is among the inputs, so the
 # library's module root (its twf.mod) is passed beside twf/: the module cache, at the version
-# go.mod pins. TWF_LIBRARY_DIR points at another copy of that root, to try a library change
-# before its release.
+# go.mod pins.
 set -euo pipefail
 
-library=${TWF_LIBRARY_DIR:-$(GOWORK=off go mod download -json github.com/metacensus/library-temporal-kube | jq -r .Dir)}
+library=$(GOWORK=off go mod download -json github.com/metacensus/library-temporal-kube | jq -r .Dir)
 
 # A warning is an error here: an import that names no package in the run turns
 # every reference through it into an unchecked external.

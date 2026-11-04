@@ -24,7 +24,7 @@ require (
 	github.com/hyperledger/fabric-ca v1.5.13
 	github.com/hyperledger/fabric-lib-go v1.1.2
 	github.com/jackc/pgx/v5 v5.9.2
-	github.com/metacensus/library-temporal-kube v0.0.0-20261102021942-872526b292ef
+	github.com/metacensus/library-temporal-kube v0.0.0-20261104074445-ef839be72905
 	github.com/nexus-rpc/sdk-go v0.5.1
 	github.com/spf13/viper v1.20.0
 	github.com/stretchr/testify v1.11.1
