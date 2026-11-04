@@ -30,4 +30,4 @@ Design decisions are in [AGENTS.md](AGENTS.md). Ownership boundaries: [`docs/str
 
 ## License
 
-[AGPL-3.0-only](LICENSE). See [NOTICE](NOTICE) for BSD-3-Clause material retained from the infra carve.
+[AGPL-3.0-only](LICENSE). See [NOTICE](NOTICE) for retained BSD-3-Clause material.
