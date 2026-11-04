@@ -212,13 +212,10 @@ namespace fabric:
 		options:
 			task_queue: "infra"
 			allowed_caller_namespaces: ["infra"]
-	# It lands here but exists per org: its name is what identifies the requester. Only orgs call;
-	# "fabric" is listed because IssueCertificate is one function on both workers, and twf cannot
-	# see that the operator branch fails before this call.
+	# pseudo-twf(authz): only fabric-shard-{org} calls this and the requester must be {org}; the operator's path fails before the call.
 	nexus endpoint fabric-shard-{org}-CreateCertificate
 		options:
 			task_queue: "infra"
-			allowed_caller_namespaces: ["fabric", "fabric-shard-{org}"]
 
 namespace fabric-shard-{org}:
 	worker shard
