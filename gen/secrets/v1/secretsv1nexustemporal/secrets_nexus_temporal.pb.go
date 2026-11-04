@@ -2,7 +2,7 @@
 // versions:
 //
 //	protoc-gen-go-nexus-temporal dev (latest)
-//	go go1.27.2
+//	go go1.27.3
 //	protoc (unknown)
 //
 // source: secrets/v1/secrets.proto
