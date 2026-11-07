@@ -112,16 +112,15 @@ branch; a foreign issuer always signs as its **own** permanent admin, so no
 caller-chosen registrar crosses the ownership boundary. The only cross-owner
 Nexus operation is `SignCertificate`, and it carries a **public CSR only**.
 
-> **Note (stale wire name):** the Nexus *endpoint* is still registered under the
-> legacy string `fabric-CreateCertificate` (`cell/v1/workflows.go`
-> `FabricCreateCertificateNexusEndpoint`). The served operation is
-> `SignCertificate`; the endpoint rename is deferred to a coordinated redeploy.
+> **Note:** each org reaches `SignCertificate` through its own endpoint,
+> `fabric-shard-{org}-CreateCertificate`, which `InitFabricShard` registers
+> (see Nexus Authorization).
 
 ---
 
 ## Nexus Authorization
 
-**Status: 🟢 Happy path ready** ([PR #51](infra PR 51), issue [#43](infra issue 43)). Server gate, mTLS, handler payload checks, and live happy-path/negative probes are in. Cross-owner CN/SAN namespacing remains deferred.
+**Status: 🟢 Happy path ready** (metacensus/infra#51, metacensus/infra#43). Server gate, mTLS, handler payload checks, and live happy-path/negative probes are in. Cross-owner CN/SAN namespacing remains deferred.
 
 Temporal Cloud has per-endpoint caller-namespace allowlists. Self-hosted does not — the supported path is a compile-time [Authorizer](https://docs.temporal.io/self-hosted-guide/security#authorizer-plugin) injected into a custom Temporal server binary ([docs](https://docs.temporal.io/nexus/security)). Runtime-loadable auth plugins are not supported.
 
@@ -222,14 +221,13 @@ Live negatives (re-run 2026-08-26 after deploying the registry gate):
 
 The two seams: history binds **caller→endpoint** (and logs `nexus endpoint denied for caller namespace` with caller + endpoint tags); frontend Authorizer binds **endpoint→payload** and logs `authorization denied` with a full reason string. Handler policy remains defense in depth.
 
-Remaining (issue [#43](infra issue 43)):
+Remaining (metacensus/infra#43):
 
 - [x] **Narrow Nexus registration** — fabric worker: `BootstrapFabric` + `SignCertificate` only; shard worker: `BootstrapShard` only; infra already `CreateAccess` only ✅
-- [x] **Open PR** — [#51](infra PR 51) (`erikforsman/nexus-authorization`)
-- [ ] **Land PR** — merge #51 to `main`
+- [x] **Land PR** — metacensus/infra#51 merged
 - [ ] **CN/SAN namespacing** — scope leaf subject (CN/SAN) to the declared requester on the CreateCertificate path
 
-Code lives in `temporal-server/` (gate) and `temporal/lib/` (handler policy). Ownership boundary: [OWNERSHIP.md P2](../strategy/OWNERSHIP.md#p2--local-call--my-resources-nexus--someone-elses).
+Code lives in metacensus/infra's `temporal-server/` (gate) and this repository's `lib/` (handler policy). Ownership boundary: [OWNERSHIP.md P2](../strategy/OWNERSHIP.md#p2--local-call--my-resources-nexus--someone-elses).
 
 ---
 
@@ -249,7 +247,6 @@ cell.v1.InitFabric (Infra Worker, infra namespace, on behalf of the operator)
 ├─ cluster.fabric.v1.CreateServiceAccount (Owner: operator)
 ├─ secrets.v1.CreateAccess (WorkerVaultPolicy(operator))
 ├─ cluster.fabric.v1.CreateDeployment (Owner: operator, fabric worker)
-├─ temporal.v1.CreateNexusEndpoint (SignCertificate)
 ├─ temporal.v1.CreateNexusEndpoint (BootstrapFabric)
 │
 └─ Nexus → fabric.v1.BootstrapFabric (Fabric Worker, fabric namespace, acts AS operator)
@@ -275,6 +272,7 @@ cell.v1.InitFabricShard (Infra Worker, infra namespace, on behalf of {org})
 ├─ secrets.v1.CreateAccess (WorkerVaultPolicy(org))
 ├─ cluster.fabric.v1.CreateDeployment (Owner: org, shard worker)
 ├─ temporal.v1.CreateNexusEndpoint (BootstrapShard)
+├─ temporal.v1.CreateNexusEndpoint (fabric-shard-{org}-CreateCertificate → fabric worker)
 │
 └─ Nexus → fabric.v1.BootstrapShard (Shard Worker, fabric-shard-{org} namespace, acts AS org)
            │   input: DeploymentSpec with ordered CertificateAuthoritySpec (org/root, org/int)
@@ -342,7 +340,6 @@ cell.v1.InitFabric ✅
 ├─ cluster.fabric.v1.CreateServiceAccount ✅
 ├─ secrets.v1.CreateAccess ✅
 ├─ cluster.fabric.v1.CreateDeployment ✅ (fabric worker)
-├─ temporal.v1.CreateNexusEndpoint ✅ (SignCertificate — endpoint still named fabric-CreateCertificate)
 ├─ temporal.v1.CreateNexusEndpoint ✅ (BootstrapFabric)
 └─ Nexus → fabric.v1.BootstrapFabric ✅
 ```
@@ -354,7 +351,8 @@ cell.v1.InitFabricShard ✅
 ├─ cluster.fabric.v1.CreateServiceAccount ✅
 ├─ secrets.v1.CreateAccess ✅
 ├─ cluster.fabric.v1.CreateDeployment ✅
-├─ temporal.v1.CreateNexusEndpoint ✅
+├─ temporal.v1.CreateNexusEndpoint ✅ (BootstrapShard)
+├─ temporal.v1.CreateNexusEndpoint ✅ (fabric-shard-{org}-CreateCertificate)
 └─ Nexus → fabric.v1.BootstrapShard 🟡 (CA deployment only; peers gated off)
 ```
 

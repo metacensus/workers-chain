@@ -7,7 +7,7 @@ This document defines four principles (P1-P4) that govern how ownership flows th
 ## Vocabulary
 
 - **Owner**: the identity that owns a set of resources — either the *operator* (shared infrastructure: TLS CAs, certificate store, fabric worker) or an *org* (per-shard infrastructure: org CAs, peers, orderers).
-- **Owner config**: `OperatorConfig` or `OrgConfig` (`temporal/lib/workers/config/owner.go`), implementing `OwnerConfig`. All resource names, Kubernetes namespaces, and Vault paths derive from it.
+- **Owner config**: `OperatorConfig` or `OrgConfig` (`lib/workers/config/owner.go`), implementing `OwnerConfig`. All resource names, Kubernetes namespaces, and Vault paths derive from it.
 - **Acting AS an owner**: fabric and shard worker workflows run with their worker's identity — the operator for the fabric worker (`OPERATOR_ID`), an org for shard workers (`ORG_ID`).
 - **Acting ON BEHALF OF an owner**: infra worker workflows (cell, cluster.fabric, secrets, temporal packages) provision resources *for* an owner they receive as an explicit, typed input.
 
@@ -114,9 +114,9 @@ Sharing a *workflow type* across security contexts is different from sharing *fu
 
 **A worker or component policy is composed from the component configs' path methods. Policies are never hand-assembled in a distant package.**
 
-If the code that writes a secret computes its path from `CertificateStoreConfig.VaultKeysBasePath()` but the policy granting access is assembled by string concatenation in another package, the two drift independently — and drift surfaces as a runtime 403 during bootstrap, the most expensive possible place to find it. The old `buildOperatorVaultPolicy` lived in `temporal/lib/cell/v1/workflows.go` while the paths it needed to cover lived in `temporal/lib/workers/fabric/config`; that distance is exactly what let the policy and the paths disagree.
+If the code that writes a secret computes its path from `CertificateStoreConfig.VaultKeysBasePath()` but the policy granting access is assembled by string concatenation in another package, the two drift independently — and drift surfaces as a runtime 403 during bootstrap, the most expensive possible place to find it. The old `buildOperatorVaultPolicy` lived in `lib/cell/v1/workflows.go` while the paths it needed to cover lived in `lib/workers/fabric/config`; that distance is exactly what let the policy and the paths disagree.
 
-- Component configs (`temporal/lib/workers/fabric/config`) own both the path methods (`VaultKeysBasePath()`, `VaultDataPath()`, …) and the `VaultPolicy()` documents built from them.
+- Component configs (`lib/workers/fabric/config`) own both the path methods (`VaultKeysBasePath()`, `VaultDataPath()`, …) and the `VaultPolicy()` documents built from them.
 - Worker policies are produced by a `WorkerVaultPolicy(owner)` function in the same package, composed from those same path methods.
 - Every worker gets access to only its own owner's subtree — there are no cross-owner rules. The CSR-based issuance flow keeps each private key and signed cert inside its owner's subtree (P2), so no cross-shard `certs/*` carve-out is needed.
 

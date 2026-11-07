@@ -442,7 +442,7 @@ This allows rotating Org CA signing capabilities without affecting mTLS infrastr
 - [Certificate matrix](#certificate-matrix) — Complete certificate matrix (formerly `certs.csv`)
 - [bootstrap-workflows.md](./bootstrap-workflows.md) — Fabric shard bootstrap workflow design
 - [create-channel-workflows.md](./create-channel-workflows.md) — Channel creation after bootstrap
-- [temporal/README.md](../../temporal/README.md) — Workflow patterns
+- [temporal-README.md](../temporal-README.md) — Workflow patterns
 
 ---
 
