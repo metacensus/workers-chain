@@ -2,19 +2,16 @@
 
 **Canonical home** for Temporal package layout, workflow modules, and registration rules.
 
-**Temporal code placement:** this README. **Core Go placement** (API, chaincode, fabric client):
-[core/README.md](../core/README.md#architecture--layer-placement)
+**Temporal code placement:** this README.
 
 ## Pattern: Proto-Framework-Implementation (PFI)
 
 Protobuf definitions generate framework code; `lib/` provides implementations.
 
-**PFI guide (canonical):** [docs/strategy/PFI_PATTERN.md](../docs/strategy/PFI_PATTERN.md)
-
 ### Package structure
 
 ```text
-temporal/
+workers-chain/
 ├── proto/<service>/<version>/           # Interface definitions (.proto)
 ├── gen/<service>/<version>/             # Generated messages + Temporal stubs
 ├── lib/<service>/<version>/             # workflows.go, activities.go, client.go, fx.go
@@ -35,16 +32,12 @@ wired through `fx.Module`. Missing registration causes runtime "activity not fou
 
 ## Testing
 
-Run from `temporal/`:
+Run from the repository root:
 
 ```bash
 go test ./lib/...
 go test -tags=integration ./lib/...
 ```
-
-**Testing strategy (canonical):** [UNIT_TESTING.md](../.agents/skills/temporal-testing/references/UNIT_TESTING.md)
-and linked workflow/activity/client guides. Explicit test planning: `temporal-testing`
-skill.
 
 ## Key workflow packages
 
@@ -54,12 +47,12 @@ skill.
 | `lib/fabric/v1/` | Shared fabric + per-org shard orchestration (CAs, peers, orderers) |
 | `lib/fabric/certauth/v1/` | Certificate authority identity and CSR signing |
 | `lib/cluster/fabric/v1/` | K8s namespace/deployment for Fabric components |
-| `lib/kube/v1/` | Generic Kubernetes create/update |
 | `lib/vault/v1/` | Vault secret and policy operations |
 | `lib/postgres/v1/` | Postgres schema and queries |
 | `lib/secrets/v1/` | Secret generation and storage |
-| `lib/helm/v1/` | Helm chart rendering |
 | `lib/temporal/v1/` | Temporal namespace and Nexus management |
+
+Generic Kubernetes and Helm activities come from `github.com/metacensus/library-temporal-kube`.
 
 ## Pattern: Ownership Model
 
@@ -76,8 +69,6 @@ touch Vault paths or Kubernetes namespaces.
 
 ## Related docs
 
-- [docs/strategy/PFI_PATTERN.md](../docs/strategy/PFI_PATTERN.md)
 - [docs/strategy/OWNERSHIP.md](../docs/strategy/OWNERSHIP.md)
 - [docs/fabric/bootstrap-workflows.md](../docs/fabric/bootstrap-workflows.md)
-- [terraform/README.md](../terraform/README.md) — what Terraform provisions vs what workflows orchestrate
 - [AGENTS.md](../AGENTS.md) — decision framework
