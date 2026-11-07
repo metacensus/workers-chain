@@ -12,6 +12,9 @@ endif
 TOOL_PATH := PATH="$(CURDIR)/.bin:$$PATH"
 
 GOLANGCI_LINT_VERSION := v2.14.0
+# Run through npx at this version, as library-temporal-kube does, so no install step can drift.
+TWF_VERSION := 0.16.0
+TWF := npx -y @temporal-architect/twf@$(TWF_VERSION)
 GOVULNCHECK := golang.org/x/vuln/cmd/govulncheck@v1.8.0
 
 help:
@@ -84,7 +87,7 @@ check: lint
 	@git diff --exit-code -- gen proto || (echo 'proto gen dirty; run make proto' && exit 1)
 	@GOWORK=off GOTOOLCHAIN=$(GEN_TOOLCHAIN) go generate -run mockery
 	@git diff --exit-code -- mocks || (echo 'mocks dirty; run make mocks' && exit 1)
-	@scripts/check-twf.sh
+	@TWF="$(TWF)" scripts/check-twf.sh
 	@bash -c 'for chart in helm/fabric/*; do \
 		if [ -f "$$chart/Chart.yaml" ]; then \
 			echo "  Linting $$chart..."; \
