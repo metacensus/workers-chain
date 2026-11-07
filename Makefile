@@ -1,6 +1,6 @@
 .PHONY: help check proto mocks gen lint-proto-check docker-build test fmt vet \
 	install-tools-gen install-tools-lint lint vuln release latest \
-	fmt-check hooks generated-paths
+	fmt-check tidy-check hooks generated-paths
 
 .DEFAULT_GOAL := help
 
@@ -81,7 +81,12 @@ vuln:
 		echo 'vuln: a finding above has a fixed version; upgrade that module'; exit 1; \
 	fi
 
-## check — proto/mocks freshness, twf design, helm lint, lint, unit tests
+## tidy-check — go mod tidy leaves go.mod and go.sum unchanged
+tidy-check:
+	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go mod tidy
+	@git diff --exit-code -- go.mod go.sum || (echo 'go.mod dirty; run go mod tidy' && exit 1)
+
+## check — proto/mocks freshness, twf design, helm lint, tidy, lint, unit tests
 check: lint
 	@$(TOOL_PATH) buf generate
 	@git diff --exit-code -- gen proto || (echo 'proto gen dirty; run make proto' && exit 1)
@@ -98,6 +103,7 @@ check: lint
 			fi; \
 		fi; \
 	done'
+	@$(MAKE) tidy-check
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go test ./...
 
 ## docker-build — build the three worker images for this machine
