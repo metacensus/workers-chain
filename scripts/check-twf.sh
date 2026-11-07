@@ -11,7 +11,7 @@ library=$(GOWORK=off go mod download -json github.com/metacensus/library-tempora
 
 # A warning is an error here: an import that names no package in the run turns
 # every reference through it into an unchecked external.
-out=$(twf check twf "$library" 2>&1) || { echo "$out"; exit 1; }
+out=$(${TWF:-twf} check twf "$library" 2>&1) || { echo "$out"; exit 1; }
 if grep -q '^warning' <<<"$out"; then echo "$out"; exit 1; fi
 
 rpcs() { # kind protofile...: the RPC names whose temporal option is that kind
