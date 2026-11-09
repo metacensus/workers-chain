@@ -93,9 +93,11 @@ spec:
           value: "0.0.0.0:{{ .Values.service.operationsPort }}"
         - name: CORE_METRICS_PROVIDER
           value: "prometheus"
-        # Chaincode configuration
-        # Note: Docker-based chaincode is disabled. Use external chaincode builders
-        # (chaincode-as-a-service) for production Kubernetes deployments.
+        # Chaincode runs as a service, never in Docker. An empty VM endpoint keeps
+        # the peer from registering a Docker health check, which fails /healthz
+        # without a Docker socket.
+        - name: CORE_VM_ENDPOINT
+          value: ""
         - name: FABRIC_LOGGING_SPEC
           value: {{ .Values.logging.level | quote }}
         resources:
