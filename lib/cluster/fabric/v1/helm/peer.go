@@ -85,7 +85,6 @@ type PeerProbeConfig struct {
 func NewPeerValues(
 	peerConfig fabricconfig.PeerConfig,
 	orgRootCA fabricconfig.CertificateAuthorityConfig,
-	tlsRootCA fabricconfig.CertificateAuthorityConfig,
 ) *PeerValues {
 	couchDbConfig := fabricconfig.NewCouchDbConfig(peerConfig.OwnerConfig, peerConfig.PeerID())
 
@@ -109,7 +108,7 @@ func NewPeerValues(
 			TlsCertPath:        "secret/data/" + peerConfig.VaultTLSCertRef().GetRef().Fields["path"].GetStringValue(),
 			// CA root certs for trust stores (root CA only)
 			MspRootCaCertPath: "secret/data/" + orgRootCA.VaultSigningCertRef().GetRef().Fields["path"].GetStringValue(),
-			TlsRootCaCertPath: "secret/data/" + tlsRootCA.VaultSigningCertRef().GetRef().Fields["path"].GetStringValue(),
+			TlsRootCaCertPath: peerConfig.TLSRootCA().VaultSigningCertDataPath(), // the path its Vault policy grants
 		},
 		Service: PeerServiceConfig{
 			Type:           "ClusterIP",

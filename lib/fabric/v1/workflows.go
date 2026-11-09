@@ -56,13 +56,17 @@ var (
 //
 // The owner is constant for the lifetime of a Temporal namespace, so reading
 // it inside workflow code is deterministic and replay-safe.
+//
+// The operator is platform context, as on the cluster workflows: an org's
+// peers and orderers trust, and may read, the operator's TLS root CA.
 type Workflows struct {
-	owner config.OwnerConfig
+	owner    config.OwnerConfig
+	operator *config.OperatorConfig
 }
 
 // NewWorkflows creates a new Workflows instance acting as the given owner.
-func NewWorkflows(owner config.OwnerConfig) *Workflows {
-	return &Workflows{owner: owner}
+func NewWorkflows(owner config.OwnerConfig, operator *config.OperatorConfig) *Workflows {
+	return &Workflows{owner: owner, operator: operator}
 }
 
 func (w *Workflows) BootstrapFabric(ctx workflow.Context, input *pb.BootstrapFabricWorkflowInput) (pb.BootstrapFabricWorkflow, error) {
@@ -292,17 +296,18 @@ func (w *deployCouchDbWorkflow) Execute(ctx workflow.Context) (*pb.DeployCouchDb
 }
 
 func (w *Workflows) DeployPeer(ctx workflow.Context, input *pb.DeployPeerWorkflowInput) (pb.DeployPeerWorkflow, error) {
-	return newDeployPeerWorkflow(input, w.owner)
+	return newDeployPeerWorkflow(input, w.owner, w.operator)
 }
 
 type deployPeerWorkflow struct {
-	input *pb.DeployPeerWorkflowInput
-	owner config.OwnerConfig
+	input    *pb.DeployPeerWorkflowInput
+	owner    config.OwnerConfig
+	operator *config.OperatorConfig
 }
 
 // newDeployPeerWorkflow creates and validates a new deployPeerWorkflow
-func newDeployPeerWorkflow(input *pb.DeployPeerWorkflowInput, owner config.OwnerConfig) (*deployPeerWorkflow, error) {
-	w := &deployPeerWorkflow{input: input, owner: owner}
+func newDeployPeerWorkflow(input *pb.DeployPeerWorkflowInput, owner config.OwnerConfig, operator *config.OperatorConfig) (*deployPeerWorkflow, error) {
+	w := &deployPeerWorkflow{input: input, owner: owner, operator: operator}
 	if err := w.validate(); err != nil {
 		return nil, err
 	}
@@ -327,7 +332,7 @@ func (w *deployPeerWorkflow) validate() error {
 func (w *deployPeerWorkflow) Execute(ctx workflow.Context) (*pb.DeployPeerOutput, error) {
 	spec := w.input.Req.GetSpec()
 	peerID := spec.GetId()
-	peerConfig := fabricconfig.NewPeerConfig(w.owner, peerID)
+	peerConfig := fabricconfig.NewPeerConfig(w.owner, w.operator, peerID)
 
 	_, err := NexusSecretsCreateAccess(ctx, peerConfig)
 	if err != nil {
@@ -368,17 +373,18 @@ func (w *deployPeerWorkflow) Execute(ctx workflow.Context) (*pb.DeployPeerOutput
 }
 
 func (w *Workflows) DeployOrderer(ctx workflow.Context, input *pb.DeployOrdererWorkflowInput) (pb.DeployOrdererWorkflow, error) {
-	return newDeployOrdererWorkflow(input, w.owner)
+	return newDeployOrdererWorkflow(input, w.owner, w.operator)
 }
 
 type deployOrdererWorkflow struct {
-	input *pb.DeployOrdererWorkflowInput
-	owner config.OwnerConfig
+	input    *pb.DeployOrdererWorkflowInput
+	owner    config.OwnerConfig
+	operator *config.OperatorConfig
 }
 
 // newDeployOrdererWorkflow creates and validates a new deployOrdererWorkflow
-func newDeployOrdererWorkflow(input *pb.DeployOrdererWorkflowInput, owner config.OwnerConfig) (*deployOrdererWorkflow, error) {
-	w := &deployOrdererWorkflow{input: input, owner: owner}
+func newDeployOrdererWorkflow(input *pb.DeployOrdererWorkflowInput, owner config.OwnerConfig, operator *config.OperatorConfig) (*deployOrdererWorkflow, error) {
+	w := &deployOrdererWorkflow{input: input, owner: owner, operator: operator}
 	if err := w.validate(); err != nil {
 		return nil, err
 	}
@@ -403,7 +409,7 @@ func (w *deployOrdererWorkflow) validate() error {
 func (w *deployOrdererWorkflow) Execute(ctx workflow.Context) (*pb.DeployOrdererOutput, error) {
 	spec := w.input.Req.GetSpec()
 	ordererID := spec.GetId()
-	ordererConfig := fabricconfig.NewOrdererConfig(w.owner, ordererID)
+	ordererConfig := fabricconfig.NewOrdererConfig(w.owner, w.operator, ordererID)
 
 	_, err := NexusSecretsCreateAccess(ctx, ordererConfig)
 	if err != nil {

@@ -280,7 +280,7 @@ func TestNewDeployPeerWorkflow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wf, err := newDeployPeerWorkflow(tt.input, orgOwner)
+			wf, err := newDeployPeerWorkflow(tt.input, orgOwner, &operatorOwner)
 			assertConstructorResult(t, wf == nil, err, tt.wantErr, tt.errSubstr)
 		})
 	}
@@ -326,7 +326,7 @@ func TestNewDeployOrdererWorkflow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wf, err := newDeployOrdererWorkflow(tt.input, orgOwner)
+			wf, err := newDeployOrdererWorkflow(tt.input, orgOwner, &operatorOwner)
 			assertConstructorResult(t, wf == nil, err, tt.wantErr, tt.errSubstr)
 		})
 	}
@@ -717,7 +717,7 @@ func TestDeployCertificateStoreWorkflow(t *testing.T) {
 
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployCertificateStoreInput) (*pb.DeployCertificateStoreOutput, error) {
-				workflows := NewWorkflows(tt.owner)
+				workflows := NewWorkflows(tt.owner, &operatorOwner)
 				wf, err := workflows.DeployCertificateStore(ctx, &pb.DeployCertificateStoreWorkflowInput{Req: input})
 				if err != nil {
 					return nil, err
@@ -860,7 +860,7 @@ func TestCreateCertificateDatabaseWorkflow(t *testing.T) {
 
 			// Execute workflow
 			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.CreateCertificateDatabaseInput) (*pb.CreateCertificateDatabaseOutput, error) {
-				workflows := NewWorkflows(tt.owner)
+				workflows := NewWorkflows(tt.owner, &operatorOwner)
 				wf, err := workflows.CreateCertificateDatabase(ctx, &pb.CreateCertificateDatabaseWorkflowInput{Req: input})
 				if err != nil {
 					return nil, err
@@ -936,7 +936,7 @@ func TestDeployCouchDbWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows(orgOwner)
+			workflows := NewWorkflows(orgOwner, &operatorOwner)
 
 			registerChildWorkflowStubs(env)
 			registerSecretsActivityStubs(env)
@@ -1020,7 +1020,7 @@ func TestDeployPeerWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows(orgOwner)
+			workflows := NewWorkflows(orgOwner, &operatorOwner)
 
 			registerChildWorkflowStubs(env)
 
@@ -1088,7 +1088,7 @@ func TestDeployOrdererWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows(orgOwner)
+			workflows := NewWorkflows(orgOwner, &operatorOwner)
 
 			registerChildWorkflowStubs(env)
 
@@ -1153,7 +1153,7 @@ func TestBootstrapFabricWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows(operatorOwner)
+			workflows := NewWorkflows(operatorOwner, &operatorOwner)
 
 			registerChildWorkflowStubs(env)
 
@@ -1254,7 +1254,7 @@ func TestBootstrapShardWorkflow(t *testing.T) {
 			testSuite := &testsuite.WorkflowTestSuite{}
 			env := testSuite.NewTestWorkflowEnvironment()
 
-			workflows := NewWorkflows(orgOwner)
+			workflows := NewWorkflows(orgOwner, &operatorOwner)
 
 			registerChildWorkflowStubs(env)
 
@@ -1315,7 +1315,7 @@ func TestBootstrapShardWorkflow(t *testing.T) {
 // executeDeployCA runs DeployCertificateAuthority with the given owner and spec
 func executeDeployCA(env *testsuite.TestWorkflowEnvironment, owner workerconfig.OwnerConfig, spec *pb.CertificateAuthoritySpec) {
 	env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.DeployCertificateAuthorityInput) (*pb.DeployCertificateAuthorityOutput, error) {
-		workflows := NewWorkflows(owner)
+		workflows := NewWorkflows(owner, &operatorOwner)
 		wf, err := workflows.DeployCertificateAuthority(ctx, &pb.DeployCertificateAuthorityWorkflowInput{Req: input})
 		if err != nil {
 			return nil, err

@@ -183,7 +183,7 @@ Caller worker (mTLS identity = Temporal NS)
 | `infra` | `fabric-BootstrapFabric` | `BootstrapFabric` only |
 | `infra` | `fabric-shard-{org}-BootstrapShard` | `BootstrapShard` only (matching `{org}`) |
 | `fabric` | `secrets-CreateAccess` | `CreateAccess` iff policy ⊆ operator Vault subtree |
-| `fabric-shard-{org}` | `secrets-CreateAccess` | `CreateAccess` iff policy ⊆ that org's Vault subtree |
+| `fabric-shard-{org}` | `secrets-CreateAccess` | `CreateAccess` iff policy ⊆ that org's Vault subtree, plus read-only on the operator's TLS CA signing certificates (`fabric/{operator}/certs/ca/tls/{ca}/signing`, public) for peer and orderer trust stores |
 | `fabric-shard-{org}` | `fabric-shard-{org}-CreateCertificate` | `SignCertificate` only; requester must match `{org}`; privileged profiles/attrs rejected |
 
 All other caller × endpoint × operation pairs are denied. In-workflow calls are gated by the history-service endpoint registry; HTTP Nexus dispatch is gated by the frontend Authorizer (caller when present, plus endpoint→payload binding for certificate endpoints).

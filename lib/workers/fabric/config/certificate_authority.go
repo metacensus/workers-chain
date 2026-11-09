@@ -422,6 +422,13 @@ func (ca CertificateAuthorityConfig) VaultCertsMetadataPath() string {
 	return fmt.Sprintf("%s/%s/certs/*", vaultSecretMetadataPrefix, ca.VaultBasePath())
 }
 
+// VaultSigningCertDataPath returns the Vault KV v2 data path of this CA's
+// signing certificate, as a chart's SecretProviderClass reads it.
+// Example: "secret/data/fabric/metacensus/certs/ca/tls/root/signing"
+func (ca CertificateAuthorityConfig) VaultSigningCertDataPath() string {
+	return fmt.Sprintf("%s/%s/signing", vaultSecretDataPrefix, ca.VaultCertsBasePath())
+}
+
 // VaultPolicy creates a Vault policy document for the certificate authority.
 // The policy grants:
 // - Read access to ALL certificates (certs/*) - certificates are public
