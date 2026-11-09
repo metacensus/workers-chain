@@ -9,7 +9,9 @@ import (
 	pb "github.com/metacensus/workers-chain/gen/fabric/certauth/v1"
 	workerconfig "github.com/metacensus/workers-chain/lib/workers/config"
 	"github.com/stretchr/testify/mock"
+	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/activity"
+	temporalclient "go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
@@ -255,5 +257,28 @@ func TestSignCertificateWorkflow(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestIssuanceWorkflowsRerunAfterSuccess pins the start options the Nexus
+// handler and child starts use: a second bootstrap of the same org must start
+// SignCertificate and CreateIdentity again after a completed run (#35), while a
+// concurrent start still attaches to the running one.
+func TestIssuanceWorkflowsRerunAfterSuccess(t *testing.T) {
+	sign, err := pb.NewSignCertificateOptions().Build((&pb.SignCertificateInput{CommonName: "certificate-authority-org-root@" + testOrg}).ProtoReflect())
+	if err != nil {
+		t.Fatalf("build SignCertificate options: %v", err)
+	}
+	identity, err := pb.NewCreateIdentityOptions().Build((&pb.CreateIdentityInput{CommonName: "peer0@" + testOrg}).ProtoReflect())
+	if err != nil {
+		t.Fatalf("build CreateIdentity options: %v", err)
+	}
+	for name, opts := range map[string]temporalclient.StartWorkflowOptions{"SignCertificate": sign, "CreateIdentity": identity} {
+		if opts.WorkflowIDReusePolicy != enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE {
+			t.Errorf("%s reuse policy = %v, want ALLOW_DUPLICATE", name, opts.WorkflowIDReusePolicy)
+		}
+		if opts.WorkflowIDConflictPolicy != enumspb.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING {
+			t.Errorf("%s conflict policy = %v, want USE_EXISTING", name, opts.WorkflowIDConflictPolicy)
+		}
 	}
 }

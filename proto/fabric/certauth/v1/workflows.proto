@@ -35,7 +35,9 @@ service CertificateAuthority {
       name: "fabric.certauth.v1.SignCertificate"
       // Org-qualified subject CN is globally unique within the issuer's namespace.
       id: 'fabric/sign-certificate/${! CommonName }'
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+      // A rerun re-signs a fresh CSR for the same key, as the local branch
+      // does; refusing it after success left a shard unbootstrappable (#35).
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
     };
   }
@@ -71,7 +73,8 @@ service CertificateAuthority {
       // Org-qualified subject CN (e.g. "peer0@org1") is globally unique
       // within the owner's namespace, unlike the bare identity name.
       id: 'fabric/create-identity/${! CommonName }'
-      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+      // Rerunnable after success for the same reason as SignCertificate.
+      id_reuse_policy: WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
       workflow_id_conflict_policy: WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING
     };
   }

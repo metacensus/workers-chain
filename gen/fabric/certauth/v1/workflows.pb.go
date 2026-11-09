@@ -703,10 +703,10 @@ const file_fabric_certauth_v1_workflows_proto_rawDesc = "" +
 	"\x10signing_identity\x18\x01 \x01(\v2\x16.fabric.v1.IdentityRefB1ʵ\x03-\xa2\x01*json:\"SigningIdentity\" validate:\"required\"R\x0fSigningIdentity\x12h\n" +
 	"\ftls_identity\x18\x02 \x01(\v2\x16.fabric.v1.IdentityRefB-ʵ\x03)\xa2\x01&json:\"TlsIdentity\" validate:\"required\"R\vTlsIdentity2\xdf\x06\n" +
 	"\x14CertificateAuthority\x12\xbf\x01\n" +
-	"\x0fSignCertificate\x12(.fabric.certauth.v1.SignCertificateInput\x1a).fabric.certauth.v1.SignCertificateOutput\"W\x8a\xc4\x03S*(fabric/sign-certificate/${! CommonName }0\x02r\"fabric.certauth.v1.SignCertificate\xa0\x01\x02\x12\xe9\x01\n" +
+	"\x0fSignCertificate\x12(.fabric.certauth.v1.SignCertificateInput\x1a).fabric.certauth.v1.SignCertificateOutput\"W\x8a\xc4\x03S*(fabric/sign-certificate/${! CommonName }0\x01r\"fabric.certauth.v1.SignCertificate\xa0\x01\x02\x12\xe9\x01\n" +
 	"\x14CreateBootstrapAdmin\x12-.fabric.certauth.v1.CreateBootstrapAdminInput\x1a..fabric.certauth.v1.CreateBootstrapAdminOutput\"r\x8a\xc4\x03n*Afabric/create-bootstrap-admin/${! CaRef.CertType }/${! CaRef.Id }0\x01r'fabric.certauth.v1.CreateBootstrapAdmin\x12\xbb\x01\n" +
 	"\vCreateAdmin\x12$.fabric.certauth.v1.CreateAdminInput\x1a%.fabric.certauth.v1.CreateAdminOutput\"_\x8a\xc4\x03[*7fabric/create-admin/${! CaRef.CertType }/${! CaRef.Id }0\x01r\x1efabric.certauth.v1.CreateAdmin\x12\xba\x01\n" +
-	"\x0eCreateIdentity\x12'.fabric.certauth.v1.CreateIdentityInput\x1a(.fabric.certauth.v1.CreateIdentityOutput\"U\x8a\xc4\x03Q*'fabric/create-identity/${! CommonName }0\x02r!fabric.certauth.v1.CreateIdentity\xa0\x01\x02\x1a\x1e\x8a\xc4\x03\a\n" +
+	"\x0eCreateIdentity\x12'.fabric.certauth.v1.CreateIdentityInput\x1a(.fabric.certauth.v1.CreateIdentityOutput\"U\x8a\xc4\x03Q*'fabric/create-identity/${! CommonName }0\x01r!fabric.certauth.v1.CreateIdentity\xa0\x01\x02\x1a\x1e\x8a\xc4\x03\a\n" +
 	"\x05infraʂ\x04\x0f\x12\rnexus-enabledB\xd9\x01\n" +
 	"\x16com.fabric.certauth.v1B\x0eWorkflowsProtoP\x01ZEgithub.com/metacensus/workers-chain/gen/fabric/certauth/v1;certauthv1\xa2\x02\x03FCX\xaa\x02\x12Fabric.Certauth.V1\xca\x02\x12Fabric\\Certauth\\V1\xe2\x02\x1eFabric\\Certauth\\V1\\GPBMetadata\xea\x02\x14Fabric::Certauth::V1b\x06proto3"
 
