@@ -11,6 +11,7 @@ import (
 	fabricconfig "github.com/metacensus/workers-chain/lib/workers/fabric/config"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 // issuanceActivityOptions is the standard retry/timeout policy for the
@@ -28,10 +29,15 @@ func issuanceActivityOptions() workflow.ActivityOptions {
 	}
 }
 
+// ReissueBefore is the validity a stored certificate must have left for an
+// issuer to keep it rather than issue a new one.
+const ReissueBefore = 30 * 24 * time.Hour
+
 // IssueCertificate issues a certificate through the unified CSR pipeline:
 //
 //  1. EnsureKeyPair (secrets, get-or-create) at storage.key_ref
-//  2. GenerateCsr (certauth) from that key + subject
+//  2. GenerateCsr (certauth) from that key + subject; if storage.cert_ref
+//     already holds a current certificate for them, stop and keep it (#35)
 //  3. Sign the CSR: the local SignCsr activity when the issuer is owned by
 //     `owner`, otherwise the SignCertificate workflow via Nexus on the issuer's
 //     own worker
@@ -79,6 +85,9 @@ func IssueCertificate(
 	csrPEM, err := ensureKeyAndCsr(ctx, activityCtx, storage.GetKeyRef(), commonName, hosts)
 	if err != nil {
 		return nil, err
+	}
+	if current, err := CertificateCurrent(ctx, activityCtx, storage, commonName, hosts); err != nil || current {
+		return storage, err
 	}
 
 	// Default to "client" when unset (matches the OU classification Fabric CA
@@ -154,6 +163,9 @@ func BootstrapIssueCertificate(
 	if err != nil {
 		return nil, err
 	}
+	if current, err := CertificateCurrent(ctx, activityCtx, storage, commonName, hosts); err != nil || current {
+		return storage, err
+	}
 
 	var enrollOutput pb.BootstrapEnrollCsrOutput
 	err = workflow.ExecuteActivity(activityCtx, pb.BootstrapEnrollCsrActivityName, &pb.BootstrapEnrollCsrInput{
@@ -173,6 +185,30 @@ func BootstrapIssueCertificate(
 		return nil, err
 	}
 	return storage, nil
+}
+
+// CertificateCurrent reports whether storage already holds a certificate for
+// its key, naming commonName and hosts, with ReissueBefore left. Issuing a new
+// one on every run stored a certificate the running server never loaded, so a
+// rerun failed TLS verification against it (#35).
+func CertificateCurrent(
+	ctx workflow.Context,
+	activityCtx workflow.Context,
+	storage *fabricpb.IdentityRef,
+	commonName string,
+	hosts []string,
+) (bool, error) {
+	var out secretspb.CheckCertificateOutput
+	if err := workflow.ExecuteActivity(activityCtx, secretspb.CheckCertificateActivityName, &secretspb.CheckCertificateInput{
+		KeyRef:       storage.GetKeyRef(),
+		CertRef:      storage.GetCertRef(),
+		CommonName:   commonName,
+		Hosts:        hosts,
+		MinRemaining: durationpb.New(ReissueBefore),
+	}).Get(ctx, &out); err != nil {
+		return false, fmt.Errorf("failed to check stored certificate: %w", err)
+	}
+	return out.GetCurrent(), nil
 }
 
 // signCsrLocal signs a CSR with a locally-owned issuer CA via the SignCsr

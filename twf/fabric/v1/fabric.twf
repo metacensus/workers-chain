@@ -57,12 +57,16 @@ workflow DeployCertificateAuthority(spec: CertificateAuthoritySpec):
 	workflow CreateCertificateDatabase(spec.self)
 	if (spec.signingIssuer == null):
 		activity secrets.EnsureKeyPair(ca.signingKey)
-		activity secrets.CreateSelfSignedCertificate(ca.signingKey, ca.signingCert, ca.subject)
+		activity secrets.CheckCertificate(ca.signingKey, ca.signingCert, ca.subject) -> signingCurrent
+		if (!signingCurrent):
+			activity secrets.CreateSelfSignedCertificate(ca.signingKey, ca.signingCert, ca.subject)
 	else:
 		workflow certauth.IssueCertificate(spec.signingIssuer, ca.intermediateSubject, ca.signing, null)
 	if (spec.tlsIssuer == null):
 		activity secrets.EnsureKeyPair(ca.tlsKey)
-		activity secrets.CreateSelfSignedCertificate(ca.tlsKey, ca.tlsCert, ca.tlsSubject)
+		activity secrets.CheckCertificate(ca.tlsKey, ca.tlsCert, ca.tlsSubject) -> tlsCurrent
+		if (!tlsCurrent):
+			activity secrets.CreateSelfSignedCertificate(ca.tlsKey, ca.tlsCert, ca.tlsSubject)
 	else:
 		# Local signs inline; a foreign issuer is reached by Nexus.
 		workflow certauth.IssueCertificate(spec.tlsIssuer, ca.tlsSubject, ca.tls, null)

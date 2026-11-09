@@ -548,6 +548,11 @@ func stubSignCsrActivity(ctx context.Context, input *certauthpb.SignCsrInput) (*
 	return &certauthpb.SignCsrOutput{CertificatePem: []byte("test-cert"), ChainPem: []byte("test-chain")}, nil
 }
 
+// stubCheckCertificateActivity reports no stored certificate, so issuance runs.
+func stubCheckCertificateActivity(_ context.Context, _ *secretspb.CheckCertificateInput) (*secretspb.CheckCertificateOutput, error) {
+	return &secretspb.CheckCertificateOutput{}, nil
+}
+
 // stubStoreCertificateActivity stands in for storing the returned cert + chain
 // in the caller's own subtree.
 func stubStoreCertificateActivity(ctx context.Context, input *secretspb.StoreCertificateInput) (*secretspb.StoreCertificateOutput, error) {
@@ -565,6 +570,8 @@ func registerSecretsActivityStubs(env *testsuite.TestWorkflowEnvironment) {
 		activity.RegisterOptions{Name: secretspb.EnsurePasswordActivityName})
 	env.RegisterActivityWithOptions(stubStoreCertificateActivity,
 		activity.RegisterOptions{Name: secretspb.StoreCertificateActivityName})
+	env.RegisterActivityWithOptions(stubCheckCertificateActivity,
+		activity.RegisterOptions{Name: secretspb.CheckCertificateActivityName})
 	env.RegisterActivityWithOptions(stubGenerateCsrActivity,
 		activity.RegisterOptions{Name: certauthpb.GenerateCsrActivityName})
 	env.RegisterActivityWithOptions(stubSignCsrActivity,
@@ -1629,6 +1636,46 @@ func TestDeployCertificateAuthorityOwnershipRejection(t *testing.T) {
 			}
 			if !strings.Contains(err.Error(), ErrNotOwned.Error()) {
 				t.Fatalf("expected error containing %q, got: %v", ErrNotOwned.Error(), err)
+			}
+		})
+	}
+}
+
+// TestDeployCertificateAuthorityTlsRoot_KeepsCurrentCertificates asserts that
+// redeploying a root CA keeps its current self-signed certificates: re-minting
+// them left the running CA serving certificates its clients no longer trusted,
+// so a rerun failed enrollment (#35).
+func TestDeployCertificateAuthorityTlsRoot_KeepsCurrentCertificates(t *testing.T) {
+	for _, current := range []bool{true, false} {
+		t.Run(map[bool]string{true: "current", false: "not current"}[current], func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestWorkflowEnvironment()
+			registerChildWorkflowStubs(env)
+			registerSecretsActivityStubs(env)
+			registerSecretsNexusMock(t, env, nil)
+			mockChildWorkflow[pb.CreateCertificateDatabaseOutput](env, pb.CreateCertificateDatabaseWorkflowName, nil)
+			mockChildWorkflow[clusterpb.CreateDeploymentOutput](env, clusterpb.CreateDeploymentWorkflowName, nil)
+			mockChildWorkflow[certauthpb.CreateBootstrapAdminOutput](env, certauthpb.CreateBootstrapAdminWorkflowName, nil)
+			mockChildWorkflow[certauthpb.CreateAdminOutput](env, certauthpb.CreateAdminWorkflowName, nil)
+			env.OnActivity(secretspb.CheckCertificateActivityName, mock.Anything, mock.Anything).
+				Return(&secretspb.CheckCertificateOutput{Current: current}, nil)
+
+			var minted int
+			env.OnActivity(secretspb.CreateSelfSignedCertificateActivityName, mock.Anything, mock.Anything).
+				Return(func(context.Context, *secretspb.CreateSelfSignedCertificateInput) (*secretspb.CreateSelfSignedCertificateOutput, error) {
+					minted++
+					return &secretspb.CreateSelfSignedCertificateOutput{}, nil
+				})
+
+			executeDeployCA(env, operatorOwner, tlsRootSpec())
+
+			assertWorkflowResult(t, env.GetWorkflowError(), nil)
+			want := 2 // signing and TLS
+			if current {
+				want = 0
+			}
+			if minted != want {
+				t.Errorf("minted %d self-signed certificates, want %d", minted, want)
 			}
 		})
 	}

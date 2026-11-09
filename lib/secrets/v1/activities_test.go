@@ -627,3 +627,84 @@ func TestStoreCertificateActivity(t *testing.T) {
 		})
 	}
 }
+
+// TestCheckCertificateActivity verifies that a stored certificate is kept only
+// when it certifies the stored key, names the subject and every host, and has
+// enough validity left; an absent one reads as "issue", and a fetch failure is
+// an error rather than a reason to issue a new certificate (#35).
+func TestCheckCertificateActivity(t *testing.T) {
+	keyRef := testSecretRef("fabric/shard/org1/keys/ca/org/root/tls")
+	certRef := testSecretRef("fabric/shard/org1/certs/ca/org/root/tls")
+
+	kp, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	issue := func(key *KeyPair, cn string, validity time.Duration, hosts ...string) Secret {
+		cert, err := GenerateSelfSignedCertificate(key.PrivateKey, &CertificateParams{
+			CommonName: cn, Organization: "org1", ValidityDuration: validity, DNSNames: hosts,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return FromCertificate(cert)
+	}
+	const cn = "certificate-authority-org-root@org1"
+	host := "certificate-authority-org-root.fabric-shard-org1.svc.cluster.local"
+	year := 365 * 24 * time.Hour
+
+	tests := []struct {
+		name        string
+		cert        Secret
+		certErr     error
+		hosts       []string
+		wantCurrent bool
+		wantErr     bool
+	}{
+		{name: "current - matches key, subject and hosts", cert: issue(kp, cn, year, host, "localhost"), hosts: []string{host}, wantCurrent: true},
+		{name: "current - no hosts required", cert: issue(kp, cn, year), wantCurrent: true},
+		{name: "not current - absent", certErr: ErrSecretNotFound},
+		{name: "not current - another key", cert: issue(other, cn, year, host), hosts: []string{host}},
+		{name: "not current - another subject", cert: issue(kp, "peer0@org1", year, host), hosts: []string{host}},
+		{name: "not current - missing a host", cert: issue(kp, cn, year), hosts: []string{host}},
+		{name: "not current - expiring", cert: issue(kp, cn, 24*time.Hour, host), hosts: []string{host}},
+		{name: "not current - unparseable", cert: Secret{"certificate": "garbage"}},
+		{name: "error - fetch fails", certErr: errProviderConnectionRefused, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := newMockSecretProvider(t)
+			if tt.certErr != nil {
+				provider.On("FetchSecret", mock.Anything, certRef).Return(nil, tt.certErr).Once()
+			} else {
+				provider.On("FetchSecret", mock.Anything, certRef).Return(tt.cert, nil).Once()
+				provider.On("FetchSecret", mock.Anything, keyRef).Return(FromKeyPair(kp), nil).Once()
+			}
+
+			out, err := NewActivities(provider).CheckCertificate(context.Background(), &pb.CheckCertificateInput{
+				KeyRef:       keyRef,
+				CertRef:      certRef,
+				CommonName:   cn,
+				Hosts:        tt.hosts,
+				MinRemaining: durationpb.New(30 * 24 * time.Hour),
+			})
+			if tt.wantErr {
+				if err == nil || !errors.Is(err, ErrCheckCertificate) {
+					t.Fatalf("error = %v, want ErrCheckCertificate", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out.GetCurrent() != tt.wantCurrent {
+				t.Errorf("current = %v, want %v", out.GetCurrent(), tt.wantCurrent)
+			}
+		})
+	}
+}

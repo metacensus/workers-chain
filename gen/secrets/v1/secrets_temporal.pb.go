@@ -43,6 +43,7 @@ var (
 
 // secrets.v1.Secrets activity names
 const (
+	CheckCertificateActivityName            = "secrets.v1.CheckCertificate"
 	CreateSelfSignedCertificateActivityName = "secrets.v1.CreateSelfSignedCertificate"
 	EnsureKeyPairActivityName               = "secrets.v1.EnsureKeyPair"
 	EnsurePasswordActivityName              = "secrets.v1.EnsurePassword"
@@ -693,6 +694,14 @@ func (r *CreateAccessChildRun) WaitStart(ctx workflow.Context) (*workflow.Execut
 
 // SecretsActivities describes available worker activities
 type SecretsActivities interface {
+	// CheckCertificate reports whether cert_ref already holds a certificate for
+	// key_ref's key, naming common_name and every host in hosts, with at least
+	// min_remaining of validity left. Issuers call it before issuing, so a rerun
+	// keeps the certificate a running server already serves instead of storing
+	// a new one it will never load (#35). An absent certificate is not current;
+	// any other fetch failure is an error.
+	CheckCertificate(ctx context.Context, req *CheckCertificateInput) (*CheckCertificateOutput, error)
+
 	// CreateSelfSignedCertificate fetches a key pair, generates a self-signed certificate, and stores it.
 	// Used for root CA certificates only. Implemented as an activity to keep secrets out of workflow history.
 	CreateSelfSignedCertificate(ctx context.Context, req *CreateSelfSignedCertificateInput) (*CreateSelfSignedCertificateOutput, error)
@@ -723,11 +732,292 @@ type SecretsActivities interface {
 
 // RegisterSecretsActivities registers activities with a worker
 func RegisterSecretsActivities(r worker.ActivityRegistry, activities SecretsActivities) {
+	RegisterCheckCertificateActivity(r, activities.CheckCertificate)
 	RegisterCreateSelfSignedCertificateActivity(r, activities.CreateSelfSignedCertificate)
 	RegisterEnsureKeyPairActivity(r, activities.EnsureKeyPair)
 	RegisterEnsurePasswordActivity(r, activities.EnsurePassword)
 	RegisterStoreCertificateActivity(r, activities.StoreCertificate)
 	RegisterStoreGenesisBlockActivity(r, activities.StoreGenesisBlock)
+}
+
+// RegisterCheckCertificateActivity registers a secrets.v1.CheckCertificate activity
+func RegisterCheckCertificateActivity(r worker.ActivityRegistry, fn func(context.Context, *CheckCertificateInput) (*CheckCertificateOutput, error)) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: CheckCertificateActivityName,
+	})
+}
+
+// CheckCertificateFuture describes a(n) secrets.v1.CheckCertificate activity execution
+type CheckCertificateFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *CheckCertificateFuture) Get(ctx workflow.Context) (*CheckCertificateOutput, error) {
+	var resp CheckCertificateOutput
+	if err := f.Future.Get(ctx, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *CheckCertificateFuture) Select(sel workflow.Selector, fn func(*CheckCertificateFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// CheckCertificate reports whether cert_ref already holds a certificate for
+// key_ref's key, naming common_name and every host in hosts, with at least
+// min_remaining of validity left. Issuers call it before issuing, so a rerun
+// keeps the certificate a running server already serves instead of storing
+// a new one it will never load (#35). An absent certificate is not current;
+// any other fetch failure is an error.
+func CheckCertificate(ctx workflow.Context, req *CheckCertificateInput, options ...*CheckCertificateActivityOptions) (*CheckCertificateOutput, error) {
+	return CheckCertificateAsync(ctx, req, options...).Get(ctx)
+}
+
+// CheckCertificate reports whether cert_ref already holds a certificate for
+// key_ref's key, naming common_name and every host in hosts, with at least
+// min_remaining of validity left. Issuers call it before issuing, so a rerun
+// keeps the certificate a running server already serves instead of storing
+// a new one it will never load (#35). An absent certificate is not current;
+// any other fetch failure is an error.
+func CheckCertificateAsync(ctx workflow.Context, req *CheckCertificateInput, options ...*CheckCertificateActivityOptions) *CheckCertificateFuture {
+	var o *CheckCertificateActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCheckCertificateActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &CheckCertificateFuture{Future: errF}
+	}
+	activity := CheckCertificateActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &CheckCertificateFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// CheckCertificate reports whether cert_ref already holds a certificate for
+// key_ref's key, naming common_name and every host in hosts, with at least
+// min_remaining of validity left. Issuers call it before issuing, so a rerun
+// keeps the certificate a running server already serves instead of storing
+// a new one it will never load (#35). An absent certificate is not current;
+// any other fetch failure is an error.
+func CheckCertificateLocal(ctx workflow.Context, req *CheckCertificateInput, options ...*CheckCertificateLocalActivityOptions) (*CheckCertificateOutput, error) {
+	return CheckCertificateLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// CheckCertificate reports whether cert_ref already holds a certificate for
+// key_ref's key, naming common_name and every host in hosts, with at least
+// min_remaining of validity left. Issuers call it before issuing, so a rerun
+// keeps the certificate a running server already serves instead of storing
+// a new one it will never load (#35). An absent certificate is not current;
+// any other fetch failure is an error.
+func CheckCertificateLocalAsync(ctx workflow.Context, req *CheckCertificateInput, options ...*CheckCertificateLocalActivityOptions) *CheckCertificateFuture {
+	var o *CheckCertificateLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewCheckCertificateLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &CheckCertificateFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = CheckCertificateActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &CheckCertificateFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// CheckCertificateActivityOptions provides configuration for a(n) secrets.v1.CheckCertificate activity
+type CheckCertificateActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewCheckCertificateActivityOptions initializes a new CheckCertificateActivityOptions value
+func NewCheckCertificateActivityOptions() *CheckCertificateActivityOptions {
+	return &CheckCertificateActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *CheckCertificateActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = SecretsTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *CheckCertificateActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *CheckCertificateActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *CheckCertificateActivityOptions) WithDataConverter(dc converter.DataConverter) *CheckCertificateActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *CheckCertificateActivityOptions) WithHeartbeatTimeout(d time.Duration) *CheckCertificateActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CheckCertificateActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CheckCertificateActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *CheckCertificateActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *CheckCertificateActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *CheckCertificateActivityOptions) WithScheduleToStartTimeout(d time.Duration) *CheckCertificateActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *CheckCertificateActivityOptions) WithStartToCloseTimeout(d time.Duration) *CheckCertificateActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *CheckCertificateActivityOptions) WithTaskQueue(tq string) *CheckCertificateActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *CheckCertificateActivityOptions) WithWaitForCancellation(wait bool) *CheckCertificateActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// CheckCertificateLocalActivityOptions provides configuration for a(n) secrets.v1.CheckCertificate activity
+type CheckCertificateLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *CheckCertificateInput) (*CheckCertificateOutput, error)
+}
+
+// NewCheckCertificateLocalActivityOptions initializes a new CheckCertificateLocalActivityOptions value
+func NewCheckCertificateLocalActivityOptions() *CheckCertificateLocalActivityOptions {
+	return &CheckCertificateLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *CheckCertificateLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	} else if opts.ScheduleToCloseTimeout == 0 {
+		opts.ScheduleToCloseTimeout = 60000000000 // 1 minute
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom secrets.v1.CheckCertificate implementation
+func (o *CheckCertificateLocalActivityOptions) Local(fn func(context.Context, *CheckCertificateInput) (*CheckCertificateOutput, error)) *CheckCertificateLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *CheckCertificateLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *CheckCertificateLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *CheckCertificateLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *CheckCertificateLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *CheckCertificateLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *CheckCertificateLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *CheckCertificateLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *CheckCertificateLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *CheckCertificateLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *CheckCertificateLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
 }
 
 // RegisterCreateSelfSignedCertificateActivity registers a secrets.v1.CreateSelfSignedCertificate activity

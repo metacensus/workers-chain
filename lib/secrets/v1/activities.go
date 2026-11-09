@@ -2,8 +2,14 @@ package secrets
 
 import (
 	"context"
+	"crypto"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"net"
+	"slices"
+	"time"
 
 	pb "github.com/metacensus/workers-chain/gen/secrets/v1"
 )
@@ -12,6 +18,7 @@ import (
 var (
 	ErrEnsurePassword              = errors.New("ensure password")
 	ErrEnsureKeyPair               = errors.New("ensure key pair")
+	ErrCheckCertificate            = errors.New("check certificate")
 	ErrCreateSelfSignedCertificate = errors.New("create self-signed certificate")
 	ErrStoreGenesisBlock           = errors.New("store genesis block")
 )
@@ -98,6 +105,93 @@ func (a *Activities) EnsureKeyPair(ctx context.Context, req *pb.EnsureKeyPairInp
 		// Transient/permission error: do NOT touch a possibly-valid key.
 		return nil, fmt.Errorf("%w: fetch existing key: %w", ErrEnsureKeyPair, err)
 	}
+}
+
+// CheckCertificate reports whether the certificate at cert_ref can be kept: it
+// certifies key_ref's key, names the common name and every host, and has at
+// least min_remaining left. An absent or unparseable certificate is not
+// current; a failure to fetch either secret is an error, so a transient fault
+// never reads as "issue a new one".
+func (a *Activities) CheckCertificate(ctx context.Context, req *pb.CheckCertificateInput) (*pb.CheckCertificateOutput, error) {
+	if req.GetKeyRef() == nil || req.GetCertRef() == nil {
+		return nil, fmt.Errorf("%w: key_ref and cert_ref are required", ErrCheckCertificate)
+	}
+
+	certSecret, err := a.provider.FetchSecret(ctx, req.GetCertRef())
+	if errors.Is(err, ErrSecretNotFound) {
+		return &pb.CheckCertificateOutput{}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("%w: fetch certificate: %w", ErrCheckCertificate, err)
+	}
+	keySecret, err := a.provider.FetchSecret(ctx, req.GetKeyRef())
+	if err != nil {
+		return nil, fmt.Errorf("%w: fetch key: %w", ErrCheckCertificate, err)
+	}
+
+	stored, err := certSecret.Certificate()
+	if err != nil {
+		return &pb.CheckCertificateOutput{}, nil
+	}
+	cert, err := parseCertificatePEM(stored.Certificate)
+	if err != nil {
+		return &pb.CheckCertificateOutput{}, nil
+	}
+	kp, err := keySecret.KeyPair()
+	if err != nil {
+		return nil, fmt.Errorf("%w: parse key: %w", ErrCheckCertificate, err)
+	}
+	publicKey, err := parsePublicKeyPEM(kp.PublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("%w: parse key: %w", ErrCheckCertificate, err)
+	}
+
+	current := publicKey.Equal(cert.PublicKey) &&
+		cert.Subject.CommonName == req.GetCommonName() &&
+		namesHosts(cert, req.GetHosts()) &&
+		time.Until(cert.NotAfter) >= req.GetMinRemaining().AsDuration()
+	return &pb.CheckCertificateOutput{Current: current}, nil
+}
+
+func parseCertificatePEM(data []byte) (*x509.Certificate, error) {
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, errors.New("no PEM block")
+	}
+	return x509.ParseCertificate(block.Bytes)
+}
+
+func parsePublicKeyPEM(data []byte) (interface{ Equal(crypto.PublicKey) bool }, error) {
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, errors.New("no PEM block")
+	}
+	key, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	equaler, ok := key.(interface{ Equal(crypto.PublicKey) bool })
+	if !ok {
+		return nil, fmt.Errorf("unsupported public key type %T", key)
+	}
+	return equaler, nil
+}
+
+// namesHosts reports whether every host is among the certificate's DNS or IP
+// SANs.
+func namesHosts(cert *x509.Certificate, hosts []string) bool {
+	for _, host := range hosts {
+		if ip := net.ParseIP(host); ip != nil {
+			if !slices.ContainsFunc(cert.IPAddresses, ip.Equal) {
+				return false
+			}
+			continue
+		}
+		if !slices.Contains(cert.DNSNames, host) {
+			return false
+		}
+	}
+	return true
 }
 
 // CreateSelfSignedCertificate fetches a key pair, generates a self-signed certificate, and stores it

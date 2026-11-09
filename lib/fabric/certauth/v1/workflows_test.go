@@ -3,6 +3,7 @@ package certauth
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -18,6 +19,7 @@ import (
 	"github.com/nexus-rpc/sdk-go/nexus"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
@@ -468,6 +470,11 @@ func stubBootstrapEnrollCsrActivity(_ context.Context, _ *pb.BootstrapEnrollCsrI
 	return &pb.BootstrapEnrollCsrOutput{CertificatePem: []byte("test-cert"), ChainPem: []byte("test-chain")}, nil
 }
 
+// stubCheckCertificateActivity reports no stored certificate, so issuance runs.
+func stubCheckCertificateActivity(_ context.Context, _ *secretspb.CheckCertificateInput) (*secretspb.CheckCertificateOutput, error) {
+	return &secretspb.CheckCertificateOutput{}, nil
+}
+
 func stubStoreCertificateActivity(_ context.Context, in *secretspb.StoreCertificateInput) (*secretspb.StoreCertificateOutput, error) {
 	return &secretspb.StoreCertificateOutput{CertRef: in.CertRef}, nil
 }
@@ -488,6 +495,8 @@ func registerCSRPipelineStubs(t *testing.T, env *testsuite.TestWorkflowEnvironme
 		activity.RegisterOptions{Name: pb.BootstrapEnrollCsrActivityName})
 	env.RegisterActivityWithOptions(stubStoreCertificateActivity,
 		activity.RegisterOptions{Name: secretspb.StoreCertificateActivityName})
+	env.RegisterActivityWithOptions(stubCheckCertificateActivity,
+		activity.RegisterOptions{Name: secretspb.CheckCertificateActivityName})
 }
 
 func TestCreateBootstrapAdminWorkflow(t *testing.T) {
@@ -938,6 +947,62 @@ func TestCreateIdentityWorkflow(t *testing.T) {
 				if !strings.Contains(err.Error(), tt.expectedErr.Error()) {
 					t.Fatalf("expected error containing %q, got: %v", tt.expectedErr, err)
 				}
+			}
+		})
+	}
+}
+
+// TestIssueCertificate_KeepsCurrentCertificate asserts that a rerun keeps a
+// stored certificate that is still current instead of issuing and storing a
+// new one, which the running server would never load (#35). It covers the
+// local branch (SignCsr) and the foreign one (SignCertificate over Nexus,
+// which is not even registered when the certificate is current).
+func TestIssueCertificate_KeepsCurrentCertificate(t *testing.T) {
+	storage := &fabricpb.IdentityRef{
+		KeyRef:  secrets.NewVaultRef("fabric/shard/testorg/keys/ca/org/root/tls"),
+		CertRef: secrets.NewVaultRef("fabric/shard/testorg/certs/ca/org/root/tls"),
+	}
+	tests := []struct {
+		name      string
+		owner     workerconfig.OwnerConfig
+		current   bool
+		wantIssue []string
+	}{
+		{name: "local issuer, current", owner: operatorOwner, current: true},
+		{name: "local issuer, not current", owner: operatorOwner, wantIssue: []string{pb.SignCsrActivityName, secretspb.StoreCertificateActivityName}},
+		{name: "foreign issuer, current", owner: orgOwner, current: true},
+		{name: "foreign issuer, not current", owner: orgOwner, wantIssue: []string{secretspb.StoreCertificateActivityName}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var testSuite testsuite.WorkflowTestSuite
+			env := testSuite.NewTestWorkflowEnvironment()
+			registerCSRPipelineStubs(t, env)
+			if !tt.current && !tt.owner.IsOperator() {
+				registerCertAuthNexusMock(t, env, nil)
+			}
+			env.OnActivity(secretspb.CheckCertificateActivityName, mock.Anything, mock.Anything).
+				Return(&secretspb.CheckCertificateOutput{Current: tt.current}, nil)
+
+			var issued []string
+			env.SetOnActivityStartedListener(func(info *activity.Info, _ context.Context, _ converter.EncodedValues) {
+				switch info.ActivityType.Name {
+				case pb.SignCsrActivityName, secretspb.StoreCertificateActivityName:
+					issued = append(issued, info.ActivityType.Name)
+				}
+			})
+
+			env.ExecuteWorkflow(func(ctx workflow.Context) error {
+				_, err := IssueCertificate(ctx, tt.owner, tlsIntRef, "certificate-authority-org-root@"+testOrg,
+					nil, "", nil, "tls", storage, nil)
+				return err
+			})
+			if err := env.GetWorkflowError(); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !slices.Equal(issued, tt.wantIssue) {
+				t.Errorf("issued %v, want %v", issued, tt.wantIssue)
 			}
 		})
 	}
