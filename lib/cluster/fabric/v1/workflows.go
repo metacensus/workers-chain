@@ -29,12 +29,16 @@ var deployActivityOptions = workflow.ActivityOptions{
 	},
 }
 
+// workloadReadyTimeout caps the wait for a peer or orderer to become Ready:
+// the peer's startup probe allows five minutes, plus scheduling and pulls.
+const workloadReadyTimeout = 10 * time.Minute
+
 // deploy renders a chart with a component's values and applies what it
 // rendered. The release name is the chart's path with slashes folded.
-func deploy(ctx workflow.Context, chart, namespace string, values any) error {
+func deploy(ctx workflow.Context, chart, namespace string, values any) ([]*kubepb.ResourceIdentifier, error) {
 	valuesYAML, err := yaml.Marshal(values)
 	if err != nil {
-		return fmt.Errorf("marshal values: %w", err)
+		return nil, fmt.Errorf("marshal values: %w", err)
 	}
 	activityCtx := workflow.WithActivityOptions(ctx, deployActivityOptions)
 	var rendered *helmpb.RenderChartOutput
@@ -45,14 +49,26 @@ func deploy(ctx workflow.Context, chart, namespace string, values any) error {
 		ValuesYaml:  string(valuesYAML),
 	}).Get(ctx, &rendered)
 	if err != nil {
-		return fmt.Errorf("render chart: %w", err)
+		return nil, fmt.Errorf("render chart: %w", err)
 	}
+	var applied *kubepb.ApplyOutput
 	err = workflow.ExecuteActivity(activityCtx, kubepb.ApplyActivityName, &kubepb.ApplyInput{
 		Namespace: namespace,
 		Resources: rendered.GetResources(),
-	}).Get(ctx, nil)
+	}).Get(ctx, &applied)
 	if err != nil {
-		return fmt.Errorf("apply resources: %w", err)
+		return nil, fmt.Errorf("apply resources: %w", err)
+	}
+	return applied.GetResources(), nil
+}
+
+// waitReady retries kube.v1.Ready until every resource is Current, failing at
+// workloadReadyTimeout or at once if one is Failed.
+func waitReady(ctx workflow.Context, resources []*kubepb.ResourceIdentifier) error {
+	_, err := kubepb.Ready(ctx, &kubepb.ReadyInput{Resources: resources},
+		kubepb.NewReadyActivityOptions().WithScheduleToCloseTimeout(workloadReadyTimeout))
+	if err != nil {
+		return fmt.Errorf("wait for ready: %w", err)
 	}
 	return nil
 }
@@ -126,7 +142,7 @@ func (w *createNamespaceWorkflow) Execute(ctx workflow.Context) (*pb.CreateNames
 	values := helm.NewNamespaceValues(w.owner)
 	namespaceName := values.Name
 
-	if err := deploy(ctx, chartNamespace, namespaceName, values); err != nil {
+	if _, err := deploy(ctx, chartNamespace, namespaceName, values); err != nil {
 		return nil, err
 	}
 
@@ -162,7 +178,7 @@ func (w *createServiceAccountWorkflow) Execute(ctx workflow.Context) (*pb.Create
 	values := helm.NewServiceAccountValues(w.owner)
 	namespaceName := values.Namespace
 
-	if err := deploy(ctx, chartServiceAccount, namespaceName, values); err != nil {
+	if _, err := deploy(ctx, chartServiceAccount, namespaceName, values); err != nil {
 		return nil, err
 	}
 
@@ -199,6 +215,10 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 	var values interface{}
 	var namespaceName string
 	var deploymentName string
+	// Peers and orderers are what a shard serves; their deploy completes only
+	// once they are Ready, so BootstrapShard cannot report a shard that serves
+	// nothing (#39).
+	var waitForReady bool
 
 	owner := w.owner
 
@@ -280,6 +300,7 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		values = peerValues
 		namespaceName = peerConfig.KubernetesNamespace()
 		deploymentName = peerConfig.ComponentName() // Matches helm chart: {{ include "peer.name" . }}
+		waitForReady = true
 	case strings.HasPrefix(w.input.Component, componentOrderer):
 		// Orderer component names follow pattern: "orderer{id}"
 		// Examples: "orderer0", "orderer1"
@@ -298,6 +319,7 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		values = ordererValues
 		namespaceName = ordererConfig.KubernetesNamespace()
 		deploymentName = ordererConfig.ComponentName() // Matches helm chart: {{ include "orderer.name" . }}
+		waitForReady = true
 	default:
 		return nil, fmt.Errorf("unsupported component type: %s", w.input.Component)
 	}
@@ -315,8 +337,14 @@ func (w *createDeploymentWorkflow) Execute(ctx workflow.Context) (*pb.CreateDepl
 		}
 	}
 
-	if err := deploy(ctx, chartName, namespaceName, values); err != nil {
+	applied, err := deploy(ctx, chartName, namespaceName, values)
+	if err != nil {
 		return nil, err
+	}
+	if waitForReady {
+		if err := waitReady(ctx, applied); err != nil {
+			return nil, err
+		}
 	}
 
 	return &pb.CreateDeploymentOutput{

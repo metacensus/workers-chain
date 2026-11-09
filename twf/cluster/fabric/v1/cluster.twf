@@ -23,5 +23,10 @@ workflow CreateDeployment(owner: Owner, component: Component) -> (DeploymentName
 	if (component == "worker"):
 		activity temporalmtls.EnsureTemporalMTLSClientCert(namespace, owner.temporalNamespace)
 	activity helm.RenderChart(chart, chart.release, namespace, values) -> resources
-	activity kube.Apply(resources)
+	activity kube.Apply(resources) -> applied
+	# A peer or orderer completes only once Ready, failing at the cap.
+	if (component.isPeer || component.isOrderer):
+		activity kube.Ready(applied)
+			options:
+				schedule_to_close_timeout: 10m
 	close complete(name)
