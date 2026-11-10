@@ -26,6 +26,18 @@ spec:
       - name: peer
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        # Chaincode runs as a service, never in Docker. With vm.endpoint set the
+        # peer registers a Docker health check, and /healthz answers 503 without
+        # a Docker socket. An empty CORE_VM_ENDPOINT doesn't clear it (Fabric's
+        # Viper ignores empty variables), so start from the image's core.yaml
+        # with the endpoint blanked, and refuse to start if that line moved.
+        command:
+        - sh
+        - -c
+        - |
+          sed 's#^\(    endpoint:\) unix:///var/run/docker.sock$#\1 ""#' /var/hyperledger/fabric/config/core.yaml > /peer-config/core.yaml
+          grep -q '^    endpoint: ""$' /peer-config/core.yaml || { echo "vm.endpoint not found in core.yaml" >&2; exit 1; }
+          exec peer node start
         ports:
         - name: grpc
           containerPort: {{ .Values.service.port }}
@@ -37,6 +49,8 @@ spec:
           containerPort: {{ .Values.service.operationsPort }}
           protocol: TCP
         env:
+        - name: FABRIC_CFG_PATH
+          value: /peer-config
         # Core peer configuration
         - name: CORE_PEER_ID
           value: {{ .Values.peerId | quote }}
@@ -93,11 +107,6 @@ spec:
           value: "0.0.0.0:{{ .Values.service.operationsPort }}"
         - name: CORE_METRICS_PROVIDER
           value: "prometheus"
-        # Chaincode runs as a service, never in Docker. An empty VM endpoint keeps
-        # the peer from registering a Docker health check, which fails /healthz
-        # without a Docker socket.
-        - name: CORE_VM_ENDPOINT
-          value: ""
         - name: FABRIC_LOGGING_SPEC
           value: {{ .Values.logging.level | quote }}
         resources:
@@ -132,6 +141,8 @@ spec:
         # Persistent ledger storage
         - name: data
           mountPath: /var/hyperledger/production
+        - name: peer-config
+          mountPath: /peer-config
         # MSP configuration (assembled from secrets)
         - name: msp-config
           mountPath: /etc/hyperledger/fabric/msp/config.yaml
@@ -233,6 +244,8 @@ spec:
         - name: tls
           mountPath: /tls
       volumes:
+      - name: peer-config
+        emptyDir: {}
       - name: vault-secrets
         csi:
           driver: secrets-store.csi.k8s.io
