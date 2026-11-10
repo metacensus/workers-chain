@@ -42,6 +42,11 @@ spec:
             secretKeyRef:
               name: {{ include "couchdb.name" . }}-secret
               key: password
+        # Cap Erlang's port table: it is sized from the open-file limit, and a
+        # runtime that leaves that at 1073741816 gets ~1.5GB allocated at boot
+        # and the pod OOMKilled (#54).
+        - name: ERL_FLAGS
+          value: "+Q 65536"
         resources:
           {{- toYaml .Values.resources | nindent 10 }}
         livenessProbe:
