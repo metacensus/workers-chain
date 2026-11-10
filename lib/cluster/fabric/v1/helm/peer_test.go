@@ -36,7 +36,7 @@ const coreYAMLVM = `vm:
 // An empty CORE_VM_ENDPOINT does not do it: Fabric's Viper ignores empty
 // variables.
 func TestPeerChart_NoDockerHealthCheck(t *testing.T) {
-	peer := renderPeerContainer(t)
+	peer := renderContainer(t, "fabric/peer", "peer")
 
 	var cfgPath string
 	for _, env := range peer.Env {
@@ -110,20 +110,22 @@ func TestPeerChart_NoDockerHealthCheck(t *testing.T) {
 	})
 }
 
-func renderPeerContainer(t *testing.T) corev1.Container {
+// renderContainer renders chart with its values.example.yaml, as the worker
+// does, and returns the named container of its StatefulSet.
+func renderContainer(t *testing.T, chart, name string) corev1.Container {
 	t.Helper()
-	values, err := os.ReadFile("../../../../../helm/fabric/peer/values.example.yaml")
+	values, err := os.ReadFile("../../../../../helm/" + chart + "/values.example.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
 	out, err := helmv1.NewActivities(os.DirFS("../../../../../helm")).RenderChart(context.Background(), &helmpb.RenderChartInput{
-		Chart:       "fabric/peer",
-		ReleaseName: "fabric-peer",
+		Chart:       chart,
+		ReleaseName: strings.ReplaceAll(chart, "/", "-"),
 		Namespace:   "fabric-shard-org1",
 		ValuesYaml:  string(values),
 	})
 	if err != nil {
-		t.Fatalf("render peer chart: %v", err)
+		t.Fatalf("render %s chart: %v", chart, err)
 	}
 	for _, resource := range out.GetResources() {
 		var sts appsv1.StatefulSet
@@ -131,12 +133,12 @@ func renderPeerContainer(t *testing.T) corev1.Container {
 			continue
 		}
 		for _, container := range sts.Spec.Template.Spec.Containers {
-			if container.Name == "peer" {
+			if container.Name == name {
 				return container
 			}
 		}
 	}
-	t.Fatal("rendered no peer container")
+	t.Fatalf("%s rendered no %s container", chart, name)
 	return corev1.Container{}
 }
 
