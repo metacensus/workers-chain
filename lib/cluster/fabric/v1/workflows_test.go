@@ -14,6 +14,7 @@ import (
 	workerconfig "github.com/metacensus/workers-chain/lib/workers/config"
 	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
@@ -229,6 +230,12 @@ func registerActivityStubs(env *testsuite.TestWorkflowEnvironment) {
 			return nil, nil
 		},
 		activity.RegisterOptions{Name: kubepb.ApplyActivityName},
+	)
+	env.RegisterActivityWithOptions(
+		func(ctx context.Context, input *kubepb.ReadyInput) (*kubepb.ReadyOutput, error) {
+			return &kubepb.ReadyOutput{}, nil
+		},
+		activity.RegisterOptions{Name: kubepb.ReadyActivityName},
 	)
 	env.RegisterActivityWithOptions(
 		func(ctx context.Context, input *temporalmtls.EnsureTemporalMTLSInput) (*temporalmtls.EnsureTemporalMTLSOutput, error) {
@@ -623,6 +630,82 @@ func TestCreateDeploymentWorkflow_Execute(t *testing.T) {
 				if result.DeploymentName != tt.wantDeploymentName {
 					t.Errorf("deployment = %q, want %q", result.DeploymentName, tt.wantDeploymentName)
 				}
+			}
+		})
+	}
+}
+
+// TestCreateDeploymentWorkflow_WaitsForWorkloads asserts that a peer's or
+// orderer's deploy completes only once what it applied is Ready, and fails at
+// the wait's timeout otherwise, so BootstrapShard cannot report a shard whose
+// peers and orderers never started (#39). Other components do not wait.
+func TestCreateDeploymentWorkflow_WaitsForWorkloads(t *testing.T) {
+	statefulSet := &kubepb.ResourceIdentifier{ApiVersion: "apps/v1", Kind: "StatefulSet", Name: "peer0", Namespace: "fabric-shard-" + testOrg}
+	tests := []struct {
+		name      string
+		component string
+		notReady  bool
+		wantWait  bool
+		errSubstr string
+	}{
+		{name: "peer waits", component: "peer0", wantWait: true},
+		{name: "orderer waits", component: "orderer0", wantWait: true},
+		{name: "peer never ready fails", component: "peer0", notReady: true, wantWait: true, errSubstr: "wait for ready"},
+		{name: "orderer never ready fails", component: "orderer0", notReady: true, wantWait: true, errSubstr: "wait for ready"},
+		{name: "certificate authority does not wait", component: "certificate-authority-org-root"},
+		{name: "worker does not wait", component: "worker"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestWorkflowEnvironment()
+			workflows := newTestWorkflows()
+			pb.RegisterClusterWorkflows(env, workflows)
+			registerActivityStubs(env)
+
+			env.OnActivity(helmpb.RenderChartActivityName, mock.Anything, mock.Anything).
+				Return(&helmpb.RenderChartOutput{}, nil)
+			env.OnActivity(kubepb.ApplyActivityName, mock.Anything, mock.Anything).
+				Return(&kubepb.ApplyOutput{Resources: []*kubepb.ResourceIdentifier{statefulSet}}, nil)
+
+			var waits int
+			env.OnActivity(kubepb.ReadyActivityName, mock.Anything, mock.Anything).
+				Return(func(_ context.Context, in *kubepb.ReadyInput) (*kubepb.ReadyOutput, error) {
+					waits++
+					if len(in.GetResources()) != 1 || in.GetResources()[0].GetName() != statefulSet.GetName() {
+						t.Errorf("Ready got %v, want what Apply returned", in.GetResources())
+					}
+					if tt.notReady {
+						return nil, temporal.NewApplicationError("not ready", "Kube.NotReady")
+					}
+					return &kubepb.ReadyOutput{}, nil
+				})
+
+			env.ExecuteWorkflow(func(ctx workflow.Context, input *pb.CreateDeploymentInput) (*pb.CreateDeploymentOutput, error) {
+				wf, err := workflows.CreateDeployment(ctx, &pb.CreateDeploymentWorkflowInput{Req: input})
+				if err != nil {
+					return nil, err
+				}
+				return wf.Execute(ctx)
+			}, &pb.CreateDeploymentInput{Owner: orgOwner(testOrg), Component: tt.component})
+
+			err := env.GetWorkflowError()
+			if tt.errSubstr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.errSubstr) {
+					t.Fatalf("error = %v, want one containing %q", err, tt.errSubstr)
+				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tt.wantWait && waits == 0 {
+				t.Error("deploy did not wait for Ready")
+			}
+			if tt.notReady && waits < 2 {
+				t.Errorf("Ready ran %d times, want it retried until the timeout", waits)
+			}
+			if !tt.wantWait && waits != 0 {
+				t.Errorf("deploy waited %d times, want none", waits)
 			}
 		})
 	}
