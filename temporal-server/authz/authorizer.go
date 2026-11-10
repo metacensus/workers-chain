@@ -26,17 +26,11 @@ func (a *Authorizer) Authorize(_ context.Context, claims *authorization.Claims, 
 		return a.denied("missing call target"), nil
 	}
 
-	// Nexus dispatch is checked before the system-role shortcut below. An
-	// in-workflow Nexus call arrives here from the history service under the
-	// internode identity, so the caller's namespace is unavailable (the
-	// caller→endpoint allowlist runs in the history service instead — see
-	// nexus_registry.go) but the endpoint name and request payload are not.
-	if ep := target.NexusEndpointName; ep != "" {
-		if err := checkCertificateIssuance(ep, target.Request); err != nil {
-			return a.denied("nexus endpoint %q payload rejected: %v", ep, err), nil
-		}
-	}
-
+	// An in-workflow Nexus call arrives here from the history service under
+	// the internode identity, which the system-role shortcut below allows. Its
+	// caller→endpoint allowlist runs in the history service (nexus_registry.go)
+	// and its endpoint→payload binding at dispatch (nexus_dispatch.go): the
+	// frontend authorizes a Nexus request before it has read the payload.
 	if target.Namespace == "temporal-system" {
 		return allow(), nil
 	}

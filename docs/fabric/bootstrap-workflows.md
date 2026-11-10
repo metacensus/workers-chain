@@ -139,9 +139,9 @@ Worker (cert CN = infra | fabric | fabric-shard-{org})
 3) Is the request OK? Handler policy: Vault subtree / no privileged certs
 ```
 
-Why two server seams: in-workflow Nexus is scheduled by history, which then calls the frontend as **internode**, so the frontend Authorizer does not see the real caller. **History** (`nexus_registry.go`) binds **caller → endpoint**; the **frontend Authorizer** binds **endpoint → payload** for certificate issuance (endpoint org must match the requester in the request). Handlers are defense in depth.
+Why two server seams: in-workflow Nexus is scheduled by history, which then calls the frontend as **internode**, so the frontend Authorizer does not see the real caller. **History** (`nexus_registry.go`) binds **caller → endpoint**; **frontend dispatch** (`nexus_dispatch.go`) binds **endpoint → payload** for certificate issuance (endpoint org must match the requester in the request). That runs at dispatch to matching, not in the Authorizer, because the frontend authorizes a Nexus request before it reads the payload. Handlers are defense in depth.
 
-How we know it holds: allowlist and identity are compiled into `metacensus/temporal-server` (not a mutable config knob); unit tests cover ClaimMapper, allowlist, Authorizer, payload binding, and handler refusals; live negative probes (table below) deny cross-namespace StartWorkflow, wrong Nexus endpoints, cross-org Vault paths, and privileged cert profiles; happy path (`BootstrapInfra` + `InitFabricShard`) still succeeds.
+How we know it holds: allowlist and identity are compiled into `metacensus/temporal-server` (not a mutable config knob); unit tests cover ClaimMapper, allowlist, Authorizer, payload binding, and handler refusals, and an in-process server test sends the payload binding's cases through the frontend's real Nexus handler; live negative probes (table below) deny cross-namespace StartWorkflow, wrong Nexus endpoints, cross-org Vault paths, and privileged cert profiles; happy path (`BootstrapInfra` + `InitFabricShard`) still succeeds.
 
 One-liner: we ship our own Temporal server with mTLS identity + a default-deny Nexus allowlist, plus handler checks — so cross-owner Nexus is refused at the gate, and that is verified with unit tests and live deny probes.
 
@@ -186,7 +186,7 @@ Caller worker (mTLS identity = Temporal NS)
 | `fabric-shard-{org}` | `secrets-CreateAccess` | `CreateAccess` iff policy ⊆ that org's Vault subtree, plus read-only on the operator's TLS CA signing certificates (`fabric/{operator}/certs/ca/tls/{ca}/signing`, public) for peer and orderer trust stores |
 | `fabric-shard-{org}` | `fabric-shard-{org}-CreateCertificate` | `SignCertificate` only; requester must match `{org}`; privileged profiles/attrs rejected |
 
-All other caller × endpoint × operation pairs are denied. In-workflow calls are gated by the history-service endpoint registry; HTTP Nexus dispatch is gated by the frontend Authorizer (caller when present, plus endpoint→payload binding for certificate endpoints).
+All other caller × endpoint × operation pairs are denied. In-workflow calls are gated by the history-service endpoint registry; HTTP Nexus dispatch is gated by the frontend Authorizer (caller when present) and, for certificate endpoints, by the endpoint→payload binding at dispatch.
 
 `temporal-system-admin` and `temporal-internode` are Terraform-issued CNs with a cluster system role (admintools/UI/CLI, and Temporal's own frontend calls). They are never given to workers.
 
@@ -204,8 +204,8 @@ Done:
 4. **Handler policy (partial)** — `CreateAccess` Vault-subtree scoping and `SignCertificate` privileged-request refusal ✅
 5. **Happy-path verify** — live `BootstrapInfra` + `InitFabricShard` ✅
 6. **In-workflow Nexus allowlist** — history-service `EndpointRegistry` decorator (`temporal-server/authz/nexus_registry.go` via `serverfx`) returns `PermissionDenied` for disallowed caller→endpoint pairs; Temporal turns that into `caller namespace %q unauthorized for %q` ✅
-7. **Per-org CreateCertificate endpoints** — `fabric-shard-{org}-CreateCertificate`; frontend Authorizer binds endpoint→payload requester; shared `fabric-CreateCertificate` retired ✅
-8. **Structured deny logs** — history registry logs `nexus endpoint denied for caller namespace` (caller + endpoint); frontend Authorizer logs `authorization denied` with a full reason (not `"..."`) ✅
+7. **Per-org CreateCertificate endpoints** — `fabric-shard-{org}-CreateCertificate`; frontend dispatch binds endpoint→payload requester (`temporal-server/authz/nexus_dispatch.go` via `serverfx`), and an empty payload is denied; shared `fabric-CreateCertificate` retired ✅. Until [#24](https://github.com/metacensus/workers-chain/issues/24) the binding ran in the frontend Authorizer, which runs before the payload is read, so it denied every request and no org could join.
+8. **Structured deny logs** — history registry logs `nexus endpoint denied for caller namespace` (caller + endpoint); frontend dispatch logs `nexus dispatch denied` (endpoint + reason) and the Authorizer `authorization denied`, each with a full reason (not `"..."`) ✅
 
 Live negatives (re-run 2026-08-26 after deploying the registry gate):
 
@@ -219,7 +219,7 @@ Live negatives (re-run 2026-08-26 after deploying the registry gate):
 | Shard → Nexus `fabric-BootstrapFabric` (in-workflow) | Denied at schedule (`caller namespace "fabric-shard-acme" unauthorized for "fabric-BootstrapFabric"`) ✅ |
 | Infra → Nexus `secrets-CreateAccess` (in-workflow) | Denied at schedule (`caller namespace "infra" unauthorized for "secrets-CreateAccess"`) ✅ |
 
-The two seams: history binds **caller→endpoint** (and logs `nexus endpoint denied for caller namespace` with caller + endpoint tags); frontend Authorizer binds **endpoint→payload** and logs `authorization denied` with a full reason string. Handler policy remains defense in depth.
+The two seams: history binds **caller→endpoint** (and logs `nexus endpoint denied for caller namespace` with caller + endpoint tags); frontend dispatch binds **endpoint→payload** and logs `nexus dispatch denied` with a full reason string. Handler policy remains defense in depth.
 
 Remaining (metacensus/infra#43):
 
