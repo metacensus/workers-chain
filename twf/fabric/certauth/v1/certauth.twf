@@ -38,6 +38,9 @@ workflow SignCertificate(issuer: CertificateAuthorityRef, subject: Subject, csr:
 workflow IssueCertificate(issuer: CertificateAuthorityRef, subject: Subject, storage: IdentityRef, registrar: IdentityRef):
 	activity secrets.EnsureKeyPair(storage.keyRef)
 	activity GenerateCsr(storage.keyRef, subject) -> csr
+	activity secrets.CheckCertificate(storage.keyRef, storage.certRef, subject) -> current
+	if (current):
+		close complete
 	if (owns(owner, issuer)):
 		activity SignCsr(issuer, subject, csr, registrar) -> signed
 	else:
@@ -55,6 +58,9 @@ workflow IssueCertificate(issuer: CertificateAuthorityRef, subject: Subject, sto
 workflow BootstrapIssueCertificate(ca: CaUrl, credentials: SecretRef, subject: Subject, storage: IdentityRef):
 	activity secrets.EnsureKeyPair(storage.keyRef)
 	activity GenerateCsr(storage.keyRef, subject) -> csr
+	activity secrets.CheckCertificate(storage.keyRef, storage.certRef, subject) -> current
+	if (current):
+		close complete
 	activity BootstrapEnrollCsr(ca, credentials, csr) -> signed
 	activity secrets.StoreCertificate(storage.certRef, signed.certificate, signed.chain)
 	close complete

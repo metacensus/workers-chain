@@ -213,10 +213,13 @@
       - [Activities](#secrets-v1-secrets-activities)
         - [secrets.v1.EnsurePassword](#secrets-v1-ensurepassword-activity)
         - [secrets.v1.EnsureKeyPair](#secrets-v1-ensurekeypair-activity)
+        - [secrets.v1.CheckCertificate](#secrets-v1-checkcertificate-activity)
         - [secrets.v1.CreateSelfSignedCertificate](#secrets-v1-createselfsignedcertificate-activity)
         - [secrets.v1.StoreCertificate](#secrets-v1-storecertificate-activity)
         - [secrets.v1.StoreGenesisBlock](#secrets-v1-storegenesisblock-activity)
   - Messages
+    - [secrets.v1.CheckCertificateInput](#secrets-v1-checkcertificateinput)
+    - [secrets.v1.CheckCertificateOutput](#secrets-v1-checkcertificateoutput)
     - [secrets.v1.CreateAccessInput](#secrets-v1-createaccessinput)
     - [secrets.v1.CreateAccessOutput](#secrets-v1-createaccessoutput)
     - [secrets.v1.CreateSelfSignedCertificateInput](#secrets-v1-createselfsignedcertificateinput)
@@ -1943,7 +1946,7 @@ go_tags: json:"ChainPem" validate:"required"</pre></td>
 <table>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/sign-certificate/${! CommonName }</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>
 
 ---
@@ -2272,7 +2275,7 @@ go_tags: json:"TlsIdentity" validate:"required"</pre></td>
 <table>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>id</td><td><pre><code>fabric/create-identity/${! CommonName }</code></pre></td></tr>
-<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY</code></pre></td></tr>
+<tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE</code></pre></td></tr>
 </table>     
 
 <a name="fabric-certauth-v1-messages"></a>
@@ -5524,6 +5527,93 @@ go_tags: json:"SecretRef" validate:"required"</pre></td>
 </table> 
 
 ---
+<a name="secrets-v1-checkcertificate-activity"></a>
+### secrets.v1.CheckCertificate
+
+<pre>
+CheckCertificate reports whether cert_ref already holds a certificate for
+key_ref's key, naming common_name and every host in hosts, with at least
+min_remaining of validity left. Issuers call it before issuing, so a rerun
+keeps the certificate a running server already serves instead of storing
+a new one it will never load (#35). An absent certificate is not current;
+any other fetch failure is an error.
+</pre>
+
+**Input:** [secrets.v1.CheckCertificateInput](#secrets-v1-checkcertificateinput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+cert_ref is where the certificate is stored.<br>
+
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name the certificate's subject must carry.<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+hosts the certificate must name, as DNS or IP SANs; it may name more.<br>
+
+json_name: Hosts
+go_name: Hosts
+go_tags: json:"Hosts"</pre></td>
+</tr><tr>
+<td>key_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+key_ref is the key pair the certificate must certify.<br>
+
+json_name: KeyRef
+go_name: KeyRef
+go_tags: json:"KeyRef" validate:"required"</pre></td>
+</tr><tr>
+<td>min_remaining</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+min_remaining is the validity the certificate must have left.<br>
+
+json_name: MinRemaining
+go_name: MinRemaining
+go_tags: json:"MinRemaining"</pre></td>
+</tr>
+</table>
+
+**Output:** [secrets.v1.CheckCertificateOutput](#secrets-v1-checkcertificateoutput)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>current</td>
+<td>bool</td>
+<td><pre>
+json_name: Current
+go_name: Current
+go_tags: json:"Current"</pre></td>
+</tr>
+</table> 
+
+---
 <a name="secrets-v1-createselfsignedcertificate-activity"></a>
 ### secrets.v1.CreateSelfSignedCertificate
 
@@ -5718,6 +5808,94 @@ Enables cross-org access to the genesis block during channel join operations.
 
 <a name="secrets-v1-messages"></a>
 ## Messages
+
+<a name="secrets-v1-checkcertificateinput"></a>
+### secrets.v1.CheckCertificateInput
+
+<pre>
+CheckCertificateInput names a stored certificate and what it must still be.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>cert_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+cert_ref is where the certificate is stored.<br>
+
+json_name: CertRef
+go_name: CertRef
+go_tags: json:"CertRef" validate:"required"</pre></td>
+</tr><tr>
+<td>common_name</td>
+<td>string</td>
+<td><pre>
+common_name the certificate's subject must carry.<br>
+
+json_name: CommonName
+go_name: CommonName
+go_tags: json:"CommonName" validate:"required"</pre></td>
+</tr><tr>
+<td>hosts</td>
+<td>string</td>
+<td><pre>
+hosts the certificate must name, as DNS or IP SANs; it may name more.<br>
+
+json_name: Hosts
+go_name: Hosts
+go_tags: json:"Hosts"</pre></td>
+</tr><tr>
+<td>key_ref</td>
+<td><a href="#secrets-v1-secretref">secrets.v1.SecretRef</a></td>
+<td><pre>
+key_ref is the key pair the certificate must certify.<br>
+
+json_name: KeyRef
+go_name: KeyRef
+go_tags: json:"KeyRef" validate:"required"</pre></td>
+</tr><tr>
+<td>min_remaining</td>
+<td><a href="#google-protobuf-duration">google.protobuf.Duration</a></td>
+<td><pre>
+min_remaining is the validity the certificate must have left.<br>
+
+json_name: MinRemaining
+go_name: MinRemaining
+go_tags: json:"MinRemaining"</pre></td>
+</tr>
+</table>
+
+
+
+<a name="secrets-v1-checkcertificateoutput"></a>
+### secrets.v1.CheckCertificateOutput
+
+<pre>
+CheckCertificateOutput reports whether the stored certificate can be kept.
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>current</td>
+<td>bool</td>
+<td><pre>
+json_name: Current
+go_name: Current
+go_tags: json:"Current"</pre></td>
+</tr>
+</table>
+
+
 
 <a name="secrets-v1-createaccessinput"></a>
 ### secrets.v1.CreateAccessInput

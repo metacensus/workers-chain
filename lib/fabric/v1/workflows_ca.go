@@ -258,11 +258,19 @@ func (w *deployCertificateAuthorityWorkflow) ensureSigningIdentity(
 
 	if signingIssuerRef == nil {
 		// Root CA: self-signed signing certificate. EnsureKeyPair is
-		// get-or-create so re-runs reuse the existing private key.
+		// get-or-create so re-runs reuse the existing private key, and a
+		// current stored certificate is kept: re-minting it would leave the
+		// running CA serving one its clients no longer trust.
 		if err := workflow.ExecuteActivity(activityCtx, secretspb.EnsureKeyPairActivityName, &secretspb.EnsureKeyPairInput{
 			SecretRef: caConfig.VaultSigningKeyRef(),
 		}).Get(ctx, nil); err != nil {
 			return fmt.Errorf("failed to ensure signing key pair: %w", err)
+		}
+		if current, err := certauth.CertificateCurrent(ctx, activityCtx, &pb.IdentityRef{
+			KeyRef:  caConfig.VaultSigningKeyRef(),
+			CertRef: caConfig.VaultSigningCertRef(),
+		}, caConfig.ComponentName(), nil); err != nil || current {
+			return err
 		}
 
 		if err := workflow.ExecuteActivity(activityCtx, secretspb.CreateSelfSignedCertificateActivityName, &secretspb.CreateSelfSignedCertificateInput{
@@ -322,11 +330,18 @@ func (w *deployCertificateAuthorityWorkflow) ensureTLSIdentity(
 
 	if tlsIssuerRef == nil {
 		// Self-signed TLS certificate (TLS Root CA). EnsureKeyPair is
-		// get-or-create so re-runs reuse the existing private key.
+		// get-or-create so re-runs reuse the existing private key, and a
+		// current stored certificate is kept, as for the signing certificate.
 		if err := workflow.ExecuteActivity(activityCtx, secretspb.EnsureKeyPairActivityName, &secretspb.EnsureKeyPairInput{
 			SecretRef: caConfig.VaultTLSKeyRef(),
 		}).Get(ctx, nil); err != nil {
 			return fmt.Errorf("failed to ensure TLS key pair: %w", err)
+		}
+		if current, err := certauth.CertificateCurrent(ctx, activityCtx, &pb.IdentityRef{
+			KeyRef:  caConfig.VaultTLSKeyRef(),
+			CertRef: caConfig.VaultTLSCertRef(),
+		}, caConfig.ComponentName(), caConfig.TLSDNSNames()); err != nil || current {
+			return err
 		}
 
 		if err := workflow.ExecuteActivity(activityCtx, secretspb.CreateSelfSignedCertificateActivityName, &secretspb.CreateSelfSignedCertificateInput{

@@ -27,6 +27,7 @@ worker infra:
 	activity vault.DeletePolicy
 	activity secrets.EnsurePassword
 	activity secrets.EnsureKeyPair
+	activity secrets.CheckCertificate
 	activity secrets.CreateSelfSignedCertificate
 	activity secrets.StoreCertificate
 	activity secrets.StoreGenesisBlock
@@ -63,6 +64,7 @@ worker fabric:
 	activity vault.DeletePolicy
 	activity secrets.EnsurePassword
 	activity secrets.EnsureKeyPair
+	activity secrets.CheckCertificate
 	activity secrets.CreateSelfSignedCertificate
 	activity secrets.StoreCertificate
 	activity secrets.StoreGenesisBlock
@@ -133,6 +135,7 @@ worker shard:
 	activity vault.DeletePolicy
 	activity secrets.EnsurePassword
 	activity secrets.EnsureKeyPair
+	activity secrets.CheckCertificate
 	activity secrets.CreateSelfSignedCertificate
 	activity secrets.StoreCertificate
 	activity secrets.StoreGenesisBlock
