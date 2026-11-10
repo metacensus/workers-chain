@@ -245,6 +245,48 @@ func TestCreateAccessWorkflow_PolicyScope(t *testing.T) {
 			namespace: "workers",
 			document:  rules("secret/data/fabric/metacensus/*"),
 		},
+		{
+			name:      "shard may read the operator's TLS CA certificate",
+			namespace: "fabric-shard-org1",
+			document:  rules("secret/data/fabric/metacensus/certs/ca/tls/root/signing"),
+			allowed:   true,
+		},
+		{
+			name:      "operator TLS CA read takes no wildcard",
+			namespace: "fabric-shard-org1",
+			document:  rules("secret/data/fabric/metacensus/certs/ca/tls/+/signing"),
+		},
+		{
+			name:      "operator TLS CA read covers no other certificate",
+			namespace: "fabric-shard-org1",
+			document:  rules("secret/data/fabric/metacensus/certs/ca/tls/root/tls"),
+		},
+		{
+			name:      "operator TLS CA read covers no key",
+			namespace: "fabric-shard-org1",
+			document:  rules("secret/data/fabric/metacensus/keys/ca/tls/root/signing"),
+		},
+		{
+			name:      "operator TLS CA read covers no org CA",
+			namespace: "fabric-shard-org1",
+			document:  rules("secret/data/fabric/metacensus/certs/ca/org/root/signing"),
+		},
+		{
+			name:      "operator TLS CA read is not another org's",
+			namespace: "fabric-shard-org1",
+			document:  rules("secret/data/fabric/shard/org2/certs/ca/tls/root/signing"),
+		},
+		{
+			name:      "operator TLS CA read is read only",
+			namespace: "fabric-shard-org1",
+			document: &vaultpb.PolicyDocument{Rules: []*vaultpb.PolicyRule{{
+				Path: "secret/data/fabric/metacensus/certs/ca/tls/root/signing",
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+					vaultpb.Capability_CAPABILITY_UPDATE,
+				},
+			}}},
+		},
 	}
 
 	for _, tt := range tests {

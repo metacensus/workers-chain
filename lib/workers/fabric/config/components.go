@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	kubev1 "github.com/metacensus/library-temporal-kube/gen/kube/v1"
+	fabricv1 "github.com/metacensus/workers-chain/gen/fabric/v1"
 	pb "github.com/metacensus/workers-chain/gen/secrets/v1"
 	vaultpb "github.com/metacensus/workers-chain/gen/vault/v1"
 	secrets "github.com/metacensus/workers-chain/lib/secrets/v1"
@@ -132,14 +133,23 @@ func (c CouchDbConfig) VaultPolicy() *vaultpb.PolicyDocument {
 type PeerConfig struct {
 	OwnerConfig // embedded interface - methods promoted
 	peerID      string
+	tlsRootCA   CertificateAuthorityConfig
 }
 
 // NewPeerConfig creates a PeerConfig for the given owner and peer ID.
-func NewPeerConfig(owner OwnerConfig, peerID string) PeerConfig {
+// The operator owns the TLS root CA the peer's trust store anchors on.
+func NewPeerConfig(owner OwnerConfig, operator OwnerConfig, peerID string) PeerConfig {
 	return PeerConfig{
 		OwnerConfig: owner,
 		peerID:      peerID,
+		tlsRootCA:   NewCertificateAuthorityConfig(operator, &fabricv1.CertificateAuthorityRef{CertType: "tls", Id: "root"}),
 	}
+}
+
+// TLSRootCA returns the operator's TLS root CA, which the peer's chart mounts
+// and its Vault policy may read.
+func (p PeerConfig) TLSRootCA() CertificateAuthorityConfig {
+	return p.tlsRootCA
 }
 
 // ------------ Kubernetes Properties ------------
@@ -312,6 +322,7 @@ func (p PeerConfig) VaultCertsMetadataPath() string {
 // VaultPolicy creates a Vault policy document for the peer.
 // The policy grants:
 // - Read access to ALL certificates (certs/*) - certificates are public
+// - Read access to the operator's TLS root CA certificate (public; CreateAccess's one cross-owner grant)
 // - Read access to peer's own keys (keys/peer/{id}/*) - private keys and CouchDB credentials
 func (p PeerConfig) VaultPolicy() *vaultpb.PolicyDocument {
 	return &vaultpb.PolicyDocument{
@@ -335,6 +346,13 @@ func (p PeerConfig) VaultPolicy() *vaultpb.PolicyDocument {
 			// Private: read only this peer's keys (signing key, TLS key, CouchDB credentials)
 			{
 				Path: p.VaultKeysDataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+			// Public: the operator's TLS root CA certificate for the TLS trust store
+			{
+				Path: p.tlsRootCA.VaultSigningCertDataPath(),
 				Capabilities: []vaultpb.Capability{
 					vaultpb.Capability_CAPABILITY_READ,
 				},
@@ -371,14 +389,23 @@ func (p PeerConfig) OrganizationalUnit() string {
 type OrdererConfig struct {
 	OwnerConfig // embedded interface - methods promoted
 	ordererID   string
+	tlsRootCA   CertificateAuthorityConfig
 }
 
 // NewOrdererConfig creates an OrdererConfig for the given owner and orderer ID.
-func NewOrdererConfig(owner OwnerConfig, ordererID string) OrdererConfig {
+// The operator owns the TLS root CA the orderer's trust store anchors on.
+func NewOrdererConfig(owner OwnerConfig, operator OwnerConfig, ordererID string) OrdererConfig {
 	return OrdererConfig{
 		OwnerConfig: owner,
 		ordererID:   ordererID,
+		tlsRootCA:   NewCertificateAuthorityConfig(operator, &fabricv1.CertificateAuthorityRef{CertType: "tls", Id: "root"}),
 	}
+}
+
+// TLSRootCA returns the operator's TLS root CA, which the orderer's chart
+// mounts and its Vault policy may read.
+func (o OrdererConfig) TLSRootCA() CertificateAuthorityConfig {
+	return o.tlsRootCA
 }
 
 // ------------ Kubernetes Properties ------------
@@ -530,6 +557,7 @@ func (o OrdererConfig) VaultCertsMetadataPath() string {
 // VaultPolicy creates a Vault policy document for the orderer.
 // The policy grants:
 // - Read access to ALL certificates (certs/*) - certificates are public
+// - Read access to the operator's TLS root CA certificate (public; CreateAccess's one cross-owner grant)
 // - Read access to orderer's own keys (keys/orderer/{id}/*) - private keys only
 func (o OrdererConfig) VaultPolicy() *vaultpb.PolicyDocument {
 	return &vaultpb.PolicyDocument{
@@ -553,6 +581,13 @@ func (o OrdererConfig) VaultPolicy() *vaultpb.PolicyDocument {
 			// Private: read only this orderer's keys (signing key, TLS key)
 			{
 				Path: o.VaultKeysDataPath(),
+				Capabilities: []vaultpb.Capability{
+					vaultpb.Capability_CAPABILITY_READ,
+				},
+			},
+			// Public: the operator's TLS root CA certificate for the TLS trust store
+			{
+				Path: o.tlsRootCA.VaultSigningCertDataPath(),
 				Capabilities: []vaultpb.Capability{
 					vaultpb.Capability_CAPABILITY_READ,
 				},

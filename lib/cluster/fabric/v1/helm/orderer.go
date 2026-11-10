@@ -64,11 +64,9 @@ type OrdererProbeConfig struct {
 // Parameters:
 //   - ordererConfig: Configuration for the orderer itself
 //   - orgRootCA: Org Root CA config (for MSP cacerts/)
-//   - tlsRootCA: TLS Root CA config (for TLS trust store)
 func NewOrdererValues(
 	ordererConfig fabricconfig.OrdererConfig,
 	orgRootCA fabricconfig.CertificateAuthorityConfig,
-	tlsRootCA fabricconfig.CertificateAuthorityConfig,
 ) *OrdererValues {
 	return &OrdererValues{
 		Org:       ordererConfig.OwnerID(),
@@ -89,7 +87,7 @@ func NewOrdererValues(
 			TlsCertPath:        "secret/data/" + ordererConfig.VaultTLSCertRef().GetRef().Fields["path"].GetStringValue(),
 			// CA root certs for trust stores (root CA only)
 			MspRootCaCertPath: "secret/data/" + orgRootCA.VaultSigningCertRef().GetRef().Fields["path"].GetStringValue(),
-			TlsRootCaCertPath: "secret/data/" + tlsRootCA.VaultSigningCertRef().GetRef().Fields["path"].GetStringValue(),
+			TlsRootCaCertPath: ordererConfig.TLSRootCA().VaultSigningCertDataPath(), // the path its Vault policy grants
 		},
 		Service: OrdererServiceConfig{
 			Type:           "ClusterIP",

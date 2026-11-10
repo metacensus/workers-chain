@@ -68,7 +68,7 @@ func (w *createAccessWorkflow) validate() error {
 	}
 
 	for _, rule := range req.GetPolicyDocument().GetRules() {
-		if !config.VaultPathAllowedForKubernetesNamespace(namespace, rule.GetPath()) {
+		if !config.VaultRuleAllowedForKubernetesNamespace(namespace, rule) {
 			return fmt.Errorf("%w: %q cannot be granted to %q", ErrPolicyOutOfScope, rule.GetPath(), namespace)
 		}
 	}

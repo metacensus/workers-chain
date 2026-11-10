@@ -20,9 +20,10 @@ import (
 var Module = fx.Options(
 	// Provide Workflows implementing pb.FabricWorkflows interface.
 	// Workflows act AS the worker's owner, injected at startup
-	// (operator on the fabric worker, org on shard workers).
-	fx.Provide(func(owner config.OwnerConfig) pb.FabricWorkflows {
-		return NewWorkflows(owner)
+	// (operator on the fabric worker, org on shard workers), with the
+	// operator as platform context.
+	fx.Provide(func(owner config.OwnerConfig, operator *config.OperatorConfig) pb.FabricWorkflows {
+		return NewWorkflows(owner, operator)
 	}),
 )
 

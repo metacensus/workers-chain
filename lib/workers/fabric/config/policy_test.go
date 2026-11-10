@@ -44,6 +44,7 @@ func TestWorkerVaultPolicy_OnlyOwnSubtree(t *testing.T) {
 // Fail if a real bootstrap policy would be rejected by CreateAccess, or if a
 // policy has no rules (the check would prove nothing).
 func TestVaultPolicies_AcceptedByCreateAccess(t *testing.T) {
+	operator := NewOperatorConfig("metacensus")
 	for _, owner := range []OwnerConfig{NewOperatorConfig("metacensus"), NewOrgConfig("org1")} {
 		caRef := &fabricv1.CertificateAuthorityRef{CertType: "org", Id: "int"}
 		policies := map[string]*vaultv1.PolicyDocument{
@@ -51,8 +52,8 @@ func TestVaultPolicies_AcceptedByCreateAccess(t *testing.T) {
 			"certificate-store":     NewCertificateStoreConfig(owner).VaultPolicy(),
 			"certificate-authority": NewCertificateAuthorityConfig(owner, caRef).VaultPolicy(),
 			"couchdb":               NewCouchDbConfig(owner, "peer0").VaultPolicy(),
-			"peer":                  NewPeerConfig(owner, "peer0").VaultPolicy(),
-			"orderer":               NewOrdererConfig(owner, "orderer0").VaultPolicy(),
+			"peer":                  NewPeerConfig(owner, operator, "peer0").VaultPolicy(),
+			"orderer":               NewOrdererConfig(owner, operator, "orderer0").VaultPolicy(),
 		}
 
 		namespace := owner.KubernetesNamespace()
@@ -61,7 +62,7 @@ func TestVaultPolicies_AcceptedByCreateAccess(t *testing.T) {
 				t.Errorf("%s/%s: policy has no rules, so the scope check proves nothing", namespace, component)
 			}
 			for _, rule := range policy.GetRules() {
-				if !workerconfig.VaultPathAllowedForKubernetesNamespace(namespace, rule.GetPath()) {
+				if !workerconfig.VaultRuleAllowedForKubernetesNamespace(namespace, rule) {
 					t.Errorf("%s/%s: CreateAccess would reject %q", namespace, component, rule.GetPath())
 				}
 			}
@@ -82,6 +83,47 @@ func TestWorkerVaultPolicy_NoCrossOwnerWildcard(t *testing.T) {
 				t.Errorf("owner %q has cross-owner rule %q (contains %q)",
 					owner.OwnerID(), rule.GetPath(), crossOwnerBase)
 			}
+		}
+	}
+}
+
+// TestComponentVaultPolicies_ReadOperatorTLSRootCA asserts that an org's peers
+// and orderers may read the operator's TLS root CA certificate their charts
+// mount (#37), and nothing else outside their owner's subtree.
+func TestComponentVaultPolicies_ReadOperatorTLSRootCA(t *testing.T) {
+	operator := NewOperatorConfig("metacensus")
+	org := NewOrgConfig("org1")
+	want := "secret/data/fabric/metacensus/certs/ca/tls/root/signing"
+	policies := map[string]struct {
+		tlsRootCA CertificateAuthorityConfig
+		policy    *vaultv1.PolicyDocument
+	}{
+		"peer":    {NewPeerConfig(org, operator, "peer0").TLSRootCA(), NewPeerConfig(org, operator, "peer0").VaultPolicy()},
+		"orderer": {NewOrdererConfig(org, operator, "orderer0").TLSRootCA(), NewOrdererConfig(org, operator, "orderer0").VaultPolicy()},
+	}
+	ownPrefix := fmt.Sprintf("%s/%s/", vaultSecretDataPrefix, org.VaultBasePath())
+	ownMetadataPrefix := fmt.Sprintf("%s/%s/", vaultSecretMetadataPrefix, org.VaultBasePath())
+
+	for component, tc := range policies {
+		if got := tc.tlsRootCA.VaultSigningCertDataPath(); got != want {
+			t.Errorf("%s: chart mounts %q, want %q", component, got, want)
+		}
+		var granted bool
+		for _, rule := range tc.policy.GetRules() {
+			path := rule.GetPath()
+			switch {
+			case strings.HasPrefix(path, ownPrefix), strings.HasPrefix(path, ownMetadataPrefix):
+			case path == want:
+				granted = true
+				if caps := rule.GetCapabilities(); len(caps) != 1 || caps[0] != vaultv1.Capability_CAPABILITY_READ {
+					t.Errorf("%s: %q grants %v, want read only", component, path, caps)
+				}
+			default:
+				t.Errorf("%s: rule %q is outside the org's subtree", component, path)
+			}
+		}
+		if !granted {
+			t.Errorf("%s: policy does not grant read on %q", component, want)
 		}
 	}
 }
