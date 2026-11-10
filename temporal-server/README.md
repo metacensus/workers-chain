@@ -1,0 +1,18 @@
+# `temporal-server`
+
+Custom Temporal server with compile-time `Authorizer` / `ClaimMapper` for Nexus
+endpoint allowlisting. Canonical design (including plain-language overview):
+[docs/fabric/bootstrap-workflows.md — Nexus Authorization](../docs/fabric/bootstrap-workflows.md#nexus-authorization).
+
+| Path | Role |
+|------|------|
+| `authz/` | Allowlist + Authorizer + mTLS ClaimMapper |
+| `cmd/server/` | Upstream `main.go` with our plugins injected |
+| `Dockerfile` | Binary layered onto `temporalio/server:${TEMPORAL_VERSION}` |
+
+Client certificate CN = Temporal namespace (`infra`, `fabric`, `fabric-shard-{org}`).
+`temporal-system-admin` and `temporal-internode` get cluster system admin.
+
+Its own Go module: the server's dependency graph stays out of the workers'. `make check` at the root vets and tests it.
+
+Terraform: `server_image = metacensus/temporal-server`, tag = the `go.temporal.io/server` version in `go.mod`. Local: `make docker-build-temporal-server`. Publishing is [#20](https://github.com/metacensus/workers-chain/issues/20).

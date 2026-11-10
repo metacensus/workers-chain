@@ -1,6 +1,6 @@
 .PHONY: help check proto mocks gen lint-proto-check docker-build test fmt vet \
 	install-tools-gen install-tools-lint lint vuln release latest \
-	fmt-check tidy-check hooks generated-paths
+	fmt-check tidy-check hooks generated-paths docker-build-temporal-server
 
 .DEFAULT_GOAL := help
 
@@ -54,18 +54,20 @@ fmt:
 fmt-check:
 	@test -z "$$(gofmt -l $$(git ls-files '*.go' | grep -v '^gen/') | tee /dev/stderr)" || (echo 'gofmt dirty; run make fmt' && exit 1)
 
-## vet — go vet
+## vet — go vet, workers and temporal-server
 vet:
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go vet ./...
+	@cd temporal-server && GOWORK=off GOTOOLCHAIN=$(GEN_TOOLCHAIN) go vet ./...
 
-## test — unit tests
+## test — unit tests, workers and temporal-server
 test:
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go test ./...
+	@cd temporal-server && GOWORK=off GOTOOLCHAIN=$(GEN_TOOLCHAIN) go test ./...
 
 ## lint — proto lint, fmt check, vet, golangci-lint
 lint: lint-proto-check install-tools-lint
 	@test -z "$$(gofmt -l $$(git ls-files '*.go' | grep -v '^gen/') | tee /dev/stderr)"
-	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go vet ./...
+	@$(MAKE) vet
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) $(TOOL_PATH) golangci-lint run ./cmd/... ./lib/...
 
 ## vuln — govulncheck over the module; fails only on findings that have a fix
@@ -81,10 +83,11 @@ vuln:
 		echo 'vuln: a finding above has a fixed version; upgrade that module'; exit 1; \
 	fi
 
-## tidy-check — go mod tidy leaves go.mod and go.sum unchanged
+## tidy-check — go mod tidy leaves both modules' go.mod and go.sum unchanged
 tidy-check:
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go mod tidy
-	@git diff --exit-code -- go.mod go.sum || (echo 'go.mod dirty; run go mod tidy' && exit 1)
+	@cd temporal-server && GOWORK=off GOTOOLCHAIN=$(GEN_TOOLCHAIN) go mod tidy
+	@git diff --exit-code -- go.mod go.sum temporal-server/go.mod temporal-server/go.sum || (echo 'go.mod dirty; run go mod tidy' && exit 1)
 
 ## check — proto/mocks freshness, twf design, helm lint, tidy, lint, unit tests
 check: lint
@@ -104,13 +107,18 @@ check: lint
 		fi; \
 	done'
 	@$(MAKE) tidy-check
-	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go test ./...
+	@$(MAKE) test
 
 ## docker-build — build the three worker images for this machine
 docker-build:
 	docker build --build-arg VERSION=local -f cmd/workers/infra/Dockerfile -t metacensus/worker-infra:local .
 	docker build -f cmd/workers/fabric/Dockerfile -t metacensus/worker-fabric:local .
 	docker build -f cmd/workers/shard/Dockerfile -t metacensus/worker-fabric-shard:local .
+
+## docker-build-temporal-server — build metacensus/temporal-server, tagged with the go.temporal.io/server version it embeds
+docker-build-temporal-server:
+	@v=$$(cd temporal-server && GOWORK=off go list -m -f '{{.Version}}' go.temporal.io/server | sed 's/^v//'); \
+	docker build --provenance=false --build-arg TEMPORAL_VERSION=$$v -t docker.io/metacensus/temporal-server:$$v temporal-server
 
 ## release — tag and push VERSION=x.y.z or the next TYPE=major|minor|patch; prompts unless YES=1
 release:

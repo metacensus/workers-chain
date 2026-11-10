@@ -227,7 +227,7 @@ Remaining (metacensus/infra#43):
 - [x] **Land PR** — metacensus/infra#51 merged
 - [ ] **CN/SAN namespacing** — scope leaf subject (CN/SAN) to the declared requester on the CreateCertificate path
 
-Code lives in metacensus/infra's `temporal-server/` (gate) and this repository's `lib/` (handler policy). Ownership boundary: [OWNERSHIP.md P2](../strategy/OWNERSHIP.md#p2--local-call--my-resources-nexus--someone-elses).
+Code lives in this repository's [`temporal-server/`](../../temporal-server/) (gate) and `lib/` (handler policy). Ownership boundary: [OWNERSHIP.md P2](../strategy/OWNERSHIP.md#p2--local-call--my-resources-nexus--someone-elses).
 
 ---
 

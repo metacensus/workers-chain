@@ -17,6 +17,7 @@ Design decisions are in [AGENTS.md](AGENTS.md). Ownership boundaries: [`docs/str
 | `cmd/`, `lib/`, `proto/`, `gen/`, `mocks/` | Workers, workflows, activities, protos. `proto`, `gen`, `lib` and `mocks` each hold `<application space>/<version>`, as `fabric/certauth/v1`; `lib/workers` and `lib/healthcheck` are not spaces |
 | `helm/` | Charts the workers render/deploy; the render and apply activities come from [library-temporal-kube](https://github.com/metacensus/library-temporal-kube) |
 | `twf/`, `scripts/check-twf.sh` | The design in `.twf`: one package per application space, `twf/deploy` the workers; the script checks it against `proto/` and `lib/workers` |
+| `temporal-server/` | The custom Temporal server whose Authorizer gates Nexus; its own Go module |
 | `docs/fabric/` | Fabric bootstrap and certificate design |
 
 ## Tests
