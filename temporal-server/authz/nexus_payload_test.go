@@ -53,9 +53,9 @@ func marshalSignCertificateRequester(org string) []byte {
 	return protowire.AppendBytes(out, owner)
 }
 
-// The frontend Authorizer sees the endpoint name and the payload but not the
-// caller (in-workflow dispatch arrives as the internode identity), so its job is
-// to bind the per-org endpoint to the requester the payload declares.
+// Dispatch sees the endpoint name and the payload but not the caller
+// (in-workflow dispatch arrives as the internode identity), so its job is to
+// bind the per-org endpoint to the requester the payload declares.
 func TestCheckCertificateIssuance(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

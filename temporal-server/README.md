@@ -6,7 +6,8 @@ endpoint allowlisting. Canonical design (including plain-language overview):
 
 | Path | Role |
 |------|------|
-| `authz/` | Allowlist + Authorizer + mTLS ClaimMapper |
+| `authz/` | Allowlist + Authorizer + mTLS ClaimMapper, and the Nexus guards `serverfx` wires in |
+| `serverfx/` | Upstream's service providers, re-declared to decorate history's endpoint registry and the frontends' matching client |
 | `cmd/server/` | Upstream `main.go` with our plugins injected |
 | `Dockerfile` | Binary layered onto `temporalio/server:${TEMPORAL_VERSION}` |
 

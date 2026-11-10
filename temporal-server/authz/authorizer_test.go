@@ -38,37 +38,6 @@ func TestAuthorizer_NexusAllowDeny(t *testing.T) {
 	}
 }
 
-// In-workflow Nexus dispatch reaches the Authorizer as the internode identity,
-// which carries a cluster system role. The endpoint→payload binding therefore
-// has to be checked before that role short-circuits the decision.
-func TestAuthorizer_SystemCallerStillBoundToEndpoint(t *testing.T) {
-	t.Parallel()
-	a := NewAuthorizer(nil)
-	internode := &authorization.Claims{
-		Subject: "temporal-internode",
-		System:  authorization.RoleAdmin,
-	}
-	target := func(org string) *authorization.CallTarget {
-		return &authorization.CallTarget{
-			APIName:           "/temporal.api.nexusservice.v1.NexusService/DispatchNexusTask",
-			Namespace:         NamespaceFabric,
-			NexusEndpointName: "fabric-shard-acme-CreateCertificate",
-			Request: signCertificateDispatch(t, encodingProtoJSON,
-				certificateAuthorityService, signCertificateOperation, org),
-		}
-	}
-
-	res, err := a.Authorize(context.Background(), internode, target("acme"))
-	if err != nil || res.Decision != authorization.DecisionAllow {
-		t.Fatalf("expected allow for the endpoint's own org, got %+v err=%v", res, err)
-	}
-
-	res, err = a.Authorize(context.Background(), internode, target("other"))
-	if err != nil || res.Decision != authorization.DecisionDeny {
-		t.Fatalf("expected deny for a foreign requester, got %+v err=%v", res, err)
-	}
-}
-
 func TestAuthorizer_UnauthenticatedDenied(t *testing.T) {
 	t.Parallel()
 	a := NewAuthorizer(nil)
