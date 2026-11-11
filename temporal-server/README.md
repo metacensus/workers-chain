@@ -16,4 +16,4 @@ Client certificate CN = Temporal namespace (`infra`, `fabric`, `fabric-shard-{or
 
 Its own Go module: the server's dependency graph stays out of the workers'. `make check` at the root vets and tests it.
 
-Terraform: `server_image = metacensus/temporal-server`, tag = the `go.temporal.io/server` version in `go.mod`. Local: `make docker-build-temporal-server`. Publishing is [#20](https://github.com/metacensus/workers-chain/issues/20).
+Terraform: `server_image = metacensus/temporal-server`, tag = the `go.temporal.io/server` version in `go.mod`. Local: `make docker-build-temporal-server`. Each workers-chain release publishes it for linux/amd64 and linux/arm64.

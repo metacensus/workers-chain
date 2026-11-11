@@ -138,7 +138,7 @@ release:
 		echo "Error: HEAD is not on origin/main; refusing to tag"; \
 		exit 1; \
 	fi; \
-	echo "About to tag and push $$TAG, which publishes the three worker images."; \
+	echo "About to tag and push $$TAG, which publishes the three worker images and temporal-server."; \
 	if [ "$(YES)" != "1" ]; then \
 		if [ -t 0 ]; then \
 			printf "Proceed? [y/N] "; read -r reply; \

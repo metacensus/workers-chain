@@ -28,7 +28,7 @@ Design decisions are in [AGENTS.md](AGENTS.md). Ownership boundaries: [`docs/str
 
 ## Releasing
 
-`make release TYPE=patch|minor|major` tags the next semver, and the tag publishes the three worker images.
+`make release TYPE=patch|minor|major` tags the next semver, and the tag publishes the three worker images and `metacensus/temporal-server`, tagged with the Temporal version it embeds.
 
 **Clusters built with v0.2.0 or earlier are rebuilt, not upgraded.** Those workers wrote Kubernetes objects with update calls; later ones apply server-side as `workers-chain` without force, so their first apply to an existing object fails with `Kube.Conflict` against the old manager ([#36](https://github.com/metacensus/workers-chain/issues/36)).
 
