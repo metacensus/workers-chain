@@ -6,7 +6,7 @@
 # it from go.mod and passes it in; the default keeps local builds working.
 ARG TEMPORAL_VERSION=1.30.4
 
-FROM golang:1.25-bookworm AS build
+FROM golang:1.27.4-bookworm AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download

@@ -1,6 +1,6 @@
 module github.com/metacensus/workers-chain
 
-go 1.27.3
+go 1.27.4
 
 tool (
 	github.com/alta/protopatch/cmd/protoc-gen-go-patch
