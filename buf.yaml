@@ -18,6 +18,7 @@ lint:
     - ENUM_VALUE_PREFIX
     - ENUM_ZERO_VALUE_SUFFIX
   disallow_comment_ignores: false
+# Temporal persists proto payloads as protojson, so JSON names are the wire.
 breaking:
   use:
-    - FILE
+    - WIRE_JSON

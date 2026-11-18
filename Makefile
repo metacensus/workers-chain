@@ -1,4 +1,4 @@
-.PHONY: help check proto mocks gen lint-proto-check docker-build test fmt vet \
+.PHONY: help check proto mocks gen lint-proto-check breaking docker-build test fmt vet \
 	install-tools-gen install-tools-lint lint vuln release latest \
 	fmt-check tidy-check hooks generated-paths docker-build-temporal-server
 
@@ -45,6 +45,10 @@ gen: proto mocks
 lint-proto-check: install-tools-gen
 	@$(TOOL_PATH) buf lint
 	@$(TOOL_PATH) buf format -d --exit-code
+
+## breaking — buf breaking against origin/main
+breaking: install-tools-gen
+	@$(TOOL_PATH) buf breaking --against '.git#ref=origin/main'
 
 ## fmt — rewrite with gofmt (skip gen/)
 fmt:
