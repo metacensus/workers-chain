@@ -14,6 +14,6 @@ endpoint allowlisting. Canonical design (including plain-language overview):
 Client certificate CN = Temporal namespace (`infra`, `fabric`, `fabric-shard-{org}`).
 `temporal-system-admin` and `temporal-internode` get cluster system admin.
 
-Its own Go module: the server's dependency graph stays out of the workers'. `make check` at the root vets and tests it.
+Its own Go module: the server's dependency graph stays out of the workers'. `make check` at the root vets, lints and tests it; `make vuln` scans it.
 
 Terraform: `server_image = metacensus/temporal-server`, tag = the `go.temporal.io/server` version in `go.mod`. Local: `make docker-build-temporal-server`. Each workers-chain release publishes it for linux/amd64 and linux/arm64.

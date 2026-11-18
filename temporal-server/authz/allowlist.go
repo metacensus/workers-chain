@@ -5,8 +5,8 @@ import (
 )
 
 // Endpoint names registered by cell bootstrap workflows.
-// Keep in sync with config.OrgConfig's NexusEndpoint* methods (lib/workers/config)
-// and lib/cell/v1/workflows.go in this repository.
+// Keep in sync with the *NexusEndpoint constants in lib/cell/v1/workflows.go
+// in this repository.
 const (
 	EndpointSecretsCreateAccess   = "secrets-CreateAccess" // pragma: allowlist secret
 	EndpointFabricBootstrapFabric = "fabric-BootstrapFabric"
