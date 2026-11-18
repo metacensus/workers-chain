@@ -68,24 +68,27 @@ test:
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) go test ./...
 	@cd temporal-server && GOWORK=off GOTOOLCHAIN=$(GEN_TOOLCHAIN) go test ./...
 
-## lint — proto lint, fmt check, vet, golangci-lint
+## lint — proto lint, fmt check, vet, golangci-lint, workers and temporal-server
 lint: lint-proto-check install-tools-lint
 	@test -z "$$(gofmt -l $$(git ls-files '*.go' | grep -v '^gen/') | tee /dev/stderr)"
 	@$(MAKE) vet
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) $(TOOL_PATH) golangci-lint run ./cmd/... ./lib/...
+	@cd temporal-server && GOWORK=off GOTOOLCHAIN=$(GEN_TOOLCHAIN) $(TOOL_PATH) golangci-lint run ./...
 
-## vuln — govulncheck over the module; fails only on findings that have a fix
+## vuln — govulncheck over both modules; fails only on findings that have a fix
 # govulncheck exits 3 on any finding, including ones with no fixed version
 # (accepted in #8), which would keep the nightly scan red with nothing to do.
 # Installed rather than `go run`, which reports every non-zero exit as 1.
 vuln:
 	@GOTOOLCHAIN=$(GEN_TOOLCHAIN) GOBIN=$(CURDIR)/.bin go install $(GOVULNCHECK)
-	@out=$$(GOTOOLCHAIN=$(GEN_TOOLCHAIN) $(CURDIR)/.bin/govulncheck ./... 2>&1); status=$$?; \
-	echo "$$out"; \
-	if [ $$status -ne 0 ] && [ $$status -ne 3 ]; then exit $$status; fi; \
-	if echo "$$out" | awk '/Fixed in:/ && $$3 != "N/A"' | grep -q .; then \
-		echo 'vuln: a finding above has a fixed version; upgrade that module'; exit 1; \
-	fi
+	@for dir in . temporal-server; do \
+		out=$$(cd $$dir && GOWORK=off GOTOOLCHAIN=$(GEN_TOOLCHAIN) $(CURDIR)/.bin/govulncheck ./... 2>&1); status=$$?; \
+		echo "$$out"; \
+		if [ $$status -ne 0 ] && [ $$status -ne 3 ]; then exit $$status; fi; \
+		if echo "$$out" | awk '/Fixed in:/ && $$3 != "N/A"' | grep -q .; then \
+			echo "vuln: a finding above in $$dir has a fixed version; upgrade that module"; exit 1; \
+		fi; \
+	done
 
 ## tidy-check — go mod tidy leaves both modules' go.mod and go.sum unchanged
 tidy-check:
