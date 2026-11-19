@@ -4,10 +4,10 @@ import (
 	"context"
 	"io/fs"
 	"log"
-	"os"
 
 	helm "github.com/metacensus/library-temporal-kube/lib/helm/v1"
 	kube "github.com/metacensus/library-temporal-kube/lib/kube/v1"
+	charts "github.com/metacensus/workers-chain/helm"
 	"github.com/metacensus/workers-chain/lib/healthcheck"
 	temporalmtls "github.com/metacensus/workers-chain/lib/temporalmtls/v1"
 	"github.com/metacensus/workers-chain/lib/workers/config"
@@ -33,14 +33,9 @@ var ClusterModule = fx.Options(
 	temporalmtls.Module,
 )
 
-// Charts is the chart tree the worker renders: HELM_CHART_DIR, or the
-// Dockerfile's COPY at /helm.
+// Charts is the chart tree the worker renders, embedded in the binary.
 func Charts() fs.FS {
-	dir := os.Getenv("HELM_CHART_DIR")
-	if dir == "" {
-		dir = "/helm"
-	}
-	return os.DirFS(dir)
+	return charts.FS
 }
 
 // RestConfig is the worker's cluster credential: the kubeconfig KUBECONFIG

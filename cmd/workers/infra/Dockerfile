@@ -13,5 +13,4 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
 
 FROM alpine:3.23
 COPY --from=buildstage /bin/infra-worker /bin/infra-worker
-COPY helm /helm
 ENTRYPOINT ["/bin/infra-worker"]
