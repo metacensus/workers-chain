@@ -103,7 +103,6 @@ worker fabric:
 	activity peer.ChannelFetch
 	activity peer.PeerChannelJoin
 	workflow fabric.BootstrapFabric
-	workflow fabric.BootstrapShard
 	workflow fabric.DeployCertificateStore
 	workflow fabric.DeployCertificateAuthority
 	workflow fabric.CreateCertificateDatabase
@@ -151,7 +150,6 @@ worker shard:
 	workflow cluster.CreateNamespace
 	workflow cluster.CreateServiceAccount
 	workflow cluster.CreateDeployment
-	workflow certauth.SignCertificate
 	workflow certauth.IssueCertificate
 	workflow certauth.BootstrapIssueCertificate
 	workflow certauth.CreateBootstrapAdmin
@@ -173,7 +171,6 @@ worker shard:
 	activity orderer.WaitForActive
 	activity peer.ChannelFetch
 	activity peer.PeerChannelJoin
-	workflow fabric.BootstrapFabric
 	workflow fabric.BootstrapShard
 	workflow fabric.DeployCertificateStore
 	workflow fabric.DeployCertificateAuthority

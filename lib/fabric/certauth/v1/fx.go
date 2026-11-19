@@ -48,9 +48,12 @@ var Module = fx.Options(
 	}),
 )
 
-// RegisterWorkflows registers fabric workflows with the worker
+// RegisterWorkflows registers the workflows every owner runs locally;
+// SignCertificate is RegisterSignCertificate's.
 func RegisterWorkflows(w worker.Worker, workflows pb.CertificateAuthorityWorkflows) {
-	pb.RegisterCertificateAuthorityWorkflows(w, workflows)
+	pb.RegisterCreateAdminWorkflow(w, workflows.CreateAdmin)
+	pb.RegisterCreateBootstrapAdminWorkflow(w, workflows.CreateBootstrapAdmin)
+	pb.RegisterCreateIdentityWorkflow(w, workflows.CreateIdentity)
 }
 
 // RegisterActivities registers fabric activities with the worker
@@ -58,13 +61,9 @@ func RegisterActivities(w worker.Worker, activities *Activities) {
 	pb.RegisterIdentityActivities(w, activities)
 }
 
-// RegisterSignCertificateNexusService registers only SignCertificate on the
-// CertificateAuthority Nexus service. Bootstrap/admin/identity workflows stay
-// local to the owner that runs them.
-//
-// Takes worker.Worker (not NexusServiceRegistry) so uber/fx can inject the
-// provided Worker; the registry interface alone is not in the DI graph.
-func RegisterSignCertificateNexusService(w worker.Worker) error {
+// RegisterSignCertificate registers SignCertificate's workflow and Nexus operation.
+func RegisterSignCertificate(w worker.Worker, workflows pb.CertificateAuthorityWorkflows) error {
+	pb.RegisterSignCertificateWorkflow(w, workflows.SignCertificate)
 	return registerSignCertificateNexusService(w)
 }
 

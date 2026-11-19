@@ -25,18 +25,18 @@ expected() { # worker: what module.go registers, as twf deploy entries
   grep -oE '\b[a-z]+\.Register[A-Za-z]+' "lib/workers/$1/module.go" | while IFS=. read -r pkg call; do
     case "$pkg.$call" in
       clusterfabric.RegisterWorkflows) rpcs workflow proto/cluster/fabric/v1/*.proto | sed 's/^/workflow cluster./' ;;
-      certauth.RegisterWorkflows) rpcs workflow proto/fabric/certauth/v1/*.proto | sed 's/^/workflow certauth./' ;;
+      certauth.RegisterWorkflows) rpcs workflow proto/fabric/certauth/v1/*.proto | grep -vx SignCertificate | sed 's/^/workflow certauth./' ;;
       certauth.RegisterActivities | channel.RegisterActivities | orderer.RegisterActivities | peer.RegisterActivities)
         rpcs activity proto/fabric/"$pkg"/v1/*.proto | sed "s/^/activity $pkg./" ;;
-      fabric.RegisterWorkflows) rpcs workflow proto/fabric/v1/*.proto | sed 's/^/workflow fabric./' ;;
+      fabric.RegisterWorkflows) rpcs workflow proto/fabric/v1/*.proto | grep -vxE 'Bootstrap(Fabric|Shard)' | sed 's/^/workflow fabric./' ;;
       workers.RegisterClusterActivities)
         definitions activity "$library"/twf/helm/v1/*.twf | sed 's/^/activity helm./'
         definitions activity "$library"/twf/kube/v1/*.twf | sed 's/^/activity kube./'
         echo activity temporalmtls.EnsureTemporalMTLSClientCert ;;
       secrets.RegisterNexusService) echo nexus service secrets.Secrets ;;
-      certauth.RegisterSignCertificateNexusService) echo nexus service certauth.CertificateAuthority ;;
-      fabric.RegisterBootstrapFabricNexusService) echo nexus service fabric.FabricBootstrap ;;
-      fabric.RegisterBootstrapShardNexusService) echo nexus service fabric.ShardBootstrap ;;
+      certauth.RegisterSignCertificate) printf '%s\n' 'workflow certauth.SignCertificate' 'nexus service certauth.CertificateAuthority' ;;
+      fabric.RegisterBootstrapFabric) printf '%s\n' 'workflow fabric.BootstrapFabric' 'nexus service fabric.FabricBootstrap' ;;
+      fabric.RegisterBootstrapShard) printf '%s\n' 'workflow fabric.BootstrapShard' 'nexus service fabric.ShardBootstrap' ;;
       *.RegisterWorkflows) rpcs workflow proto/"$pkg"/v1/*.proto | sed "s/^/workflow $pkg./" ;;
       *.RegisterActivities) rpcs activity proto/"$pkg"/v1/*.proto | sed "s/^/activity $pkg./" ;;
       *) echo "check-twf: no mapping for $pkg.$call in lib/workers/$1/module.go" >&2; exit 1 ;;

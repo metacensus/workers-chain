@@ -68,18 +68,22 @@ var Module = fx.Module("fabric",
 		vault.RegisterActivities,
 		secrets.RegisterActivities,
 		workers.RegisterClusterActivities,
-		clusterfabric.RegisterWorkflows,
 		certauth.RegisterActivities,
-		certauth.RegisterWorkflows,
 		// Channel-lifecycle activities (config/governance + peer/orderer membership)
 		channel.RegisterActivities,
 		orderer.RegisterActivities,
 		peer.RegisterActivities,
-		// Handles SignCertificate Nexus calls from shard workers
-		certauth.RegisterSignCertificateNexusService,
-		fabric.RegisterWorkflows,
-		// Handles BootstrapFabric Nexus calls from the central infra worker
-		fabric.RegisterBootstrapFabricNexusService,
 		postgres.RegisterActivities,
 	),
+	workflows,
+)
+
+var workflows = fx.Invoke(
+	clusterfabric.RegisterWorkflows,
+	certauth.RegisterWorkflows,
+	// Handles SignCertificate Nexus calls from shard workers
+	certauth.RegisterSignCertificate,
+	fabric.RegisterWorkflows,
+	// Handles BootstrapFabric Nexus calls from the central infra worker
+	fabric.RegisterBootstrapFabric,
 )
