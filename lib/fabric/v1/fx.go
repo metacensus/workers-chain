@@ -27,24 +27,38 @@ var Module = fx.Options(
 	}),
 )
 
-// RegisterWorkflows registers fabric workflows with the worker
+// RegisterWorkflows registers the workflows every owner runs locally;
+// RegisterBootstrapFabric and RegisterBootstrapShard register the rest.
 func RegisterWorkflows(w worker.Worker, workflows pb.FabricWorkflows) {
-	pb.RegisterFabricWorkflows(w, workflows)
+	pb.RegisterAddOrdererToChannelWorkflow(w, workflows.AddOrdererToChannel)
+	pb.RegisterAddOrdererToConsenterSetWorkflow(w, workflows.AddOrdererToConsenterSet)
+	pb.RegisterAddOrgToChannelWorkflow(w, workflows.AddOrgToChannel)
+	pb.RegisterAddPeerToChannelWorkflow(w, workflows.AddPeerToChannel)
+	pb.RegisterCreateCertificateDatabaseWorkflow(w, workflows.CreateCertificateDatabase)
+	pb.RegisterCreateChannelWorkflow(w, workflows.CreateChannel)
+	pb.RegisterDeployCertificateAuthorityWorkflow(w, workflows.DeployCertificateAuthority)
+	pb.RegisterDeployCertificateStoreWorkflow(w, workflows.DeployCertificateStore)
+	pb.RegisterDeployChainCodeWorkflow(w, workflows.DeployChainCode)
+	pb.RegisterDeployCouchDbWorkflow(w, workflows.DeployCouchDb)
+	pb.RegisterDeployOrdererWorkflow(w, workflows.DeployOrderer)
+	pb.RegisterDeployPeerWorkflow(w, workflows.DeployPeer)
+	pb.RegisterJoinOrdererToChannelWorkflow(w, workflows.JoinOrdererToChannel)
+	pb.RegisterJoinPeerToChannelWorkflow(w, workflows.JoinPeerToChannel)
+	pb.RegisterSetAnchorPeerWorkflow(w, workflows.SetAnchorPeer)
+	pb.RegisterUpdateChannelConfigWorkflow(w, workflows.UpdateChannelConfig)
 }
 
-// RegisterBootstrapFabricNexusService registers only BootstrapFabric. Used by
-// the shared fabric worker; other fabric.v1 ops stay local (child/activity).
-//
-// Takes worker.Worker so uber/fx can inject the provided Worker.
-func RegisterBootstrapFabricNexusService(w worker.Worker) error {
+// RegisterBootstrapFabric registers BootstrapFabric's workflow and Nexus operation.
+func RegisterBootstrapFabric(w worker.Worker, workflows pb.FabricWorkflows) error {
+	pb.RegisterBootstrapFabricWorkflow(w, workflows.BootstrapFabric)
 	return registerFabricNexusOps(w, func(h *fabricv1temporal.FabricNexusHandler) nexus.RegisterableOperation {
 		return h.BootstrapFabric(fabricv1nexus.FabricBootstrapFabricOperationName)
 	})
 }
 
-// RegisterBootstrapShardNexusService registers only BootstrapShard. Used by
-// per-org shard workers.
-func RegisterBootstrapShardNexusService(w worker.Worker) error {
+// RegisterBootstrapShard registers BootstrapShard's workflow and Nexus operation.
+func RegisterBootstrapShard(w worker.Worker, workflows pb.FabricWorkflows) error {
+	pb.RegisterBootstrapShardWorkflow(w, workflows.BootstrapShard)
 	return registerFabricNexusOps(w, func(h *fabricv1temporal.FabricNexusHandler) nexus.RegisterableOperation {
 		return h.BootstrapShard(fabricv1nexus.FabricBootstrapShardOperationName)
 	})
